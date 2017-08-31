@@ -5,7 +5,7 @@ API
 Classes
 -------
 
-.. currentmodule:: shablona
+.. currentmodule:: cloudknot
 
 .. autosummary::
    :template: class.rst

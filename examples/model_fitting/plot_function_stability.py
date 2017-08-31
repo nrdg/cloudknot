@@ -3,14 +3,14 @@
 Plotting model stability
 ========================
 
-Next we'll show off another demonstration of model fitting with shablona.
+Next we'll show off another demonstration of model fitting with cloudknot.
 We'll generate a bunch of data with varying levels of signal to noise, and then
 show the stability of the model coefficients for each set of data.
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
-import shablona as sb
+import cloudknot as ck
 plt.style.use('ggplot')
 
 # Set seed for reproducibility
@@ -51,7 +51,7 @@ for ii, n_level in enumerate(noise_levels):
         x_boot = x[ixs_boot]
         y_boot = y[ixs_boot]
         # Fit the model and return the coefs
-        model = sb.Model(error_func)
+        model = ck.Model(error_func)
         fit = model.fit(x_boot, y_boot, (.5,))
         coefs[ii, jj] = fit.params[0]
 

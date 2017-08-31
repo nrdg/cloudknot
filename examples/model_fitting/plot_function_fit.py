@@ -1,11 +1,11 @@
 """
 ================================
-Fitting a function with shablona
+Fitting a function with cloudknot
 ================================
 
-Shablona contains a number of tools for fitting functions to
+Cloudknot contains a number of tools for fitting functions to
 data. This example shows us how to load data into python, fit
-a function to our datapoints with shablona, and then plot the
+a function to our datapoints with cloudknot, and then plot the
 result.
 
 This example is meant to demonstrate the functionality of
@@ -16,29 +16,29 @@ documents from python files.
 import os.path as op
 import numpy as np
 import matplotlib.pyplot as plt
-import shablona as sb
+import cloudknot as ck
 plt.style.use('ggplot')
 
 ###############################################################################
 # Loading data
 # ------------
 #
-# First, we'll load some data into shablona.
-data_path = op.join(sb.__path__[0], 'data')
+# First, we'll load some data into cloudknot.
+data_path = op.join(ck.__path__[0], 'data')
 
-ortho_x, ortho_y, ortho_n = sb.transform_data(op.join(data_path, 'ortho.csv'))
-para_x, para_y, para_n = sb.transform_data(op.join(data_path, 'para.csv'))
+ortho_x, ortho_y, ortho_n = ck.transform_data(op.join(data_path, 'ortho.csv'))
+para_x, para_y, para_n = ck.transform_data(op.join(data_path, 'para.csv'))
 
 ###############################################################################
 # Fitting a model
 # ---------------
 #
-# With shablona, models are created with the :ref:Model class.
+# With cloudknot, models are created with the :ref:Model class.
 # This class has a `fit` method that returns the coefficients for the given
 # input data.
 
 # Instantiate our model and fit it on two datasets
-model = sb.Model()
+model = ck.Model()
 ortho_fit = model.fit(ortho_x, ortho_y)
 para_fit = model.fit(para_x, para_y)
 

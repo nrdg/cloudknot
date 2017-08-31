@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# shablona documentation build configuration file, created by
+# cloudknot documentation build configuration file, created by
 # sphinx-quickstart on Tue Apr 14 10:29:06 2015.
 #
 # This file is execfile()d with the current directory set to its
@@ -17,8 +17,8 @@ import sys
 import os
 
 # General information about the project.
-project = 'shablona'
-copyright = '2015, Ariel Rokem'
+project = 'cloudknot'
+copyright = '2017, Adam Richie-Halford'
 
 currentdir = os.path.abspath(os.path.dirname(__file__))
 ver_file = os.path.join(currentdir, '..', project, 'version.py')
@@ -76,7 +76,7 @@ sphinx_gallery_conf = {
     # path where to save gallery generated examples
     'gallery_dirs': 'auto_examples',
     # To auto-generate example sections in the API
-    'doc_module': ('shablona',),
+    'doc_module': ('cloudknot',),
     # Auto-generated mini-galleries go here
     'backreferences_dir': 'gen_api'
 }
@@ -216,7 +216,7 @@ html_domain_indices = False
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'shablonadoc'
+htmlhelp_basename = 'cloudknotdoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -236,8 +236,8 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'shablona.tex', 'shablona Documentation',
-   'Ariel Rokem', 'manual'),
+  ('index', 'cloudknot.tex', 'cloudknot Documentation',
+   'Adam Richie-Halford', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -266,8 +266,8 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'shablona', 'shablona Documentation',
-     ['Ariel Rokem'], 1)
+    ('index', 'cloudknot', 'cloudknot Documentation',
+     ['Adam Richie-Halford'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -280,8 +280,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'shablona', 'shablona Documentation',
-   'Ariel Rokem', 'shablona', 'One line description of project.',
+  ('index', 'cloudknot', 'cloudknot Documentation',
+   'Adam Richie-Halford', 'cloudknot', 'One line description of project.',
    'Miscellaneous'),
 ]
 

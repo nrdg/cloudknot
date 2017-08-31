@@ -1,7 +1,7 @@
 [run]
 branch = True
-source = shablona/*
-include = shablona/*
+source = cloudknot/*
+include = cloudknot/*
 omit = */setup.py
 [report]
-include = shablona/*
+include = cloudknot/*
