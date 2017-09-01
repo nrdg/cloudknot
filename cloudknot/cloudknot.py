@@ -1,11 +1,15 @@
 from __future__ import absolute_import, division, print_function
-import numpy as np
-import pandas as pd
-import scipy.optimize as opt
-from scipy.special import erf
+import boto3
+import docker
+import os
+import shutil
+import operator
+import subprocess
+from collections import namedtuple
 from .due import due, Doi
 
-__all__ = ["Model", "Fit", "opt_err_func", "transform_data", "cumgauss"]
+__all__ = ["Container",
+"Model", "Fit", "opt_err_func", "transform_data", "cumgauss"]
 
 
 # Use duecredit (duecredit.org) to provide a citation to relevant work to
@@ -17,195 +21,179 @@ due.cite(Doi("10.1167/13.9.30"),
          path='cloudknot')
 
 
-def transform_data(data):
-    """
-    Function that takes experimental data and gives us the
-    dependent/independent variables for analysis.
+def get_repo(repo_name):
+    # Refresh the aws ecr login credentials
+    login_cmd = subprocess.check_output(['aws', 'ecr', 'get-login',
+        '--no-include-email', '--region', 'us-east-1'])
+    login_result = subprocess.call(
+            login_cmd.decode('ASCII').rstrip('\n').split(' '))
 
-    Parameters
-    ----------
-    data : Pandas DataFrame or string.
-        If this is a DataFrame, it should have the columns `contrast1` and
-        `answer` from which the dependent and independent variables will be
-        extracted. If this is a string, it should be the full path to a csv
-        file that contains data that can be read into a DataFrame with this
-        specification.
+    ecr_client = boto3.client('ecr')
 
-    Returns
-    -------
-    x : array
-        The unique contrast differences.
-    y : array
-        The proportion of '2' answers in each contrast difference
-    n : array
-        The number of trials in each x,y condition
-    """
-    if isinstance(data, str):
-        data = pd.read_csv(data)
+    # Get repository uri
+    try:
+        # First, check to see if it already exists
+        response = ecr_client.describe_repositories(
+                repositoryNames=[repo_name])
+        repo_uri = response['repositories'][0]['repositoryUri']
+        print('Repository {name:s} already exists at {uri:s}'.format(
+            name=repo_name, uri=repo_uri))
+    except ecr_client.exceptions.RepositoryNotFoundException:
+        # If it doesn't create it
+        response = ecr_client.create_repository(
+                repositoryName=repo_name)
+        repo_uri = response['repository']['repositoryUri']
+        print('Created repository {name:s} at {uri:s}'.format(
+            name=repo_name, uri=repo_uri))
 
-    contrast1 = data['contrast1']
-    answers = data['answer']
-
-    x = np.unique(contrast1)
-    y = []
-    n = []
-
-    for c in x:
-        idx = np.where(contrast1 == c)
-        n.append(float(len(idx[0])))
-        answer1 = len(np.where(answers[idx[0]] == 1)[0])
-        y.append(answer1 / n[-1])
-    return x, y, n
+    RepoInfo = namedtuple('RepoInfo', ['name', 'uri'])
+    return RepoInfo(name=repo_name, uri=repo_uri)
 
 
-def cumgauss(x, mu, sigma):
-    """
-    The cumulative Gaussian at x, for the distribution with mean mu and
-    standard deviation sigma.
-
-    Parameters
-    ----------
-    x : float or array
-       The values of x over which to evaluate the cumulative Gaussian function
-
-    mu : float
-       The mean parameter. Determines the x value at which the y value is 0.5
-
-    sigma : float
-       The variance parameter. Determines the slope of the curve at the point
-       of Deflection
-
-    Returns
-    -------
-
-    g : float or array
-        The cumulative gaussian with mean $\\mu$ and variance $\\sigma$
-        evaluated at all points in `x`.
-
-    Notes
-    -----
-    Based on:
-    http://en.wikipedia.org/wiki/Normal_distribution#Cumulative_distribution_function
-
-    The cumulative Gaussian function is defined as:
-
-    .. math::
-
-        \\Phi(x) = \\frac{1}{2} [1 + erf(\\frac{x}{\\sqrt{2}})]
-
-    Where, $erf$, the error function is defined as:
-
-    .. math::
-
-        erf(x) = \\frac{1}{\\sqrt{\\pi}} \int_{-x}^{x} e^{t^2} dt
-
-    """
-    return 0.5 * (1 + erf((x - mu) / (np.sqrt(2) * sigma)))
-
-
-def opt_err_func(params, x, y, func):
-    """
-    Error function for fitting a function using non-linear optimization.
-
-    Parameters
-    ----------
-    params : tuple
-        A tuple with the parameters of `func` according to their order of
-        input
-
-    x : float array
-        An independent variable.
-
-    y : float array
-        The dependent variable.
-
-    func : function
-        A function with inputs: `(x, *params)`
-
-    Returns
-    -------
-    float array
-        The marginals of the fit to x/y given the params
-    """
-    return y - func(x, *params)
-
-
-class Model(object):
-    """Class for fitting cumulative Gaussian functions to data"""
-    def __init__(self, func=cumgauss):
-        """ Initialize a model object.
+class DockerImage(object):
+    """Class for building, tagging, and pushing docker containers"""
+    def __init__(self, name, build_path='.', dockerfile='./Dockerfile',
+            requirements=None, tags=['latest']):
+        """ Initialize a Docker image object.
 
         Parameters
         ----------
-        data : Pandas DataFrame
-            Data from a subjective contrast judgement experiment
+        name : string
+            Name of the image
 
-        func : callable, optional
-            A function that relates x and y through a set of parameters.
-            Default: :func:`cumgauss`
-        """
-        self.func = func
+        build_path : string
+            Path to an existing directory in which to build docker image
+            Default: '.'
 
-    def fit(self, x, y, initial=[0.5, 1]):
+        dockerfile : string
+            Path to an existing Dockerfile
+            Default: './Dockerfile'
+
+        requirements : string
+            Path to an existing requirements.txt file to build dependencies
+            Default: None (i.e. assumes no dependencies)
+
+        tags : list
+            List of strings of desired image tags
+            Default: ['latest']
         """
-        Fit a Model to data.
+        self.name = name
+        self.build_path = buildpath
+        self.dockerfile = dockerfile
+        self.requirements = requirements
+        self.tags = tags
+        self.repository = repository
+
+        name = property(operator.attrgetter('_name'))
+        @name.setter
+        def name(self, n):
+            if not n:
+                raise Exception('name cannot be empty')
+            self._name = str(n)
+
+        build_path = property(operator.attrgetter('_build_path'))
+        @build_path.setter
+        def build_path(self, p):
+            if not os.path.isdir(p):
+                raise Exception('build_path must be an existing directory')
+            self._build_path = os.path.abspath(p)
+
+        dockerfile = property(operator.attrgetter('_dockerfile'))
+        @dockerfile.setter
+        def dockerfile(self, f):
+            if not os.path.isfile(f):
+                raise Exception('dockerfile must be an existing regular file')
+            self._dockerfile = os.path.abspath(f)
+
+        requirements = property(operator.attrgetter('_requirements'))
+        @requirements.setter
+        def requirements_path(self, f):
+            if f:
+                if not os.path.isfile(f)):
+                    raise Exception('requirements must be an existing regular file')
+                self._requirements = os.path.abspath(f)
+            else:
+                self._requirements = None
+
+        tags = property(operator.attrgetter('_tags'))
+        @tags.setter
+        def tags(self, tag_collection):
+            if tag_collection:
+                tmp_tags = [t for t in tag_collection]
+                if 'latest' not in tmp_tags:
+                    tmp_tags.append('latest')
+                self._tags = tmp_tags
+            else:
+                self._tags = None
+
+    def build(self, verbosity=0):
+        """
+        Build a DockerContainer image
 
         Parameters
         ----------
-        x : float or array
-           The independent variable: contrast values presented in the
-           experiment
-        y : float or array
-           The dependent variable
-
-        Returns
-        -------
-        fit : :class:`Fit` instance
-            A :class:`Fit` object that contains the parameters of the model.
-
+        verbosity : int
+            Verbosity level [0, 1, 2].
         """
-        params, _ = opt.leastsq(opt_err_func, initial,
-                                args=(x, y, self.func))
-        return Fit(self, params)
+        req_build_path = self.build_path + '/requirements.txt'
+        if (self.requirements and not os.path.isfile(req_build_path)):
+            shutil.copyfile(self.requirements, req_build_path)
+            cleanup = True
+        else:
+            cleanup = False
 
+        c = docker.from_env()
+        for tag in self.tags:
+            if (verbosity > 0):
+                print('Building image {name:s} with tag {tag:s}'.format(
+                    name=self.name, tag=tag))
+            build_result = c.build(path=self.build_path,
+                    dockerfile=self.dockerfile, tag=self.name + ':' + tag)
+            if (verbosity > 1):
+                for line in build_result:
+                    print(line)
 
-class Fit(object):
-    """
-    Class for representing a fit of a model to data
-    """
-    def __init__(self, model, params):
+        if cleanup:
+            os.remove(req_build_path)
+
+    def tag(self, verbosity=0):
         """
-        Initialize a :class:`Fit` object.
+        Tag a DockerContainer image
 
         Parameters
         ----------
-        model : a :class:`Model` instance
-            An object representing the model used
-
-        params : array or list
-            The parameters of the model evaluated for the data
-
+        verbosity : int
+            Verbosity level [0, 1, 2].
         """
-        self.model = model
-        self.params = params
+        c = docker.from_env()
+        for tag in self.tags:
+            if (verbosity > 0):
+                print('Tagging image {name:s} with tag {tag:s}'.format(
+                    name=self.name, tag=tag))
+            c.tag(image=self.name + ':' + self.tag,
+                    repository=self.repository, tag=tag)
 
-    def predict(self, x):
+    def push(self, repository, verbosity=0):
         """
-        Predict values of the dependent variable based on values of the
-        indpendent variable.
+        Push a DockerContainer image to a repository
 
         Parameters
         ----------
-        x : float or array
-            Values of the independent variable. Can be values presented in
-            the experiment. For out-of-sample prediction (e.g. in
-            cross-validation), these can be values
-            that were not presented in the experiment.
+        repository : string
+            String containing repository location
+            (e.g. on Dockerhub or Amazon ECR)
 
-        Returns
-        -------
-        y : float or array
-            Predicted values of the dependent variable, corresponding to
-            values of the independent variable.
+        verbosity : int
+            Verbosity level [0, 1, 2].
         """
-        return self.model.func(x, *self.params)
+        for tag in self.tags:
+            if (verbosity > 0):
+                print('Pushing image {name:s} with tag {tag:s}'.format(
+                    name=self.name, tag=tag))
+            push_result = c.push(
+                    repository=repository, tag=tag, stream=(verbosity > 1))
+            if (verbosity > 1):
+                for line in push_result:
+                    print(line)
+
+
