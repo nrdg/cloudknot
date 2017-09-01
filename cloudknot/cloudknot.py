@@ -52,7 +52,8 @@ def get_repo(repo_name):
 
 class DockerImage(object):
     """Class for building, tagging, and pushing docker containers"""
-    def __init__(self, name, build_path='.', dockerfile='./Dockerfile',
+    def __init__(self, name, build_path='.',
+            dockerfile=os.path.join('.', 'Dockerfile'),
             requirements=None, tags=['latest']):
         """ Initialize a Docker image object.
 
@@ -135,7 +136,7 @@ class DockerImage(object):
         verbosity : int
             Verbosity level [0, 1, 2].
         """
-        req_build_path = self.build_path + '/requirements.txt'
+        req_build_path = os.path.join(self.build_path + 'requirements.txt')
         if (self.requirements and not os.path.isfile(req_build_path)):
             shutil.copyfile(self.requirements, req_build_path)
             cleanup = True
