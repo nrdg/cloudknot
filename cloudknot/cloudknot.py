@@ -584,25 +584,36 @@ class ComputeEnvironment(ObjectWithUsernameAndMemory):
         name : string
             Name of the compute environment
 
+        batch_service_role : IamRole
+            IamRole instance for the AWS IAM batch service role
+
+        instance_role : IamRole
+            IamRole instance for the AWS IAM instance role
+
         spot_fleet_role : IamRole
-            IamRole instance for the AWS IAM spot fleet role
+            optional IamRole instance for the AWS IAM spot fleet role
+            Default: None
+
+        instance_types : string or sequence of strings
+            instance types that may be launched in this compute environment
+            Default: ('optimal',)
 
         resource_type : string
             Resource type, either "EC2" or "SPOT"
 
         min_vcpus : int
-            minimum number of virtual cpus to be used to this compute
-            environment
+            minimum number of virtual cpus for instances launched in this
+            compute environment
             Default: 0
 
         max_vcpus : int
-            maximum number of virtual cpus to be used to this compute
-            environment
+            maximum number of virtual cpus for instances launched in this
+            compute environment
             Default: 256
 
         desired_vcpus : int
-            desired number of virtual cpus to be used to this compute
-            environment
+            desired number of virtual cpus for instances launched in this
+            compute environment
             Default: 8
 
         memory : int
@@ -612,6 +623,21 @@ class ComputeEnvironment(ObjectWithUsernameAndMemory):
         username : string
             username for be used for this compute environment
             Default: cloudknot-user
+
+        image_id : string
+            optional AMI id used for instances launched in this compute
+            environment
+            Default: None
+
+        ec2_key_pair : string
+            optional EC2 key pair used for instances launched in this compute
+            environment
+            Default: None
+
+        tags : dictionary
+            optional key-value pair tags to be applied to resources in this
+            compute environment
+            Default: None
 
         bid_percentage : int
             bid percentage if using spot instances
@@ -790,11 +816,11 @@ class ComputeEnvironment(ObjectWithUsernameAndMemory):
             'maxvCpus': self.max_vcpu,
             'desiredvCpus': self.desired_vcpu,
             'instanceTypes': self.instance_types,
-            'subnets': self.subnets,
+            'subnets':subnets,
             # [
             #     'string',
             # ],
-            'securityGroupIds': self.security_group_ids,
+            'securityGroupIds':security_group_ids,
             # [
             #     'string',
             # ],
