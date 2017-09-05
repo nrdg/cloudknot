@@ -14,7 +14,8 @@ import docker
 
 from .due import due, Doi
 
-__all__ = ["DockerImage", "IamRole", "JobDefinition", "ComputeEnvironment", "JobQueue"]
+__all__ = ["DockerImage", "IamRole", "JobDefinition", "ComputeEnvironment",
+           "JobQueue"]
 
 
 # Use duecredit (duecredit.org) to provide a citation to relevant work to
@@ -114,7 +115,8 @@ class ObjectWithUsernameAndMemory(ObjectWithArn):
         verbosity : int
             verbosity level [0, 1, 2]
         """
-        super(ObjectWithUsernameAndMemory, self).__init__(name=name, verbosity=verbosity)
+        super(ObjectWithUsernameAndMemory, self).__init__(name=name,
+                                                          verbosity=verbosity)
         self.memory = memory
         self.username = username
 
@@ -351,7 +353,8 @@ class IamRole(ObjectWithArn):
         self.description = description
         self.service = service
         self.policies = policies
-        self.__allowed_services = ['batch', 'ec2', 'ecs-tasks', 'lambda', 'spotfleet']
+        self.__allowed_services = ['batch', 'ec2', 'ecs-tasks', 'lambda',
+                                   'spotfleet']
 
     description = property(operator.attrgetter('_description'))
 
@@ -437,6 +440,16 @@ class IamRole(ObjectWithArn):
 
         RoleInfo = namedtuple('RoleInfo', ['name', 'arn'])
         return RoleInfo(name=self.name, arn=role_arn)
+
+    def get_instance_profile(self):
+        iam = boto3.client('iam')
+
+        response = iam.list_instance_profiles_for_role(RoleName=self.name)
+        name = response.get('InstanceProfiles')[0]['InstanceProfileName']
+        arn = response.get('InstanceProfiles')[0]['Arn']
+
+        ProfileInfo = namedtuple('ProfileInfo', ['name', 'arn'])
+        return ProfileInfo(name=name, arn=arn)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -558,9 +571,12 @@ class JobDefinition(ObjectWithUsernameAndMemory):
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 class ComputeEnvironment(ObjectWithUsernameAndMemory):
     """Class for defining AWS Compute Environments"""
-    def __init__(self, name, spot_fleet_role, resource_type='EC2', min_vcpus=0,
-                 max_vcpus=256, desired_vcpus=8, memory=32000, username='cloudknot-user',
-                 bid_percentage=50, verbosity=0):
+    def __init__(self, name, batch_service_role, instance_role,
+                 spot_fleet_role=None, instance_types=('optimal',),
+                 resource_type='EC2', min_vcpus=0, max_vcpus=256,
+                 desired_vcpus=8, memory=32000, username='cloudknot-user',
+                 image_id=None, ec2_key_pair=None, tags=None,
+                 bid_percentage=None, verbosity=0):
         """ Initialize an AWS Batch job definition object.
 
         Parameters
@@ -604,23 +620,67 @@ class ComputeEnvironment(ObjectWithUsernameAndMemory):
         verbosity : int
             verbosity level [0, 1, 2]
         """
+        if not bid_percentage and resource_type == 'SPOT':
+            error = 'if resource_type is "SPOT", bid_percentage must be set.'
+            raise Exception(error)
         super(ComputeEnvironment, self).__init__(name=name, memory=memory,
                                                  username=username,
                                                  verbosity=verbosity)
+        self.batch_service_role = batch_service_role
+        self.instance_role = instance_role
         self.spot_fleet_role = spot_fleet_role
+        self.instance_types = instance_types
         self.resource_type = resource_type
         self.min_vcpu = min_vcpus
         self.max_vcpu = max_vcpus
         self.desired_vcpu = desired_vcpus
+        self.image_id = image_id
+        self.ec2_key_pair = ec2_key_pair
+        self.tags = tags
         self.bid_percentage = bid_percentage
+
+    batch_service_role = property(operator.attrgetter('_batch_service_role'))
+
+    @batch_service_role.setter
+    def batch_service_role(self, bsr):
+        if not (isinstance(bsr, IamRole) and bsr.service == 'batch'):
+            raise Exception('batch_service_role must be an IamRole instance '
+                            'with service type "batch"')
+        self._batch_service_role = bsr
+
+    instance_role = property(operator.attrgetter('_instance_role'))
+
+    @instance_role.setter
+    def instance_role(self, ir):
+        if not (isinstance(ir, IamRole) and ir.service == 'ec2'):
+            raise Exception('instance_role must be an IamRole instance with '
+                            'service type "ec2"')
+        self._instance_role = ir
 
     spot_fleet_role = property(operator.attrgetter('_spot_fleet_role'))
 
     @spot_fleet_role.setter
     def spot_fleet_role(self, sfr):
-        if not (isinstance(sfr, IamRole) or sfr.service == 'spotfleet'):
-            raise Exception('spot_fleet_role must be an IamRole instance with service type "spotfleet"')
-        self._spot_fleet_role = sfr
+        if sfr:
+            if not (isinstance(sfr, IamRole) and sfr.service == 'spotfleet'):
+                raise Exception('if provided, spot_fleet_role must be an '
+                                'IamRole instance with service type '
+                                '"spotfleet"')
+            self._spot_fleet_role = sfr
+        else:
+            self._spot_fleet_role = None
+
+    instance_types = property(operator.attrgetter('_instance_types'))
+
+    @instance_types.setter
+    def instance_types(self, it):
+        if isinstance(it, str):
+            self._instance_types = (it,)
+        elif all(isinstance(x, str) for x in it):
+            self._instance_types = list(it)
+        else:
+            error = 'instance_types must be a string or a sequence of strings.'
+            raise Exception(error)
 
     resource_type = property(operator.attrgetter('_resource_type'))
 
@@ -669,20 +729,57 @@ class ComputeEnvironment(ObjectWithUsernameAndMemory):
         except ValueError:
             raise Exception('desired_vcpus must be an integer')
 
+    image_id = property(operator.attrgetter('_image_id'))
+
+    @image_id.setter
+    def image_id(self, im_id):
+        if im_id:
+            if not isinstance(im_id, str):
+                raise Exception('if provided, image_id must be a string')
+            self._image_id = im_id
+        else:
+            self._image_id = None
+
+    ec2_key_pair = property(operator.attrgetter('_ec2_key_pair'))
+
+    @ec2_key_pair.setter
+    def ec2_key_pair(self, ec2kp):
+        if ec2kp:
+            if not isinstance(ec2kp, str):
+                raise Exception('if provided, ec2_key_pair must be a string')
+            self._ec2_key_pair = ec2kp
+        else:
+            self._ec2_key_pair = None
+
+    tags = property(operator.attrgetter('_tags'))
+
+    @tags.setter
+    def tags(self, tgs):
+        if tgs:
+            if not isinstance(tgs, dict):
+                raise Exception('if provided, tags must be an instance of '
+                                'dict')
+            self._tags = tgs
+        else:
+            self._tags = None
+
     bid_percentage = property(operator.attrgetter('_bid_percentage'))
 
     @bid_percentage.setter
     def bid_percentage(self, bp):
-        try:
-            bp_int = int(bp)
-            if bp_int < 0:
-                self._bid_percentage = 0
-            elif bp_int > 100:
-                self._bid_percentage = 100
-            else:
-                self._bid_percentage = bp_int
-        except ValueError:
-            raise Exception('bid_percentage must be an integer')
+        if bp:
+            try:
+                bp_int = int(bp)
+                if bp_int < 0:
+                    self._bid_percentage = 0
+                elif bp_int > 100:
+                    self._bid_percentage = 100
+                else:
+                    self._bid_percentage = bp_int
+            except ValueError:
+                raise Exception('if provided, bid_percentage must be an int')
+        else:
+            self._bid_percentage = None
 
     def create(self):
         batch = boto3.client('batch')
@@ -692,32 +789,45 @@ class ComputeEnvironment(ObjectWithUsernameAndMemory):
             'minvCpus': self.min_vcpu,
             'maxvCpus': self.max_vcpu,
             'desiredvCpus': self.desired_vcpu,
-            'instanceTypes': [
-                'optimal',
-            ],
-            'imageId': 'string',
-            'subnets': [
-                'string',
-            ],
-            'securityGroupIds': [
-                'string',
-            ],
-            'ec2KeyPair': 'string',
-            'instanceRole': 'string',
-            'tags': {
-                'string': 'string'
-            },
-            'bidPercentage': self.bid_percentage,
-            'spotIamFleetRole': self.spot_fleet_role.arn
+            'instanceTypes': self.instance_types,
+            'subnets': self.subnets,
+            # [
+            #     'string',
+            # ],
+            'securityGroupIds': self.security_group_ids,
+            # [
+            #     'string',
+            # ],
+            'instanceRole': self.instance_role.get_instance_profile()['arn'],
         }
+
+        # If using spot instances, include the relevant key/value pairs
+        if self.resource_type == 'SPOT':
+            compute_resources['bidPercentage'] = self.bid_percentage
+            compute_resources['spotIamFleetRole'] = self.spot_fleet_role.arn
+
+        # If tags, imageId, or ec2KeyPair are provided, include them too
+        if self.tags:
+            compute_resources['tags'] = self.tags
+        #     {
+        #     'string': 'string'
+        # },
+
+        if self.image_id:
+            compute_resources['imageId'] = self.image_id
+
+        if self.ec2_key_pair:
+            compute_resources['ec2KeyPair'] = self.ec2_key_pair
 
         response = batch.create_compute_environment(
             computeEnvironmentName=self.name,
             type='MANAGED',
             state='ENABLED',
             computeResources=compute_resources,
-            serviceRole='',
+            serviceRole=self.batch_service_role.arn,
         )
+
+        return response
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -750,14 +860,14 @@ class JobQueue(ObjectWithArn):
 
     @compute_environment.setter
     def compute_environment(self, ce):
-        if not (isinstance(ce, ComputeEnvironment)
-                and all(isinstance(x, ComputeEnvironment) for x in ce)):
-            raise Exception(
-                'compute_environment must be an instance of ComputeEnvironment')
-        elif isinstance(ce, ComputeEnvironment):
+        if isinstance(ce, ComputeEnvironment):
             self._compute_environment = (ce,)
-        else:
+        elif all(isinstance(x, ComputeEnvironment) for x in ce):
             self._compute_environment = tuple(ce)
+        else:
+            raise Exception('compute_environment must be a ComputeEnvironment '
+                            'instance or a sequence of ComputeEnvironment '
+                            'instances.')
 
     priority = property(operator.attrgetter('_priority'))
 
@@ -794,7 +904,7 @@ class JobQueue(ObjectWithArn):
         num_waits = 0
         while waiting:
             if self.priority > 0:
-                print('Waiting for AWS to create job queue {name:s} ...'.format(
+                print('Waiting for AWS to create job queue {name:s}.'.format(
                     name=self.name))
             response = batch.describe_job_queues(jobQueues=[self.name])
             waiting = (response.get('jobQueues')[0]['status'] != 'VALID')
