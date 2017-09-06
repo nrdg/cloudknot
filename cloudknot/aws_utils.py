@@ -445,22 +445,16 @@ class IamRole(ObjectWithArn):
 
     def _create(self):
         iam = boto3.client('iam')
-        try:
-            response = iam.create_role(
-                RoleName=self.name,
-                AssumeRolePolicyDocument=json.dumps(self.role_policy_document),
-                Description=self.description
-            )
-            role_arn = response.get('Role')['Arn']
-            if self.verbosity > 0:
-                print('Created role {name:s} with arn {arn:s}'.format(
-                    name=self.name, arn=role_arn))
-        except iam.exceptions.EntityAlreadyExistsException:
-            response = iam.get_role(RoleName=self.name)
-            role_arn = response.get('Role')['Arn']
-            if self.verbosity > 0:
-                print('Role {name:s} already exists with arn {arn:s}'.format(
-                    name=self.name, arn=role_arn))
+
+        response = iam.create_role(
+            RoleName=self.name,
+            AssumeRolePolicyDocument=json.dumps(self.role_policy_document),
+            Description=self.description
+        )
+        role_arn = response.get('Role')['Arn']
+        if self.verbosity > 0:
+            print('Created role {name:s} with arn {arn:s}'.format(
+                name=self.name, arn=role_arn))
 
         policy_response = iam.list_policies()
         for policy in self.policies:
