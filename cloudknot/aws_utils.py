@@ -12,8 +12,8 @@ import sys
 import time
 from collections import namedtuple
 
-__all__ = ["DockerImage", "IamRole", "JobDefinition", "ComputeEnvironment",
-           "JobQueue"]
+__all__ = ["DockerImage", "IamRole", "JobDefinition", "Vpc", "SecurityGroup",
+           "ComputeEnvironment", "JobQueue"]
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
