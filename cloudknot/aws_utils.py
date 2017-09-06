@@ -72,12 +72,11 @@ class ObjectWithArn(ObjectWithNameAndVerbosity):
             verbosity level [0, 1, 2]
         """
         super(ObjectWithArn, self).__init__(name=name, verbosity=verbosity)
-        self.__arn = None
+        self._arn = None
 
-    def get_arn(self):
-        return self.__arn
-
-    arn = property(get_arn)
+    @property
+    def arn(self):
+        return self._arn
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -166,7 +165,7 @@ class DockerImage(ObjectWithNameAndVerbosity):
         self.dockerfile = dockerfile
         self.requirements = requirements
         self.tags = tags
-        self.__uri = None
+        self._uri = None
 
     build_path = property(operator.attrgetter('_build_path'))
 
@@ -206,8 +205,6 @@ class DockerImage(ObjectWithNameAndVerbosity):
             self._tags = tmp_tags
         else:
             self._tags = None
-
-    verbosity = property(operator.attrgetter('_verbosity'))
 
     def build(self):
         """
@@ -263,7 +260,7 @@ class DockerImage(ObjectWithNameAndVerbosity):
                 print('Repository {name:s} already exists at {uri:s}'.format(
                     name=repo_name, uri=repo_uri))
         except ecr_client.exceptions.RepositoryNotFoundException:
-            # If it doesn't create it
+            # If it doesn't exists already, then create it
             response = ecr_client.create_repository(
                 repositoryName=repo_name
             )
@@ -273,12 +270,11 @@ class DockerImage(ObjectWithNameAndVerbosity):
                 print('Created repository {name:s} at {uri:s}'.format(
                     name=repo_name, uri=repo_uri))
 
-        self.__uri = repo_uri
+        self._uri = repo_uri
 
-    def get_uri(self):
-        return self.__uri
-
-    uri = property(get_uri)
+    @property
+    def uri(self):
+        return self._uri
 
     def tag(self, repo_name):
         """
@@ -351,6 +347,7 @@ class IamRole(ObjectWithArn):
         self.policies = policies
         self.__allowed_services = ['batch', 'ec2', 'ecs-tasks', 'lambda',
                                    'spotfleet']
+        self.create()
 
     description = property(operator.attrgetter('_description'))
 
@@ -389,7 +386,8 @@ class IamRole(ObjectWithArn):
         else:
             self._policies = tuple(input_policies)
 
-    def get_role_policy_document(self):
+    @property
+    def role_policy_document(self):
         role_policy = {
             "Version": "2012-10-17",
             "Statement": {
@@ -402,8 +400,6 @@ class IamRole(ObjectWithArn):
             }
         }
         return role_policy
-
-    role_policy_document = property(get_role_policy_document)
 
     def create(self):
         iam = boto3.client('iam')
@@ -442,7 +438,7 @@ class IamRole(ObjectWithArn):
                 print('Attached policy {policy:s} to role {role:s}'.format(
                     policy=policy, role=self.name))
 
-        self.__arn = role_arn
+        self._arn = role_arn
 
         RoleInfo = namedtuple('RoleInfo', ['name', 'arn'])
         return RoleInfo(name=self.name, arn=role_arn)
@@ -574,7 +570,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             print('Created AWS batch job definition {name:s}'.format(
                 name=self.name))
 
-        self.__arn = response['jobDefinitionArn']
+        self._arn = response['jobDefinitionArn']
 
         JobDefInfo = namedtuple('JobDefInfo', ['name', 'arn'])
         return JobDefInfo(name=self.name, arn=response['jobDefinitionArn'])
@@ -591,9 +587,8 @@ class Vpc(ObjectWithNameAndVerbosity):
         self.amazon_provided_ipv6 = amazon_provided_ipv6
         self.instance_tenancy = instance_tenancy
         self.subnet_ipv4 = subnet_ipv4
-        self.__vpc_id = None
-        self.__subnets = []
-        self.__security_group = None
+        self._vpc_id = None
+        self._subnets = []
 
     ipv4 = property(operator.attrgetter('_ipv4'))
 
@@ -636,20 +631,13 @@ class Vpc(ObjectWithNameAndVerbosity):
         except:
             raise Exception('subnet_ipv4 must be a valid IPv4 network range.')
 
-    def get_vpc_id(self):
-        return self.__vpc_id
+    @property
+    def vpc_id(self):
+        return self._vpc_id
 
-    vpc_id = property(get_vpc_id)
-
-    def get_subnets(self):
-        return self.__subnets
-
-    subnets = property(get_subnets)
-
-    def get_security_group(self):
-        return self.__security_group
-
-    security_group = property(get_security_group)
+    @property
+    def subnets(self):
+        return self._subnets
 
     def create(self):
         ec2 = boto3.client('ec2')
@@ -660,7 +648,7 @@ class Vpc(ObjectWithNameAndVerbosity):
             InstanceTenancy=self.instance_tenancy
         )
 
-        self.__vpc_id = response.get('Vpc')['VpcId']
+        self._vpc_id = response.get('Vpc')['VpcId']
 
     def add_subnet(self):
         ec2 = boto3.client('ec2')
@@ -677,7 +665,7 @@ class Vpc(ObjectWithNameAndVerbosity):
             VpcId=self.vpc_id
         )
 
-        self.__subnets.append(response.get('Subnet')['SubnetId'])
+        self._subnets.append(response.get('Subnet')['SubnetId'])
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -707,7 +695,7 @@ class SecurityGroup(ObjectWithNameAndVerbosity):
         super(SecurityGroup, self).__init__(name=name, verbosity=verbosity)
         self.vpc = vpc
         self.description = description
-        self.__security_group_id = None
+        self._security_group_id = None
 
     vpc = property(operator.attrgetter('_vpc'))
 
@@ -725,50 +713,52 @@ class SecurityGroup(ObjectWithNameAndVerbosity):
         else:
             self._description = str(d)
 
-    def get_security_group_id(self):
-        return self.__security_group_id
-
-    security_group_id = property(get_security_group_id)
+    @property
+    def security_group_id(self):
+        return self._security_group_id
 
     def create(self):
         ec2 = boto3.client('ec2')
 
-        # Create the security group
-        response = ec2.create_security_group(
-            GroupName=self.name,
-            Description=self.description,
-            VpcId=self.vpc.vpc_id
-        )
+        try:
+            # Create the security group
+            response = ec2.create_security_group(
+                GroupName=self.name,
+                Description=self.description,
+                VpcId=self.vpc.vpc_id
+            )
 
-        self.__security_group_id = response.get('GroupId')
+            self._security_group_id = response.get('GroupId')
 
-        # Add ingress rules to the security group
-        ipv4_ranges = [{
-            'CidrIp': '0.0.0.0/0'
-        }]
+            # Add ingress rules to the security group
+            ipv4_ranges = [{
+                'CidrIp': '0.0.0.0/0'
+            }]
 
-        ipv6_ranges = [{
-            'CidrIpv6': '::/0'
-        }]
+            ipv6_ranges = [{
+                'CidrIpv6': '::/0'
+            }]
 
-        ip_permissions = [{
-            'IpProtocol': 'TCP',
-            'FromPort': 80,
-            'ToPort': 80,
-            'IpRanges': ipv4_ranges,
-            'Ipv6Ranges': ipv6_ranges
-        }, {
-            'IpProtocol': 'TCP',
-            'FromPort': 22,
-            'ToPort': 22,
-            'IpRanges': ipv4_ranges,
-            'Ipv6Ranges': ipv6_ranges
-        }]
+            ip_permissions = [{
+                'IpProtocol': 'TCP',
+                'FromPort': 80,
+                'ToPort': 80,
+                'IpRanges': ipv4_ranges,
+                'Ipv6Ranges': ipv6_ranges
+            }, {
+                'IpProtocol': 'TCP',
+                'FromPort': 22,
+                'ToPort': 22,
+                'IpRanges': ipv4_ranges,
+                'Ipv6Ranges': ipv6_ranges
+            }]
 
-        ec2.authorize_security_group_ingress(
-            GroupId=self.security_group_id,
-            IpPermissions=ip_permissions
-        )
+            ec2.authorize_security_group_ingress(
+                GroupId=self.security_group_id,
+                IpPermissions=ip_permissions
+            )
+        except ClientError as e:
+            print(e)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -1060,9 +1050,6 @@ class ComputeEnvironment(ObjectWithUsernameAndMemory):
         # If tags, imageId, or ec2KeyPair are provided, include them too
         if self.tags:
             compute_resources['tags'] = self.tags
-        #     {
-        #     'string': 'string'
-        # },
 
         if self.image_id:
             compute_resources['imageId'] = self.image_id
@@ -1165,7 +1152,7 @@ class JobQueue(ObjectWithArn):
                 sys.exit('Waiting too long to create job queue. Aborting.')
 
         arn = response.get('jobQueues')[0]['jobQueueArn']
-        self.__arn = arn
+        self._arn = arn
 
         JobQueueInfo = namedtuple('JobQueueInfo', ['name', 'arn'])
         return JobQueueInfo(name=self.name, arn=arn)
