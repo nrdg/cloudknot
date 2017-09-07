@@ -10,7 +10,7 @@ import shutil
 import subprocess
 import sys
 import time
-from botocore.exceptions import ClientError
+import warnings
 from collections import namedtuple
 
 __all__ = ["DockerImage", "IamRole", "JobDefinition", "Vpc", "SecurityGroup",
@@ -31,29 +31,21 @@ class ObjectWithNameAndVerbosity(object):
         verbosity : int
             verbosity level [0, 1, 2]
         """
-        self.name = name
-        self.verbosity = verbosity
-
-    name = property(operator.attrgetter('_name'))
-
-    @name.setter
-    def name(self, n):
-        if not n:
+        if not name:
             raise Exception('name cannot be empty')
-        self._name = str(n)
+        self._name = str(name)
 
-    verbosity = property(operator.attrgetter('_verbosity'))
-
-    @verbosity.setter
-    def verbosity(self, v):
         try:
-            ver = int(v)
+            ver = int(verbosity)
             if ver < 1:
                 self._verbosity = 0
             else:
                 self._verbosity = ver
         except ValueError:
             raise Exception('verbosity must be an integer')
+
+    name = property(operator.attrgetter('_name'))
+    verbosity = property(operator.attrgetter('_verbosity'))
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -104,17 +96,12 @@ class ObjectWithUsernameAndMemory(ObjectWithArn):
         verbosity : int
             verbosity level [0, 1, 2]
         """
-        super(ObjectWithUsernameAndMemory, self).__init__(name=name,
-                                                          verbosity=verbosity)
-        self.memory = memory
-        self.username = username
+        super(ObjectWithUsernameAndMemory, self).__init__(
+            name=name, verbosity=verbosity
+        )
 
-    memory = property(operator.attrgetter('_memory'))
-
-    @memory.setter
-    def memory(self, m):
         try:
-            mem = int(m)
+            mem = int(memory)
             if mem < 1:
                 raise Exception('memory must be positive')
             else:
@@ -122,11 +109,10 @@ class ObjectWithUsernameAndMemory(ObjectWithArn):
         except ValueError:
             raise Exception('memory must be an integer')
 
-    username = property(operator.attrgetter('_username'))
+        self._username = str(username)
 
-    @username.setter
-    def username(self, u):
-        self._username = str(u)
+    memory = property(operator.attrgetter('_memory'))
+    username = property(operator.attrgetter('_username'))
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -162,52 +148,38 @@ class DockerImage(ObjectWithNameAndVerbosity):
             verbosity level [0, 1, 2]
         """
         super(DockerImage, self).__init__(name=name, verbosity=verbosity)
-        self.build_path = build_path
-        self.dockerfile = dockerfile
-        self.requirements = requirements
-        self.tags = tags
-        self._uri = None
 
-    build_path = property(operator.attrgetter('_build_path'))
-
-    @build_path.setter
-    def build_path(self, p):
-        if not os.path.isdir(p):
+        if not os.path.isdir(build_path):
             raise Exception('build_path must be an existing directory')
-        self._build_path = os.path.abspath(p)
+        self._build_path = os.path.abspath(build_path)
 
-    dockerfile = property(operator.attrgetter('_dockerfile'))
-
-    @dockerfile.setter
-    def dockerfile(self, f):
-        if not os.path.isfile(f):
+        if not os.path.isfile(dockerfile):
             raise Exception('dockerfile must be an existing regular file')
-        self._dockerfile = os.path.abspath(f)
+        self._dockerfile = os.path.abspath(dockerfile)
 
-    requirements = property(operator.attrgetter('_requirements'))
-
-    @requirements.setter
-    def requirements(self, f):
-        if not f:
+        if not requirements:
             self._requirements = None
-        elif not os.path.isfile(f):
+        elif not os.path.isfile(requirements):
             raise Exception('requirements must be an existing regular file')
         else:
-            self._requirements = os.path.abspath(f)
+            self._requirements = os.path.abspath(requirements)
 
-    tags = property(operator.attrgetter('_tags'))
-
-    @tags.setter
-    def tags(self, tag_collection):
-        if tag_collection:
-            tmp_tags = tuple([t for t in tag_collection])
+        if tags:
+            tmp_tags = tuple([t for t in tags])
             if 'latest' not in tmp_tags:
                 tmp_tags = tmp_tags + ('latest',)
             self._tags = tmp_tags
         else:
             self._tags = None
 
-    def build(self):
+        self._uri = None
+
+    build_path = property(operator.attrgetter('_build_path'))
+    dockerfile = property(operator.attrgetter('_dockerfile'))
+    requirements = property(operator.attrgetter('_requirements'))
+    tags = property(operator.attrgetter('_tags'))
+
+    def _build(self):
         """
         Build a DockerContainer image
         """
@@ -233,7 +205,7 @@ class DockerImage(ObjectWithNameAndVerbosity):
         if cleanup:
             os.remove(req_build_path)
 
-    def create_repo(self, repo_name):
+    def _create_repo(self, repo_name):
         # Refresh the aws ecr login credentials
         login_cmd = subprocess.check_output(['aws', 'ecr', 'get-login',
                                              '--no-include-email', '--region',
@@ -277,11 +249,11 @@ class DockerImage(ObjectWithNameAndVerbosity):
     def uri(self):
         return self._uri
 
-    def tag(self, repo_name):
+    def _tag(self, repo_name):
         """
         Tag a DockerContainer image
         """
-        self.create_repo(repo_name=repo_name)
+        self._create_repo(repo_name=repo_name)
         c = docker.from_env()
         for tag in self.tags:
             if self.verbosity > 0:
@@ -290,7 +262,7 @@ class DockerImage(ObjectWithNameAndVerbosity):
             c.tag(image=self.name + ':' + self.tag,
                   repository=self.uri, tag=tag)
 
-    def push(self, repo_name):
+    def _push(self, repo_name):
         """
         Push a DockerContainer image to a repository
 
@@ -299,7 +271,7 @@ class DockerImage(ObjectWithNameAndVerbosity):
         repo_name : string
             Repository name
         """
-        self.create_repo(repo_name=repo_name)
+        self._create_repo(repo_name=repo_name)
         c = docker.from_env()
         for tag in self.tags:
             if self.verbosity > 0:
@@ -347,9 +319,11 @@ class IamRole(ObjectWithArn):
             verbosity level [0, 1, 2]
         """
         super(IamRole, self).__init__(name=name, verbosity=verbosity)
+
         role_exists = self._exists_already()
+        self._pre_existing = role_exists.exists
+
         if role_exists.exists:
-            self._pre_existing = role_exists.exists
             self._description = role_exists.description
             self._service = None
             self._role_policy_document = role_exists.role_policy_document
@@ -357,8 +331,6 @@ class IamRole(ObjectWithArn):
             self._add_instance_role = role_exists.add_instance_role
             self._arn = role_exists.arn
         else:
-            self._pre_existing = role_exists.exists
-
             if description:
                 self._description = str(description)
             else:
@@ -406,14 +378,27 @@ class IamRole(ObjectWithArn):
     _allowed_services = ['batch', 'ec2', 'ecs-tasks', 'lambda', 'spotfleet']
 
     pre_existing = property(operator.attrgetter('_pre_existing'))
+    description = property(operator.attrgetter('_description'))
+    service = property(operator.attrgetter('_service'))
+    role_policy_document = property(
+        operator.attrgetter('_role_policy_document')
+    )
+    add_instance_role = property(operator.attrgetter('_add_instance_role'))
+    policies = property(operator.attrgetter('_policies'))
 
     def _exists_already(self):
-        iam = boto3.client('iam')
+        # define a namedtuple for return value type
         RoleExists = namedtuple(
             'RoleExists',
             ['exists', 'description', 'role_policy_document', 'policies',
              'add_instance_role', 'arn']
         )
+        # make all but the first value default to None
+        RoleExists.__new__.__defaults__ = \
+            (None,) * (len(RoleExists._fields) - 1)
+
+        iam = boto3.client('iam')
+
         try:
             response = iam.get_role(RoleName=self.name)
             arn = response.get('Role')['Arn']
@@ -426,22 +411,19 @@ class IamRole(ObjectWithArn):
             response = iam.list_attached_role_policies(RoleName=self.name)
             attached_policies = response.get('AttachedPolicies')
             policies = tuple([d['PolicyName'] for d in attached_policies])
-            return RoleExists(exists=True, description=description,
-                              role_policy_document=role_policy,
-                              policies=policies, add_instance_role=False,
-                              arn=arn)
-        except iam.exceptions.NoSuchEntityException:
-            return RoleExists(exists=False, description=None,
-                              role_policy_document=None, policies=None,
-                              add_instance_role=None, arn=None)
 
-    description = property(operator.attrgetter('_description'))
-    service = property(operator.attrgetter('_service'))
-    role_policy_document = property(
-        operator.attrgetter('_role_policy_document')
-    )
-    add_instance_role = property(operator.attrgetter('_add_instance_role'))
-    policies = property(operator.attrgetter('_policies'))
+            if self.verbosity > 0:
+                print('IAM role {name:s} already exists: {arn:s}'.format(
+                    name=self.name, arn=arn
+                ))
+
+            return RoleExists(
+                exists=True, description=description,
+                role_policy_document=role_policy, policies=policies,
+                add_instance_role=False, arn=arn
+            )
+        except iam.exceptions.NoSuchEntityException:
+            return RoleExists(exists=False)
 
     def _create(self):
         iam = boto3.client('iam')
@@ -454,7 +436,8 @@ class IamRole(ObjectWithArn):
         role_arn = response.get('Role')['Arn']
         if self.verbosity > 0:
             print('Created role {name:s} with arn {arn:s}'.format(
-                name=self.name, arn=role_arn))
+                name=self.name, arn=role_arn
+            ))
 
         policy_response = iam.list_policies()
         for policy in self.policies:
@@ -472,7 +455,8 @@ class IamRole(ObjectWithArn):
 
             if self.verbosity > 0:
                 print('Attached policy {policy:s} to role {role:s}'.format(
-                    policy=policy, role=self.name))
+                    policy=policy, role=self.name
+                ))
 
         if self.add_instance_role:
             instance_profile_name = self.name + '-instance-profile'
@@ -541,55 +525,94 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         super(JobDefinition, self).__init__(name=name, memory=memory,
                                             username=username,
                                             verbosity=verbosity)
-        self.job_role = job_role
-        self.docker_image = docker_image
-        self.vcpus = vcpus
-        self.retries = retries
 
+        resource_exists = self._exists_already()
+        self._pre_existing = resource_exists.exists
+
+        if resource_exists.exists:
+            self._job_role = resource_exists.job_role
+            self._docker_image = resource_exists.docker_image
+            self._vcpus = resource_exists.vcpus
+            self._memory = resource_exists.memory
+            self._username = resource_exists.username
+            self._retries = resource_exists.retries
+            self._arn = resource_exists.arn
+        else:
+            if not isinstance(job_role, IamRole):
+                raise Exception('job_role must be an instance of IamRole')
+            self._job_role = job_role
+
+            if not isinstance(docker_image, DockerImage):
+                raise Exception(
+                    'docker_image must be an instance of DockerImage')
+            self._docker_image = docker_image
+
+            try:
+                cpus = int(vcpus)
+                if cpus < 1:
+                    raise Exception('vcpus must be positive')
+                else:
+                    self._vcpus = cpus
+            except ValueError:
+                raise Exception('vcpus must be an integer')
+
+            try:
+                retries_int = int(retries)
+                if retries_int < 1:
+                    raise Exception('retries must be positive')
+                else:
+                    self._retries = retries_int
+            except ValueError:
+                raise Exception('retries must be an integer')
+
+            self._arn = self._create()
+
+    pre_existing = property(operator.attrgetter('_pre_existing'))
     job_role = property(operator.attrgetter('_job_role'))
-
-    @job_role.setter
-    def job_role(self, j):
-        if not isinstance(j, IamRole):
-            raise Exception('job_role must be an instance of IamRole')
-        self._job_role = j
-
     docker_image = property(operator.attrgetter('_docker_image'))
-
-    @docker_image.setter
-    def docker_image(self, i):
-        if not isinstance(i, DockerImage):
-            raise Exception(
-                'docker_image must be an instance of DockerImage')
-        self._docker_image = i
-
     vcpus = property(operator.attrgetter('_vcpus'))
-
-    @vcpus.setter
-    def vcpus(self, c):
-        try:
-            cpus = int(c)
-            if cpus < 1:
-                raise Exception('vcpus must be positive')
-            else:
-                self._vcpus = cpus
-        except ValueError:
-            raise Exception('vcpus must be an integer')
-
     retries = property(operator.attrgetter('_retries'))
 
-    @retries.setter
-    def retries(self, r):
-        try:
-            retries_int = int(r)
-            if retries_int < 1:
-                raise Exception('retries must be positive')
-            else:
-                self._retries = retries_int
-        except ValueError:
-            raise Exception('retries must be an integer')
+    def _exists_already(self):
+        # define a namedtuple for return value type
+        ResourceExists = namedtuple(
+            'ResourceExists',
+            ['exists', 'job_role', 'docker_image', 'vcpus',
+             'memory', 'username', 'retries', 'arn']
+        )
+        # make all but the first value default to None
+        ResourceExists.__new__.__defaults__ = \
+            (None,) * (len(ResourceExists._fields) - 1)
 
-    def create(self):
+        batch = boto3.client('batch')
+
+        response = batch.describe_job_definitions(jobDefinitionName=self.name)
+        if response.get('jobDefinitions'):
+            job_def = response.get('jobDefinitions')[0]
+            arn = job_def['jobDefinitionArn']
+            retries = job_def['retryStrategy']['attempts']
+
+            container_properties = job_def['containerProperties']
+            username = container_properties['user']
+            memory = container_properties['memory']
+            vcpus = container_properties['vcpus']
+            job_role_arn = container_properties['jobRoleArn']
+            container_image = container_properties['image']
+
+            if self.verbosity > 0:
+                print('Job definition {name:s} already exists.'.format(
+                    name=self.name
+                ))
+
+            return ResourceExists(
+                exists=True, job_role=job_role_arn,
+                docker_image=container_image, vcpus=vcpus, memory=memory,
+                username=username, retries=retries, arn=arn
+            )
+        else:
+            return ResourceExists(exists=False)
+
+    def _create(self):
         batch = boto3.client('batch')
 
         job_container_properties = {
@@ -612,76 +635,126 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             print('Created AWS batch job definition {name:s}'.format(
                 name=self.name))
 
-        self._arn = response['jobDefinitionArn']
-
-        JobDefInfo = namedtuple('JobDefInfo', ['name', 'arn'])
-        return JobDefInfo(name=self.name, arn=response['jobDefinitionArn'])
+        return response['jobDefinitionArn']
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 class Vpc(ObjectWithNameAndVerbosity):
     """Class for defining an Amazon Virtual Private Cloud (VPC)"""
     def __init__(self, name, ipv4='10.0.0.0/16', amazon_provided_ipv6=True,
-                 instance_tenancy='default', subnet_ipv4='10.0.0.0/24',
+                 instance_tenancy='default', subnet_ipv4=('10.0.0.0/24',),
                  verbosity=0):
         super(Vpc, self).__init__(name=name, verbosity=verbosity)
-        self.ipv4 = ipv4
-        self.amazon_provided_ipv6 = amazon_provided_ipv6
-        self.instance_tenancy = instance_tenancy
-        self.subnet_ipv4 = subnet_ipv4
-        self._vpc_id = None
-        self._subnets = []
 
+        resource_exists = self._exists_already()
+        self._pre_existing = resource_exists.exists
+
+        if resource_exists.exists:
+            self._ipv4 = resource_exists.job_role
+            self._amazon_provided_ipv6 = resource_exists.docker_image
+            self._instance_tenancy = resource_exists.vcpus
+            self._subnet_ipv4 = resource_exists.memory
+            self._vpc_id = resource_exists.username
+            self._subnets = resource_exists.retries
+        else:
+            try:
+                ip_net = ipaddress.IPv4Network(ipv4)
+                self._ipv4 = str(ip_net)
+            except:
+                raise Exception('ipv4 must be a valid IPv4 network range.')
+
+            if isinstance(amazon_provided_ipv6, bool):
+                self._amazon_provided_ipv6 = amazon_provided_ipv6
+            else:
+                raise Exception('amazon_provided_ipv6 is a boolean input')
+
+            if instance_tenancy in ('default', 'dedicated', 'host'):
+                self._instance_tenancy = instance_tenancy
+            else:
+                raise Exception('instance tenancy must be one of ("default", '
+                                '"dedicated", "host")')
+
+            try:
+                self._subnet_ipv4 = [
+                    str(ipaddress.IPv4Network(ip)) for ip in subnet_ipv4
+                ]
+            except:
+                raise Exception(
+                    'subnet_ipv4 must be a sequence of valid IPv4 '
+                    'network range.'
+                )
+
+            n_subnets = len(subnet_ipv4)
+            if n_subnets > 1:
+                warnings.warn(
+                    'provided {n:d} subnet'.format(n=n_subnets) + ' '
+                    'This object will ignore all but the first subnet.'
+                )
+
+            self._vpc_id = self._create()
+            self._subnets = []
+            self._subnets.append(self._add_subnet)
+
+    pre_existing = property(operator.attrgetter('_pre_existing'))
     ipv4 = property(operator.attrgetter('_ipv4'))
-
-    @ipv4.setter
-    def ipv4(self, ip):
-        try:
-            ip_net = ipaddress.IPv4Network(ip)
-            self._ipv4 = str(ip_net)
-        except:
-            raise Exception('ipv4 must be a valid IPv4 network range.')
-
     amazon_provided_ipv6 = property(
         operator.attrgetter('_amazon_provided_ipv6')
     )
-
-    @amazon_provided_ipv6.setter
-    def amazon_provided_ipv6(self, b):
-        if isinstance(b, bool):
-            self._amazon_provided_ipv6 = b
-        else:
-            raise Exception('amazon_provided_ipv6 is a boolean input')
-
     instance_tenancy = property(operator.attrgetter('_instance_tenancy'))
-
-    @instance_tenancy.setter
-    def instance_tenancy(self, it):
-        if it in ('default', 'dedicated', 'host'):
-            self._instance_tenancy = it
-        else:
-            raise Exception('instance tenancy must be one of ("default", '
-                            '"dedicated", "host")')
-
     subnet_ipv4 = property(operator.attrgetter('_subnet_ipv4'))
+    vpc_id = property(operator.attrgetter('_vpc_id'))
+    subnets = property(operator.attrgetter('_subnets'))
 
-    @subnet_ipv4.setter
-    def subnet_ipv4(self, subnet_ip):
-        try:
-            subnet_ip_net = ipaddress.IPv4Network(subnet_ip)
-            self._subnet_ipv4 = str(subnet_ip_net)
-        except:
-            raise Exception('subnet_ipv4 must be a valid IPv4 network range.')
+    def _exists_already(self):
+        # define a namedtuple for return value type
+        ResourceExists = namedtuple(
+            'ResourceExists',
+            ['exists', 'ipv4', 'instance_tenancy', 'subnet_ipv4',
+             'vpc_id', 'subnets']
+        )
+        # make all but the first value default to None
+        ResourceExists.__new__.__defaults__ = \
+            (None,) * (len(ResourceExists._fields) - 1)
 
-    @property
-    def vpc_id(self):
-        return self._vpc_id
+        ec2 = boto3.client('ec2')
+        response = ec2.describe_vpcs(
+            Filters=[
+                {
+                    'Name': 'cidr',
+                    'Values': [self.ipv4]
+                },
+            ]
+        )
 
-    @property
-    def subnets(self):
-        return self._subnets
+        if response.get('Vpcs'):
+            vpc = response.get('Vpcs')[0]
+            ipv4 = vpc['CidrBlock']
+            vpc_id = vpc['VpcId']
+            instance_tenancy = vpc['InstanceTenancy']
 
-    def create(self):
+            response = ec2.describe_subnets(
+                Filters=[
+                    {
+                        'Name': 'vpc-id',
+                        'Values': [vpc_id]
+                    }
+                ]
+            )
+
+            subnets = [d['SubnetId'] for d in response.get('Subnets')]
+            subnet_ipv4 = [d['CidrBlock'] for d in response.get('Subnets')]
+
+            if self.verbosity > 0:
+                print('VPC {vpcid:s} already exists.'.format(vpcid=vpc_id))
+
+            return ResourceExists(
+                exists=True, ipv4=ipv4, instance_tenancy=instance_tenancy,
+                subnet_ipv4=subnet_ipv4, vpc_id=vpc_id, subnets=subnets
+            )
+        else:
+            return ResourceExists(exists=False)
+
+    def _create(self):
         ec2 = boto3.client('ec2')
 
         response = ec2.create_vpc(
@@ -690,9 +763,14 @@ class Vpc(ObjectWithNameAndVerbosity):
             InstanceTenancy=self.instance_tenancy
         )
 
-        self._vpc_id = response.get('Vpc')['VpcId']
+        vpc_id = response.get('Vpc')['VpcId']
 
-    def add_subnet(self):
+        if self.verbosity > 0:
+            print('Created VPC {vpcid:s}.'.format(vpcid=vpc_id))
+
+        return vpc_id
+
+    def _add_subnet(self):
         ec2 = boto3.client('ec2')
 
         # Assign IPv6 block for subnet using CIDR provided by Amazon,
@@ -702,12 +780,12 @@ class Vpc(ObjectWithNameAndVerbosity):
         subnet_ipv6 = ipv6_set['Ipv6CidrBlock'][:-2] + '64'
 
         response = ec2.create_subnet(
-            CidrBlock=self.subnet_ipv4,
+            CidrBlock=self.subnet_ipv4[0],
             Ipv6CidrBlock=subnet_ipv6,
             VpcId=self.vpc_id
         )
 
-        self._subnets.append(response.get('Subnet')['SubnetId'])
+        return response.get('Subnet')['SubnetId']
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -735,79 +813,120 @@ class SecurityGroup(ObjectWithNameAndVerbosity):
             verbosity level [0, 1, 2]
         """
         super(SecurityGroup, self).__init__(name=name, verbosity=verbosity)
-        self.vpc = vpc
-        self.description = description
-        self._security_group_id = None
 
-    vpc = property(operator.attrgetter('_vpc'))
-
-    @vpc.setter
-    def vpc(self, v):
-        if not isinstance(v, Vpc):
+        if not isinstance(vpc, Vpc):
             raise Exception('vpc must be an instance of Vpc.')
 
-    description = property(operator.attrgetter('_description'))
+        resource_exists = self._exists_already(vpc.vpc_id)
+        self._pre_existing = resource_exists.exists
 
-    @description.setter
-    def description(self, d):
-        if not d:
-            self._description = 'This role was generated by cloudknot'
+        if resource_exists.exists:
+            self._vpc = None
+            self._vpc_id = resource_exists.vpc_id
+            self._description = resource_exists.description
+            self._security_group_id = resource_exists.security_group_id
         else:
-            self._description = str(d)
+            self._vpc = vpc
+            self._vpc_id = vpc.vpc_id
 
-    @property
-    def security_group_id(self):
-        return self._security_group_id
+            if not description:
+                self._description = 'This role was generated by cloudknot'
+            else:
+                self._description = str(description)
 
-    def create(self):
+            self._security_group_id = self._create()
+
+    pre_existing = property(operator.attrgetter('_pre_existing'))
+    vpc = property(operator.attrgetter('_vpc'))
+    description = property(operator.attrgetter('_description'))
+    security_group_id = property(operator.attrgetter('_security_group_id'))
+
+    def _exists_already(self, vpc_id):
+        # define a namedtuple for return value type
+        ResourceExists = namedtuple(
+            'ResourceExists',
+            ['exists', 'vpc_id', 'description', 'security_group_id']
+        )
+        # make all but the first value default to None
+        ResourceExists.__new__.__defaults__ = \
+            (None,) * (len(ResourceExists._fields) - 1)
+
+        ec2 = boto3.client('ec2')
+        response = ec2.describe_security_groups(
+            Filters=[
+                {
+                    'Name': 'group-name',
+                    'Values': [self.name]
+                },
+                {
+                    'Name': 'vpc-id',
+                    'Values': [vpc_id]
+                }
+            ]
+        )
+
+        sg = response.get('SecurityGroups')
+        if sg:
+            description = sg[0]['Description']
+            group_id = sg[0]['GroupId']
+            return ResourceExists(
+                exists=True, vpc_id=vpc_id, description=description,
+                security_group_id=group_id
+            )
+        else:
+            return ResourceExists(exists=False)
+
+    def _create(self):
         ec2 = boto3.client('ec2')
 
-        try:
-            # Create the security group
-            response = ec2.create_security_group(
-                GroupName=self.name,
-                Description=self.description,
-                VpcId=self.vpc.vpc_id
-            )
+        # Create the security group
+        response = ec2.create_security_group(
+            GroupName=self.name,
+            Description=self.description,
+            VpcId=self.vpc.vpc_id
+        )
 
-            self._security_group_id = response.get('GroupId')
+        group_id = response.get('GroupId')
 
-            # Add ingress rules to the security group
-            ipv4_ranges = [{
-                'CidrIp': '0.0.0.0/0'
-            }]
+        # Add ingress rules to the security group
+        ipv4_ranges = [{
+            'CidrIp': '0.0.0.0/0'
+        }]
 
-            ipv6_ranges = [{
-                'CidrIpv6': '::/0'
-            }]
+        ipv6_ranges = [{
+            'CidrIpv6': '::/0'
+        }]
 
-            ip_permissions = [{
-                'IpProtocol': 'TCP',
-                'FromPort': 80,
-                'ToPort': 80,
-                'IpRanges': ipv4_ranges,
-                'Ipv6Ranges': ipv6_ranges
-            }, {
-                'IpProtocol': 'TCP',
-                'FromPort': 22,
-                'ToPort': 22,
-                'IpRanges': ipv4_ranges,
-                'Ipv6Ranges': ipv6_ranges
-            }]
+        ip_permissions = [{
+            'IpProtocol': 'TCP',
+            'FromPort': 80,
+            'ToPort': 80,
+            'IpRanges': ipv4_ranges,
+            'Ipv6Ranges': ipv6_ranges
+        }, {
+            'IpProtocol': 'TCP',
+            'FromPort': 22,
+            'ToPort': 22,
+            'IpRanges': ipv4_ranges,
+            'Ipv6Ranges': ipv6_ranges
+        }]
 
-            ec2.authorize_security_group_ingress(
-                GroupId=self.security_group_id,
-                IpPermissions=ip_permissions
-            )
-        except ClientError as e:
-            print(e)
+        ec2.authorize_security_group_ingress(
+            GroupId=group_id,
+            IpPermissions=ip_permissions
+        )
+
+        if self.verbosity > 0:
+            print('Created security group {id:s}'.format(id=group_id))
+
+        return group_id
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 class ComputeEnvironment(ObjectWithUsernameAndMemory):
     """Class for defining AWS Compute Environments"""
-    def __init__(self, name, batch_service_role, instance_role,
-                 vpc, security_group,
+    def __init__(self, name, batch_service_role=None, instance_role=None,
+                 vpc=None, security_group=None,
                  spot_fleet_role=None, instance_types=('optimal',),
                  resource_type='EC2', min_vcpus=0, max_vcpus=256,
                  desired_vcpus=8, memory=32000, username='cloudknot-user',
@@ -890,187 +1009,248 @@ class ComputeEnvironment(ObjectWithUsernameAndMemory):
         verbosity : int
             verbosity level [0, 1, 2]
         """
-        if not bid_percentage and resource_type == 'SPOT':
-            error = 'if resource_type is "SPOT", bid_percentage must be set.'
-            raise Exception(error)
         super(ComputeEnvironment, self).__init__(name=name, memory=memory,
                                                  username=username,
                                                  verbosity=verbosity)
-        self.batch_service_role = batch_service_role
-        self.instance_role = instance_role
-        self.vpc = vpc
-        self.security_group = security_group
-        self.spot_fleet_role = spot_fleet_role
-        self.instance_types = instance_types
-        self.resource_type = resource_type
-        self.min_vcpu = min_vcpus
-        self.max_vcpu = max_vcpus
-        self.desired_vcpu = desired_vcpus
-        self.image_id = image_id
-        self.ec2_key_pair = ec2_key_pair
-        self.tags = tags
-        self.bid_percentage = bid_percentage
+
+        resource_exists = self._exists_already()
+        self._pre_existing = resource_exists.exists
+
+        if resource_exists.exists:
+            self._batch_service_role = None
+            self._batch_service_arn = resource_exists.batch_service_arn
+
+            self._instance_role = None
+            self._instance_role_arn = resource_exists.instance_role_arn
+
+            self._vpc = None
+            self._subnets = resource_exists.subnets
+
+            self._security_group = None
+            self._security_group_ids = resource_exists.security_group_ids
+
+            self._spot_fleet_role = None
+            self._spot_fleet_role_arn = resource_exists.spot_fleet_role_arn
+
+            self._instance_types = resource_exists.instance_types
+            self._resource_type = resource_exists.resource_type
+            self._min_vcpus = resource_exists.min_vcpus
+            self._max_vcpus = resource_exists.max_vcpus
+            self._desired_vcpus = resource_exists.desired_vcpus
+            self._image_id = resource_exists.image_id
+            self._ec2_key_pair = resource_exists.ec2_key_pair
+            self._tags = resource_exists.tags
+            self._bid_percentage = resource_exists.bid_percentage
+            self._arn = resource_exists.arn
+        else:
+            if not bid_percentage and resource_type == 'SPOT':
+                raise Exception('if resource_type is "SPOT", bid_percentage '
+                                'must be set.')
+
+            if not spot_fleet_role and resource_type == 'SPOT':
+                raise Exception('if resource_type is "SPOT", spot_fleet_role '
+                                'must be set.')
+
+            if not (isinstance(batch_service_role, IamRole)
+                    and batch_service_role.service == 'batch'):
+                raise Exception('batch_service_role must be an IamRole '
+                                'instance with service type "batch"')
+            self._batch_service_role = batch_service_role
+            self._batch_service_arn = batch_service_role.arn
+
+            if not (isinstance(instance_role, IamRole)
+                    and instance_role.instance_profile_arn):
+                raise Exception('instance_role must be an IamRole instance '
+                                'with an instance profile ARN')
+            self._instance_role = instance_role
+            self._instance_role_arn = instance_role.instance_profile_arn
+
+            if not isinstance(vpc, Vpc):
+                raise Exception('vpc must be an instance of Vpc')
+            self._vpc = vpc
+            self._subnets = vpc.subnets
+
+            if not isinstance(security_group, SecurityGroup):
+                raise Exception('security_group must be an instance of '
+                                'SecurityGroup')
+            self._security_group = security_group
+            self._security_group_ids = [security_group.security_group_id]
+
+            if spot_fleet_role:
+                if not (isinstance(spot_fleet_role, IamRole)
+                        and spot_fleet_role.service == 'spotfleet'):
+                    raise Exception('if provided, spot_fleet_role must be an '
+                                    'IamRole instance with service type '
+                                    '"spotfleet"')
+                self._spot_fleet_role = spot_fleet_role
+                self._spot_fleet_role_arn = spot_fleet_role.arn
+            else:
+                self._spot_fleet_role = None
+                self._spot_fleet_role_arn = None
+
+            if isinstance(instance_types, str):
+                self._instance_types = (instance_types,)
+            elif all(isinstance(x, str) for x in instance_types):
+                self._instance_types = list(instance_types)
+            else:
+                raise Exception('instance_types must be a string or a '
+                                'sequence of strings.')
+
+            if resource_type not in ('EC2', 'SPOT'):
+                raise Exception('resource_type must be either "EC2" or "SPOT"')
+
+            self._resource_type = resource_type
+
+            try:
+                cpus = int(min_vcpus)
+                if cpus < 0:
+                    raise Exception('min_vcpus must be non-negative')
+                else:
+                    self._min_vcpus = cpus
+            except ValueError:
+                raise Exception('min_vcpus must be an integer')
+
+            try:
+                cpus = int(max_vcpus)
+                if cpus < 0:
+                    raise Exception('max_vcpus must be non-negative')
+                else:
+                    self._max_vcpus = cpus
+            except ValueError:
+                raise Exception('max_vcpus must be an integer')
+
+            try:
+                cpus = int(desired_vcpus)
+                if cpus < 0:
+                    raise Exception('desired_vcpus must be non-negative')
+                else:
+                    self._desired_vcpus = cpus
+            except ValueError:
+                raise Exception('desired_vcpus must be an integer')
+
+            if image_id:
+                if not isinstance(image_id, str):
+                    raise Exception('if provided, image_id must be a string')
+                self._image_id = image_id
+            else:
+                self._image_id = None
+
+            if ec2_key_pair:
+                if not isinstance(ec2_key_pair, str):
+                    raise Exception('if provided, ec2_key_pair must be a '
+                                    'string')
+                self._ec2_key_pair = ec2_key_pair
+            else:
+                self._ec2_key_pair = None
+
+            if tags:
+                if not isinstance(tags, dict):
+                    raise Exception('if provided, tags must be an instance of '
+                                    'dict')
+                self._tags = tags
+            else:
+                self._tags = None
+
+            if bid_percentage:
+                try:
+                    bp_int = int(bid_percentage)
+                    if bp_int < 0:
+                        self._bid_percentage = 0
+                    elif bp_int > 100:
+                        self._bid_percentage = 100
+                    else:
+                        self._bid_percentage = bp_int
+                except ValueError:
+                    raise Exception('if provided, bid_percentage must be an '
+                                    'int')
+            else:
+                self._bid_percentage = None
+
+            self._arn = self._create()
 
     batch_service_role = property(operator.attrgetter('_batch_service_role'))
-
-    @batch_service_role.setter
-    def batch_service_role(self, bsr):
-        if not (isinstance(bsr, IamRole) and bsr.service == 'batch'):
-            raise Exception('batch_service_role must be an IamRole instance '
-                            'with service type "batch"')
-        self._batch_service_role = bsr
+    batch_service_arn = property(operator.attrgetter('_batch_service_arn'))
 
     instance_role = property(operator.attrgetter('_instance_role'))
-
-    @instance_role.setter
-    def instance_role(self, ir):
-        if not (isinstance(ir, IamRole) and ir.service == 'ec2'):
-            raise Exception('instance_role must be an IamRole instance with '
-                            'service type "ec2"')
-        self._instance_role = ir
+    instance_role_arn = property(operator.attrgetter('_instance_role_arn'))
 
     vpc = property(operator.attrgetter('_vpc'))
-
-    @vpc.setter
-    def vpc(self, v):
-        if not isinstance(v, Vpc):
-            raise Exception('vpc must be an instance of Vpc')
-        self._vpc = v
+    subnets = property(operator.attrgetter('_subnets'))
 
     security_group = property(operator.attrgetter('_security_group'))
-
-    @security_group.setter
-    def security_group(self, sg):
-        if not isinstance(sg, SecurityGroup):
-            raise Exception('security_group must be an instance of '
-                            'SecurityGroup')
-        self._security_group = sg
+    security_group_ids = property(operator.attrgetter('_security_group_ids'))
 
     spot_fleet_role = property(operator.attrgetter('_spot_fleet_role'))
-
-    @spot_fleet_role.setter
-    def spot_fleet_role(self, sfr):
-        if sfr:
-            if not (isinstance(sfr, IamRole) and sfr.service == 'spotfleet'):
-                raise Exception('if provided, spot_fleet_role must be an '
-                                'IamRole instance with service type '
-                                '"spotfleet"')
-            self._spot_fleet_role = sfr
-        else:
-            self._spot_fleet_role = None
+    spot_fleet_role_arn = property(operator.attrgetter('_spot_fleet_role_arn'))
 
     instance_types = property(operator.attrgetter('_instance_types'))
-
-    @instance_types.setter
-    def instance_types(self, it):
-        if isinstance(it, str):
-            self._instance_types = (it,)
-        elif all(isinstance(x, str) for x in it):
-            self._instance_types = list(it)
-        else:
-            error = 'instance_types must be a string or a sequence of strings.'
-            raise Exception(error)
-
     resource_type = property(operator.attrgetter('_resource_type'))
-
-    @resource_type.setter
-    def resource_type(self, rt):
-        if rt not in ('EC2', 'SPOT'):
-            raise Exception('resource_type must be either "EC2" or "SPOT"')
-        self._resource_type = rt
-
     min_vcpus = property(operator.attrgetter('_min_vcpus'))
-
-    @min_vcpus.setter
-    def min_vcpus(self, c):
-        try:
-            cpus = int(c)
-            if cpus < 0:
-                raise Exception('min_vcpus must be non-negative')
-            else:
-                self._min_vcpus = cpus
-        except ValueError:
-            raise Exception('min_vcpus must be an integer')
-
     max_vcpus = property(operator.attrgetter('_max_vcpus'))
-
-    @max_vcpus.setter
-    def max_vcpus(self, c):
-        try:
-            cpus = int(c)
-            if cpus < 0:
-                raise Exception('max_vcpus must be non-negative')
-            else:
-                self._max_vcpus = cpus
-        except ValueError:
-            raise Exception('max_vcpus must be an integer')
-
     desired_vcpus = property(operator.attrgetter('_desired_vcpus'))
-
-    @desired_vcpus.setter
-    def desired_vcpus(self, c):
-        try:
-            cpus = int(c)
-            if cpus < 0:
-                raise Exception('desired_vcpus must be non-negative')
-            else:
-                self._desired_vcpus = cpus
-        except ValueError:
-            raise Exception('desired_vcpus must be an integer')
-
     image_id = property(operator.attrgetter('_image_id'))
-
-    @image_id.setter
-    def image_id(self, im_id):
-        if im_id:
-            if not isinstance(im_id, str):
-                raise Exception('if provided, image_id must be a string')
-            self._image_id = im_id
-        else:
-            self._image_id = None
-
     ec2_key_pair = property(operator.attrgetter('_ec2_key_pair'))
-
-    @ec2_key_pair.setter
-    def ec2_key_pair(self, ec2kp):
-        if ec2kp:
-            if not isinstance(ec2kp, str):
-                raise Exception('if provided, ec2_key_pair must be a string')
-            self._ec2_key_pair = ec2kp
-        else:
-            self._ec2_key_pair = None
-
     tags = property(operator.attrgetter('_tags'))
-
-    @tags.setter
-    def tags(self, tgs):
-        if tgs:
-            if not isinstance(tgs, dict):
-                raise Exception('if provided, tags must be an instance of '
-                                'dict')
-            self._tags = tgs
-        else:
-            self._tags = None
-
     bid_percentage = property(operator.attrgetter('_bid_percentage'))
 
-    @bid_percentage.setter
-    def bid_percentage(self, bp):
-        if bp:
-            try:
-                bp_int = int(bp)
-                if bp_int < 0:
-                    self._bid_percentage = 0
-                elif bp_int > 100:
-                    self._bid_percentage = 100
-                else:
-                    self._bid_percentage = bp_int
-            except ValueError:
-                raise Exception('if provided, bid_percentage must be an int')
-        else:
-            self._bid_percentage = None
+    def _exists_already(self):
+        # define a namedtuple for return value type
+        ResourceExists = namedtuple(
+            'ResourceExists',
+            ['exists', 'batch_service_arn', 'instance_role_arn', 'subnets',
+             'security_group_ids', 'spot_fleet_role_arn', 'instance_types',
+             'resource_type', 'min_vcpus', 'max_vcpus', 'desired_vcpus',
+             'image_id', 'ec2_key_pair', 'tags', 'bid_percentage', 'arn']
+        )
+        # make all but the first value default to None
+        ResourceExists.__new__.__defaults__ = \
+            (None,) * (len(ResourceExists._fields) - 1)
 
-    def create(self):
+        batch = boto3.client('batch')
+        response = batch.describe_compute_environments(
+            computeEnvironments=[self.name]
+        )
+
+        if response.get('computeEnvironments'):
+            ce = response.get('computeEnvironments')[0]
+            batch_service_arn = ce['serviceRole']
+            arn = ce['computeEnvironmentArn']
+
+            cr = ce['computeResources']
+            instance_role_arn = cr['instanceRole']
+            subnets = cr['subnets']
+            security_group_ids = cr['securityGroupIds']
+            spot_fleet_role_arn = cr['spotIamFleetRole']
+            instance_types = cr['instanceTypes']
+            resource_type = cr['type']
+            min_vcpus = cr['minvCpus']
+            max_vcpus = cr['maxvCpus']
+            desired_vcpus = cr['desiredvCpus']
+            image_id = cr['imageId']
+            ec2_key_pair = cr['ec2KeyPair']
+            tags = cr['tags']
+            bid_percentage = cr['bidPercentage']
+
+            if self.verbosity > 0:
+                print('Compute environment {name:s} already exists.'.format(
+                    name=self.name
+                ))
+
+            return ResourceExists(
+                exists=True, batch_service_arn=batch_service_arn,
+                instance_role_arn=instance_role_arn, subnets=subnets,
+                security_group_ids=security_group_ids,
+                spot_fleet_role_arn=spot_fleet_role_arn,
+                instance_types=instance_types,
+                resource_type=resource_type, min_vcpus=min_vcpus,
+                max_vcpus=max_vcpus, desired_vcpus=desired_vcpus,
+                image_id=image_id, ec2_key_pair=ec2_key_pair, tags=tags,
+                bid_percentage=bid_percentage, arn=arn
+            )
+        else:
+            return ResourceExists(exists=False)
+
+    def _create(self):
         batch = boto3.client('batch')
 
         compute_resources = {
@@ -1079,15 +1259,15 @@ class ComputeEnvironment(ObjectWithUsernameAndMemory):
             'maxvCpus': self.max_vcpu,
             'desiredvCpus': self.desired_vcpu,
             'instanceTypes': self.instance_types,
-            'subnets': self.vpc.subnets,
-            'securityGroupIds': [self.security_group.security_group_id],
-            'instanceRole': self.instance_role.instance_profile_arn,
+            'subnets': self.subnets,
+            'securityGroupIds': self.security_group_ids,
+            'instanceRole': self.instance_role_arn,
         }
 
         # If using spot instances, include the relevant key/value pairs
         if self.resource_type == 'SPOT':
             compute_resources['bidPercentage'] = self.bid_percentage
-            compute_resources['spotIamFleetRole'] = self.spot_fleet_role.arn
+            compute_resources['spotIamFleetRole'] = self.spot_fleet_role_arn
 
         # If tags, imageId, or ec2KeyPair are provided, include them too
         if self.tags:
@@ -1104,16 +1284,16 @@ class ComputeEnvironment(ObjectWithUsernameAndMemory):
             type='MANAGED',
             state='ENABLED',
             computeResources=compute_resources,
-            serviceRole=self.batch_service_role.arn
+            serviceRole=self.batch_service_arn
         )
 
-        return response
+        return response['computeEnvironmentArn']
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 class JobQueue(ObjectWithArn):
     """Class for defining AWS Batch Job Queues"""
-    def __init__(self, name, compute_environment, priority=1, verbosity=0):
+    def __init__(self, name, compute_environments, priority=1, verbosity=0):
         """ Initialize an AWS Batch job definition object.
 
         Parameters
@@ -1121,7 +1301,7 @@ class JobQueue(ObjectWithArn):
         name : string
             Name of the job definition
 
-        compute_environment : ComputeEnvironment or tuple of ComputeEnvironment
+        compute_environments : ComputeEnvironment or tuple(ComputeEnvironments)
             ComputeEnvironment instance or sequence of ComputeEnvironment
             instances (in order of priority) for this job queue to use
 
@@ -1133,50 +1313,99 @@ class JobQueue(ObjectWithArn):
             verbosity level [0, 1, 2]
         """
         super(JobQueue, self).__init__(name=name, verbosity=verbosity)
-        self.compute_environment = compute_environment
-        self.priority = priority
 
-    compute_environment = property(operator.attrgetter('_compute_environment'))
+        resource_exists = self._exists_already()
+        self._pre_existing = resource_exists.exists
 
-    @compute_environment.setter
-    def compute_environment(self, ce):
-        if isinstance(ce, ComputeEnvironment):
-            self._compute_environment = (ce,)
-        elif all(isinstance(x, ComputeEnvironment) for x in ce):
-            self._compute_environment = tuple(ce)
+        if resource_exists.exists:
+            self._compute_environments = None
+            self._compute_environment_arns = \
+                resource_exists.compute_environment_arns
+            self._priority = resource_exists.priority
+            self._arn = resource_exists.arn
         else:
-            raise Exception('compute_environment must be a ComputeEnvironment '
-                            'instance or a sequence of ComputeEnvironment '
-                            'instances.')
+            if isinstance(compute_environments, ComputeEnvironment):
+                self._compute_environments = (compute_environments,)
+            elif all(isinstance(x, ComputeEnvironment)
+                     for x in compute_environments
+                     ):
+                self._compute_environments = tuple(compute_environments)
+            else:
+                raise Exception('compute_environments must be a '
+                                'ComputeEnvironment instance or a sequence '
+                                'of ComputeEnvironment instances.')
 
+            self._compute_environment_arns = []
+            for i, ce in enumerate(self._compute_environments):
+                self._compute_environment_arns.append({
+                    'order': i,
+                    'computeEnvironment': ce.arn
+                })
+
+            try:
+                p_int = int(priority)
+                if p_int < 1:
+                    raise Exception('priority must be positive')
+                else:
+                    self._priority = p_int
+            except ValueError:
+                raise Exception('priority must be an integer')
+
+            self._arn = self._create()
+
+    pre_existing = property(operator.attrgetter('_pre_existing'))
+    compute_environments = property(
+        operator.attrgetter('_compute_environments')
+    )
+    compute_environment_arns = property(
+        operator.attrgetter('_compute_environment_arns')
+    )
     priority = property(operator.attrgetter('_priority'))
 
-    @priority.setter
-    def priority(self, p):
-        try:
-            p_int = int(p)
-            if p_int < 1:
-                raise Exception('priority must be positive')
-            else:
-                self._priority = p_int
-        except ValueError:
-            raise Exception('priority must be an integer')
+    def _exists_already(self):
+        # define a namedtuple for return value type
+        ResourceExists = namedtuple(
+            'ResourceExists',
+            ['exists', 'compute_environment_arns', 'priority', 'arn']
+        )
+        # make all but the first value default to None
+        ResourceExists.__new__.__defaults__ = \
+            (None,) * (len(ResourceExists._fields) - 1)
 
-    def create(self):
         batch = boto3.client('batch')
+        response = batch.describe_job_queues(
+            jobQueues=[self.name]
+        )
 
-        compute_environment_order = []
-        for i, ce in enumerate(self.compute_environment):
-            compute_environment_order.append({
-                'order': i,
-                'computeEnvironment': ce
-            })
+        q = response.get('JobQueues')
+        if q:
+            arn = q[0]['jobQueueArn']
+            compute_environment_arns = q[0]['computeEnvironmentOrder']
+            priority = q[0]['priority']
+
+            if self.verbosity > 0:
+                print('Job Queue {name:s} already exists.'.format(
+                    name=self.name
+                ))
+
+            return ResourceExists(
+                exists=True, priority=priority, arn=arn,
+                compute_environment_arns=compute_environment_arns
+            )
+        else:
+            return ResourceExists(
+                exists=False, compute_environment_arns=None,
+                priority=None, arn=None
+            )
+
+    def _create(self):
+        batch = boto3.client('batch')
 
         response = batch.create_job_queue(
             jobQueueName=self.name,
             state='ENABLED',
             priority=self.priority,
-            computeEnvironmentOrder=compute_environment_order
+            computeEnvironmentOrder=self.compute_environment_arns
         )
 
         # Wait for job queue to be in VALID state
@@ -1193,8 +1422,7 @@ class JobQueue(ObjectWithArn):
             if num_waits > 60:
                 sys.exit('Waiting too long to create job queue. Aborting.')
 
-        arn = response.get('jobQueues')[0]['jobQueueArn']
-        self._arn = arn
+        if self.priority > 0:
+            print('Created job queue {name:s}'.format(name=self.name))
 
-        JobQueueInfo = namedtuple('JobQueueInfo', ['name', 'arn'])
-        return JobQueueInfo(name=self.name, arn=arn)
+        return response.get('jobQueues')[0]['jobQueueArn']
