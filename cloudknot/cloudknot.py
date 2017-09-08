@@ -20,8 +20,8 @@ due.cite(Doi(""),
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 class CloudKnot(object):
-    def __init__(self, function, source_file):
-        if not (function or source_file):
+    def __init__(self, func, source_file):
+        if not (func or source_file):
             raise Exception('you must supply either a user-defined function '
                             'or a source file')
         self.function = function
