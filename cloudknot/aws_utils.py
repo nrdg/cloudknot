@@ -1578,12 +1578,20 @@ class JobQueue(ObjectWithArn):
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 class BatchJob(ObjectWithNameAndVerbosity):
     """Class for defining AWS Batch Job"""
-    def __init__(self, name, job_queue, job_definition, commands=None,
+    def __init__(self, job_id=None, name=None, job_queue=None,
+                 job_definition=None, commands=None,
                  environment_variables=None, verbosity=0):
         """ Initialize an AWS Batch Job object.
 
+        If requesting information on a pre-existing job, `job_id` is required.
+        Otherwise, `name`, `job_queue`, and `job_definition` are required to
+        submit a new job.
+
         Parameters
         ----------
+        job_id: string
+            The AWS jobID, if requesting a job that already exists
+
         name : string
             Name of the job
 
@@ -1607,44 +1615,120 @@ class BatchJob(ObjectWithNameAndVerbosity):
         verbosity : int
             verbosity level [0, 1, 2]
         """
-        super(BatchJob, self).__init__(name=name, verbosity=verbosity)
+        if not (job_id or (name and job_queue and job_definition)):
+            raise Exception('must supply either job_id or name, job_queue, '
+                            'and job_definition')
 
-        if not isinstance(job_queue, JobQueue):
-            raise Exception('job_queue must be a JobQueue instance')
-        self._job_queue = job_queue
+        if job_id:
+            job_exists = self._exists_already(job_id)
+            if not job_exists.exists:
+                raise Exception('jobId {id:s} does not exists'.format(
+                    id=job_id)
+                )
 
-        if not isinstance(job_definition, JobDefinition):
-            raise Exception('job_queue must be a JobQueue instance')
-        self._job_definition = job_definition
+            super(BatchJob, self).__init__(
+                name=job_exists.name,
+                verbosity=verbosity
+            )
 
-        if commands:
-            if isinstance(commands, str):
-                self._commands = [commands]
-            elif all(isinstance(x, str) for x in commands):
-                self._commands = list(commands)
+            self._job_queue = None
+            self._job_queue_arn = job_exists.job_queue_arn
+            self._job_definition = None
+            self._job_definition_arn = job_exists.job_definition_arn
+            self._commands = job_exists.commands
+            self._environment_variables = job_exists.environment_variables
+            self._job_id = job_exists.job_id
+        else:
+            super(BatchJob, self).__init__(name=name, verbosity=verbosity)
+
+            if not isinstance(job_queue, JobQueue):
+                raise Exception('job_queue must be a JobQueue instance')
+            self._job_queue = job_queue
+            self._job_queue_arn = job_queue.arn
+
+            if not isinstance(job_definition, JobDefinition):
+                raise Exception('job_queue must be a JobQueue instance')
+            self._job_definition = job_definition
+            self._job_definition_arn = job_definition.arn
+
+            if commands:
+                if isinstance(commands, str):
+                    self._commands = [commands]
+                elif all(isinstance(x, str) for x in commands):
+                    self._commands = list(commands)
+                else:
+                    raise Exception('if provided, commands must be a string '
+                                    'or a sequence of strings.')
             else:
-                raise Exception('if provided, commands must be a string or '
-                                'a sequence of strings.')
-        else:
-            self._commands = None
+                self._commands = None
 
-        if environment_variables:
-            if not isinstance(environment_variables, dict):
-                raise Exception('if provided, environment_variables must be '
-                                'an instance of dict')
-            self._environment_variables = environment_variables
-        else:
-            self._environment_variables = None
+            if environment_variables:
+                if not isinstance(environment_variables, dict):
+                    raise Exception('if provided, environment_variables must '
+                                    'be an instance of dict')
+                self._environment_variables = environment_variables
+            else:
+                self._environment_variables = None
 
-        self._job_id = self._create()
+            self._job_id = self._create()
 
     job_queue = property(operator.attrgetter('_job_queue'))
-    job_definition = property(operator.attrgetter('_job_definition'))
+    job_queue_arn = property(operator.attrgetter('_job_queue_arn'))
+
+    job_definition = property(operator.attrgetter('_job_definition_arn'))
+    job_definition_arn = property(operator.attrgetter('_job_definition'))
+
     commands = property(operator.attrgetter('_commands'))
     environment_variables = property(
         operator.attrgetter('_environment_variables')
     )
     job_id = property(operator.attrgetter('_job_id'))
+
+    def _exists_already(self, job_id):
+        """ Check if an AWS batch job exists already
+
+        If batch job exists, return namedtuple with batch job info.
+        Otherwise, set the namedtuple's `exists` field to
+        `False`. The remaining fields default to `None`.
+
+        Returns
+        -------
+        namedtuple JobExists
+            A namedtuple with fields
+            ['exists', 'name', 'job_queue_arn', 'job_definition_arn',
+            'commands', 'environment_variables']
+        """
+        # define a namedtuple for return value type
+        JobExists = namedtuple(
+            'JobExists',
+            ['exists', 'name', 'job_queue_arn', 'job_definition_arn',
+             'commands', 'environment_variables']
+        )
+        # make all but the first value default to None
+        JobExists.__new__.__defaults__ = \
+            (None,) * (len(JobExists._fields) - 1)
+
+        batch = boto3.client('batch')
+        response = batch.describe_jobs(jobs=[job_id])
+
+        if response.get('jobs'):
+            job = response.get('jobs')[0]
+            name = job['jobName']
+            job_queue_arn = job['jobQueue']
+            job_definition_arn = job['jobDefinition']
+            commands = job['container']['command']
+            environment_variables = job['container']['environment']
+
+            if self.verbosity > 0:
+                print('Job {id:s} exists.'.format(id=job_id))
+
+            return JobExists(
+                exists=True, name=name, job_queue_arn=job_queue_arn,
+                job_definition_arn=job_definition_arn,
+                commands=commands, environment_variables=environment_variables
+            )
+        else:
+            return JobExists(exists=False)
 
     def _create(self):
         """ Create AWS batch job using instance parameters
@@ -1663,8 +1747,8 @@ class BatchJob(ObjectWithNameAndVerbosity):
 
         response = batch.submit_job(
             jobName=self.name,
-            jobQueue=self.job_queue.arn,
-            jobDefinition=self.job_definition.arn,
+            jobQueue=self.job_queue_arn,
+            jobDefinition=self.job_definition_arn,
             containerOverrides=container_overrides
         )
 
