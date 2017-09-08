@@ -343,14 +343,14 @@ class IamRole(ObjectWithArn):
 
             role_policy = {
                 "Version": "2012-10-17",
-                "Statement": {
+                "Statement": [{
                     "Sid": "",
                     "Effect": "Allow",
                     "Principal": {
                         "Service": self._service
                     },
                     "Action": "sts:AssumeRole"
-                }
+                }]
             }
             self._role_policy_document = role_policy
 
@@ -358,9 +358,16 @@ class IamRole(ObjectWithArn):
             iam = boto3.client('iam')
 
             # Remove redundant entries
-            input_policies = set(policies)
             response = iam.list_policies()
             aws_policies = [d['PolicyName'] for d in response.get('Policies')]
+
+            if isinstance(policies, str):
+                input_policies = set((policies,))
+            elif all(isinstance(x, str) for x in policies):
+                input_policies = set(list(policies))
+            else:
+                raise Exception('policies must be a string or a '
+                                'sequence of strings.')
 
             if not (input_policies < set(aws_policies)):
                 raise Exception('each policy must be an AWS managed policy: ',
@@ -1393,10 +1400,7 @@ class JobQueue(ObjectWithArn):
                 compute_environment_arns=compute_environment_arns
             )
         else:
-            return ResourceExists(
-                exists=False, compute_environment_arns=None,
-                priority=None, arn=None
-            )
+            return ResourceExists(exists=False)
 
     def _create(self):
         batch = boto3.client('batch')
@@ -1426,3 +1430,105 @@ class JobQueue(ObjectWithArn):
             print('Created job queue {name:s}'.format(name=self.name))
 
         return response.get('jobQueues')[0]['jobQueueArn']
+
+    @property
+    def jobs(self):
+        batch = boto3.client('batch')
+
+        response = batch.list_jobs(
+            jobQueue=self.arn
+        )
+
+        return response.get('jobSummaryList')
+
+
+# noinspection PyPropertyAccess,PyAttributeOutsideInit
+class BatchJob(ObjectWithNameAndVerbosity):
+    """Class for defining AWS Batch Job"""
+    def __init__(self, name, job_queue, job_definition, commands=None,
+                 environment_variables=None, verbosity=0):
+        super(BatchJob, self).__init__(name=name, verbosity=verbosity)
+
+        if not isinstance(job_queue, JobQueue):
+            raise Exception('job_queue must be a JobQueue instance')
+        self._job_queue = job_queue
+
+        if not isinstance(job_definition, JobDefinition):
+            raise Exception('job_queue must be a JobQueue instance')
+        self._job_definition = job_definition
+
+        if commands:
+            if isinstance(commands, str):
+                self._commands = [commands]
+            elif all(isinstance(x, str) for x in commands):
+                self._commands = list(commands)
+            else:
+                raise Exception('if provided, commands must be a string or '
+                                'a sequence of strings.')
+        else:
+            self._commands = None
+
+        if environment_variables:
+            if not isinstance(environment_variables, dict):
+                raise Exception('if provided, environment_variables must be '
+                                'an instance of dict')
+            self._environment_variables = environment_variables
+        else:
+            self._environment_variables = None
+
+        self._job_id = self._create()
+
+    job_queue = property(operator.attrgetter('_job_queue'))
+    job_definition = property(operator.attrgetter('_job_definition'))
+    commands = property(operator.attrgetter('_commands'))
+    environment_variables = property(
+        operator.attrgetter('_environment_variables')
+    )
+    job_id = property(operator.attrgetter('_job_id'))
+
+    def _create(self):
+        batch = boto3.client('batch')
+
+        container_overrides = {
+            'environment': self.environment_variables,
+            'command': self.commands
+        }
+
+        response = batch.submit_job(
+            jobName=self.name,
+            jobQueue=self.job_queue.arn,
+            jobDefinition=self.job_definition.arn,
+            containerOverrides=container_overrides
+        )
+
+        if self.verbosity > 0:
+            print('Submitted batch job {name:s} with jobID {job_id:s}'.format(
+                name=self.name, job_id=response['jobId']
+            ))
+
+        return response['jobId']
+
+    @property
+    def status(self):
+        batch = boto3.client('batch')
+
+        response = batch.describe_jobs(
+            jobs=[self.job_id]
+        )
+
+        job = response.get('jobs')[0]
+        status = {k: job[k] for k in ('status', 'statusReason', 'attempts')}
+        return status
+
+    def terminate(self, reason):
+        if not isinstance(reason, str):
+            raise Exception('reason must be a string.')
+
+        batch = boto3.client('batch')
+
+        batch.terminate_job(jobId=self.job_id, reason=reason)
+
+        if self.verbosity > 0:
+            print('Terminated job {name:s} with jobID {job_id:s}'.format(
+                name=self.name, job_id=self.job_id
+            ))
