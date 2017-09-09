@@ -361,7 +361,7 @@ class IamRole(ObjectWithArn):
             aws_policies = [d['PolicyName'] for d in response.get('Policies')]
 
             if isinstance(policies, str):
-                input_policies = set((policies,))
+                input_policies = {policies}
             elif all(isinstance(x, str) for x in policies):
                 input_policies = set(list(policies))
             else:
@@ -704,7 +704,7 @@ class Vpc(ObjectWithNameAndVerbosity):
             try:
                 ip_net = ipaddress.IPv4Network(ipv4)
                 self._ipv4 = str(ip_net)
-            except:
+            except Exception:
                 raise Exception('ipv4 must be a valid IPv4 network range.')
 
             if isinstance(amazon_provided_ipv6, bool):
@@ -722,7 +722,7 @@ class Vpc(ObjectWithNameAndVerbosity):
                 self._subnet_ipv4 = [
                     str(ipaddress.IPv4Network(ip)) for ip in subnet_ipv4
                 ]
-            except:
+            except Exception:
                 raise Exception(
                     'subnet_ipv4 must be a sequence of valid IPv4 '
                     'network range.'
