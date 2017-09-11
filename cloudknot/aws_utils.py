@@ -1359,9 +1359,12 @@ class ComputeEnvironment(ObjectWithUsernameAndMemory):
 
         Returns
         -------
-        namedtuple RoleExists
-            A namedtuple with fields ['exists', 'description',
-            'role_policy_document', 'policies', 'add_instance_profile', 'arn']
+        namedtuple ResourceExists
+            A namedtuple with fields
+            ['exists', 'batch_service_arn', 'instance_role_arn', 'subnets',
+             'security_group_ids', 'spot_fleet_role_arn', 'instance_types',
+             'resource_type', 'min_vcpus', 'max_vcpus', 'desired_vcpus',
+             'image_id', 'ec2_key_pair', 'tags', 'bid_percentage', 'arn']
         """
         # define a namedtuple for return value type
         ResourceExists = namedtuple(
