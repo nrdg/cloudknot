@@ -301,7 +301,7 @@ class DockerImage(ObjectWithNameAndVerbosity):
 class IamRole(ObjectWithArn):
     """Class for defining AWS IAM Roles"""
     def __init__(self, name, description=None, service='ecs-tasks',
-                 policies=(), add_instance_role=False, verbosity=0):
+                 policies=(), add_instance_profile=False, verbosity=0):
         """ Initialize an AWS IAM Role object.
 
         Parameters
@@ -323,7 +323,7 @@ class IamRole(ObjectWithArn):
             tuple of names of AWS policies to attach to this role
             Default: ()
 
-        add_instance_role : boolean
+        add_instance_profile : boolean
             flag to create an AWS instance profile and attach this role to it
             Default: False
 
@@ -340,7 +340,7 @@ class IamRole(ObjectWithArn):
             self._service = None
             self._role_policy_document = role_exists.role_policy_document
             self._policies = role_exists.policies
-            self._add_instance_role = role_exists.add_instance_role
+            self._add_instance_profile = role_exists.add_instance_profile
             self._arn = role_exists.arn
         else:
             if description:
@@ -385,10 +385,10 @@ class IamRole(ObjectWithArn):
             else:
                 self._policies = tuple(input_policies)
 
-            if isinstance(add_instance_role, bool):
-                self._add_instance_role = add_instance_role
+            if isinstance(add_instance_profile, bool):
+                self._add_instance_profile = add_instance_profile
             else:
-                raise Exception('add_instance_role is a boolean input')
+                raise Exception('add_instance_profile is a boolean input')
 
             self._arn = self._create()
 
@@ -400,7 +400,9 @@ class IamRole(ObjectWithArn):
     role_policy_document = property(
         operator.attrgetter('_role_policy_document')
     )
-    add_instance_role = property(operator.attrgetter('_add_instance_role'))
+    add_instance_profile = property(operator.attrgetter(
+        '_add_instance_profile'
+    ))
     policies = property(operator.attrgetter('_policies'))
 
     def _exists_already(self):
@@ -414,13 +416,13 @@ class IamRole(ObjectWithArn):
         -------
         namedtuple RoleExists
             A namedtuple with fields ['exists', 'description',
-            'role_policy_document', 'policies', 'add_instance_role', 'arn']
+            'role_policy_document', 'policies', 'add_instance_profile', 'arn']
         """
         # define a namedtuple for return value type
         RoleExists = namedtuple(
             'RoleExists',
             ['exists', 'description', 'role_policy_document', 'policies',
-             'add_instance_role', 'arn']
+             'add_instance_profile', 'arn']
         )
         # make all but the first value default to None
         RoleExists.__new__.__defaults__ = \
@@ -447,7 +449,7 @@ class IamRole(ObjectWithArn):
             return RoleExists(
                 exists=True, description=description,
                 role_policy_document=role_policy, policies=policies,
-                add_instance_role=False, arn=arn
+                add_instance_profile=False, arn=arn
             )
         except IAM.exceptions.NoSuchEntityException:
             return RoleExists(exists=False)
@@ -490,7 +492,7 @@ class IamRole(ObjectWithArn):
                     policy=policy, role=self.name
                 ))
 
-        if self.add_instance_role:
+        if self.add_instance_profile:
             instance_profile_name = self.name + '-instance-profile'
             IAM.create_instance_profile(
                 InstanceProfileName=instance_profile_name
@@ -527,7 +529,7 @@ class IamRole(ObjectWithArn):
         -------
         None
         """
-        if self.add_instance_role:
+        if self.add_instance_profile:
             response = IAM.list_instance_profiles_for_role(RoleName=self.name)
 
             instance_profile_name = response.get(
@@ -1359,7 +1361,7 @@ class ComputeEnvironment(ObjectWithUsernameAndMemory):
         -------
         namedtuple RoleExists
             A namedtuple with fields ['exists', 'description',
-            'role_policy_document', 'policies', 'add_instance_role', 'arn']
+            'role_policy_document', 'policies', 'add_instance_profile', 'arn']
         """
         # define a namedtuple for return value type
         ResourceExists = namedtuple(
