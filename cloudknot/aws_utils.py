@@ -18,6 +18,10 @@ __all__ = ["DockerImage", "IamRole", "JobDefinition", "Vpc", "SecurityGroup",
 
 
 IAM = boto3.client('iam')
+EC2 = boto3.client('ec2')
+BATCH = boto3.client('batch')
+ECR = boto3.client('ecr')
+
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 class ObjectWithNameAndVerbosity(object):
@@ -220,12 +224,10 @@ class DockerImage(ObjectWithNameAndVerbosity):
                 'Unable to login to AWS ECR using `{login:s}`'.format(
                     login=login_cmd))
 
-        ecr_client = boto3.client('ecr')
-
         # Get repository uri
         try:
             # First, check to see if it already exists
-            response = ecr_client.describe_repositories(
+            response = ECR.describe_repositories(
                 repositoryNames=[repo_name]
             )
 
@@ -234,9 +236,9 @@ class DockerImage(ObjectWithNameAndVerbosity):
             if self.verbosity > 0:
                 print('Repository {name:s} already exists at {uri:s}'.format(
                     name=repo_name, uri=repo_uri))
-        except ecr_client.exceptions.RepositoryNotFoundException:
+        except ECR.exceptions.RepositoryNotFoundException:
             # If it doesn't exists already, then create it
-            response = ecr_client.create_repository(
+            response = ECR.create_repository(
                 repositoryName=repo_name
             )
 
@@ -366,7 +368,7 @@ class IamRole(ObjectWithArn):
 
             # Check the user supplied policies against the available policies
             # Remove redundant entries
-            response = iam.list_policies()
+            response = IAM.list_policies()
             aws_policies = [d['PolicyName'] for d in response.get('Policies')]
 
             if isinstance(policies, str):
@@ -424,10 +426,8 @@ class IamRole(ObjectWithArn):
         RoleExists.__new__.__defaults__ = \
             (None,) * (len(RoleExists._fields) - 1)
 
-        iam = boto3.client('iam')
-
         try:
-            response = iam.get_role(RoleName=self.name)
+            response = IAM.get_role(RoleName=self.name)
             arn = response.get('Role')['Arn']
             try:
                 description = response.get('Role')['Description']
@@ -435,7 +435,7 @@ class IamRole(ObjectWithArn):
                 description = ''
             role_policy = response.get('Role')['AssumeRolePolicyDocument']
 
-            response = iam.list_attached_role_policies(RoleName=self.name)
+            response = IAM.list_attached_role_policies(RoleName=self.name)
             attached_policies = response.get('AttachedPolicies')
             policies = tuple([d['PolicyName'] for d in attached_policies])
 
@@ -449,7 +449,7 @@ class IamRole(ObjectWithArn):
                 role_policy_document=role_policy, policies=policies,
                 add_instance_role=False, arn=arn
             )
-        except iam.exceptions.NoSuchEntityException:
+        except IAM.exceptions.NoSuchEntityException:
             return RoleExists(exists=False)
 
     def _create(self):
@@ -460,9 +460,7 @@ class IamRole(ObjectWithArn):
         string
             Amazon Resource Number (ARN) for the created IAM role
         """
-        iam = boto3.client('iam')
-
-        response = iam.create_role(
+        response = IAM.create_role(
             RoleName=self.name,
             AssumeRolePolicyDocument=json.dumps(self.role_policy_document),
             Description=self.description
@@ -473,7 +471,7 @@ class IamRole(ObjectWithArn):
                 name=self.name, arn=role_arn
             ))
 
-        policy_response = iam.list_policies()
+        policy_response = IAM.list_policies()
         for policy in self.policies:
             policy_filter = list(filter(
                 lambda p: p['PolicyName'] == policy,
@@ -482,7 +480,7 @@ class IamRole(ObjectWithArn):
 
             policy_arn = policy_filter[0]['Arn']
 
-            iam.attach_role_policy(
+            IAM.attach_role_policy(
                 PolicyArn=policy_arn,
                 RoleName=self.name
             )
@@ -494,11 +492,11 @@ class IamRole(ObjectWithArn):
 
         if self.add_instance_role:
             instance_profile_name = self.name + '-instance-profile'
-            iam.create_instance_profile(
+            IAM.create_instance_profile(
                 InstanceProfileName=instance_profile_name
             )
 
-            iam.add_role_to_instance_profile(
+            IAM.add_role_to_instance_profile(
                 InstanceProfileName=instance_profile_name,
                 RoleName=self.name
             )
@@ -512,9 +510,7 @@ class IamRole(ObjectWithArn):
 
     @property
     def instance_profile_arn(self):
-        iam = boto3.client('iam')
-
-        response = iam.list_instance_profiles_for_role(RoleName=self.name)
+        response = IAM.list_instance_profiles_for_role(RoleName=self.name)
 
         if response.get('InstanceProfiles'):
             # This role has instance profiles, return the first
@@ -531,23 +527,21 @@ class IamRole(ObjectWithArn):
         -------
         None
         """
-        iam = boto3.client('iam')
-
         if self.add_instance_role:
-            response = iam.list_instance_profiles_for_role(RoleName=self.name)
+            response = IAM.list_instance_profiles_for_role(RoleName=self.name)
 
             instance_profile_name = response.get(
                 'InstanceProfiles'
             )[0]['InstanceProfileName']
-            iam.remove_role_from_instance_profile(
+            IAM.remove_role_from_instance_profile(
                 InstanceProfileName=instance_profile_name,
                 RoleName=self.name
             )
-            iam.delete_instance_profile(
+            IAM.delete_instance_profile(
                 InstanceProfileName=instance_profile_name
             )
 
-        policy_response = iam.list_policies()
+        policy_response = IAM.list_policies()
         for policy in self.policies:
             policy_filter = list(filter(
                 lambda p: p['PolicyName'] == policy,
@@ -556,12 +550,12 @@ class IamRole(ObjectWithArn):
 
             policy_arn = policy_filter[0]['Arn']
 
-            iam.detach_role_policy(
+            IAM.detach_role_policy(
                 RoleName=self.name,
                 PolicyArn=policy_arn
             )
 
-        iam.delete_role(RoleName=self.name)
+        IAM.delete_role(RoleName=self.name)
 
         if self.verbosity > 0:
             print('Deleted role {name:s}'.format(
@@ -679,9 +673,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         ResourceExists.__new__.__defaults__ = \
             (None,) * (len(ResourceExists._fields) - 1)
 
-        batch = boto3.client('batch')
-
-        response = batch.describe_job_definitions(jobDefinitionName=self.name)
+        response = BATCH.describe_job_definitions(jobDefinitionName=self.name)
         if response.get('jobDefinitions'):
             job_def = response.get('jobDefinitions')[0]
             arn = job_def['jobDefinitionArn']
@@ -715,8 +707,6 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         string
             Amazon Resource Number (ARN) for the created job definition
         """
-        batch = boto3.client('batch')
-
         job_container_properties = {
             'image': self.docker_image.uri,
             'vcpus': self.vcpus,
@@ -726,7 +716,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             'user': self.username
         }
 
-        response = batch.register_job_definition(
+        response = BATCH.register_job_definition(
             jobDefinitionName=self.name,
             type='container',
             containerProperties=job_container_properties,
@@ -746,8 +736,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         -------
         None
         """
-        batch = boto3.client('batch')
-        batch.deregister_job_definition(jobDefinition=self.arn)
+        BATCH.deregister_job_definition(jobDefinition=self.arn)
 
         if self.verbosity > 0:
             print('Deregistered job definition {name:s}'.format(
@@ -845,8 +834,7 @@ class Vpc(ObjectWithNameAndVerbosity):
         ResourceExists.__new__.__defaults__ = \
             (None,) * (len(ResourceExists._fields) - 1)
 
-        ec2 = boto3.client('ec2')
-        response = ec2.describe_vpcs(
+        response = EC2.describe_vpcs(
             Filters=[
                 {
                     'Name': 'cidr',
@@ -861,7 +849,7 @@ class Vpc(ObjectWithNameAndVerbosity):
             vpc_id = vpc['VpcId']
             instance_tenancy = vpc['InstanceTenancy']
 
-            response = ec2.describe_subnets(
+            response = EC2.describe_subnets(
                 Filters=[
                     {
                         'Name': 'vpc-id',
@@ -891,9 +879,7 @@ class Vpc(ObjectWithNameAndVerbosity):
         string
             VPC-ID for the created VPC
         """
-        ec2 = boto3.client('ec2')
-
-        response = ec2.create_vpc(
+        response = EC2.create_vpc(
             CidrBlock=self.ipv4,
             AmazonProvidedIpv6CidrBlock=self.amazon_provided_ipv6,
             InstanceTenancy=self.instance_tenancy
@@ -907,15 +893,13 @@ class Vpc(ObjectWithNameAndVerbosity):
         return vpc_id
 
     def _add_subnet(self):
-        ec2 = boto3.client('ec2')
-
         # Assign IPv6 block for subnet using CIDR provided by Amazon,
         # except use different size (must use /64)
-        response = ec2.describe_vpcs(VpcIds=[self.vpc_id])
+        response = EC2.describe_vpcs(VpcIds=[self.vpc_id])
         ipv6_set = response.get('Vpcs')[0]['Ipv6CidrBlockAssociationSet'][0]
         subnet_ipv6 = ipv6_set['Ipv6CidrBlock'][:-2] + '64'
 
-        response = ec2.create_subnet(
+        response = EC2.create_subnet(
             CidrBlock=self.subnet_ipv4[0],
             Ipv6CidrBlock=subnet_ipv6,
             VpcId=self.vpc_id
@@ -1009,8 +993,7 @@ class SecurityGroup(ObjectWithNameAndVerbosity):
         ResourceExists.__new__.__defaults__ = \
             (None,) * (len(ResourceExists._fields) - 1)
 
-        ec2 = boto3.client('ec2')
-        response = ec2.describe_security_groups(
+        response = EC2.describe_security_groups(
             Filters=[
                 {
                     'Name': 'group-name',
@@ -1042,10 +1025,8 @@ class SecurityGroup(ObjectWithNameAndVerbosity):
         string
             security group ID for the created security group
         """
-        ec2 = boto3.client('ec2')
-
         # Create the security group
-        response = ec2.create_security_group(
+        response = EC2.create_security_group(
             GroupName=self.name,
             Description=self.description,
             VpcId=self.vpc.vpc_id
@@ -1076,7 +1057,7 @@ class SecurityGroup(ObjectWithNameAndVerbosity):
             'Ipv6Ranges': ipv6_ranges
         }]
 
-        ec2.authorize_security_group_ingress(
+        EC2.authorize_security_group_ingress(
             GroupId=group_id,
             IpPermissions=ip_permissions
         )
@@ -1392,8 +1373,7 @@ class ComputeEnvironment(ObjectWithUsernameAndMemory):
         ResourceExists.__new__.__defaults__ = \
             (None,) * (len(ResourceExists._fields) - 1)
 
-        batch = boto3.client('batch')
-        response = batch.describe_compute_environments(
+        response = BATCH.describe_compute_environments(
             computeEnvironments=[self.name]
         )
 
@@ -1444,8 +1424,6 @@ class ComputeEnvironment(ObjectWithUsernameAndMemory):
         string
             Amazon Resource Number (ARN) for the created compute environment
         """
-        batch = boto3.client('batch')
-
         compute_resources = {
             'type': self.resource_type,
             'minvCpus': self.min_vcpu,
@@ -1472,7 +1450,7 @@ class ComputeEnvironment(ObjectWithUsernameAndMemory):
         if self.ec2_key_pair:
             compute_resources['ec2KeyPair'] = self.ec2_key_pair
 
-        response = batch.create_compute_environment(
+        response = BATCH.create_compute_environment(
             computeEnvironmentName=self.name,
             type='MANAGED',
             state='ENABLED',
@@ -1489,16 +1467,14 @@ class ComputeEnvironment(ObjectWithUsernameAndMemory):
         -------
         None
         """
-        batch = boto3.client('batch')
-
         # First set the state to disabled
-        batch.update_compute_environment(
+        BATCH.update_compute_environment(
             computeEnvironment=self.arn,
             state='DISABLED'
         )
 
         # Then disassociate from any job queues
-        response = batch.describe_job_queues()
+        response = BATCH.describe_job_queues()
         for queue in response.get('jobQueues'):
             arn = queue['jobQueueArn']
             ce_order = queue['computeEnvironmentOrder']
@@ -1523,13 +1499,13 @@ class ComputeEnvironment(ObjectWithUsernameAndMemory):
                         ce['order'] -= 1
 
                 # Update the job queue with the new compute environment order
-                batch.update_job_queue(
+                BATCH.update_job_queue(
                     jobQueue=arn,
                     computeEnvironmentOrder=new_ce_order
                 )
 
         # Finally, delete the compute environment
-        batch.delete_compute_environment(computeEnvironment=self.arn)
+        BATCH.delete_compute_environment(computeEnvironment=self.arn)
 
         if self.verbosity > 0:
             print('Deleted compute environment {name:s}'.format(
@@ -1641,8 +1617,7 @@ class JobQueue(ObjectWithArn):
         ResourceExists.__new__.__defaults__ = \
             (None,) * (len(ResourceExists._fields) - 1)
 
-        batch = boto3.client('batch')
-        response = batch.describe_job_queues(
+        response = BATCH.describe_job_queues(
             jobQueues=[self.name]
         )
 
@@ -1672,9 +1647,7 @@ class JobQueue(ObjectWithArn):
         string
             Amazon Resource Number (ARN) for the created job queue
         """
-        batch = boto3.client('batch')
-
-        response = batch.create_job_queue(
+        response = BATCH.create_job_queue(
             jobQueueName=self.name,
             state='ENABLED',
             priority=self.priority,
@@ -1688,7 +1661,7 @@ class JobQueue(ObjectWithArn):
             if self.priority > 0:
                 print('Waiting for AWS to create job queue {name:s}.'.format(
                     name=self.name))
-            response = batch.describe_job_queues(jobQueues=[self.name])
+            response = BATCH.describe_job_queues(jobQueues=[self.name])
             waiting = (response.get('jobQueues')[0]['status'] != 'VALID')
             time.sleep(3)
             num_waits += 1
@@ -1708,14 +1681,12 @@ class JobQueue(ObjectWithArn):
         if status not in allowed_statuses:
             raise Exception('status must be one of ', allowed_statuses)
 
-        batch = boto3.client('batch')
-
         if status == 'ALL':
             # status == 'ALL' is equivalent to not specifying a status at all
-            response = batch.list_jobs(jobQueue=self.arn)
+            response = BATCH.list_jobs(jobQueue=self.arn)
         else:
             # otherwise, filter on status
-            response = batch.list_jobs(jobQueue=self.arn, jobStatus=status)
+            response = BATCH.list_jobs(jobQueue=self.arn, jobStatus=status)
 
         # Return list of job_ids
         return response.get('jobSummaryList')
@@ -1727,10 +1698,8 @@ class JobQueue(ObjectWithArn):
         -------
         None
         """
-        batch = boto3.client('batch')
-
         # First, disable submissions to the queue
-        batch.update_job_queue(jobQueue=self.arn, state='DISABLED')
+        BATCH.update_job_queue(jobQueue=self.arn, state='DISABLED')
 
         # Next, terminate all jobs that have not completed
         for status in [
@@ -1738,13 +1707,13 @@ class JobQueue(ObjectWithArn):
         ]:
             jobs = self.jobs(status=status)
             for job_id in jobs:
-                batch.terminate_job(
+                BATCH.terminate_job(
                     jobId=job_id,
                     reason='Terminated to force job queue deletion'
                 )
 
         # Finally, delete the job queue
-        batch.delete_job_queue(jobQueue=self.arn)
+        BATCH.delete_job_queue(jobQueue=self.arn)
 
         if self.verbosity > 0:
             print('Deleted job queue {name:s}'.format(
@@ -1885,8 +1854,7 @@ class BatchJob(ObjectWithNameAndVerbosity):
         JobExists.__new__.__defaults__ = \
             (None,) * (len(JobExists._fields) - 1)
 
-        batch = boto3.client('batch')
-        response = batch.describe_jobs(jobs=[job_id])
+        response = BATCH.describe_jobs(jobs=[job_id])
 
         if response.get('jobs'):
             job = response.get('jobs')[0]
@@ -1915,14 +1883,12 @@ class BatchJob(ObjectWithNameAndVerbosity):
         string
             job ID for the created batch job
         """
-        batch = boto3.client('batch')
-
         container_overrides = {
             'environment': self.environment_variables,
             'command': self.commands
         }
 
-        response = batch.submit_job(
+        response = BATCH.submit_job(
             jobName=self.name,
             jobQueue=self.job_queue_arn,
             jobDefinition=self.job_definition_arn,
@@ -1946,10 +1912,8 @@ class BatchJob(ObjectWithNameAndVerbosity):
             dictionary with keys: {status, statusReason, attempts}
             for this AWS batch job
         """
-        batch = boto3.client('batch')
-
         # Query the job_id
-        response = batch.describe_jobs(jobs=[self.job_id])
+        response = BATCH.describe_jobs(jobs=[self.job_id])
         job = response.get('jobs')[0]
 
         # Return only a subset of the job dictionary
@@ -1972,9 +1936,7 @@ class BatchJob(ObjectWithNameAndVerbosity):
         if not isinstance(reason, str):
             raise Exception('reason must be a string.')
 
-        batch = boto3.client('batch')
-
-        batch.terminate_job(jobId=self.job_id, reason=reason)
+        BATCH.terminate_job(jobId=self.job_id, reason=reason)
 
         if self.verbosity > 0:
             print('Terminated job {name:s} with jobID {job_id:s}'.format(
