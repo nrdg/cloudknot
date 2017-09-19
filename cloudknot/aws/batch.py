@@ -1,3 +1,4 @@
+import logging
 import operator
 import sys
 import time
@@ -239,7 +240,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         ))
 
         # Remove this job def from the list of job defs in the config file
-        config.remove_resource('job definitions', self.name, arn)
+        config.remove_resource('job definitions', self.name, self.arn)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit

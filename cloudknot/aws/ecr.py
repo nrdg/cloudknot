@@ -1,4 +1,5 @@
 import docker
+import logging
 import operator
 import os
 import shutil

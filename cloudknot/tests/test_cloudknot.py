@@ -1,11 +1,17 @@
 from __future__ import absolute_import, division, print_function
+
 import os.path as op
-import numpy as np
-import pandas as pd
-import numpy.testing as npt
+
 import cloudknot as ck
+import numpy as np
+import numpy.testing as npt
+import pandas as pd
 
 data_path = op.join(ck.__path__[0], 'data')
+
+
+def test_IamRole():
+    pass
 
 
 def test_transform_data():
