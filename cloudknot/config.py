@@ -8,18 +8,19 @@ from . import aws
 # Set global config parser
 CONFIG = configparser.ConfigParser()
 
-# Use default config file path unless environment variable is set
-try:
-    env_file = os.environ['CLOUDKNOT_CONFIG_FILE']
-    CONFIG_FILE = os.path.abspath(env_file)
-except KeyError:
-    home = os.path.expanduser('~')
-    CONFIG_FILE = os.path.join(home, '.aws', '.cloudknot')
+def init():
+    # Use default config file path unless environment variable is set
+    try:
+        env_file = os.environ['CLOUDKNOT_CONFIG_FILE']
+        CONFIG_FILE = os.path.abspath(env_file)
+    except KeyError:
+        home = os.path.expanduser('~')
+        CONFIG_FILE = os.path.join(home, '.aws', '.cloudknot')
 
-if not os.path.isfile(CONFIG_FILE):
-    # If the config file does not exist, create it
-    with open(CONFIG_FILE, 'w') as f:
-        f.write('# cloudknot configuration file')
+    if not os.path.isfile(CONFIG_FILE):
+        # If the config file does not exist, create it
+        with open(CONFIG_FILE, 'w') as f:
+            f.write('# cloudknot configuration file')
 
 
 def add_resource(section, option, value):
