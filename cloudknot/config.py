@@ -7,14 +7,20 @@ from . import aws
 
 # Set global config parser
 CONFIG = configparser.ConfigParser()
+CONFIG_FILE = None
+
 
 def init():
     # Use default config file path unless environment variable is set
     try:
         env_file = os.environ['CLOUDKNOT_CONFIG_FILE']
+
+        global CONFIG_FILE
         CONFIG_FILE = os.path.abspath(env_file)
     except KeyError:
         home = os.path.expanduser('~')
+
+        global CONFIG_FILE
         CONFIG_FILE = os.path.join(home, '.aws', '.cloudknot')
 
     if not os.path.isfile(CONFIG_FILE):
