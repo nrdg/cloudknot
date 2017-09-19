@@ -229,6 +229,9 @@ class Vpc(object):
         -------
         None
         """
+        # Delete the VPC
+        EC2.delete_vpc(VpcId=self.vpc_id)
+
         # Remove this VPC from the list of VPCs in the config file
         config.remove_resource('vpcs', self.vpc_id)
 
