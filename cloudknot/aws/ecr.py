@@ -3,7 +3,10 @@ import operator
 import os
 import shutil
 import subprocess
-from .base_classes import ObjectWithNameAndVerbosity, ECR
+
+from .. import config
+from .base_classes import ObjectWithNameAndVerbosity, ECR, \
+    ResourceExistsException
 
 __all__ = ["DockerImage"]
 
@@ -11,15 +14,18 @@ __all__ = ["DockerImage"]
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 class DockerImage(ObjectWithNameAndVerbosity):
     """Class for building, tagging, and pushing docker containers"""
-    def __init__(self, name, build_path='.',
+    def __init__(self, name, tags, build_path='.',
                  dockerfile=os.path.join('.', 'Dockerfile'),
-                 requirements=None, tags=('latest',), verbosity=0):
+                 requirements=None, verbosity=0):
         """ Initialize a Docker image object.
 
         Parameters
         ----------
         name : string
             Name of the image
+
+        tags : list or tuple
+            tuple of strings of desired image tags
 
         build_path : string
             Path to an existing directory in which to build docker image
@@ -33,37 +39,37 @@ class DockerImage(ObjectWithNameAndVerbosity):
             Path to an existing requirements.txt file to build dependencies
             Default: None (i.e. assumes no dependencies)
 
-        tags : list
-            tuple of strings of desired image tags
-            Default: ['latest']
-
         verbosity : int
             verbosity level [0, 1, 2]
         """
         super(DockerImage, self).__init__(name=name, verbosity=verbosity)
 
         if not os.path.isdir(build_path):
-            raise Exception('build_path must be an existing directory')
+            raise ValueError('build_path must be an existing directory')
         self._build_path = os.path.abspath(build_path)
 
         if not os.path.isfile(dockerfile):
-            raise Exception('dockerfile must be an existing regular file')
+            raise ValueError('dockerfile must be an existing regular file')
         self._dockerfile = os.path.abspath(dockerfile)
 
         if not requirements:
             self._requirements = None
         elif not os.path.isfile(requirements):
-            raise Exception('requirements must be an existing regular file')
+            raise ValueError('requirements must be an existing regular file')
         else:
             self._requirements = os.path.abspath(requirements)
 
-        if tags:
-            tmp_tags = tuple([t for t in tags])
-            if 'latest' not in tmp_tags:
-                tmp_tags = tmp_tags + ('latest',)
-            self._tags = tmp_tags
+        if isinstance(tags, str):
+            tags = (tags,)
+        elif all(isinstance(x, str) for x in tags):
+            tags = tuple([t for t in tags])
         else:
-            self._tags = None
+            raise ValueError('tags must be a string or a sequence of strings.')
+
+        if 'latest' in tags:
+            raise ValueError('Any tag is allowed, except for "latest."')
+
+        self._tags = tags
 
         self._uri = None
 
@@ -107,9 +113,11 @@ class DockerImage(ObjectWithNameAndVerbosity):
             login_cmd.decode('ASCII').rstrip('\n').split(' '))
 
         if login_result:
-            raise Exception(
+            raise ValueError(
                 'Unable to login to AWS ECR using `{login:s}`'.format(
-                    login=login_cmd))
+                    login=login_cmd
+                )
+            )
 
         # Get repository uri
         try:

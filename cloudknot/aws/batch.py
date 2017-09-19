@@ -1,8 +1,11 @@
 import operator
 import sys
 import time
+
+from .. import config
 from .base_classes import ObjectWithNameAndVerbosity, ObjectWithArn, \
-    ObjectWithUsernameAndMemory, BATCH
+    ObjectWithUsernameAndMemory, BATCH, \
+    ResourceExistsException, ResourceDoesNotExistException
 from .iam import IamRole
 from .ec2 import Vpc, SecurityGroup
 from .ecr import DockerImage
@@ -14,8 +17,8 @@ __all__ = ["JobDefinition", "JobQueue", "ComputeEnvironment", "BatchJob"]
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 class JobDefinition(ObjectWithUsernameAndMemory):
     """Class for defining AWS Batch Job Definitions"""
-    def __init__(self, name, job_role, docker_image, vcpus=1,
-                 memory=32000, username='cloudknot-user', retries=3,
+    def __init__(self, arn=None, name=None, job_role=None, docker_image=None,
+                 vcpus=None, memory=None, username=None, retries=None,
                  verbosity=0):
         """ Initialize an AWS Batch job definition object.
 
@@ -47,48 +50,89 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         verbosity : int
             verbosity level [0, 1, 2]
         """
-        super(JobDefinition, self).__init__(name=name, memory=memory,
-                                            username=username,
-                                            verbosity=verbosity)
+        if not (arn or name):
+            raise ValueError('You must supply either an arn or name for this '
+                             'job definition.')
 
-        resource_exists = self._exists_already()
-        self._pre_existing = resource_exists.exists
+        if arn and any([
+            name, job_role, docker_image, vcpus, memory, username, retries
+        ]):
+            raise ValueError('You may supply either an arn or other job '
+                             'definition details. Not both.')
 
-        if resource_exists.exists:
-            self._job_role = resource_exists.job_role
-            self._docker_image = resource_exists.docker_image
-            self._vcpus = resource_exists.vcpus
-            self._memory = resource_exists.memory
-            self._username = resource_exists.username
-            self._retries = resource_exists.retries
-            self._arn = resource_exists.arn
+        resource = self._exists_already(arn=arn, name=name)
+        self._pre_existing = resource.exists
+
+        if resource.exists:
+            # Resource exists, if user tried to specify resource parameters,
+            # throw error
+            if any([
+                job_role, docker_image, vcpus, memory, username, retries
+            ]):
+                raise ResourceExistsException(
+                    'You provided input parameters for a job definition that '
+                    'already exists. If you would like to create a new job '
+                    'definition, please use a different name. If you would '
+                    'like to retrieve the details of this job definition, use '
+                    'JobDefinition(arn={arn:s})'.format(arn=resource.arn),
+                    resource.arn
+                )
+
+            # Fill parameters with queried values
+            super(JobDefinition, self).__init__(
+                name=resource.name, memory=resource.memory,
+                username=resource.username, verbosity=verbosity
+            )
+            self._job_role = resource.job_role
+            self._docker_image = resource.docker_image
+            self._vcpus = resource.vcpus
+            self._retries = resource.retries
+            self._arn = resource.arn
+            config.add_resource('job definitions', self.name, self.arn)
         else:
+            # If user supplied only a name or only an arn, expecting to
+            # retrieve info on pre-existing job definition, throw error
+            if arn or (name and not all([job_role, docker_image])):
+                raise ResourceDoesNotExistException(
+                    'The job queue you requested does not exist.',
+                    arn
+                )
+
+            # Otherwise, validate input and set parameters
+            username = username if username else 'cloudknot-user'
+            memory = memory if memory else 32000
+
+            super(JobDefinition, self).__init__(
+                name=name, memory=memory, username=username,
+                verbosity=verbosity
+            )
+
             if not isinstance(job_role, IamRole):
-                raise Exception('job_role must be an instance of IamRole')
+                raise ValueError('job_role must be an instance of IamRole')
             self._job_role = job_role
 
             if not isinstance(docker_image, DockerImage):
-                raise Exception(
+                raise ValueError(
                     'docker_image must be an instance of DockerImage')
             self._docker_image = docker_image
 
-            try:
+            if vcpus:
                 cpus = int(vcpus)
                 if cpus < 1:
-                    raise Exception('vcpus must be positive')
+                    raise ValueError('vcpus must be positive')
                 else:
                     self._vcpus = cpus
-            except ValueError:
-                raise Exception('vcpus must be an integer')
+            else:
+                self._vcpus = 1
 
-            try:
+            if retries:
                 retries_int = int(retries)
                 if retries_int < 1:
-                    raise Exception('retries must be positive')
+                    raise ValueError('retries must be positive')
                 else:
                     self._retries = retries_int
-            except ValueError:
-                raise Exception('retries must be an integer')
+            else:
+                self._retries = 3
 
             self._arn = self._create()
 
@@ -98,7 +142,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
     vcpus = property(operator.attrgetter('_vcpus'))
     retries = property(operator.attrgetter('_retries'))
 
-    def _exists_already(self):
+    def _exists_already(self, arn, name):
         """ Check if an AWS Job Definition exists already
 
         If definition exists, return namedtuple with job definition info.
@@ -108,23 +152,28 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         Returns
         -------
         namedtuple RoleExists
-            A namedtuple with fields ['exists', 'job_role', 'docker_image',
-            'vcpus', 'memory', 'username', 'retries', 'arn']
+            A namedtuple with fields ['exists', 'name', 'job_role',
+            'docker_image', 'vcpus', 'memory', 'username', 'retries', 'arn']
         """
         # define a namedtuple for return value type
         ResourceExists = namedtuple(
             'ResourceExists',
-            ['exists', 'job_role', 'docker_image', 'vcpus',
+            ['exists', 'name', 'job_role', 'docker_image', 'vcpus',
              'memory', 'username', 'retries', 'arn']
         )
         # make all but the first value default to None
         ResourceExists.__new__.__defaults__ = \
             (None,) * (len(ResourceExists._fields) - 1)
 
-        response = BATCH.describe_job_definitions(jobDefinitionName=self.name)
+        if arn:
+            response = BATCH.describe_job_definitions(jobDefinitionName=arn)
+        else:
+            response = BATCH.describe_job_definitions(jobDefinitionName=name)
+
         if response.get('jobDefinitions'):
             job_def = response.get('jobDefinitions')[0]
-            arn = job_def['jobDefinitionArn']
+            job_def_name = job_def['jobDefinitionName']
+            job_def_arn = job_def['jobDefinitionArn']
             retries = job_def['retryStrategy']['attempts']
 
             container_properties = job_def['containerProperties']
@@ -136,13 +185,13 @@ class JobDefinition(ObjectWithUsernameAndMemory):
 
             if self.verbosity > 0:
                 print('Job definition {name:s} already exists.'.format(
-                    name=self.name
+                    name=job_def_name
                 ))
 
             return ResourceExists(
-                exists=True, job_role=job_role_arn,
+                exists=True, name=job_def_name, job_role=job_role_arn,
                 docker_image=container_image, vcpus=vcpus, memory=memory,
-                username=username, retries=retries, arn=arn
+                username=username, retries=retries, arn=job_def_arn
             )
         else:
             return ResourceExists(exists=False)
@@ -175,9 +224,14 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             print('Created AWS batch job definition {name:s}'.format(
                 name=self.name))
 
-        return response['jobDefinitionArn']
+        arn = response['jobDefinitionArn']
 
-    def remove_aws_resource(self):
+        # Add this job def to the list of job definitions in the config file
+        config.add_resource('job definitions', self.name, arn)
+
+        return arn
+
+    def clobber(self):
         """ Deregister this AWS batch job definition
 
         Returns
@@ -191,21 +245,26 @@ class JobDefinition(ObjectWithUsernameAndMemory):
                 name=self.name
             ))
 
+        # Remove this job def from the list of job defs in the config file
+        config.remove_resource('job definitions', self.name, arn)
+
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-class ComputeEnvironment(ObjectWithUsernameAndMemory):
+class ComputeEnvironment(ObjectWithArn):
     """Class for defining AWS Compute Environments"""
-    def __init__(self, name, batch_service_role=None, instance_role=None,
-                 vpc=None, security_group=None,
-                 spot_fleet_role=None, instance_types=('optimal',),
-                 resource_type='EC2', min_vcpus=0, max_vcpus=256,
-                 desired_vcpus=8, memory=32000, username='cloudknot-user',
+    def __init__(self, arn=None, name=None, batch_service_role=None,
+                 instance_role=None, vpc=None, security_group=None,
+                 spot_fleet_role=None, instance_types=None, resource_type=None,
+                 min_vcpus=None, max_vcpus=None, desired_vcpus=None,
                  image_id=None, ec2_key_pair=None, tags=None,
                  bid_percentage=None, verbosity=0):
         """ Initialize an AWS Batch job definition object.
 
         Parameters
         ----------
+        arn : string
+            Amazon Resource Number of this compute environment
+
         name : string
             Name of the compute environment
 
@@ -249,14 +308,6 @@ class ComputeEnvironment(ObjectWithUsernameAndMemory):
             compute environment
             Default: 8
 
-        memory : int
-            memory (MiB) to be used for this compute environment
-            Default: 32000
-
-        username : string
-            username for be used for this compute environment
-            Default: cloudknot-user
-
         image_id : string
             optional AMI id used for instances launched in this compute
             environment
@@ -279,160 +330,222 @@ class ComputeEnvironment(ObjectWithUsernameAndMemory):
         verbosity : int
             verbosity level [0, 1, 2]
         """
-        super(ComputeEnvironment, self).__init__(name=name, memory=memory,
-                                                 username=username,
-                                                 verbosity=verbosity)
+        if not (arn or name):
+            raise ValueError(
+                'You must supply either an arn or name for this '
+                'compute environment.'
+            )
 
-        resource_exists = self._exists_already()
-        self._pre_existing = resource_exists.exists
+        if arn and any([
+            name, batch_service_role, instance_role, vpc, security_group,
+            spot_fleet_role, instance_types, resource_type, min_vcpus,
+            max_vcpus, desired_vcpus, image_id, ec2_key_pair, tags,
+            bid_percentage
+        ]):
+            raise ValueError(
+                'You may supply either an arn or compute '
+                'environment parameters, but not both.'
+            )
 
-        if resource_exists.exists:
+        # Check if this compute environment already exists
+        resource = self._exists_already(arn=arn, name=name)
+        self._pre_existing = resource.exists
+
+        if resource.exists:
+            # If pre-existing, then user supplied either arn or name. Above,
+            # we raised error if user provided arn plus input parameters.
+            # Now, check that they did not provide a pre-existing name plus
+            # input parameters
+            if name and any([
+                batch_service_role, instance_role, vpc, security_group,
+                spot_fleet_role, instance_types, resource_type, min_vcpus,
+                max_vcpus, desired_vcpus, image_id, ec2_key_pair, tags,
+                bid_percentage
+            ]):
+                raise ResourceExistsException(
+                    'You provided input parameters for a compute environment '
+                    'that already exists. If you would like to create a new '
+                    'compute environment, please use a different name. If '
+                    'you would like to retrieve the details of this compute '
+                    'environment, use ComputeEnvironment('
+                    'arn={arn:s})'.format(arn=resource.arn),
+                    resource.arn
+                )
+
+            # Fill parameters with queried values
+            super(ComputeEnvironment, self).__init__(
+                name=resource.name, verbosity=verbosity
+            )
+
             self._batch_service_role = None
-            self._batch_service_arn = resource_exists.batch_service_arn
+            self._batch_service_arn = resource.batch_service_arn
 
             self._instance_role = None
-            self._instance_role_arn = resource_exists.instance_role_arn
+            self._instance_role_arn = resource.instance_role_arn
 
             self._vpc = None
-            self._subnets = resource_exists.subnets
+            self._subnets = resource.subnets
 
             self._security_group = None
-            self._security_group_ids = resource_exists.security_group_ids
+            self._security_group_ids = resource.security_group_ids
 
             self._spot_fleet_role = None
-            self._spot_fleet_role_arn = resource_exists.spot_fleet_role_arn
+            self._spot_fleet_role_arn = resource.spot_fleet_role_arn
 
-            self._instance_types = resource_exists.instance_types
-            self._resource_type = resource_exists.resource_type
-            self._min_vcpus = resource_exists.min_vcpus
-            self._max_vcpus = resource_exists.max_vcpus
-            self._desired_vcpus = resource_exists.desired_vcpus
-            self._image_id = resource_exists.image_id
-            self._ec2_key_pair = resource_exists.ec2_key_pair
-            self._tags = resource_exists.tags
-            self._bid_percentage = resource_exists.bid_percentage
-            self._arn = resource_exists.arn
+            self._instance_types = resource.instance_types
+            self._resource_type = resource.resource_type
+            self._min_vcpus = resource.min_vcpus
+            self._max_vcpus = resource.max_vcpus
+            self._desired_vcpus = resource.desired_vcpus
+            self._image_id = resource.image_id
+            self._ec2_key_pair = resource.ec2_key_pair
+            self._tags = resource.tags
+            self._bid_percentage = resource.bid_percentage
+            self._arn = resource.arn
+            config.add_resource('compute environments', self.name, self.arn)
         else:
+            # If user supplied only a name or only an arn, expecting to
+            # retrieve info on pre-existing job queue, throw error
+            if arn or (name and not all([
+                batch_service_role, instance_role, vpc, security_group
+            ])):
+                raise ResourceDoesNotExistException(
+                    'The job queue you requested does not exist.',
+                    arn
+                )
+
+            # Otherwise, validate input and set parameters
+            super(ComputeEnvironment, self).__init__(
+                name=name, verbosity=verbosity
+            )
+
             if not bid_percentage and resource_type == 'SPOT':
-                raise Exception('if resource_type is "SPOT", bid_percentage '
-                                'must be set.')
+                raise ValueError(
+                    'if resource_type is "SPOT", bid_percentage '
+                    'must be set.'
+                )
 
             if not spot_fleet_role and resource_type == 'SPOT':
-                raise Exception('if resource_type is "SPOT", spot_fleet_role '
-                                'must be set.')
+                raise ValueError(
+                    'if resource_type is "SPOT", spot_fleet_role '
+                    'must be set.'
+                )
 
             if not (isinstance(batch_service_role, IamRole)
                     and batch_service_role.service == 'batch'):
-                raise Exception('batch_service_role must be an IamRole '
-                                'instance with service type "batch"')
+                raise ValueError(
+                    'batch_service_role must be an IamRole '
+                    'instance with service type "batch"'
+                )
             self._batch_service_role = batch_service_role
             self._batch_service_arn = batch_service_role.arn
 
             if not (isinstance(instance_role, IamRole)
                     and instance_role.instance_profile_arn):
-                raise Exception('instance_role must be an IamRole instance '
-                                'with an instance profile ARN')
+                raise ValueError(
+                    'instance_role must be an IamRole instance '
+                    'with an instance profile ARN'
+                )
             self._instance_role = instance_role
             self._instance_role_arn = instance_role.instance_profile_arn
 
             if not isinstance(vpc, Vpc):
-                raise Exception('vpc must be an instance of Vpc')
+                raise ValueError('vpc must be an instance of Vpc')
             self._vpc = vpc
             self._subnets = vpc.subnets
 
             if not isinstance(security_group, SecurityGroup):
-                raise Exception('security_group must be an instance of '
-                                'SecurityGroup')
+                raise ValueError(
+                    'security_group must be an instance of '
+                    'SecurityGroup'
+                )
             self._security_group = security_group
             self._security_group_ids = [security_group.security_group_id]
 
             if spot_fleet_role:
                 if not (isinstance(spot_fleet_role, IamRole)
                         and spot_fleet_role.service == 'spotfleet'):
-                    raise Exception('if provided, spot_fleet_role must be an '
-                                    'IamRole instance with service type '
-                                    '"spotfleet"')
+                    raise ValueError(
+                        'if provided, spot_fleet_role must be an '
+                        'IamRole instance with service type '
+                        '"spotfleet"'
+                    )
                 self._spot_fleet_role = spot_fleet_role
                 self._spot_fleet_role_arn = spot_fleet_role.arn
             else:
                 self._spot_fleet_role = None
                 self._spot_fleet_role_arn = None
 
+            instance_types = instance_types if instance_types else ('optimal',)
             if isinstance(instance_types, str):
                 self._instance_types = (instance_types,)
             elif all(isinstance(x, str) for x in instance_types):
                 self._instance_types = list(instance_types)
             else:
-                raise Exception('instance_types must be a string or a '
-                                'sequence of strings.')
+                raise ValueError(
+                    'instance_types must be a string or a '
+                    'sequence of strings.'
+                )
 
+            resource_type = resource_type if resource_type else 'EC2'
             if resource_type not in ('EC2', 'SPOT'):
-                raise Exception('resource_type must be either "EC2" or "SPOT"')
-
+                raise ValueError('resource_type must be "EC2" or "SPOT"')
             self._resource_type = resource_type
 
-            try:
-                cpus = int(min_vcpus)
-                if cpus < 0:
-                    raise Exception('min_vcpus must be non-negative')
-                else:
-                    self._min_vcpus = cpus
-            except ValueError:
-                raise Exception('min_vcpus must be an integer')
+            min_vcpus = min_vcpus if min_vcpus else 0
+            cpus = int(min_vcpus)
+            if cpus < 0:
+                raise ValueError('min_vcpus must be non-negative')
+            else:
+                self._min_vcpus = cpus
 
-            try:
-                cpus = int(max_vcpus)
-                if cpus < 0:
-                    raise Exception('max_vcpus must be non-negative')
-                else:
-                    self._max_vcpus = cpus
-            except ValueError:
-                raise Exception('max_vcpus must be an integer')
+            max_vcpus = max_vcpus if max_vcpus else 256
+            cpus = int(max_vcpus)
+            if cpus < 0:
+                raise ValueError('max_vcpus must be non-negative')
+            else:
+                self._max_vcpus = cpus
 
-            try:
-                cpus = int(desired_vcpus)
-                if cpus < 0:
-                    raise Exception('desired_vcpus must be non-negative')
-                else:
-                    self._desired_vcpus = cpus
-            except ValueError:
-                raise Exception('desired_vcpus must be an integer')
+            desired_vcpus = desired_vcpus if desired_vcpus else 8
+            cpus = int(desired_vcpus)
+            if cpus < 0:
+                raise ValueError('desired_vcpus must be non-negative')
+            else:
+                self._desired_vcpus = cpus
 
             if image_id:
                 if not isinstance(image_id, str):
-                    raise Exception('if provided, image_id must be a string')
+                    raise ValueError('if provided, image_id must be a string')
                 self._image_id = image_id
             else:
                 self._image_id = None
 
             if ec2_key_pair:
                 if not isinstance(ec2_key_pair, str):
-                    raise Exception('if provided, ec2_key_pair must be a '
-                                    'string')
+                    raise ValueError(
+                        'if provided, ec2_key_pair must be a string'
+                    )
                 self._ec2_key_pair = ec2_key_pair
             else:
                 self._ec2_key_pair = None
 
             if tags:
                 if not isinstance(tags, dict):
-                    raise Exception('if provided, tags must be an instance of '
-                                    'dict')
+                    raise ValueError(
+                        'if provided, tags must be an instance of dict'
+                    )
                 self._tags = tags
             else:
                 self._tags = None
 
             if bid_percentage:
-                try:
-                    bp_int = int(bid_percentage)
-                    if bp_int < 0:
-                        self._bid_percentage = 0
-                    elif bp_int > 100:
-                        self._bid_percentage = 100
-                    else:
-                        self._bid_percentage = bp_int
-                except ValueError:
-                    raise Exception('if provided, bid_percentage must be an '
-                                    'int')
+                bp_int = int(bid_percentage)
+                if bp_int < 0:
+                    self._bid_percentage = 0
+                elif bp_int > 100:
+                    self._bid_percentage = 100
+                else:
+                    self._bid_percentage = bp_int
             else:
                 self._bid_percentage = None
 
@@ -463,42 +576,50 @@ class ComputeEnvironment(ObjectWithUsernameAndMemory):
     tags = property(operator.attrgetter('_tags'))
     bid_percentage = property(operator.attrgetter('_bid_percentage'))
 
-    def _exists_already(self):
-        """ Check if an IAM Role exists already
+    def _exists_already(self, arn, name):
+        """ Check if a compute environment exists already
 
-        If role exists, return namedtuple with role info. Otherwise, set the
-        namedtuple's `exists` field to `False`. The remaining fields default
-        to `None`.
+        If compute environment exists, return namedtuple with compute
+        environment info. Otherwise, set the namedtuple's `exists` field to
+        `False`. The remaining fields default to `None`.
 
         Returns
         -------
         namedtuple ResourceExists
             A namedtuple with fields
-            ['exists', 'batch_service_arn', 'instance_role_arn', 'subnets',
-             'security_group_ids', 'spot_fleet_role_arn', 'instance_types',
-             'resource_type', 'min_vcpus', 'max_vcpus', 'desired_vcpus',
-             'image_id', 'ec2_key_pair', 'tags', 'bid_percentage', 'arn']
+            ['exists', 'name', 'batch_service_arn', 'instance_role_arn',
+             'subnets', 'security_group_ids', 'spot_fleet_role_arn',
+             'instance_types', 'resource_type', 'min_vcpus', 'max_vcpus',
+             'desired_vcpus', 'image_id', 'ec2_key_pair', 'tags',
+             'bid_percentage', 'arn']
         """
         # define a namedtuple for return value type
         ResourceExists = namedtuple(
             'ResourceExists',
-            ['exists', 'batch_service_arn', 'instance_role_arn', 'subnets',
-             'security_group_ids', 'spot_fleet_role_arn', 'instance_types',
-             'resource_type', 'min_vcpus', 'max_vcpus', 'desired_vcpus',
-             'image_id', 'ec2_key_pair', 'tags', 'bid_percentage', 'arn']
+            ['exists', 'name', 'batch_service_arn', 'instance_role_arn',
+             'subnets', 'security_group_ids', 'spot_fleet_role_arn',
+             'instance_types', 'resource_type', 'min_vcpus', 'max_vcpus',
+             'desired_vcpus', 'image_id', 'ec2_key_pair', 'tags',
+             'bid_percentage', 'arn']
         )
         # make all but the first value default to None
         ResourceExists.__new__.__defaults__ = \
             (None,) * (len(ResourceExists._fields) - 1)
 
-        response = BATCH.describe_compute_environments(
-            computeEnvironments=[self.name]
-        )
+        if arn:
+            response = BATCH.describe_compute_environments(
+                computeEnvironments=[arn]
+            )
+        else:
+            response = BATCH.describe_compute_environments(
+                computeEnvironments=[name]
+            )
 
         if response.get('computeEnvironments'):
             ce = response.get('computeEnvironments')[0]
+            ce_name = ce['computeEnvironmentName']
             batch_service_arn = ce['serviceRole']
-            arn = ce['computeEnvironmentArn']
+            ce_arn = ce['computeEnvironmentArn']
 
             cr = ce['computeResources']
             instance_role_arn = cr['instanceRole']
@@ -521,7 +642,7 @@ class ComputeEnvironment(ObjectWithUsernameAndMemory):
                 ))
 
             return ResourceExists(
-                exists=True, batch_service_arn=batch_service_arn,
+                exists=True, name=ce_name, batch_service_arn=batch_service_arn,
                 instance_role_arn=instance_role_arn, subnets=subnets,
                 security_group_ids=security_group_ids,
                 spot_fleet_role_arn=spot_fleet_role_arn,
@@ -529,7 +650,7 @@ class ComputeEnvironment(ObjectWithUsernameAndMemory):
                 resource_type=resource_type, min_vcpus=min_vcpus,
                 max_vcpus=max_vcpus, desired_vcpus=desired_vcpus,
                 image_id=image_id, ec2_key_pair=ec2_key_pair, tags=tags,
-                bid_percentage=bid_percentage, arn=arn
+                bid_percentage=bid_percentage, arn=ce_arn
             )
         else:
             return ResourceExists(exists=False)
@@ -576,9 +697,14 @@ class ComputeEnvironment(ObjectWithUsernameAndMemory):
             serviceRole=self.batch_service_arn
         )
 
-        return response['computeEnvironmentArn']
+        arn = response['computeEnvironmentArn']
 
-    def remove_aws_resource(self):
+        # Add this compute env to the list of compute envs in the config file
+        config.add_resource('compute environments', self.name, arn)
+
+        return arn
+
+    def clobber(self):
         """ Delete this compute environment
 
         Returns
@@ -630,15 +756,22 @@ class ComputeEnvironment(ObjectWithUsernameAndMemory):
                 name=self.name
             ))
 
+        # Remove this compute env from the list of compute envs in config file
+        config.remove_resource('compute environments', self.name)
+
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 class JobQueue(ObjectWithArn):
     """Class for defining AWS Batch Job Queues"""
-    def __init__(self, name, compute_environments, priority=1, verbosity=0):
+    def __init__(self, arn=None, name=None, compute_environments=None,
+                 priority=None, verbosity=0):
         """ Initialize an AWS Batch job definition object.
 
         Parameters
         ----------
+        arn : string
+            Amazon Resource Number of the job definition
+
         name : string
             Name of the job definition
 
@@ -655,19 +788,53 @@ class JobQueue(ObjectWithArn):
         """
         super(JobQueue, self).__init__(name=name, verbosity=verbosity)
 
-        # Check if this job queue already exists
-        resource_exists = self._exists_already()
-        self._pre_existing = resource_exists.exists
+        if not (arn or name):
+            raise ValueError(
+                'You must supply either an arn or name for this '
+                'job queue.'
+            )
 
-        if resource_exists.exists:
-            # If pre-existing, ignore input and fill parameters
-            # with queried values
+        if arn and any([name, compute_environments, priority]):
+            raise ValueError(
+                'You may supply either an arn or (name, '
+                'compute_environments, and priority), but not '
+                'both.'
+            )
+
+        # Check if this job queue already exists
+        resource = self._exists_already(arn=arn, name=name)
+        self._pre_existing = resource.exists
+
+        if resource.exists:
+            # If pre-existing, then user supplied either arn or name. Above,
+            # we raised error if user provided arn plus input parameters.
+            # Now, check that they did not provide a pre-existing name plus
+            # input parameters
+            if name and any([compute_environments, priority]):
+                raise ResourceExistsException(
+                    'You provided input parameters for a job queue that '
+                    'already exists. If you would like to create a new job '
+                    'queue, please use a different name. If you would like '
+                    'to retrieve the details of this job queue, use JobQueue('
+                    'arn={arn:s})'.format(arn=resource.arn),
+                    resource.arn
+                )
+
+            # Fill parameters with queried values
             self._compute_environments = None
-            self._compute_environment_arns = \
-                resource_exists.compute_environment_arns
-            self._priority = resource_exists.priority
-            self._arn = resource_exists.arn
+            self._compute_environment_arns = resource.compute_environment_arns
+            self._priority = resource.priority
+            self._arn = resource.arn
+            config.add_resource('job queues', self.name, self.arn)
         else:
+            # If user supplied only a name or only an arn, expecting to
+            # retrieve info on pre-existing job queue, throw error
+            if arn or (name and not compute_environments):
+                raise ResourceDoesNotExistException(
+                    'The job queue you requested does not exist.',
+                    arn
+                )
+
             # Otherwise, validate input and set parameters
             # Validate compute environments
             if isinstance(compute_environments, ComputeEnvironment):
@@ -677,9 +844,11 @@ class JobQueue(ObjectWithArn):
                      ):
                 self._compute_environments = tuple(compute_environments)
             else:
-                raise Exception('compute_environments must be a '
-                                'ComputeEnvironment instance or a sequence '
-                                'of ComputeEnvironment instances.')
+                raise ValueError(
+                    'compute_environments must be a '
+                    'ComputeEnvironment instance or a sequence '
+                    'of ComputeEnvironment instances.'
+                )
 
             # Assign compute environment arns,
             # based on ComputeEnvironment input
@@ -691,14 +860,14 @@ class JobQueue(ObjectWithArn):
                 })
 
             # Validate priority
-            try:
+            if priority:
                 p_int = int(priority)
                 if p_int < 1:
-                    raise Exception('priority must be positive')
+                    raise ValueError('priority must be positive')
                 else:
                     self._priority = p_int
-            except ValueError:
-                raise Exception('priority must be an integer')
+            else:
+                self._priority = 1
 
             # Create job queue and assign arn
             self._arn = self._create()
@@ -713,12 +882,12 @@ class JobQueue(ObjectWithArn):
     )
     priority = property(operator.attrgetter('_priority'))
 
-    def _exists_already(self):
-        """ Check if an AWS compute environment exists already
+    def _exists_already(self, arn, name):
+        """ Check if an AWS job queue exists already
 
-        If compute environment exists, return namedtuple with compute
-        environment info. Otherwise, set the namedtuple's `exists` field to
-        `False`. The remaining fields default to `None`.
+        If job queue exists, return namedtuple with job queue info.
+        Otherwise, set the namedtuple's `exists` field to `False`.
+        The remaining fields default to `None`.
 
         Returns
         -------
@@ -735,9 +904,14 @@ class JobQueue(ObjectWithArn):
         ResourceExists.__new__.__defaults__ = \
             (None,) * (len(ResourceExists._fields) - 1)
 
-        response = BATCH.describe_job_queues(
-            jobQueues=[self.name]
-        )
+        if arn:
+            response = BATCH.describe_job_queues(
+                jobQueues=[arn]
+            )
+        else:
+            response = BATCH.describe_job_queues(
+                jobQueues=[name]
+            )
 
         q = response.get('JobQueues')
         if q:
@@ -789,7 +963,12 @@ class JobQueue(ObjectWithArn):
         if self.priority > 0:
             print('Created job queue {name:s}'.format(name=self.name))
 
-        return response.get('jobQueues')[0]['jobQueueArn']
+        arn = response.get('jobQueues')[0]['jobQueueArn']
+
+        # Add this job queue to the list of job queues in the config file
+        config.add_resource('job queues', self.name, arn)
+
+        return arn
 
     @property
     def jobs(self, status='ALL'):
@@ -797,7 +976,7 @@ class JobQueue(ObjectWithArn):
         allowed_statuses = ['ALL', 'SUBMITTED', 'PENDING', 'RUNNABLE',
                             'STARTING', 'RUNNING', 'SUCCEEDED', 'FAILED']
         if status not in allowed_statuses:
-            raise Exception('status must be one of ', allowed_statuses)
+            raise ValueError('status must be one of ', allowed_statuses)
 
         if status == 'ALL':
             # status == 'ALL' is equivalent to not specifying a status at all
@@ -809,7 +988,7 @@ class JobQueue(ObjectWithArn):
         # Return list of job_ids
         return response.get('jobSummaryList')
 
-    def remove_aws_resource(self):
+    def clobber(self):
         """ Delete this batch job queue
 
         Returns
@@ -837,6 +1016,9 @@ class JobQueue(ObjectWithArn):
             print('Deleted job queue {name:s}'.format(
                 name=self.name
             ))
+
+        # Remove this job queue from the list of job queues in config file
+        config.remove_resource('job queues', self.name)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -879,39 +1061,45 @@ class BatchJob(ObjectWithNameAndVerbosity):
         verbosity : int
             verbosity level [0, 1, 2]
         """
-        if not (job_id or (name and job_queue and job_definition)):
-            raise Exception('must supply either job_id or name, job_queue, '
-                            'and job_definition')
+        if not (job_id or all([name, job_queue, job_definition])):
+            raise ValueError('You must supply either job_id or (name, '
+                             'job_queue, and job_definition).')
+
+        if job_id and any([name, job_queue, job_definition]):
+            raise ValueError('You may supply either job_id or (name, '
+                             'job_queue, and job_definition), not both.')
 
         if job_id:
-            job_exists = self._exists_already(job_id)
-            if not job_exists.exists:
-                raise Exception('jobId {id:s} does not exists'.format(
-                    id=job_id)
+            job = self._exists_already(job_id=job_id)
+            if not job.exists:
+                raise ResourceDoesNotExistException(
+                    'jobId {id:s} does not exists'.format(id=job_id),
+                    job_id
                 )
 
             super(BatchJob, self).__init__(
-                name=job_exists.name,
+                name=job.name,
                 verbosity=verbosity
             )
 
             self._job_queue = None
-            self._job_queue_arn = job_exists.job_queue_arn
+            self._job_queue_arn = job.job_queue_arn
             self._job_definition = None
-            self._job_definition_arn = job_exists.job_definition_arn
-            self._commands = job_exists.commands
-            self._environment_variables = job_exists.environment_variables
-            self._job_id = job_exists.job_id
+            self._job_definition_arn = job.job_definition_arn
+            self._commands = job.commands
+            self._environment_variables = job.environment_variables
+            self._job_id = job.job_id
+            config.add_resource('jobs', self.job_id, self.name)
         else:
             super(BatchJob, self).__init__(name=name, verbosity=verbosity)
 
             if not isinstance(job_queue, JobQueue):
-                raise Exception('job_queue must be a JobQueue instance')
+                raise ValueError('job_queue must be a JobQueue instance')
             self._job_queue = job_queue
             self._job_queue_arn = job_queue.arn
 
             if not isinstance(job_definition, JobDefinition):
-                raise Exception('job_queue must be a JobQueue instance')
+                raise ValueError('job_queue must be a JobQueue instance')
             self._job_definition = job_definition
             self._job_definition_arn = job_definition.arn
 
@@ -921,15 +1109,15 @@ class BatchJob(ObjectWithNameAndVerbosity):
                 elif all(isinstance(x, str) for x in commands):
                     self._commands = list(commands)
                 else:
-                    raise Exception('if provided, commands must be a string '
-                                    'or a sequence of strings.')
+                    raise ValueError('if provided, commands must be a string '
+                                     'or a sequence of strings.')
             else:
                 self._commands = None
 
             if environment_variables:
                 if not isinstance(environment_variables, dict):
-                    raise Exception('if provided, environment_variables must '
-                                    'be an instance of dict')
+                    raise ValueError('if provided, environment_variables must '
+                                     'be an instance of dict')
                 self._environment_variables = environment_variables
             else:
                 self._environment_variables = None
@@ -1018,7 +1206,12 @@ class BatchJob(ObjectWithNameAndVerbosity):
                 name=self.name, job_id=response['jobId']
             ))
 
-        return response['jobId']
+        job_id = response['jobId']
+
+        # Add this job to the list of jobs in the config file
+        config.add_resource('jobs', job_id, self.name)
+
+        return job_id
 
     @property
     def status(self):
@@ -1052,7 +1245,7 @@ class BatchJob(ObjectWithNameAndVerbosity):
         """
         # Require the user to supply a reason for job termination
         if not isinstance(reason, str):
-            raise Exception('reason must be a string.')
+            raise ValueError('reason must be a string.')
 
         BATCH.terminate_job(jobId=self.job_id, reason=reason)
 

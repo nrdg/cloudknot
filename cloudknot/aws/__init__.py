@@ -1,4 +1,5 @@
-from .iam import *
-from .ecr import *
-from .ec2 import *
-from .batch import *
+from .iam import *  # noqa
+from .ecr import *  # noqa
+from .ec2 import *  # noqa
+from .batch import *  # noqa
+from .base_classes import ResourceExistsException, ResourceDoesNotExistException  # noqa

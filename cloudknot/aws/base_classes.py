@@ -1,4 +1,5 @@
 import boto3
+import configparser
 import operator
 
 __all__ = ["ObjectWithNameAndVerbosity", "ObjectWithArn",
@@ -8,6 +9,20 @@ IAM = boto3.client('iam')
 EC2 = boto3.client('ec2')
 BATCH = boto3.client('batch')
 ECR = boto3.client('ecr')
+
+
+# noinspection PyPropertyAccess,PyAttributeOutsideInit
+class ResourceExistsException(Exception):
+    def __init__(self, message, resource_id):
+        super().__init__(message)
+        self.resource_id = resource_id
+
+
+# noinspection PyPropertyAccess,PyAttributeOutsideInit
+class ResourceDoesNotExistException(Exception):
+    def __init__(self, message, resource_id):
+        super().__init__(message)
+        self.resource_id = resource_id
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
