@@ -1,4 +1,5 @@
 import json
+import logging
 import operator
 
 from .. import config
@@ -13,7 +14,7 @@ __all__ = ["IamRole"]
 class IamRole(ObjectWithArn):
     """Class for defining AWS IAM Roles"""
     def __init__(self, name, description=None, service=None,
-                 policies=(), add_instance_profile=False, verbosity=0):
+                 policies=(), add_instance_profile=False):
         """ Initialize an AWS IAM Role object.
 
         Parameters
@@ -38,11 +39,8 @@ class IamRole(ObjectWithArn):
         add_instance_profile : boolean
             flag to create an AWS instance profile and attach this role to it
             Default: False
-
-        verbosity : int
-            verbosity level [0, 1, 2]
         """
-        super(IamRole, self).__init__(name=name, verbosity=verbosity)
+        super(IamRole, self).__init__(name=name)
 
         role = self._exists_already()
         self._pre_existing = role.exists
@@ -187,10 +185,9 @@ class IamRole(ObjectWithArn):
             attached_policies = response.get('AttachedPolicies')
             policies = tuple([d['PolicyName'] for d in attached_policies])
 
-            if self.verbosity > 0:
-                print('IAM role {name:s} already exists: {arn:s}'.format(
-                    name=self.name, arn=arn
-                ))
+            logging.info('IAM role {name:s} already exists: {arn:s}'.format(
+                name=self.name, arn=arn
+            ))
 
             return RoleExists(
                 exists=True, description=description,
@@ -214,10 +211,10 @@ class IamRole(ObjectWithArn):
             Description=self.description
         )
         role_arn = response.get('Role')['Arn']
-        if self.verbosity > 0:
-            print('Created role {name:s} with arn {arn:s}'.format(
-                name=self.name, arn=role_arn
-            ))
+
+        logging.info('Created role {name:s} with arn {arn:s}'.format(
+            name=self.name, arn=role_arn
+        ))
 
         for policy in self.policies:
             # Get the corresponding arn for each input policy
@@ -251,10 +248,9 @@ class IamRole(ObjectWithArn):
                 RoleName=self.name
             )
 
-            if self.verbosity > 0:
-                print('Attached policy {policy:s} to role {role:s}'.format(
-                    policy=policy, role=self.name
-                ))
+            logging.info('Attached policy {policy:s} to role {role:s}'.format(
+                policy=policy, role=self.name
+            ))
 
         if self.add_instance_profile:
             instance_profile_name = self.name + '-instance-profile'
@@ -267,10 +263,9 @@ class IamRole(ObjectWithArn):
                 RoleName=self.name
             )
 
-            if self.verbosity > 0:
-                print('Created instance profile {name:s}'.format(
-                    name=instance_profile_name
-                ))
+            logging.info('Created instance profile {name:s}'.format(
+                name=instance_profile_name
+            ))
 
         # Add this role to the list of roles in the config file
         config.add_resource('roles', self.name, role_arn)
@@ -344,10 +339,7 @@ class IamRole(ObjectWithArn):
 
         IAM.delete_role(RoleName=self.name)
 
-        if self.verbosity > 0:
-            print('Deleted role {name:s}'.format(
-                name=self.name
-            ))
+        logging.info('Deleted role {name:s}'.format(name=self.name))
 
         # Remove this role from the list of roles in the config file
         config.remove_resource('roles', self.name)

@@ -1,8 +1,7 @@
 import boto3
-import configparser
 import operator
 
-__all__ = ["ObjectWithNameAndVerbosity", "ObjectWithArn",
+__all__ = ["NamedObject", "ObjectWithArn",
            "ObjectWithUsernameAndMemory", "IAM", "EC2", "ECR", "BATCH"]
 
 IAM = boto3.client('iam')
@@ -26,53 +25,37 @@ class ResourceDoesNotExistException(Exception):
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-class ObjectWithNameAndVerbosity(object):
-    """Base class for building objects with name and verbosity properties"""
-    def __init__(self, name, verbosity=0):
-        """ Initialize a base class with name and verbosity level
+class NamedObject(object):
+    """Base class for building objects with name property"""
+    def __init__(self, name):
+        """ Initialize a base class with a name
 
         Parameters
         ----------
         name : string
             Name of the object
-
-        verbosity : int
-            verbosity level [0, 1, 2]
         """
         if not name:
             raise Exception('name cannot be empty')
         self._name = str(name)
 
-        try:
-            ver = int(verbosity)
-            if ver < 1:
-                self._verbosity = 0
-            else:
-                self._verbosity = ver
-        except ValueError:
-            raise Exception('verbosity must be an integer')
-
     name = property(operator.attrgetter('_name'))
-    verbosity = property(operator.attrgetter('_verbosity'))
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-class ObjectWithArn(ObjectWithNameAndVerbosity):
+class ObjectWithArn(NamedObject):
     """ Base class for building objects with an Amazon Resource Name (ARN)
-    Inherits from ObjectWithNameAndVerbosity
+    Inherits from NamedObject
     """
-    def __init__(self, name, verbosity=0):
-        """ Initialize a base class with name and verbosity level
+    def __init__(self, name):
+        """ Initialize a base class with name and Amazon Resource Number (ARN)
 
         Parameters
         ----------
         name : string
             Name of the object
-
-        verbosity : int
-            verbosity level [0, 1, 2]
         """
-        super(ObjectWithArn, self).__init__(name=name, verbosity=verbosity)
+        super(ObjectWithArn, self).__init__(name=name)
         self._arn = None
 
     @property
@@ -85,8 +68,8 @@ class ObjectWithUsernameAndMemory(ObjectWithArn):
     """ Base class for building objects with properties memory and username
     Inherits from ObjectWithArn
     """
-    def __init__(self, name, memory, username, verbosity=0):
-        """ Initialize a base class with name and verbosity level
+    def __init__(self, name, memory, username):
+        """ Initialize a base class with name, memory, and username properties
 
         Parameters
         ----------
@@ -100,13 +83,8 @@ class ObjectWithUsernameAndMemory(ObjectWithArn):
         username : string
             username for be used for this job definition
             Default: cloudknot-user
-
-        verbosity : int
-            verbosity level [0, 1, 2]
         """
-        super(ObjectWithUsernameAndMemory, self).__init__(
-            name=name, verbosity=verbosity
-        )
+        super(ObjectWithUsernameAndMemory, self).__init__(name=name)
 
         try:
             mem = int(memory)

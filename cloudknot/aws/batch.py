@@ -3,7 +3,7 @@ import sys
 import time
 
 from .. import config
-from .base_classes import ObjectWithNameAndVerbosity, ObjectWithArn, \
+from .base_classes import NamedObject, ObjectWithArn, \
     ObjectWithUsernameAndMemory, BATCH, \
     ResourceExistsException, ResourceDoesNotExistException
 from .iam import IamRole
@@ -18,8 +18,7 @@ __all__ = ["JobDefinition", "JobQueue", "ComputeEnvironment", "BatchJob"]
 class JobDefinition(ObjectWithUsernameAndMemory):
     """Class for defining AWS Batch Job Definitions"""
     def __init__(self, arn=None, name=None, job_role=None, docker_image=None,
-                 vcpus=None, memory=None, username=None, retries=None,
-                 verbosity=0):
+                 vcpus=None, memory=None, username=None, retries=None):
         """ Initialize an AWS Batch job definition object.
 
         Parameters
@@ -46,9 +45,6 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         username : string
             username for be used for this job definition
             Default: cloudknot-user
-
-        verbosity : int
-            verbosity level [0, 1, 2]
         """
         if not (arn or name):
             raise ValueError('You must supply either an arn or name for this '
@@ -81,7 +77,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             # Fill parameters with queried values
             super(JobDefinition, self).__init__(
                 name=resource.name, memory=resource.memory,
-                username=resource.username, verbosity=verbosity
+                username=resource.username
             )
             self._job_role = resource.job_role
             self._docker_image = resource.docker_image
@@ -103,8 +99,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             memory = memory if memory else 32000
 
             super(JobDefinition, self).__init__(
-                name=name, memory=memory, username=username,
-                verbosity=verbosity
+                name=name, memory=memory, username=username
             )
 
             if not isinstance(job_role, IamRole):
@@ -183,10 +178,9 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             job_role_arn = container_properties['jobRoleArn']
             container_image = container_properties['image']
 
-            if self.verbosity > 0:
-                print('Job definition {name:s} already exists.'.format(
-                    name=job_def_name
-                ))
+            logging.info('Job definition {name:s} already exists.'.format(
+                name=job_def_name
+            ))
 
             return ResourceExists(
                 exists=True, name=job_def_name, job_role=job_role_arn,
@@ -220,9 +214,9 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             retryStrategy={'attempts': self.retries}
         )
 
-        if self.verbosity > 0:
-            print('Created AWS batch job definition {name:s}'.format(
-                name=self.name))
+        logging.info('Created AWS batch job definition {name:s}'.format(
+            name=self.name
+        ))
 
         arn = response['jobDefinitionArn']
 
@@ -240,10 +234,9 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         """
         BATCH.deregister_job_definition(jobDefinition=self.arn)
 
-        if self.verbosity > 0:
-            print('Deregistered job definition {name:s}'.format(
-                name=self.name
-            ))
+        logging.info('Deregistered job definition {name:s}'.format(
+            name=self.name
+        ))
 
         # Remove this job def from the list of job defs in the config file
         config.remove_resource('job definitions', self.name, arn)
@@ -257,7 +250,7 @@ class ComputeEnvironment(ObjectWithArn):
                  spot_fleet_role=None, instance_types=None, resource_type=None,
                  min_vcpus=None, max_vcpus=None, desired_vcpus=None,
                  image_id=None, ec2_key_pair=None, tags=None,
-                 bid_percentage=None, verbosity=0):
+                 bid_percentage=None):
         """ Initialize an AWS Batch job definition object.
 
         Parameters
@@ -326,9 +319,6 @@ class ComputeEnvironment(ObjectWithArn):
         bid_percentage : int
             bid percentage if using spot instances
             Default: 50
-
-        verbosity : int
-            verbosity level [0, 1, 2]
         """
         if not (arn or name):
             raise ValueError(
@@ -373,9 +363,7 @@ class ComputeEnvironment(ObjectWithArn):
                 )
 
             # Fill parameters with queried values
-            super(ComputeEnvironment, self).__init__(
-                name=resource.name, verbosity=verbosity
-            )
+            super(ComputeEnvironment, self).__init__(name=resource.name)
 
             self._batch_service_role = None
             self._batch_service_arn = resource.batch_service_arn
@@ -415,9 +403,7 @@ class ComputeEnvironment(ObjectWithArn):
                 )
 
             # Otherwise, validate input and set parameters
-            super(ComputeEnvironment, self).__init__(
-                name=name, verbosity=verbosity
-            )
+            super(ComputeEnvironment, self).__init__(name=name)
 
             if not bid_percentage and resource_type == 'SPOT':
                 raise ValueError(
@@ -636,10 +622,9 @@ class ComputeEnvironment(ObjectWithArn):
             tags = cr['tags']
             bid_percentage = cr['bidPercentage']
 
-            if self.verbosity > 0:
-                print('Compute environment {name:s} already exists.'.format(
-                    name=self.name
-                ))
+            logging.info('Compute environment {name:s} already exists.'.format(
+                name=self.name
+            ))
 
             return ResourceExists(
                 exists=True, name=ce_name, batch_service_arn=batch_service_arn,
@@ -751,10 +736,9 @@ class ComputeEnvironment(ObjectWithArn):
         # Finally, delete the compute environment
         BATCH.delete_compute_environment(computeEnvironment=self.arn)
 
-        if self.verbosity > 0:
-            print('Deleted compute environment {name:s}'.format(
-                name=self.name
-            ))
+        logging.info('Deleted compute environment {name:s}'.format(
+            name=self.name
+        ))
 
         # Remove this compute env from the list of compute envs in config file
         config.remove_resource('compute environments', self.name)
@@ -764,7 +748,7 @@ class ComputeEnvironment(ObjectWithArn):
 class JobQueue(ObjectWithArn):
     """Class for defining AWS Batch Job Queues"""
     def __init__(self, arn=None, name=None, compute_environments=None,
-                 priority=None, verbosity=0):
+                 priority=None):
         """ Initialize an AWS Batch job definition object.
 
         Parameters
@@ -782,11 +766,8 @@ class JobQueue(ObjectWithArn):
         priority : int
             priority for jobs in this queue
             Default: 1
-
-        verbosity : int
-            verbosity level [0, 1, 2]
         """
-        super(JobQueue, self).__init__(name=name, verbosity=verbosity)
+        super(JobQueue, self).__init__(name=name)
 
         if not (arn or name):
             raise ValueError(
@@ -919,10 +900,9 @@ class JobQueue(ObjectWithArn):
             compute_environment_arns = q[0]['computeEnvironmentOrder']
             priority = q[0]['priority']
 
-            if self.verbosity > 0:
-                print('Job Queue {name:s} already exists.'.format(
-                    name=self.name
-                ))
+            logging.info('Job Queue {name:s} already exists.'.format(
+                name=self.name
+            ))
 
             return ResourceExists(
                 exists=True, priority=priority, arn=arn,
@@ -950,9 +930,10 @@ class JobQueue(ObjectWithArn):
         waiting = True
         num_waits = 0
         while waiting:
-            if self.priority > 0:
-                print('Waiting for AWS to create job queue {name:s}.'.format(
-                    name=self.name))
+            logging.info(
+                'Waiting for AWS to create job queue '
+                '{name:s}.'.format(name=self.name)
+            )
             response = BATCH.describe_job_queues(jobQueues=[self.name])
             waiting = (response.get('jobQueues')[0]['status'] != 'VALID')
             time.sleep(3)
@@ -960,8 +941,7 @@ class JobQueue(ObjectWithArn):
             if num_waits > 60:
                 sys.exit('Waiting too long to create job queue. Aborting.')
 
-        if self.priority > 0:
-            print('Created job queue {name:s}'.format(name=self.name))
+        logging.info('Created job queue {name:s}'.format(name=self.name))
 
         arn = response.get('jobQueues')[0]['jobQueueArn']
 
@@ -1012,21 +992,18 @@ class JobQueue(ObjectWithArn):
         # Finally, delete the job queue
         BATCH.delete_job_queue(jobQueue=self.arn)
 
-        if self.verbosity > 0:
-            print('Deleted job queue {name:s}'.format(
-                name=self.name
-            ))
+        logging.info('Deleted job queue {name:s}'.format(name=self.name))
 
         # Remove this job queue from the list of job queues in config file
         config.remove_resource('job queues', self.name)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-class BatchJob(ObjectWithNameAndVerbosity):
+class BatchJob(NamedObject):
     """Class for defining AWS Batch Job"""
     def __init__(self, job_id=None, name=None, job_queue=None,
                  job_definition=None, commands=None,
-                 environment_variables=None, verbosity=0):
+                 environment_variables=None):
         """ Initialize an AWS Batch Job object.
 
         If requesting information on a pre-existing job, `job_id` is required.
@@ -1057,9 +1034,6 @@ class BatchJob(ObjectWithNameAndVerbosity):
         environment_variables : list of dict
             list of key/value pairs representing environment variables
             sent to the container
-
-        verbosity : int
-            verbosity level [0, 1, 2]
         """
         if not (job_id or all([name, job_queue, job_definition])):
             raise ValueError('You must supply either job_id or (name, '
@@ -1077,10 +1051,7 @@ class BatchJob(ObjectWithNameAndVerbosity):
                     job_id
                 )
 
-            super(BatchJob, self).__init__(
-                name=job.name,
-                verbosity=verbosity
-            )
+            super(BatchJob, self).__init__(name=job.name)
 
             self._job_queue = None
             self._job_queue_arn = job.job_queue_arn
@@ -1091,7 +1062,7 @@ class BatchJob(ObjectWithNameAndVerbosity):
             self._job_id = job.job_id
             config.add_resource('jobs', self.job_id, self.name)
         else:
-            super(BatchJob, self).__init__(name=name, verbosity=verbosity)
+            super(BatchJob, self).__init__(name=name)
 
             if not isinstance(job_queue, JobQueue):
                 raise ValueError('job_queue must be a JobQueue instance')
@@ -1170,8 +1141,7 @@ class BatchJob(ObjectWithNameAndVerbosity):
             commands = job['container']['command']
             environment_variables = job['container']['environment']
 
-            if self.verbosity > 0:
-                print('Job {id:s} exists.'.format(id=job_id))
+            logging.info('Job {id:s} exists.'.format(id=job_id))
 
             return JobExists(
                 exists=True, name=name, job_queue_arn=job_queue_arn,
@@ -1201,10 +1171,10 @@ class BatchJob(ObjectWithNameAndVerbosity):
             containerOverrides=container_overrides
         )
 
-        if self.verbosity > 0:
-            print('Submitted batch job {name:s} with jobID {job_id:s}'.format(
-                name=self.name, job_id=response['jobId']
-            ))
+        logging.info(
+            'Submitted batch job {name:s} with jobID '
+            '{job_id:s}'.format(name=self.name, job_id=response['jobId'])
+        )
 
         job_id = response['jobId']
 
@@ -1249,7 +1219,6 @@ class BatchJob(ObjectWithNameAndVerbosity):
 
         BATCH.terminate_job(jobId=self.job_id, reason=reason)
 
-        if self.verbosity > 0:
-            print('Terminated job {name:s} with jobID {job_id:s}'.format(
-                name=self.name, job_id=self.job_id
-            ))
+        logging.info('Terminated job {name:s} with jobID {job_id:s}'.format(
+            name=self.name, job_id=self.job_id
+        ))

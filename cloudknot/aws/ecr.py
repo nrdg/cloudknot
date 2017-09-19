@@ -5,18 +5,18 @@ import shutil
 import subprocess
 
 from .. import config
-from .base_classes import ObjectWithNameAndVerbosity, ECR, \
+from .base_classes import NamedObject, ECR, \
     ResourceExistsException
 
 __all__ = ["DockerImage"]
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-class DockerImage(ObjectWithNameAndVerbosity):
+class DockerImage(NamedObject):
     """Class for building, tagging, and pushing docker containers"""
     def __init__(self, name, tags, build_path='.',
                  dockerfile=os.path.join('.', 'Dockerfile'),
-                 requirements=None, verbosity=0):
+                 requirements=None):
         """ Initialize a Docker image object.
 
         Parameters
@@ -38,11 +38,8 @@ class DockerImage(ObjectWithNameAndVerbosity):
         requirements : string
             Path to an existing requirements.txt file to build dependencies
             Default: None (i.e. assumes no dependencies)
-
-        verbosity : int
-            verbosity level [0, 1, 2]
         """
-        super(DockerImage, self).__init__(name=name, verbosity=verbosity)
+        super(DockerImage, self).__init__(name=name)
 
         if not os.path.isdir(build_path):
             raise ValueError('build_path must be an existing directory')
@@ -91,15 +88,16 @@ class DockerImage(ObjectWithNameAndVerbosity):
 
         c = docker.from_env()
         for tag in self.tags:
-            if self.verbosity > 0:
-                print('Building image {name:s} with tag {tag:s}'.format(
-                    name=self.name, tag=tag))
+            logging.info('Building image {name:s} with tag {tag:s}'.format(
+                name=self.name, tag=tag
+            ))
+
             build_result = c.build(path=self.build_path,
                                    dockerfile=self.dockerfile,
                                    tag=self.name + ':' + tag)
-            if self.verbosity > 1:
-                for line in build_result:
-                    print(line)
+
+            for line in build_result:
+                logging.debug(line)
 
         if cleanup:
             os.remove(req_build_path)
@@ -128,9 +126,9 @@ class DockerImage(ObjectWithNameAndVerbosity):
 
             repo_uri = response['repositories'][0]['repositoryUri']
 
-            if self.verbosity > 0:
-                print('Repository {name:s} already exists at {uri:s}'.format(
-                    name=repo_name, uri=repo_uri))
+            logging.info('Repository {name:s} already exists at '
+                         '{uri:s}'.format(name=repo_name, uri=repo_uri))
+
         except ECR.exceptions.RepositoryNotFoundException:
             # If it doesn't exists already, then create it
             response = ECR.create_repository(
@@ -138,9 +136,10 @@ class DockerImage(ObjectWithNameAndVerbosity):
             )
 
             repo_uri = response['repository']['repositoryUri']
-            if self.verbosity > 0:
-                print('Created repository {name:s} at {uri:s}'.format(
-                    name=repo_name, uri=repo_uri))
+
+            logging.info('Created repository {name:s} at {uri:s}'.format(
+                name=repo_name, uri=repo_uri
+            ))
 
         self._uri = repo_uri
 
@@ -155,9 +154,10 @@ class DockerImage(ObjectWithNameAndVerbosity):
         self._create_repo(repo_name=repo_name)
         c = docker.from_env()
         for tag in self.tags:
-            if self.verbosity > 0:
-                print('Tagging image {name:s} with tag {tag:s}'.format(
-                    name=self.name, tag=tag))
+            logging.info('Tagging image {name:s} with tag {tag:s}'.format(
+                name=self.name, tag=tag
+            ))
+
             c.tag(image=self.name + ':' + self.tag,
                   repository=self.uri, tag=tag)
 
@@ -173,14 +173,14 @@ class DockerImage(ObjectWithNameAndVerbosity):
         self._create_repo(repo_name=repo_name)
         c = docker.from_env()
         for tag in self.tags:
-            if self.verbosity > 0:
-                print('Pushing image {name:s} with tag {tag:s}'.format(
-                    name=self.name, tag=tag))
-            push_result = c.push(
-                repository=self.uri, tag=tag, stream=(self.verbosity > 1))
-            if self.verbosity > 1:
-                for line in push_result:
-                    print(line)
+            logging.info('Pushing image {name:s} with tag {tag:s}'.format(
+                name=self.name, tag=tag
+            ))
+
+            push_result = c.push(repository=self.uri, tag=tag, stream=True)
+
+            for line in push_result:
+                logging.debug(line)
 
     def remove_aws_resource(self):
         """ Delete this docker image
