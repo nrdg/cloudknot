@@ -432,5 +432,8 @@ class SecurityGroup(NamedObject):
         -------
         None
         """
+        # Delete the security group
+        EC2.delete_security_group(GroupId=self.security_group_id)
+
         # Remove this VPC from the list of VPCs in the config file
         config.remove_resource('security groups', self.security_group_id)
