@@ -4,7 +4,8 @@ import inspect
 import operator
 
 from . import aws
-from .config import CONFIG, CONFIG_FILE
+from . import config
+from .config import CONFIG
 from .due import due, Doi
 
 __all__ = ["CloudKnot", "Nest", "Pipeline"]
@@ -58,7 +59,7 @@ class Nest(object):
 
         self._name = name
 
-        CONFIG.read(CONFIG_FILE)
+        CONFIG.read(config.get_config_file())
 
         # Check for existence of this nest
         self._nest_name = 'nest ' + name
@@ -68,7 +69,7 @@ class Nest(object):
                     spot_fleet_role_name, vpc_id, security_group_id]):
                 raise Exception('You provided resources for a nest that '
                                 'already exists in configuration file '
-                                '{fn:s}.'.format(fn=CONFIG_FILE))
+                                '{fn:s}.'.format(fn=config.get_config_file()))
 
             # Use nest values to instantiate new resources
             try:
@@ -222,7 +223,7 @@ class Nest(object):
             }
 
             # Save config to file
-            with open(CONFIG_FILE, 'w') as f:
+            with open(config.get_config_file(), 'w') as f:
                 CONFIG.write(f)
 
     name = property(fget=operator.attrgetter('_name'))
@@ -233,7 +234,7 @@ class Nest(object):
             raise Exception('name must be a string')
 
         # Read current config file
-        CONFIG.read(CONFIG_FILE)
+        CONFIG.read(config.get_config_file())
 
         # Retrieve values and remove old section
         values = CONFIG[self._nest_name]
@@ -245,7 +246,7 @@ class Nest(object):
         CONFIG[self._nest_name] = values
 
         # Rewrite config file
-        with open(CONFIG_FILE, 'w') as f:
+        with open(config.get_config_file(), 'w') as f:
             CONFIG.write(f)
 
     @staticmethod
@@ -263,10 +264,10 @@ class Nest(object):
             setattr(self, attr, new_role)
 
             # Replace the appropriate line in the config file
-            CONFIG.read(CONFIG_FILE)
+            CONFIG.read(config.get_config_file())
             field_name = attr.lstrip('_').replace('_', ' ')
             CONFIG.set(self._nest_name, field_name, new_role.name)
-            with open(CONFIG_FILE, 'w') as f:
+            with open(config.get_config_file(), 'w') as f:
                 CONFIG.write(f)
 
         return set_role
@@ -295,9 +296,9 @@ class Nest(object):
         self._vpc = v
 
         # Replace the appropriate line in the config file
-        CONFIG.read(CONFIG_FILE)
+        CONFIG.read(config.get_config_file())
         CONFIG.set(self._nest_name, 'vpc', v.vpc_id)
-        with open(CONFIG_FILE, 'w') as f:
+        with open(config.get_config_file(), 'w') as f:
             CONFIG.write(f)
 
     security_group = property(operator.attrgetter('_security_group'))
@@ -311,9 +312,9 @@ class Nest(object):
         self._security_group = sg
 
         # Replace the appropriate line in the config file
-        CONFIG.read(CONFIG_FILE)
+        CONFIG.read(config.get_config_file())
         CONFIG.set(self._nest_name, 'security group', sg.security_group_id)
-        with open(CONFIG_FILE, 'w') as f:
+        with open(config.get_config_file(), 'w') as f:
             CONFIG.write(f)
 
     def clobber(self):
@@ -325,9 +326,9 @@ class Nest(object):
         self._security_group.clobber()
 
         # Remove this section from the config file
-        CONFIG.read(CONFIG_FILE)
+        CONFIG.read(config.get_config_file())
         CONFIG.remove_section(self._nest_name)
-        with open(CONFIG_FILE, 'w') as f:
+        with open(config.get_config_file(), 'w') as f:
             CONFIG.write(f)
 
 

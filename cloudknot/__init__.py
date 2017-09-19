@@ -3,5 +3,3 @@ from .version import __version__  # noqa
 from . import aws  # noqa
 from . import config  # noqa
 from .cloudknot import *  # noqa
-
-config.init()

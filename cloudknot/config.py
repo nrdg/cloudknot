@@ -5,48 +5,46 @@ import configparser
 
 from . import aws
 
-# Set global config parser
 CONFIG = configparser.ConfigParser()
-CONFIG_FILE = None
 
 
-def init():
-    # Use default config file path unless environment variable is set
+def get_config_file():
     try:
-        env_file = os.environ['CLOUDKNOT_CONFIG_FILE']
-
-        global CONFIG_FILE
-        CONFIG_FILE = os.path.abspath(env_file)
+        env_file = os.environ['CLOUDKNOT_config_FILE']
+        config_file = os.path.abspath(env_file)
     except KeyError:
         home = os.path.expanduser('~')
+        config_file = os.path.join(home, '.aws', 'cloudknot')
 
-        global CONFIG_FILE
-        CONFIG_FILE = os.path.join(home, '.aws', '.cloudknot')
-
-    if not os.path.isfile(CONFIG_FILE):
+    if not os.path.isfile(config_file):
         # If the config file does not exist, create it
-        with open(CONFIG_FILE, 'w') as f:
+        with open(config_file, 'w') as f:
             f.write('# cloudknot configuration file')
+
+    return config_file
 
 
 def add_resource(section, option, value):
-    CONFIG.read(CONFIG_FILE)
+    config_file = get_config_file()
+    CONFIG.read(config_file)
     if section not in CONFIG.sections():
         CONFIG.add_section(section)
     CONFIG.set(section=section, option=option, value=value)
-    with open(CONFIG_FILE, 'w') as f:
+    with open(config_file, 'w') as f:
         CONFIG.write(f)
 
 
 def remove_resource(section, option):
-    CONFIG.read(CONFIG_FILE)
+    config_file = get_config_file()
+    CONFIG.read(config_file)
     CONFIG.remove_option(section, option)
-    with open(CONFIG_FILE, 'w') as f:
+    with open(config_file, 'w') as f:
         CONFIG.write(f)
 
 
 def verify_sections():
-    CONFIG.read(CONFIG_FILE)
+    config_file = get_config_file()
+    CONFIG.read(config_file)
     approved_sections = [
         'roles', 'vpcs', 'security groups', 'docker containers',
         'job definitions', 'compute environments', 'job queues', 'jobs'
@@ -66,7 +64,8 @@ def verify_sections():
 def prune():
     verify_sections()
 
-    CONFIG.read(CONFIG_FILE)
+    config_file = get_config_file()
+    CONFIG.read(config_file)
 
     for role_name in CONFIG.options('roles'):
         try:
