@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
 import inspect
+import logging
 import operator
 
 from . import aws
@@ -256,8 +257,16 @@ class Pars(object):
             if not isinstance(new_role, aws.iam.IamRole):
                 raise Exception('new role must be an instance of IamRole')
 
-            # Delete the old role
             old_role = getattr(self, attr)
+
+            logging.warning(
+                'You are setting a new role for PARS {name:s}. The old '
+                'role {role_name:s} will be clobbered.'.format(
+                    name=self.name, role_name=old_role.name
+                )
+            )
+
+            # Delete the old role
             old_role.clobber()
 
             # Set the new role attribute
@@ -291,6 +300,14 @@ class Pars(object):
     def vpc(self, v):
         if not isinstance(v, aws.ec2.Vpc):
             raise Exception('new vpc must be an instance of Vpc')
+
+        logging.warning(
+            'You are setting a new VPC for PARS {name:s}. The old '
+            'VPC {vpc_id:s} will be clobbered.'.format(
+                name=self.name, vpc_id=self.vpc.vpc_id
+            )
+        )
+
         old_vpc = self._vpc
         old_vpc.clobber()
         self._vpc = v
@@ -308,6 +325,13 @@ class Pars(object):
         if not isinstance(sg, aws.ec2.SecurityGroup):
             raise Exception('new security group must be an instance of '
                             'SecurityGroup')
+
+        logging.warning(
+            'You are setting a new security group for PARS {name:s}. The old '
+            'security group {sg_id:s} will be clobbered.'.format(
+                name=self.name, sg_id=self.security_group.security_group_id
+            )
+        )
         old_sg = self._security_group
         old_sg.clobber()
         self._security_group = sg
