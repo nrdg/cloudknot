@@ -127,7 +127,9 @@ class Pars(object):
                     raise Exception('if provided, batch_service_role_name '
                                     'must be a string.')
             else:
-                batch_service_role_name = name + '-batch-service-role'
+                batch_service_role_name = (
+                    name + '-cloudknot-batch-service-role'
+                )
 
             try:
                 self._batch_service_role = aws.iam.IamRole(
@@ -148,7 +150,7 @@ class Pars(object):
                     raise Exception('if provided, ecs_instance_role_name must '
                                     'be a string.')
             else:
-                ecs_instance_role_name = name + '-ecs-instance-role'
+                ecs_instance_role_name = name + '-cloudknot-ecs-instance-role'
 
             try:
                 self._ecs_instance_role = aws.iam.IamRole(
@@ -169,7 +171,7 @@ class Pars(object):
                     raise Exception('if provided, spot_fleet_role_name must '
                                     'be a string.')
             else:
-                spot_fleet_role_name = name + '-spot-fleet-role'
+                spot_fleet_role_name = name + '-cloudknot-spot-fleet-role'
 
             try:
                 self._spot_fleet_role = aws.iam.IamRole(
@@ -195,7 +197,7 @@ class Pars(object):
                 except aws.ResourceExistsException as e:
                     self._vpc = aws.ec2.Vpc(vpc_id=e.resource_id)
 
-            security_group_name = name + '-security-group'
+            security_group_name = name + '-cloudknot-security-group'
             if security_group_id:
                 if not isinstance(security_group_id, str):
                     raise Exception('if provided, security_group_id must '
