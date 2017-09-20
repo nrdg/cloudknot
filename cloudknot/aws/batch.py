@@ -85,7 +85,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             self._vcpus = resource.vcpus
             self._retries = resource.retries
             self._arn = resource.arn
-            config.add_resource('job definitions', self.name, self.arn)
+            config.add_resource('job-definitions', self.name, self.arn)
         else:
             # If user supplied only a name or only an arn, expecting to
             # retrieve info on pre-existing job definition, throw error
@@ -222,7 +222,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         arn = response['jobDefinitionArn']
 
         # Add this job def to the list of job definitions in the config file
-        config.add_resource('job definitions', self.name, arn)
+        config.add_resource('job-definitions', self.name, arn)
 
         return arn
 
@@ -240,7 +240,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         ))
 
         # Remove this job def from the list of job defs in the config file
-        config.remove_resource('job definitions', self.name, self.arn)
+        config.remove_resource('job-definitions', self.name, self.arn)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -391,7 +391,7 @@ class ComputeEnvironment(ObjectWithArn):
             self._tags = resource.tags
             self._bid_percentage = resource.bid_percentage
             self._arn = resource.arn
-            config.add_resource('compute environments', self.name, self.arn)
+            config.add_resource('compute-environments', self.name, self.arn)
         else:
             # If user supplied only a name or only an arn, expecting to
             # retrieve info on pre-existing job queue, throw error
@@ -686,7 +686,7 @@ class ComputeEnvironment(ObjectWithArn):
         arn = response['computeEnvironmentArn']
 
         # Add this compute env to the list of compute envs in the config file
-        config.add_resource('compute environments', self.name, arn)
+        config.add_resource('compute-environments', self.name, arn)
 
         return arn
 
@@ -742,7 +742,7 @@ class ComputeEnvironment(ObjectWithArn):
         ))
 
         # Remove this compute env from the list of compute envs in config file
-        config.remove_resource('compute environments', self.name)
+        config.remove_resource('compute-environments', self.name)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -807,7 +807,7 @@ class JobQueue(ObjectWithArn):
             self._compute_environment_arns = resource.compute_environment_arns
             self._priority = resource.priority
             self._arn = resource.arn
-            config.add_resource('job queues', self.name, self.arn)
+            config.add_resource('job-queues', self.name, self.arn)
         else:
             # If user supplied only a name or only an arn, expecting to
             # retrieve info on pre-existing job queue, throw error
@@ -947,7 +947,7 @@ class JobQueue(ObjectWithArn):
         arn = response.get('jobQueues')[0]['jobQueueArn']
 
         # Add this job queue to the list of job queues in the config file
-        config.add_resource('job queues', self.name, arn)
+        config.add_resource('job-queues', self.name, arn)
 
         return arn
 
@@ -996,7 +996,7 @@ class JobQueue(ObjectWithArn):
         logging.info('Deleted job queue {name:s}'.format(name=self.name))
 
         # Remove this job queue from the list of job queues in config file
-        config.remove_resource('job queues', self.name)
+        config.remove_resource('job-queues', self.name)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit

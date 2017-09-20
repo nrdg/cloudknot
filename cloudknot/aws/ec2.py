@@ -55,7 +55,7 @@ class Vpc(object):
             self._instance_tenancy = resource.instance_tenancy
             self._subnet_ipv4 = resource.subnet_ipv4
             self._subnets = resource.subnets
-            config.add_resource('vpcs', self.vpc_id, self.ipv4)
+            config.add_resource('vpc', self.vpc_id, self.ipv4)
         else:
             if vpc_id:
                 raise ResourceDoesNotExistException(
@@ -204,7 +204,7 @@ class Vpc(object):
         logging.info('Created VPC {vpcid:s}.'.format(vpcid=vpc_id))
 
         # Add this VPC to the list of VPCs in the config file
-        config.add_resource('vpcs', vpc_id, self.ipv4)
+        config.add_resource('vpc', vpc_id, self.ipv4)
 
         return vpc_id
 
@@ -234,7 +234,7 @@ class Vpc(object):
         EC2.delete_vpc(VpcId=self.vpc_id)
 
         # Remove this VPC from the list of VPCs in the config file
-        config.remove_resource('vpcs', self.vpc_id)
+        config.remove_resource('vpc', self.vpc_id)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -301,7 +301,7 @@ class SecurityGroup(NamedObject):
                 )
 
             config.add_resource(
-                'security groups', self.security_group_id, self.name
+                'security-groups', self.security_group_id, self.name
             )
         else:
             if security_group_id:
@@ -425,7 +425,7 @@ class SecurityGroup(NamedObject):
 
         # Add this security group to the list of security groups in the
         # config file
-        config.add_resource('security groups', group_id, self.name)
+        config.add_resource('security-groups', group_id, self.name)
 
         return group_id
 
@@ -440,4 +440,4 @@ class SecurityGroup(NamedObject):
         EC2.delete_security_group(GroupId=self.security_group_id)
 
         # Remove this VPC from the list of VPCs in the config file
-        config.remove_resource('security groups', self.security_group_id)
+        config.remove_resource('security-groups', self.security_group_id)

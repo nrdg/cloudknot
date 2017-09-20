@@ -46,14 +46,14 @@ def verify_sections():
     config_file = get_config_file()
     CONFIG.read(config_file)
     approved_sections = [
-        'roles', 'vpcs', 'security groups', 'docker containers',
-        'job definitions', 'compute environments', 'job queues', 'jobs'
+        'roles', 'vpc', 'security-groups', 'docker-containers',
+        'job-definitions', 'compute-environments', 'job-queues', 'jobs'
     ]
 
     def section_approved(section):
         return any([
             section in approved_sections,
-            section.split(' ', 1)[0] in ['nest', 'pipeline']
+            section.split(' ', 1)[0] in ['pars', 'pipeline']
         ])
 
     for section in CONFIG.sections():
@@ -73,38 +73,38 @@ def prune():
         except aws.ResourceDoesNotExistException:
             CONFIG.remove_option('roles', role_name)
 
-    for vpc_id in CONFIG.options('vpcs'):
+    for vpc_id in CONFIG.options('vpc'):
         try:
             aws.ec2.Vpc(vpc_id=vpc_id)
         except aws.ResourceDoesNotExistException:
-            CONFIG.remove_option('vpcs', vpc_id)
+            CONFIG.remove_option('vpc', vpc_id)
 
-    for sg_id in CONFIG.options('security groups'):
+    for sg_id in CONFIG.options('security-groups'):
         try:
             aws.ec2.SecurityGroup(security_group_id=sg_id)
         except aws.ResourceDoesNotExistException:
-            CONFIG.remove_option('security groups', sg_id)
+            CONFIG.remove_option('security-groups', sg_id)
 
     # Prune docker containers
-    docker_containers = CONFIG.options('docker_containers')
+    docker_containers = CONFIG.options('docker-containers')
 
-    for job_def_name in CONFIG.options('job definitions'):
+    for job_def_name in CONFIG.options('job-definitions'):
         try:
             aws.iam.IamRole(name=job_def_name)
         except aws.ResourceDoesNotExistException:
-            CONFIG.remove_option('job definitions', job_def_name)
+            CONFIG.remove_option('job-definitions', job_def_name)
 
-    for ce_name in CONFIG.options('compute environments'):
+    for ce_name in CONFIG.options('compute-environments'):
         try:
             aws.iam.IamRole(name=ce_name)
         except aws.ResourceDoesNotExistException:
-            CONFIG.remove_option('compute environments', ce_name)
+            CONFIG.remove_option('compute-environments', ce_name)
 
-    for queue_name in CONFIG.options('job queues'):
+    for queue_name in CONFIG.options('job-queues'):
         try:
             aws.iam.IamRole(name=queue_name)
         except aws.ResourceDoesNotExistException:
-            CONFIG.remove_option('job queues', queue_name)
+            CONFIG.remove_option('job-queues', queue_name)
 
     for job_id in CONFIG.options('jobs'):
         try:
@@ -112,5 +112,5 @@ def prune():
         except aws.ResourceDoesNotExistException:
             CONFIG.remove_option('jobs', job_id)
 
-    # Prune nests
+    # Prune pars
     # Prune pipelines

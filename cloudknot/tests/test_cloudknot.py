@@ -8,5 +8,5 @@ import boto3
 import cloudknot as ck
 
 
-def test_Nest():
+def test_Pars():
     pass
