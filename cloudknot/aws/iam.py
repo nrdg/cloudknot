@@ -101,12 +101,16 @@ class IamRole(ObjectWithArn):
             # Remove redundant entries
             if isinstance(policies, str):
                 input_policies = {policies}
-            elif all(isinstance(x, str) for x in policies):
-                input_policies = set(list(policies))
             else:
-                raise ValueError(
-                    'policies must be a string or a sequence of strings.'
-                )
+                try:
+                    if all(isinstance(x, str) for x in policies):
+                        input_policies = set(list(policies))
+                    else:
+                        raise ValueError('policies must be a string or a '
+                                         'sequence of strings.')
+                except TypeError:
+                    raise ValueError('policies must be a string or a '
+                                     'sequence of strings')
 
             # Get all AWS policies
             response = IAM.list_policies()
@@ -236,11 +240,6 @@ class IamRole(ObjectWithArn):
                     policy_response.get('Policies')
                 ))
 
-                # If we've searched through last page of results, throw error
-                if not (policy_response['IsTruncated'] or len(policy_filter)):
-                    raise Exception('Could not find ARN corresponding to '
-                                    'policy {p:s}'.format(p=policy))
-
             policy_arn = policy_filter[0]['Arn']
 
             IAM.attach_role_policy(
@@ -324,11 +323,6 @@ class IamRole(ObjectWithArn):
                     lambda p: p['PolicyName'] == policy,
                     policy_response.get('Policies')
                 ))
-
-                # If we've searched through last page of results, throw error
-                if not (policy_response['IsTruncated'] or len(policy_filter)):
-                    raise Exception('Could not find ARN corresponding to '
-                                    'policy {p:s}'.format(p=policy))
 
             policy_arn = policy_filter[0]['Arn']
 
