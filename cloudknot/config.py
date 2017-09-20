@@ -53,7 +53,7 @@ def verify_sections():
     def section_approved(section):
         return any([
             section in approved_sections,
-            section.split(' ', 1)[0] in ['pars', 'pipeline']
+            section.split(' ', 1)[0] in ['pars', 'jars']
         ])
 
     for section in CONFIG.sections():
@@ -113,4 +113,4 @@ def prune():
             CONFIG.remove_option('jobs', job_id)
 
     # Prune pars
-    # Prune pipelines
+    # Prune jars

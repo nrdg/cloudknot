@@ -9,7 +9,7 @@ from . import config
 from .config import CONFIG
 from .due import due, Doi
 
-__all__ = ["CloudKnot", "Pars", "Pipeline"]
+__all__ = ["CloudKnot", "Pars", "Jars"]
 
 # Use duecredit (duecredit.org) to provide a citation to relevant work to
 # be cited. This does nothing, unless the user has duecredit installed,
@@ -357,7 +357,7 @@ class Pars(object):
             CONFIG.write(f)
 
 
-class Pipeline(object):
+class Jars(object):
     def __init__(self, pars,
                  docker_image_name='cloudknot-docker-image',
                  job_definition_name='cloudknot-job-definition',
