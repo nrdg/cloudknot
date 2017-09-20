@@ -347,9 +347,24 @@ class SecurityGroup(NamedObject):
             (None,) * (len(ResourceExists._fields) - 1)
 
         if security_group_id:
-            response = EC2.describe_security_groups(
-                GroupIds=[security_group_id]
-            )
+            try:
+                response = EC2.describe_security_groups(
+                    GroupIds=[security_group_id]
+                )
+            except EC2.exceptions.ClientError as e:
+                # If the group_id doesn't exist or isn't formatted correctly,
+                # return exists=False
+                if e.response.get('Error')['Code'] in [
+                    'InvalidGroup.NotFound', 'InvalidGroupId.Malformed'
+                ]:
+                    return ResourceExists(exists=False)
+                else:  # pragma: no cover
+                    # I could not think of a unit test case where the
+                    # describe_security_groups request would yield a different
+                    # error, but one should still pass through unhandled
+                    # errors even if (especially if) one can't think of what
+                    # they'll be.
+                    raise e
         else:
             response = EC2.describe_security_groups(
                 Filters=[
@@ -367,6 +382,7 @@ class SecurityGroup(NamedObject):
         sg = response.get('SecurityGroups')
         if sg:
             name = sg[0]['GroupName']
+            vpc_id = sg[0]['VpcId']
             description = sg[0]['Description']
             group_id = sg[0]['GroupId']
             return ResourceExists(
