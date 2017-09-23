@@ -56,8 +56,9 @@ class IamRole(ObjectWithArn):
                     resource_id=self.name
                 )
             self._description = role.description
-            self._service = None
             self._role_policy_document = role.role_policy_document
+            rpd_statement = role.role_policy_document['Statement'][0]
+            self._service = rpd_statement['Principal']['Service']
             self._policies = role.policies
             self._add_instance_profile = role.add_instance_profile
             self._arn = role.arn
