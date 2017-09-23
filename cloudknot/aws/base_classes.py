@@ -25,6 +25,13 @@ class ResourceDoesNotExistException(Exception):
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
+class CannotDeleteResourceException(Exception):
+    def __init__(self, message, resource_id):
+        super().__init__(message)
+        self.resource_id = resource_id
+
+
+# noinspection PyPropertyAccess,PyAttributeOutsideInit
 class NamedObject(object):
     """Base class for building objects with name property"""
     def __init__(self, name):
@@ -35,8 +42,6 @@ class NamedObject(object):
         name : string
             Name of the object
         """
-        if not name:
-            raise Exception('name cannot be empty')
         self._name = str(name)
 
     name = property(operator.attrgetter('_name'))
@@ -68,7 +73,7 @@ class ObjectWithUsernameAndMemory(ObjectWithArn):
     """ Base class for building objects with properties memory and username
     Inherits from ObjectWithArn
     """
-    def __init__(self, name, memory, username):
+    def __init__(self, name, memory=32000, username='cloudknot-user'):
         """ Initialize a base class with name, memory, and username properties
 
         Parameters
@@ -89,11 +94,11 @@ class ObjectWithUsernameAndMemory(ObjectWithArn):
         try:
             mem = int(memory)
             if mem < 1:
-                raise Exception('memory must be positive')
+                raise ValueError('memory must be positive')
             else:
                 self._memory = mem
         except ValueError:
-            raise Exception('memory must be an integer')
+            raise ValueError('memory must be an integer')
 
         self._username = str(username)
 
