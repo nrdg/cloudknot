@@ -1,61 +1,54 @@
 import ipaddress
 import logging
 import operator
-import warnings
 
 from .. import config
 from .base_classes import EC2, NamedObject, \
-    ResourceExistsException, ResourceDoesNotExistException
+    ResourceExistsException, ResourceDoesNotExistException, \
+    CannotDeleteResourceException
 from collections import namedtuple
+from math import ceil, log2
 
 __all__ = ["Vpc", "SecurityGroup"]
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-class Vpc(object):
+class Vpc(NamedObject):
     """Class for defining an Amazon Virtual Private Cloud (VPC)"""
-    def __init__(self, vpc_id=None, ipv4=None, amazon_provided_ipv6=None,
-                 instance_tenancy=None, subnet_ipv4=None):
+    def __init__(self, vpc_id=None, name=None, ipv4_cidr=None,
+                 instance_tenancy=None):
         # If user supplies vpc_id, then no other input is allowed
-        if vpc_id and any([
-            ipv4, amazon_provided_ipv6, instance_tenancy, subnet_ipv4
-        ]):
+        if not (vpc_id or name):
+            raise ValueError('name or vpc_id is required.')
+
+        # If user supplies vpc_id, then no other input is allowed
+        if vpc_id and any([name, ipv4_cidr, instance_tenancy]):
             raise ValueError(
                 'You must specify either a VPC id for an existing VPC or '
                 'input parameters for a new VPC. You cannot do both.'
             )
 
-        # If user supplies no vpc_id, then search based on ipv4 value
-        # Check that ipv4 is a valid network range or set the default value
-        if ipv4:
-            try:
-                ip_net = ipaddress.IPv4Network(ipv4)
-            except ipaddress.AddressValueError:
-                raise ValueError(
-                    'If provided, ipv4 must be a valid IPv4 network range.'
-                )
-        else:
-            ip_net = ipaddress.IPv4Network('10.0.0.0/16')
-
-        # Check for pre-existence based on vpc_id or ipv4
-        resource = self._exists_already(vpc_id, str(ip_net))
+        # Check for pre-existence based on vpc_id or name
+        resource = self._exists_already(vpc_id, name)
         self._pre_existing = resource.exists
 
         if resource.exists:
             # If resource exists and user supplied an ipv4, abort
-            if ipv4:
+            if ipv4_cidr or instance_tenancy:
                 raise ResourceExistsException(
                     'The specified ipv4 CIDR block is already in use by '
                     'vpc {id:s}'.format(id=resource.vpc_id),
                     resource_id=resource.vpc_id
                 )
+
+            super(Vpc, self).__init__(name=resource.name)
+
             self._vpc_id = resource.vpc_id
-            self._ipv4 = resource.ipv4
-            self._amazon_provided_ipv6 = None
+            self._ipv4_cidr = resource.ipv4_cidr
             self._instance_tenancy = resource.instance_tenancy
-            self._subnet_ipv4 = resource.subnet_ipv4
-            self._subnets = resource.subnets
-            config.add_resource('vpc', self.vpc_id, self.ipv4)
+            self._subnet_ids = resource.subnet_ids
+
+            config.add_resource('vpc', self.vpc_id, self.ipv4_cidr)
         else:
             if vpc_id:
                 raise ResourceDoesNotExistException(
@@ -63,65 +56,41 @@ class Vpc(object):
                     vpc_id
                 )
 
-            self._ipv4 = ipv4
+            super(Vpc, self).__init__(name=name)
 
-            if amazon_provided_ipv6 is not None:
-                if isinstance(amazon_provided_ipv6, bool):
-                    self._amazon_provided_ipv6 = amazon_provided_ipv6
-                else:
+            # Check that ipv4 is a valid network range or set the default value
+            if ipv4_cidr:
+                try:
+                    self._ipv4_cidr = str(ipaddress.IPv4Network(ipv4_cidr))
+                except (ipaddress.AddressValueError, ValueError):
                     raise ValueError(
-                        'If provided, amazon_provided_ipv6 must be a '
-                        'boolean input.'
+                        'If provided, ipv4_cidr must be a valid IPv4 network '
+                        'range.'
                     )
             else:
-                self._amazon_provided_ipv6 = True
+                self._ipv4_cidr = str(ipaddress.IPv4Network('10.0.0.0/16'))
 
             if instance_tenancy:
-                if instance_tenancy in ('default', 'dedicated', 'host'):
+                if instance_tenancy in ('default', 'dedicated'):
                     self._instance_tenancy = instance_tenancy
                 else:
                     raise ValueError(
                         'If provided, instance tenancy must be '
-                        'one of ("default", "dedicated", "host").'
+                        'one of ("default", "dedicated").'
                     )
             else:
                 self._instance_tenancy = 'default'
 
-            if subnet_ipv4:
-                try:
-                    self._subnet_ipv4 = [
-                        str(ipaddress.IPv4Network(ip)) for ip in subnet_ipv4
-                    ]
-                except ipaddress.AddressValueError:
-                    raise ValueError(
-                        'subnet_ipv4 must be a sequence of valid IPv4 '
-                        'network range.'
-                    )
-
-                n_subnets = len(subnet_ipv4)
-                if n_subnets > 1:
-                    warnings.warn(
-                        'provided {n:d} subnets'.format(n=n_subnets) + ' '
-                        'This object will ignore all but the first subnet.'
-                    )
-            else:
-                self._subnet_ipv4 = ['10.0.0.0/24']
-
             self._vpc_id = self._create()
-            self._subnets = []
-            self._subnets.append(self._add_subnet)
+            self._subnet_ids = self._add_subnets()
 
     pre_existing = property(operator.attrgetter('_pre_existing'))
-    ipv4 = property(operator.attrgetter('_ipv4'))
-    amazon_provided_ipv6 = property(
-        operator.attrgetter('_amazon_provided_ipv6')
-    )
+    ipv4_cidr = property(operator.attrgetter('_ipv4_cidr'))
     instance_tenancy = property(operator.attrgetter('_instance_tenancy'))
-    subnet_ipv4 = property(operator.attrgetter('_subnet_ipv4'))
     vpc_id = property(operator.attrgetter('_vpc_id'))
-    subnets = property(operator.attrgetter('_subnets'))
+    subnet_ids = property(operator.attrgetter('_subnet_ids'))
 
-    def _exists_already(self, vpc_id, ipv4):
+    def _exists_already(self, vpc_id, name):
         """ Check if an AWS VPC exists already
 
         If VPC exists, return namedtuple with VPC info. Otherwise, set the
@@ -131,38 +100,85 @@ class Vpc(object):
         Returns
         -------
         namedtuple RoleExists
-            A namedtuple with fields ['exists', 'ipv4', 'instance_tenancy',
-            'subnet_ipv4', 'vpc_id', 'subnets']
+            A namedtuple with fields ['exists', 'name', 'ipv4_cidr',
+            'instance_tenancy', 'vpc_id', 'subnet_ids']
         """
         # define a namedtuple for return value type
         ResourceExists = namedtuple(
             'ResourceExists',
-            ['exists', 'ipv4', 'instance_tenancy', 'subnet_ipv4',
-             'vpc_id', 'subnets']
+            ['exists', 'name', 'ipv4_cidr', 'instance_tenancy',
+             'vpc_id', 'subnet_ids']
         )
         # make all but the first value default to None
         ResourceExists.__new__.__defaults__ = \
             (None,) * (len(ResourceExists._fields) - 1)
 
         if vpc_id:
-            # If user supplied vpc_id, check that
-            response = EC2.describe_vpcs(VpcIds=[vpc_id])
+            try:
+                # If user supplied vpc_id, check that
+                response = EC2.describe_vpcs(VpcIds=[vpc_id])
+                vpcs = response.get('Vpcs')
+            except EC2.exceptions.ClientError as e:
+                error_code = e.response['Error']['Code']
+                if error_code == 'InvalidVpcID.NotFound':
+                    vpcs = None
+                else:  # pragma: nocover
+                    raise e
         else:
-            # Check the user supplied CIDR block
-            response = EC2.describe_vpcs(
+            # Else check for the tag "name"
+            response = EC2.describe_tags(
                 Filters=[
                     {
-                        'Name': 'cidr',
-                        'Values': [ipv4]
+                        'Name': 'resource-type',
+                        'Values': ['vpc']
                     },
+                    {
+                        'Name': 'key',
+                        'Values': ['Name']
+                    },
+                    {
+                        'Name': 'value',
+                        'Values': [name]
+                    }
                 ]
             )
 
-        if response.get('Vpcs'):
-            vpc = response.get('Vpcs')[0]
-            ipv4 = vpc['CidrBlock']
+            if response.get('Tags'):
+                vpc_id = response.get('Tags')[0]['ResourceId']
+                response = EC2.describe_vpcs(VpcIds=[vpc_id])
+                vpcs = response.get('Vpcs')
+            else:
+                vpcs = None
+
+        if vpcs:
+            vpc = vpcs[0]
+            try:
+                tags = vpc['Tags']
+            except KeyError:
+                tags = []
+            ipv4_cidr = vpc['CidrBlock']
             vpc_id = vpc['VpcId']
             instance_tenancy = vpc['InstanceTenancy']
+
+            # Find the name tag
+            try:
+                name_tag = list(filter(lambda d: d['Key'] == 'Name', tags))[0]
+                name = name_tag['Value']
+            except IndexError:
+                name = 'cloudknot-acquired-pre-existing-vpc'
+                EC2.create_tags(
+                    Resources=[vpc_id],
+                    Tags=[
+                        {
+                            'Key': 'owner',
+                            'Value': 'cloudknot'
+                        },
+                        {
+                            'Key': 'Name',
+                            'Value': name
+                        }
+                    ]
+                )
 
             response = EC2.describe_subnets(
                 Filters=[
@@ -173,14 +189,14 @@ class Vpc(object):
                 ]
             )
 
-            subnets = [d['SubnetId'] for d in response.get('Subnets')]
-            subnet_ipv4 = [d['CidrBlock'] for d in response.get('Subnets')]
+            subnet_ids = [d['SubnetId'] for d in response.get('Subnets')]
 
             logging.info('VPC {vpcid:s} already exists.'.format(vpcid=vpc_id))
 
             return ResourceExists(
-                exists=True, ipv4=ipv4, instance_tenancy=instance_tenancy,
-                subnet_ipv4=subnet_ipv4, vpc_id=vpc_id, subnets=subnets
+                exists=True, name=name, ipv4_cidr=ipv4_cidr,
+                instance_tenancy=instance_tenancy, vpc_id=vpc_id,
+                subnet_ids=subnet_ids
             )
         else:
             return ResourceExists(exists=False)
@@ -194,8 +210,7 @@ class Vpc(object):
             VPC-ID for the created VPC
         """
         response = EC2.create_vpc(
-            CidrBlock=self.ipv4,
-            AmazonProvidedIpv6CidrBlock=self.amazon_provided_ipv6,
+            CidrBlock=self.ipv4_cidr,
             InstanceTenancy=self.instance_tenancy
         )
 
@@ -203,25 +218,72 @@ class Vpc(object):
 
         logging.info('Created VPC {vpcid:s}.'.format(vpcid=vpc_id))
 
+        # Tag the VPC with name and owner
+        EC2.create_tags(
+            Resources=[vpc_id],
+            Tags=[
+                {
+                    'Key': 'owner',
+                    'Value': 'cloudknot'
+                },
+                {
+                    'Key': 'Name',
+                    'Value': self.name
+                }
+            ]
+        )
+
         # Add this VPC to the list of VPCs in the config file
-        config.add_resource('vpc', vpc_id, self.ipv4)
+        config.add_resource('vpc', vpc_id, self.name)
 
         return vpc_id
 
     def _add_subnets(self):
-        # Assign IPv6 block for subnet using CIDR provided by Amazon,
-        # except use different size (must use /64)
-        response = EC2.describe_vpcs(VpcIds=[self.vpc_id])
-        ipv6_set = response.get('Vpcs')[0]['Ipv6CidrBlockAssociationSet'][0]
-        subnet_ipv6 = ipv6_set['Ipv6CidrBlock'][:-2] + '64'
+        # Add a subnet for each region
+        response = EC2.describe_availability_zones()
+        zones = response.get('AvailabilityZones')
 
-        response = EC2.create_subnet(
-            CidrBlock=self.subnet_ipv4[0],
-            Ipv6CidrBlock=subnet_ipv6,
-            VpcId=self.vpc_id
-        )
+        cidr = ipaddress.IPv4Network(self.ipv4_cidr)
+        if cidr.num_addresses < len(zones):  # pragma: nocover
+            raise ValueError('IPv4 CIDR block does not have enough addresses '
+                             'for each availability zone')
 
-        return response.get('Subnet')['SubnetId']
+        # Get list of subnets, ensuring that there are at least one subnet
+        # per region
+        subnet_ipv4_cidrs = list(cidr.subnets(
+            prefixlen_diff=ceil(log2(len(zones)))
+        ))[:len(zones)]
+
+        subnet_ids = []
+
+        for zone, subnet_cidr in zip(zones, subnet_ipv4_cidrs):
+            response = EC2.create_subnet(
+                AvailabilityZone=zone['ZoneName'],
+                CidrBlock=str(subnet_cidr),
+                VpcId=self.vpc_id
+            )
+
+            subnet_id = response.get('Subnet')['SubnetId']
+            subnet_ids.append(subnet_id)
+
+            logging.info('Created subnet {id:s}.'.format(id=subnet_id))
+
+            # Tag the subnet with name and owner
+            EC2.create_tags(
+                Resources=[subnet_id],
+                Tags=[
+                    {
+                        'Key': 'owner',
+                        'Value': 'cloudknot'
+                    },
+                    {
+                        'Key': 'vpc-name',
+                        'Value': self.name
+                    }
+                ]
+            )
+
+        return subnet_ids
 
     def clobber(self):
         """ Delete this AWS virtual private cloud (VPC)
@@ -230,11 +292,41 @@ class Vpc(object):
         -------
         None
         """
-        # Delete the VPC
-        EC2.delete_vpc(VpcId=self.vpc_id)
+        try:
+            # Delete the subnets
+            for subnet_id in self.subnet_ids:
+                EC2.delete_subnet(SubnetId=subnet_id)
+                logging.info('Deleted subnet {id:s}'.format(id=subnet_id))
 
-        # Remove this VPC from the list of VPCs in the config file
-        config.remove_resource('vpc', self.vpc_id)
+            # Delete the VPC
+            EC2.delete_vpc(VpcId=self.vpc_id)
+
+            logging.info('Deleted VPC {name:s}'.format(name=self.name))
+
+            # Remove this VPC from the list of VPCs in the config file
+            config.remove_resource('vpc', self.vpc_id)
+        except EC2.exceptions.ClientError as e:
+            error_code = e.response['Error']['Code']
+            if error_code == 'DependencyViolation':
+                response = EC2.describe_security_groups(
+                    Filters=[{
+                        'Name': 'vpc-id',
+                        'Values': [self.vpc_id]
+                    }]
+                )
+
+                ids = [sg['GroupId'] for sg in response.get('SecurityGroups')]
+                raise CannotDeleteResourceException(
+                    'Could not delete this VPC because it has dependencies. '
+                    'It may have security groups associated with it. If you '
+                    'still want to delete this VPC, you should first delete '
+                    'the security groups with the following IDs '
+                    '{sg_ids:s}'.format(sg_ids=str(ids)),
+                    resource_id=ids
+                )
+            else:  # pragma: nocover
+                # I can't think of a test case to make this happen but one
+                raise e
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -310,7 +402,7 @@ class SecurityGroup(NamedObject):
                     resource_id=security_group_id
                 )
 
-            super(SecurityGroup, self).__init__(name=str(name))
+            super(SecurityGroup, self).__init__(name=name)
 
             self._vpc = vpc
             self._vpc_id = vpc.vpc_id
@@ -438,6 +530,17 @@ class SecurityGroup(NamedObject):
         )
 
         logging.info('Created security group {id:s}'.format(id=group_id))
+
+        # Tag the security group with owner=cloudknot
+        EC2.create_tags(
+            Resources=[group_id],
+            Tags=[
+                {
+                    'Key': 'owner',
+                    'Value': 'cloudknot'
+                }
+            ]
+        )
 
         # Add this security group to the list of security groups in the
         # config file

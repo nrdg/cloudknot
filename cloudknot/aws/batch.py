@@ -6,13 +6,66 @@ import time
 from .. import config
 from .base_classes import NamedObject, ObjectWithArn, \
     ObjectWithUsernameAndMemory, BATCH, \
-    ResourceExistsException, ResourceDoesNotExistException
+    ResourceExistsException, ResourceDoesNotExistException, \
+    CannotDeleteResourceException
 from .iam import IamRole
 from .ec2 import Vpc, SecurityGroup
 from .ecr import DockerImage
 from collections import namedtuple
 
-__all__ = ["JobDefinition", "JobQueue", "ComputeEnvironment", "BatchJob"]
+__all__ = ["wait_for_compute_environment", "wait_for_job_queue",
+           "JobDefinition", "JobQueue",
+           "ComputeEnvironment", "BatchJob"]
+
+
+# noinspection PyPropertyAccess,PyAttributeOutsideInit
+def wait_for_compute_environment(arn, name, log=True, max_wait_time=60):
+    # Wait for compute environment to finish modifying
+    waiting = True
+    num_waits = 0
+    while waiting:
+        if log:
+            logging.info(
+                'Waiting for AWS to finish modifying compute environment '
+                '{name:s}.'.format(name=name)
+            )
+
+        response = BATCH.describe_compute_environments(
+            computeEnvironments=[arn]
+        )
+
+        waiting = (response.get('computeEnvironments')[0]['status']
+                   in ['CREATING', 'UPDATING']
+                   or response.get('computeEnvironments') == [])
+
+        time.sleep(1)
+        num_waits += 1
+        if num_waits > max_wait_time:
+            sys.exit('Waiting too long for AWS to modify compute '
+                     'environment. Aborting.')
+
+
+# noinspection PyPropertyAccess,PyAttributeOutsideInit
+def wait_for_job_queue(name, log=True, max_wait_time=60):
+    # Wait for job queue to be in DISABLED state
+    waiting = True
+    num_waits = 0
+    while waiting:
+        if log:
+            logging.info(
+                'Waiting for AWS to finish modifying job queue '
+                '{name:s}.'.format(name=name)
+            )
+
+        response = BATCH.describe_job_queues(jobQueues=[name])
+        waiting = (response.get('jobQueues')[0]['status']
+                   in ['CREATING', 'UPDATING'])
+
+        time.sleep(1)
+        num_waits += 1
+        if num_waits > max_wait_time:
+            sys.exit('Waiting too long for AWS to modify job queue. '
+                     'Aborting.')
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -31,9 +84,11 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             IamRole instance for the AWS IAM job role to be used in this
             job definition
 
-        docker_image : DockerImage
+        docker_image : DockerImage or string
             DockerImage instance for the container to be used in this job
             definition
+            or string containing location of docker image on Docker Hub or
+            other repository
 
         vcpus : int
             number of virtual cpus to be used to this job definition
@@ -46,6 +101,11 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         username : string
             username for be used for this job definition
             Default: cloudknot-user
+
+        retries : int
+            number of times a job can be moved to 'RUNNABLE' status.
+            May be between 1 and 10
+            Default: 3
         """
         if not (arn or name):
             raise ValueError('You must supply either an arn or name for this '
@@ -91,7 +151,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             # retrieve info on pre-existing job definition, throw error
             if arn or (name and not all([job_role, docker_image])):
                 raise ResourceDoesNotExistException(
-                    'The job queue you requested does not exist.',
+                    'The job definition you requested does not exist.',
                     arn
                 )
 
@@ -107,9 +167,12 @@ class JobDefinition(ObjectWithUsernameAndMemory):
                 raise ValueError('job_role must be an instance of IamRole')
             self._job_role = job_role
 
-            if not isinstance(docker_image, DockerImage):
+            if not (isinstance(docker_image, DockerImage)
+                    or isinstance(docker_image, str)):
                 raise ValueError(
-                    'docker_image must be an instance of DockerImage')
+                    'docker_image must be an instance of DockerImage '
+                    'or a string'
+                )
             self._docker_image = docker_image
 
             if vcpus:
@@ -121,10 +184,12 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             else:
                 self._vcpus = 1
 
-            if retries:
+            if retries is not None:
                 retries_int = int(retries)
                 if retries_int < 1:
                     raise ValueError('retries must be positive')
+                elif retries_int > 10:
+                    raise ValueError('retries must be less than 10')
                 else:
                     self._retries = retries_int
             else:
@@ -162,7 +227,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             (None,) * (len(ResourceExists._fields) - 1)
 
         if arn:
-            response = BATCH.describe_job_definitions(jobDefinitionName=arn)
+            response = BATCH.describe_job_definitions(jobDefinitions=[arn])
         else:
             response = BATCH.describe_job_definitions(jobDefinitionName=name)
 
@@ -199,8 +264,11 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         string
             Amazon Resource Number (ARN) for the created job definition
         """
+        image = self.docker_image if isinstance(self.docker_image, str) \
+            else self.docker_image.uri
+
         job_container_properties = {
-            'image': self.docker_image.uri,
+            'image': image,
             'vcpus': self.vcpus,
             'memory': self.memory,
             'command': [],
@@ -240,7 +308,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         ))
 
         # Remove this job def from the list of job defs in the config file
-        config.remove_resource('job-definitions', self.name, self.arn)
+        config.remove_resource('job-definitions', self.name)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -419,7 +487,7 @@ class ComputeEnvironment(ObjectWithArn):
                 )
 
             if not (isinstance(batch_service_role, IamRole)
-                    and batch_service_role.service == 'batch'):
+                    and 'batch' in batch_service_role.service):
                 raise ValueError(
                     'batch_service_role must be an IamRole '
                     'instance with service type "batch"'
@@ -439,7 +507,7 @@ class ComputeEnvironment(ObjectWithArn):
             if not isinstance(vpc, Vpc):
                 raise ValueError('vpc must be an instance of Vpc')
             self._vpc = vpc
-            self._subnets = vpc.subnets
+            self._subnets = vpc.subnet_ids
 
             if not isinstance(security_group, SecurityGroup):
                 raise ValueError(
@@ -451,7 +519,7 @@ class ComputeEnvironment(ObjectWithArn):
 
             if spot_fleet_role:
                 if not (isinstance(spot_fleet_role, IamRole)
-                        and spot_fleet_role.service == 'spotfleet'):
+                        and 'spotfleet' in spot_fleet_role.service):
                     raise ValueError(
                         'if provided, spot_fleet_role must be an '
                         'IamRole instance with service type '
@@ -465,13 +533,33 @@ class ComputeEnvironment(ObjectWithArn):
 
             instance_types = instance_types if instance_types else ('optimal',)
             if isinstance(instance_types, str):
-                self._instance_types = (instance_types,)
+                self._instance_types = [instance_types]
             elif all(isinstance(x, str) for x in instance_types):
                 self._instance_types = list(instance_types)
             else:
                 raise ValueError(
                     'instance_types must be a string or a '
                     'sequence of strings.'
+                )
+
+            valid_instance_types = {
+                'optimal', 'm3', 'm4', 'c3', 'c4', 'r3', 'i2', 'd2', 'g2',
+                'p2', 'x1', 'm3.medium', 'm3.large', 'm3.xlarge', 'm3.2xlarge',
+                'm4.large', 'm4.xlarge', 'm4.2xlarge', 'm4.4xlarge',
+                'm4.10xlarge', 'm4.16xlarge', 'c3.8xlarge', 'c3.4xlarge',
+                'c3.2xlarge', 'c3.xlarge', 'c3.large', 'c4.8xlarge',
+                'c4.4xlarge', 'c4.2xlarge', 'c4.xlarge', 'c4.large',
+                'r3.8xlarge', 'r3.4xlarge', 'r3.2xlarge', 'r3.xlarge',
+                'r3.large', 'i2.8xlarge', 'i2.4xlarge', 'i2.2xlarge',
+                'i2.xlarge', 'g2.2xlarge', 'g2.8xlarge', 'p2.large',
+                'p2.8xlarge', 'p2.16xlarge', 'd2.8xlarge', 'd2.4xlarge',
+                'd2.2xlarge', 'd2.xlarge', 'x1.32xlarge'
+            }
+            if not set(self._instance_types) < valid_instance_types:
+                raise ValueError(
+                    'instance_types must be a subset of {types:s}'.format(
+                        types=str(valid_instance_types)
+                    )
                 )
 
             resource_type = resource_type if resource_type else 'EC2'
@@ -521,7 +609,14 @@ class ComputeEnvironment(ObjectWithArn):
                     raise ValueError(
                         'if provided, tags must be an instance of dict'
                     )
-                self._tags = tags
+                elif self.resource_type == 'SPOT':
+                    logging.warning(
+                        'Tags are not supported for compute environment of '
+                        'type "SPOT". Ignoring input tags'
+                    )
+                    self._tags = None
+                else:
+                    self._tags = tags
             else:
                 self._tags = None
 
@@ -538,6 +633,7 @@ class ComputeEnvironment(ObjectWithArn):
 
             self._arn = self._create()
 
+    pre_existing = property(operator.attrgetter('_pre_existing'))
     batch_service_role = property(operator.attrgetter('_batch_service_role'))
     batch_service_arn = property(operator.attrgetter('_batch_service_arn'))
 
@@ -612,19 +708,43 @@ class ComputeEnvironment(ObjectWithArn):
             instance_role_arn = cr['instanceRole']
             subnets = cr['subnets']
             security_group_ids = cr['securityGroupIds']
-            spot_fleet_role_arn = cr['spotIamFleetRole']
             instance_types = cr['instanceTypes']
             resource_type = cr['type']
             min_vcpus = cr['minvCpus']
             max_vcpus = cr['maxvCpus']
-            desired_vcpus = cr['desiredvCpus']
-            image_id = cr['imageId']
-            ec2_key_pair = cr['ec2KeyPair']
-            tags = cr['tags']
-            bid_percentage = cr['bidPercentage']
+
+            try:
+                desired_vcpus = cr['desiredvCpus']
+            except KeyError:
+                desired_vcpus = None
+
+            try:
+                image_id = cr['imageId']
+            except KeyError:
+                image_id = None
+
+            try:
+                ec2_key_pair = cr['ec2KeyPair']
+            except KeyError:
+                ec2_key_pair = None
+
+            try:
+                tags = cr['tags']
+            except KeyError:
+                tags = None
+
+            try:
+                bid_percentage = cr['bidPercentage']
+            except KeyError:
+                bid_percentage = None
+
+            try:
+                spot_fleet_role_arn = cr['spotIamFleetRole']
+            except KeyError:
+                spot_fleet_role_arn = None
 
             logging.info('Compute environment {name:s} already exists.'.format(
-                name=self.name
+                name=ce_name
             ))
 
             return ResourceExists(
@@ -651,9 +771,9 @@ class ComputeEnvironment(ObjectWithArn):
         """
         compute_resources = {
             'type': self.resource_type,
-            'minvCpus': self.min_vcpu,
-            'maxvCpus': self.max_vcpu,
-            'desiredvCpus': self.desired_vcpu,
+            'minvCpus': self.min_vcpus,
+            'maxvCpus': self.max_vcpus,
+            'desiredvCpus': self.desired_vcpus,
             'instanceTypes': self.instance_types,
             'subnets': self.subnets,
             'securityGroupIds': self.security_group_ids,
@@ -698,51 +818,48 @@ class ComputeEnvironment(ObjectWithArn):
         None
         """
         # First set the state to disabled
+        wait_for_compute_environment(arn=self.arn, name=self.name)
         BATCH.update_compute_environment(
             computeEnvironment=self.arn,
             state='DISABLED'
         )
 
-        # Then disassociate from any job queues
-        response = BATCH.describe_job_queues()
-        for queue in response.get('jobQueues'):
-            arn = queue['jobQueueArn']
-            ce_order = queue['computeEnvironmentOrder']
-            # If this queue is associated with our compute environment
-            if self.arn in [ce['computeEnvironment'] for ce in ce_order]:
-                # Construct new computeEnvironmentOrder with this
-                # compute environment removed
-                new_ce_order = [
-                    ce for ce in ce_order
-                    if ce['computeEnvironment'] != self.arn
-                ]
+        # Then delete the compute environment
+        wait_for_compute_environment(arn=self.arn, name=self.name)
+        try:
+            BATCH.delete_compute_environment(computeEnvironment=self.arn)
 
-                # Get the order number of the offending compute environment
-                bad_order = [
-                    ce for ce in ce_order
-                    if ce['computeEnvironment'] == self.arn
-                ][0]['order']
+            logging.info('Deleted compute environment {name:s}'.format(
+                name=self.name
+            ))
 
-                # Fix the gap in the order numbers
-                for ce in new_ce_order:
-                    if ce['order'] > bad_order:
-                        ce['order'] -= 1
+            # Remove this compute env from the list of compute envs
+            # in config file
+            config.remove_resource('compute-environments', self.name)
+        except BATCH.exceptions.ClientException as e:
+            error_message = e.response['Error']['Message']
+            if error_message == 'Cannot delete, found existing ' \
+                                'JobQueue relationship':
+                response = BATCH.describe_job_queues()
 
-                # Update the job queue with the new compute environment order
-                BATCH.update_job_queue(
-                    jobQueue=arn,
-                    computeEnvironmentOrder=new_ce_order
+                associated_queues = list(filter(
+                    lambda q: self.arn in [
+                        ce['computeEnvironment'] for ce
+                        in q['computeEnvironmentOrder']
+                    ],
+                    response.get('jobQueues')
+                ))
+
+                raise CannotDeleteResourceException(
+                    'Could not delete this compute environment because it has '
+                    'job queue(s) associated with it. If you want to delete '
+                    'this compute environment, first delete the job queues '
+                    'with the following ARNS: '
+                    '{queues:s}'.format(queues=str(associated_queues)),
+                    resource_id=associated_queues
                 )
-
-        # Finally, delete the compute environment
-        BATCH.delete_compute_environment(computeEnvironment=self.arn)
-
-        logging.info('Deleted compute environment {name:s}'.format(
-            name=self.name
-        ))
-
-        # Remove this compute env from the list of compute envs in config file
-        config.remove_resource('compute-environments', self.name)
+            else:
+                raise e
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -895,7 +1012,7 @@ class JobQueue(ObjectWithArn):
                 jobQueues=[name]
             )
 
-        q = response.get('JobQueues')
+        q = response.get('jobQueues')
         if q:
             arn = q[0]['jobQueueArn']
             compute_environment_arns = q[0]['computeEnvironmentOrder']
@@ -951,8 +1068,7 @@ class JobQueue(ObjectWithArn):
 
         return arn
 
-    @property
-    def jobs(self, status='ALL'):
+    def get_jobs(self, status='ALL'):
         # Validate input
         allowed_statuses = ['ALL', 'SUBMITTED', 'PENDING', 'RUNNABLE',
                             'STARTING', 'RUNNING', 'SUCCEEDED', 'FAILED']
@@ -983,12 +1099,14 @@ class JobQueue(ObjectWithArn):
         for status in [
             'SUBMITTED', 'PENDING', 'RUNNABLE', 'STARTING', 'RUNNING'
         ]:
-            jobs = self.jobs(status=status)
+            jobs = self.get_jobs(status=status)
             for job_id in jobs:
                 BATCH.terminate_job(
                     jobId=job_id,
                     reason='Terminated to force job queue deletion'
                 )
+
+        wait_for_job_queue(self.name, max_wait_time=180)
 
         # Finally, delete the job queue
         BATCH.delete_job_queue(jobQueue=self.arn)
