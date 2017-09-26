@@ -33,6 +33,12 @@ import cloudknot as ck
 
 UNIT_TEST_PREFIX = 'cloudknot-unit-test'
 
+@pytest.fixture(scope='module')
+def pars():
+    p = ck.Pars(name='unit-test')
+    yield p
+    p.clobber()
+
 
 def get_unit_test_name():
     return UNIT_TEST_PREFIX + '-' + str(uuid.uuid4())
@@ -42,16 +48,13 @@ def get_unit_test_error_assertion_name():
     return UNIT_TEST_PREFIX + '-assert-error-' + str(uuid.uuid4())
 
 
-def test_wait_for_compute_environment():
-    # Create a PARS and ComputeEnvironment to test the function
-    pars = None
+def test_wait_for_compute_environment(pars):
+    # Create a ComputeEnvironment to test the function
     ce = None
     try:
-        name = get_unit_test_name()
-        pars = ck.Pars(name='unit-test')
-
         ce = ck.aws.ComputeEnvironment(
-            name=name, batch_service_role=pars.batch_service_role,
+            name=get_unit_test_name(),
+            batch_service_role=pars.batch_service_role,
             instance_role=pars.ecs_instance_role, vpc=pars.vpc,
             security_group=pars.security_group,
             spot_fleet_role=pars.spot_fleet_role
@@ -66,18 +69,13 @@ def test_wait_for_compute_environment():
         # Cleanup
         if ce:
             ce.clobber()
-        # if pars:
-        #     pars.clobber()
 
 
-def test_wait_for_job_queue():
-    # Create a PARS and ComputeEnvironment to test the function
-    pars = None
+def test_wait_for_job_queue(pars):
+    # Create a ComputeEnvironment and JobQueue to test the function
     ce = None
     jq = None
     try:
-        pars = ck.Pars(name='unit-test')
-
         ce = ck.aws.ComputeEnvironment(
             name=get_unit_test_name(),
             batch_service_role=pars.batch_service_role,
@@ -107,9 +105,6 @@ def test_wait_for_job_queue():
 
         if ce:
             ce.clobber()
-
-        # if pars:
-        #     pars.clobber()
 
 
 def test_ObjectWithUsernameAndMemory():
@@ -224,7 +219,6 @@ def test_IamRole():
             assert role.service == s + '.amazonaws.com'
             p = (p,) if isinstance(p, str) else tuple(p)
             assert set(role.policies) == set(p)
-            assert role.add_instance_profile == i
             if i:
                 assert role.instance_profile_arn
             else:
@@ -263,6 +257,19 @@ def test_IamRole():
         with pytest.raises(ValueError) as e:
             ck.aws.IamRole(name='not-important', service='ec2',
                            add_instance_profile=455)
+
+        name = get_unit_test_name()
+        response = iam.create_instance_profile(
+            InstanceProfileName=name + '-instance-profile'
+        )
+
+        arn = response.get('InstanceProfile')['Arn']
+        role = ck.aws.IamRole(name=name, service='ec2',
+                              add_instance_profile=True)
+
+        assert role.instance_profile_arn == arn
+
+        role.clobber()
 
     except Exception as e:  # pragma: nocover
         # Clean up roles from AWS
@@ -748,10 +755,7 @@ def test_SecurityGroup():
         raise e
 
 
-def test_JobDefinition():
-    # Create a unit testing PARS
-    pars = ck.Pars(name='unit-test')
-
+def test_JobDefinition(pars):
     batch = boto3.client('batch')
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
@@ -937,10 +941,6 @@ def test_JobDefinition():
                 docker_image='ubuntu',
                 retries=100
             )
-
-        # Clean up the PARS
-        # pars.clobber()
-
     except Exception as e:  # pragma: nocover
         # Clean up job definitions from AWS
         # Find all unit testing job definitions
@@ -981,17 +981,11 @@ def test_JobDefinition():
         with open(config_file, 'w') as f:
             config.write(f)
 
-        # Clean up the PARS
-        # pars.clobber()
-
         # Pass the exception through
         raise e
 
 
-def test_ComputeEnvironment():
-    # Create a unit testing PARS
-    pars = ck.Pars(name='unit-test')
-
+def test_ComputeEnvironment(pars):
     batch = boto3.client('batch')
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
@@ -1000,24 +994,19 @@ def test_ComputeEnvironment():
         # Use boto3 to create a compute environment
         name = get_unit_test_name()
 
-        resource_type = 'SPOT'
+        resource_type = 'EC2'
         min_vcpus = 1
         max_vcpus = 256
-        desired_vcpus = 8
         instance_types = ['optimal']
-        bid_percentage = 50
 
         compute_resources = {
             'type': resource_type,
             'minvCpus': min_vcpus,
             'maxvCpus': max_vcpus,
-            'desiredvCpus': desired_vcpus,
             'instanceTypes': instance_types,
             'subnets': pars.vpc.subnet_ids,
             'securityGroupIds': [pars.security_group.security_group_id],
             'instanceRole': pars.ecs_instance_role.instance_profile_arn,
-            'bidPercentage': bid_percentage,
-            'spotIamFleetRole': pars.spot_fleet_role.arn
         }
 
         response = batch.create_compute_environment(
@@ -1060,16 +1049,17 @@ def test_ComputeEnvironment():
         assert ce.security_group is None
         assert ce.security_group_ids == [pars.security_group.security_group_id]
         assert ce.spot_fleet_role is None
-        assert ce.spot_fleet_role_arn == pars.spot_fleet_role.arn
+        assert ce.spot_fleet_role_arn is None
         assert ce.instance_types == instance_types
         assert ce.resource_type == resource_type
         assert ce.min_vcpus == min_vcpus
         assert ce.max_vcpus == max_vcpus
-        assert ce.desired_vcpus == desired_vcpus
+        # desired_vcpus defaults to 1
+        assert ce.desired_vcpus == 1
         assert ce.image_id is None
         assert ce.ec2_key_pair is None
         assert not ce.tags
-        assert ce.bid_percentage == 50
+        assert ce.bid_percentage is None
         assert ce.arn == arn
 
         # Confirm that the role is in the config file
@@ -1082,6 +1072,7 @@ def test_ComputeEnvironment():
         ck.aws.wait_for_compute_environment(
             arn=ce.arn, name=ce.name, log=False
         )
+
         jq = ck.aws.JobQueue(
             name=get_unit_test_name(),
             compute_environments=ce
@@ -1113,7 +1104,7 @@ def test_ComputeEnvironment():
         config.read(config_file)
         assert name not in config.options('compute-environments')
 
-        # Try to retrieve a job definition that does not exist
+        # Try to retrieve a compute environment that does not exist
         nonexistent_arn = arn.replace(
             UNIT_TEST_PREFIX,
             UNIT_TEST_PREFIX + '-nonexistent'
@@ -1123,7 +1114,7 @@ def test_ComputeEnvironment():
 
         assert e.value.resource_id == nonexistent_arn
 
-        # Create two compute environments with different parameters
+        # Create four compute environments with different parameters
 
         names = [get_unit_test_name() for i in range(4)]
         batch_service_roles = [pars.batch_service_role] * 4
@@ -1197,7 +1188,7 @@ def test_ComputeEnvironment():
             config.read(config_file)
             assert ce.name in config.options('compute-environments')
 
-            # Clobber security group
+            # Clobber compute environment
             ce.clobber()
 
             # Assert that it was removed from AWS
@@ -1387,9 +1378,6 @@ def test_ComputeEnvironment():
                 security_group=pars.security_group,
                 tags=-42
             )
-        # Clean up the PARS
-        # pars.clobber()
-
     except Exception as e:  # pragma: nocover
         # Clean up compute environments from AWS
         # Find all unit testing compute environments
@@ -1405,8 +1393,7 @@ def test_ComputeEnvironment():
         ]
 
         while response.get('nextToken'):
-            response = batch.describe_job_definitions(
-                status='ACTIVE',
+            response = batch.describe_compute_environments(
                 nextToken=response.get('nextToken')
             )
 
@@ -1456,13 +1443,15 @@ def test_ComputeEnvironment():
                 name = queue['jobQueueName']
 
                 # Disable submissions to the queue
-                batch.update_job_queue(jobQueue=arn, state='DISABLED')
-
                 ck.aws.wait_for_job_queue(
                     name=name, log=False, max_wait_time=180
                 )
+                batch.update_job_queue(jobQueue=arn, state='DISABLED')
 
                 # Delete the job queue
+                ck.aws.wait_for_job_queue(
+                    name=name, log=False, max_wait_time=180
+                )
                 batch.delete_job_queue(jobQueue=arn)
 
                 # Clean up config file
@@ -1487,15 +1476,350 @@ def test_ComputeEnvironment():
         with open(config_file, 'w') as f:
             config.write(f)
 
-        # Clean up the PARS
-        # pars.clobber()
-
         # Pass the exception through
         raise e
 
 
-def test_JobQueue():
-    pass
+def test_JobQueue(pars):
+    batch = boto3.client('batch')
+    config = configparser.ConfigParser()
+    config_file = ck.config.get_config_file()
+
+    try:
+        ce = ck.aws.ComputeEnvironment(
+            name=get_unit_test_name(),
+            batch_service_role=pars.batch_service_role,
+            instance_role=pars.ecs_instance_role, vpc=pars.vpc,
+            security_group=pars.security_group,
+            spot_fleet_role=pars.spot_fleet_role,
+        )
+
+        ck.aws.wait_for_compute_environment(
+            arn=ce.arn, name=ce.name, log=False
+        )
+
+        # Use boto3 to create a job queue
+        name = get_unit_test_name()
+        state = 'ENABLED'
+        priority = 1
+        compute_environment_arns = [
+            {
+                'order': 0,
+                'computeEnvironment': ce.arn
+            }
+        ]
+
+        response = batch.create_job_queue(
+            jobQueueName=name,
+            state=state,
+            priority=priority,
+            computeEnvironmentOrder=compute_environment_arns
+        )
+
+        arn = response['jobQueueArn']
+
+        # Create a JobQueue instance with same name but different priority.
+        # Confirm that ComputeEnvironment raises a ResourceExistsException.
+        with pytest.raises(ck.aws.ResourceExistsException) as e:
+            ck.aws.JobQueue(
+                name=name,
+                compute_environments=ce,
+                priority=5
+            )
+
+        assert e.value.resource_id == arn
+
+        # Then create a JobQueue with only that arn to have
+        # cloudknot retrieve that job definition.
+        jq = ck.aws.JobQueue(arn=arn)
+
+        # Confirm that the instance has the right properties.
+        assert jq.pre_existing
+        assert jq.name == name
+        assert jq.compute_environments is None
+        assert jq.compute_environment_arns == compute_environment_arns
+        assert jq.priority == priority
+        assert jq.arn == arn
+
+        # Confirm that the role is in the config file
+        config.read(config_file)
+        assert name in config.options('job-queues')
+
+        # Assert ValueError on invalid status in get_jobs() method
+        with pytest.raises(ValueError):
+            jq.get_jobs(status='INVALID')
+
+        assert jq.get_jobs() == []
+        assert jq.get_jobs(status='STARTING') == []
+
+        # Clobber the job queue
+        jq.clobber()
+
+        # Assert that it was removed from AWS
+        response = batch.describe_job_queues(jobQueues=[arn])
+        response_jq = response.get('jobQueues')
+        assert (not response_jq or response_jq[0]['status'] == 'DELETING')
+
+        # Assert that it was removed from the config file
+        # If we just re-read the config file, config will keep the union
+        # of the in memory values and the file values, updating the
+        # intersection of the two with the file values. So we must set
+        # config to None and then re-read the file
+        config = None
+        config = configparser.ConfigParser()
+        config.read(config_file)
+        assert name not in config.options('job-queues')
+
+        # Try to retrieve a job queue that does not exist
+        nonexistent_arn = arn.replace(
+            UNIT_TEST_PREFIX,
+            UNIT_TEST_PREFIX + '-nonexistent'
+        )
+        with pytest.raises(ck.aws.ResourceDoesNotExistException) as e:
+            ck.aws.JobQueue(arn=nonexistent_arn)
+
+        assert e.value.resource_id == nonexistent_arn
+
+        # Create four job queues with different parameters
+        names = [get_unit_test_name() for i in range(2)]
+        ce2 = ck.aws.ComputeEnvironment(
+            name=get_unit_test_name(),
+            batch_service_role=pars.batch_service_role,
+            instance_role=pars.ecs_instance_role, vpc=pars.vpc,
+            security_group=pars.security_group,
+            spot_fleet_role=pars.spot_fleet_role,
+        )
+        compute_environments = [ce, (ce, ce2)]
+        priorities = [4, None]
+
+        for (n, c_env, p) in zip(names, compute_environments, priorities):
+            jq = ck.aws.JobQueue(name=n, compute_environments=c_env, priority=p)
+
+            # Use boto3 to confirm their existence and properties
+            assert not jq.pre_existing
+            assert jq.name == n
+            if isinstance(c_env, ck.aws.ComputeEnvironment):
+                c_env = (c_env,)
+            assert jq.compute_environments == c_env
+            assert jq.compute_environment_arns == [
+                {
+                    'order': i,
+                    'computeEnvironment': c.arn
+                } for i, c in enumerate(c_env)
+            ]
+            p = p if p else 1
+            assert jq.priority == p
+
+            # Confirm that they exist in the config file
+            config.read(config_file)
+            assert jq.name in config.options('job-queues')
+
+            # Clobber job queue
+            jq.clobber()
+
+            # Assert that it was removed from AWS
+            response = batch.describe_job_queues(
+                jobQueues=[jq.arn]
+            )
+            response_jq = response.get('jobQueues')
+            assert (not response_jq or response_jq[0]['status'] == 'DELETING')
+
+            # Assert that they were removed from the config file
+            # If we just re-read the config file, config will keep the union
+            # of the in memory values and the file values, updating the
+            # intersection of the two with the file values. So we must set
+            # config to None and then re-read the file
+            config = None
+            config = configparser.ConfigParser()
+            config.read(config_file)
+            assert jq.name not in config.options('job-queues')
+
+        # Test for correct handling of incorrect input
+        # ValueError for neither arn or name
+        with pytest.raises(ValueError) as e:
+            ck.aws.JobQueue()
+
+        # Value Error for both arn and name
+        with pytest.raises(ValueError) as e:
+            ck.aws.JobQueue(
+                arn=get_unit_test_error_assertion_name(),
+                name=get_unit_test_error_assertion_name()
+            )
+
+        # Value Error for negative priority
+        with pytest.raises(ValueError) as e:
+            ck.aws.JobQueue(
+                name=get_unit_test_error_assertion_name(),
+                compute_environments=ce,
+                priority=-42
+            )
+
+        # Value Error for invalid compute environments
+        with pytest.raises(ValueError) as e:
+            ck.aws.JobQueue(
+                name=get_unit_test_error_assertion_name(),
+                compute_environments=[42, -42]
+            )
+
+        ce.clobber()
+        ce2.clobber()
+    except Exception as e:  # pragma: nocover
+        # Clean up job queues and compute environments from AWS
+        # Find all unit testing compute environments
+        response = batch.describe_compute_environments()
+
+        comp_envs = [
+            {
+                'name': d['computeEnvironmentName'],
+                'arn': d['computeEnvironmentArn'],
+                'state': d['state'],
+                'status': d['status']
+            } for d in response.get('computeEnvironments')
+        ]
+
+        while response.get('nextToken'):
+            response = batch.describe_compute_environments(
+                nextToken=response.get('nextToken')
+            )
+
+            comp_envs = comp_envs + [
+                {
+                    'name': d['computeEnvironmentName'],
+                    'arn': d['computeEnvironmentArn'],
+                    'state': d['state'],
+                    'status': d['status']
+                } for d in response.get('computeEnvironments')
+            ]
+
+        unit_test_CEs = list(filter(
+            lambda d: UNIT_TEST_PREFIX in d['name'], comp_envs
+        ))
+
+        enabled = list(filter(
+            lambda d: d['state'] == 'ENABLED', unit_test_CEs
+        ))
+
+        for ce in enabled:
+            ck.aws.wait_for_compute_environment(
+                arn=ce['arn'], name=ce['name'], log=False
+            )
+
+            # Set the compute environment state to 'DISABLED'
+            batch.update_compute_environment(
+                computeEnvironment=ce['arn'],
+                state='DISABLED'
+            )
+
+        config.read(config_file)
+
+        for ce in unit_test_CEs:
+            # Then disassociate from any job queues
+            response = batch.describe_job_queues()
+            associated_queues = list(filter(
+                lambda q: ce['arn'] in [
+                    c['computeEnvironment'] for c
+                    in q['computeEnvironmentOrder']
+                ],
+                response.get('jobQueues')
+            ))
+
+            for queue in associated_queues:
+                arn = queue['jobQueueArn']
+                name = queue['jobQueueName']
+
+                # Disable submissions to the queue
+                ck.aws.wait_for_job_queue(
+                    name=name, log=False, max_wait_time=180
+                )
+                batch.update_job_queue(jobQueue=arn, state='DISABLED')
+
+                # Delete the job queue
+                ck.aws.wait_for_job_queue(
+                    name=name, log=False, max_wait_time=180
+                )
+                batch.delete_job_queue(jobQueue=arn)
+
+                # Clean up config file
+                config.remove_option('job-queues', name)
+
+        requires_deletion = list(filter(
+            lambda d: d['status'] not in ['DELETED', 'DELETING'],
+            unit_test_CEs
+        ))
+
+        for ce in requires_deletion:
+            ck.aws.wait_for_compute_environment(
+                arn=ce['arn'], name=ce['name'], log=False
+            )
+
+            # Delete the compute environment
+            batch.delete_compute_environment(computeEnvironment=ce['arn'])
+
+            # Clean up config file
+            config.remove_option('compute-environments', ce['name'])
+
+        with open(config_file, 'w') as f:
+            config.write(f)
+
+        # Find all unit testing job queues
+        response = batch.describe_job_queues()
+
+        job_queues = [
+            {
+                'name': d['jobQueueName'],
+                'arn': d['jobQueueArn'],
+                'state': d['state'],
+                'status': d['status']
+            } for d in response.get('jobQueues')
+        ]
+
+        while response.get('nextToken'):
+            response = batch.describe_job_queues(
+                nextToken=response.get('nextToken')
+            )
+
+            job_queues = job_queues + [
+                {
+                    'name': d['jobQueueName'],
+                    'arn': d['jobQueueArn'],
+                    'state': d['state'],
+                    'status': d['status']
+                } for d in response.get('jobQueues')
+            ]
+
+        unit_test_JQs = list(filter(
+            lambda d: UNIT_TEST_PREFIX in d['name'], job_queues
+        ))
+
+        enabled = list(filter(
+            lambda d: d['state'] == 'ENABLED', unit_test_JQs
+        ))
+
+        for jq in enabled:
+            ck.aws.wait_for_job_queue(name=jq['name'], max_wait_time=180)
+            batch.update_job_queue(jobQueue=jq['arn'], state='DISABLED')
+
+        config.read(config_file)
+
+        requires_deletion = list(filter(
+            lambda d: d['status'] not in ['DELETED', 'DELETING'],
+            unit_test_JQs
+        ))
+
+        for jq in requires_deletion:
+            wait_for_job_queue(name=jq['name'], max_wait_time=180)
+
+            # Finally, delete the job queue
+            batch.delete_job_queue(jobQueue=jq['arn'])
+
+            # Clean up config file
+            config.remove_option('job-queues', jq['name'])
+
+        with open(config_file, 'w') as f:
+            config.write(f)
+
+        # Pass the exception through
+        raise e
 
 
 def test_BatchJob():
