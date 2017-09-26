@@ -24,7 +24,7 @@ due.cite(Doi(""),
 class CloudKnot(object):
     def __init__(self, func, source_file):
         if not (func or source_file):
-            raise Exception('you must supply either a user-defined function '
+            raise ValueError('you must supply either a user-defined function '
                             'or a source file')
         self.function = func
         self.source_file = source_file
@@ -35,7 +35,7 @@ class CloudKnot(object):
     def function(self, f):
         if f:
             if not inspect.isfunction(f):
-                raise Exception('if provided, function must be a user-defined '
+                raise ValueError('if provided, function must be a user-defined '
                                 'function')
             self._function = f
         else:
@@ -54,13 +54,27 @@ class CloudKnot(object):
 class Pars(object):
     def __init__(self, name='default', batch_service_role_name=None,
                  ecs_instance_role_name=None, spot_fleet_role_name=None,
-                 vpc_id=None, security_group_id=None):
+                 vpc_id=None, vpc_name=None,
+                 security_group_id=None, security_group_name=None):
         if not isinstance(name, str):
-            raise Exception('name must be a string')
+            raise ValueError('name must be a string')
 
         self._name = name
 
         CONFIG.read(config.get_config_file())
+
+        if vpc_name:
+            if not isinstance(vpc_name, str):
+                raise ValueError('if provided, vpc_name must be a string.')
+        else:
+            vpc_name = name + '-cloudknot-vpc'
+
+        if security_group_name:
+            if not isinstance(security_group_name, str):
+                raise ValueError('if provided, security_group_name must be '
+                                 'a string.')
+        else:
+            security_group_name = name + '-cloudknot-security-group'
 
         # Check for existence of this pars
         self._pars_name = 'pars ' + name
@@ -68,7 +82,7 @@ class Pars(object):
             # Pars exists, check that user did not provide any resource names
             if any([batch_service_role_name, ecs_instance_role_name,
                     spot_fleet_role_name, vpc_id, security_group_id]):
-                raise Exception('You provided resources for a pars that '
+                raise ValueError('You provided resources for a pars that '
                                 'already exists in configuration file '
                                 '{fn:s}.'.format(fn=config.get_config_file()))
 
@@ -115,16 +129,32 @@ class Pars(object):
                     add_instance_profile=False
                 )
 
-            self._vpc = aws.ec2.Vpc(vpc_id=CONFIG[self._pars_name]['vpc'])
+            try:
+                self._vpc = aws.ec2.Vpc(vpc_id=CONFIG[self._pars_name]['vpc'])
+            except aws.ResourceDoesNotExistException:
+                self._vpc = aws.ec2.Vpc(name=vpc_name)
+                CONFIG[self._pars_name]['vpc'] = self._vpc.vpc_id
 
-            self._security_group = aws.ec2.SecurityGroup(
-                security_group_id=CONFIG[self._pars_name]['security-group']
-            )
+            try:
+                self._security_group = aws.ec2.SecurityGroup(
+                    security_group_id=CONFIG[self._pars_name]['security-group']
+                )
+            except aws.ResourceDoesNotExistException:
+                self._security_group = aws.ec2.SecurityGroup(
+                    name=security_group_name,
+                    vpc=self._vpc
+                )
+                CONFIG[self._pars_name]['security-group'] = \
+                    self._security_group.security_group_id
+
+            # Save config to file
+            with open(config.get_config_file(), 'w') as f:
+                CONFIG.write(f)
         else:
             # Pars doesn't exist, create it
             if batch_service_role_name:
                 if not isinstance(batch_service_role_name, str):
-                    raise Exception('if provided, batch_service_role_name '
+                    raise ValueError('if provided, batch_service_role_name '
                                     'must be a string.')
             else:
                 batch_service_role_name = (
@@ -147,7 +177,7 @@ class Pars(object):
 
             if ecs_instance_role_name:
                 if not isinstance(ecs_instance_role_name, str):
-                    raise Exception('if provided, ecs_instance_role_name must '
+                    raise ValueError('if provided, ecs_instance_role_name must '
                                     'be a string.')
             else:
                 ecs_instance_role_name = name + '-cloudknot-ecs-instance-role'
@@ -168,7 +198,7 @@ class Pars(object):
 
             if spot_fleet_role_name:
                 if not isinstance(spot_fleet_role_name, str):
-                    raise Exception('if provided, spot_fleet_role_name must '
+                    raise ValueError('if provided, spot_fleet_role_name must '
                                     'be a string.')
             else:
                 spot_fleet_role_name = name + '-cloudknot-spot-fleet-role'
@@ -189,19 +219,17 @@ class Pars(object):
 
             if vpc_id:
                 if not isinstance(vpc_id, str):
-                    raise Exception('if provided, vpc_id must be a string')
+                    raise ValueError('if provided, vpc_id must be a string')
                 self._vpc = aws.ec2.Vpc(vpc_id=vpc_id)
             else:
                 try:
-                    vpc_name = name + '-cloudknot-vpc'
                     self._vpc = aws.ec2.Vpc(name=vpc_name)
                 except aws.ResourceExistsException as e:
                     self._vpc = aws.ec2.Vpc(vpc_id=e.resource_id)
 
-            security_group_name = name + '-cloudknot-security-group'
             if security_group_id:
                 if not isinstance(security_group_id, str):
-                    raise Exception('if provided, security_group_id must '
+                    raise ValueError('if provided, security_group_id must '
                                     'be a string')
                 self._security_group = aws.ec2.SecurityGroup(
                     security_group_id=security_group_id
@@ -235,7 +263,7 @@ class Pars(object):
     @name.setter
     def name(self, n):
         if not isinstance(n, str):
-            raise Exception('name must be a string')
+            raise ValueError('name must be a string')
 
         # Read current config file
         CONFIG.read(config.get_config_file())
@@ -258,7 +286,7 @@ class Pars(object):
         def set_role(self, new_role):
             # Verify input
             if not isinstance(new_role, aws.iam.IamRole):
-                raise Exception('new role must be an instance of IamRole')
+                raise ValueError('new role must be an instance of IamRole')
 
             old_role = getattr(self, attr)
 
@@ -302,7 +330,7 @@ class Pars(object):
     @vpc.setter
     def vpc(self, v):
         if not isinstance(v, aws.ec2.Vpc):
-            raise Exception('new vpc must be an instance of Vpc')
+            raise ValueError('new vpc must be an instance of Vpc')
 
         logging.warning(
             'You are setting a new VPC for PARS {name:s}. The old '
@@ -326,7 +354,7 @@ class Pars(object):
     @security_group.setter
     def security_group(self, sg):
         if not isinstance(sg, aws.ec2.SecurityGroup):
-            raise Exception('new security group must be an instance of '
+            raise ValueError('new security group must be an instance of '
                             'SecurityGroup')
 
         logging.warning(
@@ -367,36 +395,36 @@ class Jars(object):
                  compute_environment_name='cloudknot-compute-environment',
                  job_queue_name='cloudknot-job-queue', vcpus=1, memory=32000):
         if not isinstance(pars, Pars):
-            raise Exception('infrastructure must be an AWSInfrastructure '
+            raise ValueError('infrastructure must be an AWSInfrastructure '
                             'instance.')
 
         self._pars = pars
 
         if not isinstance(docker_image_name, str):
-            raise Exception('docker_image_name must be a string.')
+            raise ValueError('docker_image_name must be a string.')
 
         if not isinstance(job_definition_name, str):
-            raise Exception('job_definition_name must be a string.')
+            raise ValueError('job_definition_name must be a string.')
 
         if not isinstance(compute_environment_name, str):
-            raise Exception('compute_environment_name must be a string.')
+            raise ValueError('compute_environment_name must be a string.')
 
         if not isinstance(job_queue_name, str):
-            raise Exception('job_queue_name must be a string.')
+            raise ValueError('job_queue_name must be a string.')
 
         try:
             cpus = int(vcpus)
             if cpus < 1:
-                raise Exception('vcpus must be positive')
+                raise ValueError('vcpus must be positive')
         except ValueError:
-            raise Exception('vcpus must be an integer')
+            raise ValueError('vcpus must be an integer')
 
         try:
             mem = int(memory)
             if mem < 1:
-                raise Exception('memory must be positive')
+                raise ValueError('memory must be positive')
         except ValueError:
-            raise Exception('memory must be an integer')
+            raise ValueError('memory must be an integer')
 
         # WIP
         # self._docker_image = aws.ecr.DockerImage(
