@@ -1,71 +1,19 @@
 import logging
 import operator
-import sys
-import time
 
 from .. import config
 from .base_classes import NamedObject, ObjectWithArn, \
     ObjectWithUsernameAndMemory, BATCH, \
     ResourceExistsException, ResourceDoesNotExistException, \
-    CannotDeleteResourceException
+    CannotDeleteResourceException, wait_for_compute_environment, \
+    wait_for_job_queue
 from .iam import IamRole
 from .ec2 import Vpc, SecurityGroup
 from .ecr import DockerImage
 from collections import namedtuple
 
-__all__ = ["wait_for_compute_environment", "wait_for_job_queue",
-           "JobDefinition", "JobQueue",
+__all__ = ["JobDefinition", "JobQueue",
            "ComputeEnvironment", "BatchJob"]
-
-
-# noinspection PyPropertyAccess,PyAttributeOutsideInit
-def wait_for_compute_environment(arn, name, log=True, max_wait_time=60):
-    # Wait for compute environment to finish modifying
-    waiting = True
-    num_waits = 0
-    while waiting:
-        if log:
-            logging.info(
-                'Waiting for AWS to finish modifying compute environment '
-                '{name:s}.'.format(name=name)
-            )
-
-        response = BATCH.describe_compute_environments(
-            computeEnvironments=[arn]
-        )
-
-        waiting = (response.get('computeEnvironments')[0]['status']
-                   in ['CREATING', 'UPDATING']
-                   or response.get('computeEnvironments') == [])
-
-        time.sleep(1)
-        num_waits += 1
-        if num_waits > max_wait_time:
-            sys.exit('Waiting too long for AWS to modify compute '
-                     'environment. Aborting.')
-
-
-# noinspection PyPropertyAccess,PyAttributeOutsideInit
-def wait_for_job_queue(name, log=True, max_wait_time=60):
-    # Wait for job queue to be in DISABLED state
-    waiting = True
-    num_waits = 0
-    while waiting:
-        if log:
-            logging.info(
-                'Waiting for AWS to finish modifying job queue '
-                '{name:s}.'.format(name=name)
-            )
-
-        response = BATCH.describe_job_queues(jobQueues=[name])
-        waiting = (response.get('jobQueues')[0]['status']
-                   in ['CREATING', 'UPDATING'])
-
-        time.sleep(1)
-        num_waits += 1
-        if num_waits > max_wait_time:
-            sys.exit('Waiting too long for AWS to modify job queue. '
-                     'Aborting.')
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -715,7 +663,7 @@ class ComputeEnvironment(ObjectWithArn):
 
             try:
                 desired_vcpus = cr['desiredvCpus']
-            except KeyError:
+            except KeyError:  # pragma: nocover
                 desired_vcpus = None
 
             try:
@@ -730,7 +678,7 @@ class ComputeEnvironment(ObjectWithArn):
 
             try:
                 tags = cr['tags']
-            except KeyError:
+            except KeyError:  # pragma: nocover
                 tags = None
 
             try:
@@ -858,7 +806,7 @@ class ComputeEnvironment(ObjectWithArn):
                     '{queues:s}'.format(queues=str(associated_queues)),
                     resource_id=associated_queues
                 )
-            else:
+            else:  # pragma: nocover
                 raise e
 
 
@@ -885,8 +833,6 @@ class JobQueue(ObjectWithArn):
             priority for jobs in this queue
             Default: 1
         """
-        super(JobQueue, self).__init__(name=name)
-
         if not (arn or name):
             raise ValueError(
                 'You must supply either an arn or name for this '
@@ -920,6 +866,7 @@ class JobQueue(ObjectWithArn):
                 )
 
             # Fill parameters with queried values
+            super(JobQueue, self).__init__(name=resource.name)
             self._compute_environments = None
             self._compute_environment_arns = resource.compute_environment_arns
             self._priority = resource.priority
@@ -934,6 +881,7 @@ class JobQueue(ObjectWithArn):
                     arn
                 )
 
+            super(JobQueue, self).__init__(name=name)
             # Otherwise, validate input and set parameters
             # Validate compute environments
             if isinstance(compute_environments, ComputeEnvironment):
@@ -992,12 +940,12 @@ class JobQueue(ObjectWithArn):
         -------
         namedtuple RoleExists
             A namedtuple with fields
-            ['exists', 'compute_environment_arns', 'priority', 'arn']
+            ['exists', 'name', 'compute_environment_arns', 'priority', 'arn']
         """
         # define a namedtuple for return value type
         ResourceExists = namedtuple(
             'ResourceExists',
-            ['exists', 'compute_environment_arns', 'priority', 'arn']
+            ['exists', 'name', 'compute_environment_arns', 'priority', 'arn']
         )
         # make all but the first value default to None
         ResourceExists.__new__.__defaults__ = \
@@ -1015,15 +963,16 @@ class JobQueue(ObjectWithArn):
         q = response.get('jobQueues')
         if q:
             arn = q[0]['jobQueueArn']
+            name = q[0]['jobQueueName']
             compute_environment_arns = q[0]['computeEnvironmentOrder']
             priority = q[0]['priority']
 
             logging.info('Job Queue {name:s} already exists.'.format(
-                name=self.name
+                name=name
             ))
 
             return ResourceExists(
-                exists=True, priority=priority, arn=arn,
+                exists=True, priority=priority, name=name, arn=arn,
                 compute_environment_arns=compute_environment_arns
             )
         else:
@@ -1044,24 +993,12 @@ class JobQueue(ObjectWithArn):
             computeEnvironmentOrder=self.compute_environment_arns
         )
 
+        arn = response['jobQueueArn']
+
         # Wait for job queue to be in VALID state
-        waiting = True
-        num_waits = 0
-        while waiting:
-            logging.info(
-                'Waiting for AWS to create job queue '
-                '{name:s}.'.format(name=self.name)
-            )
-            response = BATCH.describe_job_queues(jobQueues=[self.name])
-            waiting = (response.get('jobQueues')[0]['status'] != 'VALID')
-            time.sleep(3)
-            num_waits += 1
-            if num_waits > 60:
-                sys.exit('Waiting too long to create job queue. Aborting.')
+        wait_for_job_queue(name=self.name, max_wait_time=180)
 
         logging.info('Created job queue {name:s}'.format(name=self.name))
-
-        arn = response.get('jobQueues')[0]['jobQueueArn']
 
         # Add this job queue to the list of job queues in the config file
         config.add_resource('job-queues', self.name, arn)
@@ -1093,12 +1030,15 @@ class JobQueue(ObjectWithArn):
         None
         """
         # First, disable submissions to the queue
+        wait_for_job_queue(self.name, max_wait_time=180)
         BATCH.update_job_queue(jobQueue=self.arn, state='DISABLED')
 
         # Next, terminate all jobs that have not completed
         for status in [
             'SUBMITTED', 'PENDING', 'RUNNABLE', 'STARTING', 'RUNNING'
-        ]:
+        ]:  # pragma: nocover
+            # No unit test coverage here since it costs money to submit,
+            # and then terminate, batch jobs
             jobs = self.get_jobs(status=status)
             for job_id in jobs:
                 BATCH.terminate_job(
