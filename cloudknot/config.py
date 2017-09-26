@@ -10,7 +10,7 @@ CONFIG = configparser.ConfigParser()
 
 def get_config_file():
     try:
-        env_file = os.environ['CLOUDKNOT_config_FILE']
+        env_file = os.environ['CLOUDKNOT_CONFIG_FILE']
         config_file = os.path.abspath(env_file)
     except KeyError:
         home = os.path.expanduser('~')
@@ -22,6 +22,23 @@ def get_config_file():
             f.write('# cloudknot configuration file')
 
     return config_file
+
+
+def get_default_region():
+    try:
+        return os.environ['AWS_DEFAULT_REGION']
+    except KeyError:
+        fallback_region = 'us-east-1'
+        home = os.path.expanduser('~')
+        aws_config_file = os.path.join(home, '.aws', 'config')
+        if os.path.isfile(aws_config_file):
+            aws_config = configparser.ConfigParser()
+            aws_config.read(aws_config_file)
+            return aws_config.get(
+                'default', 'region', fallback=fallback_region
+            )
+        else:
+            return fallback_region
 
 
 def add_resource(section, option, value):

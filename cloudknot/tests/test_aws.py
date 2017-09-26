@@ -118,7 +118,7 @@ def test_ObjectWithUsernameAndMemory():
 
 
 def test_IamRole():
-    iam = boto3.client('iam')
+    iam = boto3.client('iam', region_name=ck.config.get_default_region())
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
 
@@ -318,7 +318,7 @@ def test_IamRole():
 
 
 def test_Vpc():
-    ec2 = boto3.client('ec2')
+    ec2 = boto3.client('ec2', region_name=ck.config.get_default_region())
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
 
@@ -554,7 +554,7 @@ def test_Vpc():
 
 
 def test_SecurityGroup():
-    ec2 = boto3.client('ec2')
+    ec2 = boto3.client('ec2', region_name=ck.config.get_default_region())
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
 
@@ -757,7 +757,7 @@ def test_SecurityGroup():
 
 
 def test_JobDefinition(pars):
-    batch = boto3.client('batch')
+    batch = boto3.client('batch', region_name=ck.config.get_default_region())
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
 
@@ -987,7 +987,7 @@ def test_JobDefinition(pars):
 
 
 def test_ComputeEnvironment(pars):
-    batch = boto3.client('batch')
+    batch = boto3.client('batch', region_name=ck.config.get_default_region())
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
 
@@ -1482,7 +1482,7 @@ def test_ComputeEnvironment(pars):
 
 
 def test_JobQueue(pars):
-    batch = boto3.client('batch')
+    batch = boto3.client('batch', region_name=ck.config.get_default_region())
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
 

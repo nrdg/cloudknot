@@ -4,14 +4,16 @@ import operator
 import sys
 import time
 
+from ..config import get_default_region
+
 __all__ = ["NamedObject", "ObjectWithArn",
            "ObjectWithUsernameAndMemory", "IAM", "EC2", "ECR", "BATCH",
            "wait_for_compute_environment", "wait_for_job_queue"]
 
-IAM = boto3.client('iam')
-EC2 = boto3.client('ec2')
-BATCH = boto3.client('batch')
-ECR = boto3.client('ecr')
+IAM = boto3.client('iam', region_name=get_default_region())
+EC2 = boto3.client('ec2', region_name=get_default_region())
+BATCH = boto3.client('batch', region_name=get_default_region())
+ECR = boto3.client('ecr', region_name=get_default_region())
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
