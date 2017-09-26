@@ -33,6 +33,7 @@ import cloudknot as ck
 
 UNIT_TEST_PREFIX = 'cloudknot-unit-test'
 
+
 @pytest.fixture(scope='module')
 def pars():
     p = ck.Pars(name='unit-test')
@@ -1593,7 +1594,9 @@ def test_JobQueue(pars):
         priorities = [4, None]
 
         for (n, c_env, p) in zip(names, compute_environments, priorities):
-            jq = ck.aws.JobQueue(name=n, compute_environments=c_env, priority=p)
+            jq = ck.aws.JobQueue(
+                name=n, compute_environments=c_env, priority=p
+            )
 
             # Use boto3 to confirm their existence and properties
             assert not jq.pre_existing
@@ -1807,7 +1810,7 @@ def test_JobQueue(pars):
         ))
 
         for jq in requires_deletion:
-            wait_for_job_queue(name=jq['name'], max_wait_time=180)
+            ck.aws.wait_for_job_queue(name=jq['name'], max_wait_time=180)
 
             # Finally, delete the job queue
             batch.delete_job_queue(jobQueue=jq['arn'])

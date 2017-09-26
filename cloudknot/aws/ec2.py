@@ -580,13 +580,13 @@ class SecurityGroup(NamedObject):
             ce['computeEnvironmentName'] for ce
             in response.get('computeEnvironments')
             if self.security_group_id
-               in ce['computeResources']['securityGroupIds']
+            in ce['computeResources']['securityGroupIds']
         ]
         ce_arns = [
             ce['computeEnvironmentArn'] for ce
             in response.get('computeEnvironments')
             if self.security_group_id
-               in ce['computeResources']['securityGroupIds']
+            in ce['computeResources']['securityGroupIds']
         ]
 
         # Wait for them to be updated / deleted

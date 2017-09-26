@@ -25,7 +25,7 @@ class CloudKnot(object):
     def __init__(self, func, source_file):
         if not (func or source_file):
             raise ValueError('you must supply either a user-defined function '
-                            'or a source file')
+                             'or a source file')
         self.function = func
         self.source_file = source_file
 
@@ -35,8 +35,8 @@ class CloudKnot(object):
     def function(self, f):
         if f:
             if not inspect.isfunction(f):
-                raise ValueError('if provided, function must be a user-defined '
-                                'function')
+                raise ValueError('if provided, function must be a '
+                                 'user-defined function')
             self._function = f
         else:
             self._function = None
@@ -83,8 +83,8 @@ class Pars(object):
             if any([batch_service_role_name, ecs_instance_role_name,
                     spot_fleet_role_name, vpc_id, security_group_id]):
                 raise ValueError('You provided resources for a pars that '
-                                'already exists in configuration file '
-                                '{fn:s}.'.format(fn=config.get_config_file()))
+                                 'already exists in configuration file '
+                                 '{fn:s}.'.format(fn=config.get_config_file()))
 
             # Use pars values to instantiate new resources
             try:
@@ -155,7 +155,7 @@ class Pars(object):
             if batch_service_role_name:
                 if not isinstance(batch_service_role_name, str):
                     raise ValueError('if provided, batch_service_role_name '
-                                    'must be a string.')
+                                     'must be a string.')
             else:
                 batch_service_role_name = (
                     name + '-cloudknot-batch-service-role'
@@ -177,8 +177,8 @@ class Pars(object):
 
             if ecs_instance_role_name:
                 if not isinstance(ecs_instance_role_name, str):
-                    raise ValueError('if provided, ecs_instance_role_name must '
-                                    'be a string.')
+                    raise ValueError('if provided, ecs_instance_role_name '
+                                     'must be a string.')
             else:
                 ecs_instance_role_name = name + '-cloudknot-ecs-instance-role'
 
@@ -199,7 +199,7 @@ class Pars(object):
             if spot_fleet_role_name:
                 if not isinstance(spot_fleet_role_name, str):
                     raise ValueError('if provided, spot_fleet_role_name must '
-                                    'be a string.')
+                                     'be a string.')
             else:
                 spot_fleet_role_name = name + '-cloudknot-spot-fleet-role'
 
@@ -230,7 +230,7 @@ class Pars(object):
             if security_group_id:
                 if not isinstance(security_group_id, str):
                     raise ValueError('if provided, security_group_id must '
-                                    'be a string')
+                                     'be a string')
                 self._security_group = aws.ec2.SecurityGroup(
                     security_group_id=security_group_id
                 )
@@ -355,7 +355,7 @@ class Pars(object):
     def security_group(self, sg):
         if not isinstance(sg, aws.ec2.SecurityGroup):
             raise ValueError('new security group must be an instance of '
-                            'SecurityGroup')
+                             'SecurityGroup')
 
         logging.warning(
             'You are setting a new security group for PARS {name:s}. The old '
@@ -396,7 +396,7 @@ class Jars(object):
                  job_queue_name='cloudknot-job-queue', vcpus=1, memory=32000):
         if not isinstance(pars, Pars):
             raise ValueError('infrastructure must be an AWSInfrastructure '
-                            'instance.')
+                             'instance.')
 
         self._pars = pars
 

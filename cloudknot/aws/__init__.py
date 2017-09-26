@@ -1,8 +1,9 @@
-from .iam import *  # noqa
-from .ecr import *  # noqa
-from .ec2 import *  # noqa
-from .batch import *  # noqa
-from .base_classes import ResourceExistsException, \
-    ResourceDoesNotExistException, \
-    CannotDeleteResourceException, \
-    wait_for_compute_environment, wait_for_job_queue  # noqa
+from .iam import *  # noqa: F401,F403
+from .ecr import *  # noqa: F401,F403
+from .ec2 import *  # noqa: F401,F403
+from .batch import *  # noqa: F401,F403
+from .base_classes import ResourceExistsException  # noqa: F401,F403
+from .base_classes import ResourceDoesNotExistException  # noqa: F401,F403
+from .base_classes import CannotDeleteResourceException  # noqa: F401,F403
+from .base_classes import wait_for_compute_environment  # noqa: F401,F403
+from .base_classes import wait_for_job_queue  # noqa: F401,F403

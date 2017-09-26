@@ -86,7 +86,7 @@ def prune():
             CONFIG.remove_option('security-groups', sg_id)
 
     # Prune docker containers
-    docker_containers = CONFIG.options('docker-containers')
+    # docker_containers = CONFIG.options('docker-containers')
 
     for job_def_name in CONFIG.options('job-definitions'):
         try:

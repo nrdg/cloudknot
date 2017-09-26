@@ -5,9 +5,7 @@ import os
 import shutil
 import subprocess
 
-from .. import config
-from .base_classes import NamedObject, ECR, \
-    ResourceExistsException
+from .base_classes import NamedObject, ECR
 
 __all__ = ["DockerImage"]
 
