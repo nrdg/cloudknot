@@ -60,7 +60,6 @@ class IamRole(ObjectWithArn):
             rpd_statement = role.role_policy_document['Statement'][0]
             self._service = rpd_statement['Principal']['Service']
             self._policies = role.policies
-            self._add_instance_profile = role.add_instance_profile
             self._arn = role.arn
             config.add_resource('roles', self.name, self.arn)
         else:
@@ -134,12 +133,10 @@ class IamRole(ObjectWithArn):
 
             self._policies = tuple(input_policies)
 
-            if isinstance(add_instance_profile, bool):
-                self._add_instance_profile = add_instance_profile
-            else:
+            if not isinstance(add_instance_profile, bool):
                 raise ValueError('add_instance_profile is a boolean input')
 
-            self._arn = self._create()
+            self._arn = self._create(add_instance_profile=add_instance_profile)
 
     _allowed_services = ['batch', 'ec2', 'ecs-tasks', 'lambda', 'spotfleet']
 
@@ -149,9 +146,6 @@ class IamRole(ObjectWithArn):
     role_policy_document = property(
         operator.attrgetter('_role_policy_document')
     )
-    add_instance_profile = property(operator.attrgetter(
-        '_add_instance_profile'
-    ))
     policies = property(operator.attrgetter('_policies'))
 
     def _exists_already(self):
@@ -165,13 +159,13 @@ class IamRole(ObjectWithArn):
         -------
         namedtuple RoleExists
             A namedtuple with fields ['exists', 'description',
-            'role_policy_document', 'policies', 'add_instance_profile', 'arn']
+            'role_policy_document', 'policies', 'arn']
         """
         # define a namedtuple for return value type
         RoleExists = namedtuple(
             'RoleExists',
             ['exists', 'description', 'role_policy_document', 'policies',
-             'add_instance_profile', 'arn']
+             'arn']
         )
         # make all but the first value default to None
         RoleExists.__new__.__defaults__ = \
@@ -196,13 +190,12 @@ class IamRole(ObjectWithArn):
 
             return RoleExists(
                 exists=True, description=description,
-                role_policy_document=role_policy, policies=policies,
-                add_instance_profile=False, arn=arn
+                role_policy_document=role_policy, policies=policies, arn=arn
             )
         except IAM.exceptions.NoSuchEntityException:
             return RoleExists(exists=False)
 
-    def _create(self):
+    def _create(self, add_instance_profile=False):
         """ Create AWS IAM role using instance parameters
 
         Returns
@@ -252,16 +245,23 @@ class IamRole(ObjectWithArn):
                 policy=policy, role=self.name
             ))
 
-        if self.add_instance_profile:
+        if add_instance_profile:
             instance_profile_name = self.name + '-instance-profile'
-            IAM.create_instance_profile(
-                InstanceProfileName=instance_profile_name
-            )
 
-            IAM.add_role_to_instance_profile(
-                InstanceProfileName=instance_profile_name,
-                RoleName=self.name
-            )
+            try:
+                IAM.create_instance_profile(
+                    InstanceProfileName=instance_profile_name
+                )
+
+                IAM.add_role_to_instance_profile(
+                    InstanceProfileName=instance_profile_name,
+                    RoleName=self.name
+                )
+            except IAM.exceptions.EntityAlreadyExistsException:
+                IAM.add_role_to_instance_profile(
+                    InstanceProfileName=instance_profile_name,
+                    RoleName=self.name
+                )
 
             logging.info('Created instance profile {name:s}'.format(
                 name=instance_profile_name
@@ -291,7 +291,7 @@ class IamRole(ObjectWithArn):
         -------
         None
         """
-        if self.add_instance_profile:
+        if self.instance_profile_arn:
             response = IAM.list_instance_profiles_for_role(RoleName=self.name)
 
             instance_profile_name = response.get(
