@@ -1,11 +1,12 @@
 import ipaddress
 import logging
 import operator
+import time
 
 from .. import config
-from .base_classes import EC2, NamedObject, \
+from .base_classes import EC2, BATCH, NamedObject, \
     ResourceExistsException, ResourceDoesNotExistException, \
-    CannotDeleteResourceException
+    CannotDeleteResourceException, wait_for_compute_environment
 from collections import namedtuple
 from math import ceil, log2
 
@@ -48,7 +49,7 @@ class Vpc(NamedObject):
             self._instance_tenancy = resource.instance_tenancy
             self._subnet_ids = resource.subnet_ids
 
-            config.add_resource('vpc', self.vpc_id, self.ipv4_cidr)
+            config.add_resource('vpc', self.vpc_id, self.name)
         else:
             if vpc_id:
                 raise ResourceDoesNotExistException(
@@ -555,8 +556,53 @@ class SecurityGroup(NamedObject):
         -------
         None
         """
+        # Get dependent EC2 instances
+        response = EC2.describe_instances(Filters=[{
+            'Name': 'vpc-id',
+            'Values': [self.vpc_id]
+        }])
+
+        def has_security_group(instance, sg_id):
+            return sg_id in [d['GroupId'] for d in instance['SecurityGroups']]
+
+        deps = []
+        for r in response.get('Reservations'):
+            deps = deps + [i['InstanceId'] for i in r['Instances']
+                           if has_security_group(i, self.security_group_id)]
+
+        # Delete the dependent instances
+        if deps:
+            EC2.terminate_instances(InstanceIds=deps)
+
+        # Get dependent compute environments
+        response = BATCH.describe_compute_environments()
+        ce_names = [
+            ce['computeEnvironmentName'] for ce
+            in response.get('computeEnvironments')
+            if self.security_group_id
+               in ce['computeResources']['securityGroupIds']
+        ]
+        ce_arns = [
+            ce['computeEnvironmentArn'] for ce
+            in response.get('computeEnvironments')
+            if self.security_group_id
+               in ce['computeResources']['securityGroupIds']
+        ]
+
+        # Wait for them to be updated / deleted
+        for name, arn in zip(ce_names, ce_arns):
+            wait_for_compute_environment(arn=arn, name=name)
+
         # Delete the security group
-        EC2.delete_security_group(GroupId=self.security_group_id)
+        try:
+            EC2.delete_security_group(GroupId=self.security_group_id)
+        except EC2.exceptions.ClientError as e:
+            error_code = e.response['Error']['Code']
+            if error_code == 'DependencyViolation':
+                time.sleep(60)
+                EC2.delete_security_group(GroupId=self.security_group_id)
+            else:
+                raise e
 
         # Remove this VPC from the list of VPCs in the config file
         config.remove_resource('security-groups', self.security_group_id)
