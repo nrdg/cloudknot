@@ -772,6 +772,19 @@ class ComputeEnvironment(ObjectWithArn):
             state='DISABLED'
         )
 
+        # Wait for any associated job queues to finish updating
+        response = BATCH.describe_job_queues()
+        associated_queues = list(filter(
+            lambda q: self.arn in [
+                ce['computeEnvironment'] for ce
+                in q['computeEnvironmentOrder']
+            ],
+            response.get('jobQueues')
+        ))
+
+        for queue in associated_queues:
+            wait_for_job_queue(name=queue['jobQueueName'])
+
         # Then delete the compute environment
         wait_for_compute_environment(arn=self.arn, name=self.name)
         try:
@@ -788,16 +801,6 @@ class ComputeEnvironment(ObjectWithArn):
             error_message = e.response['Error']['Message']
             if error_message == 'Cannot delete, found existing ' \
                                 'JobQueue relationship':
-                response = BATCH.describe_job_queues()
-
-                associated_queues = list(filter(
-                    lambda q: self.arn in [
-                        ce['computeEnvironment'] for ce
-                        in q['computeEnvironmentOrder']
-                    ],
-                    response.get('jobQueues')
-                ))
-
                 raise CannotDeleteResourceException(
                     'Could not delete this compute environment because it has '
                     'job queue(s) associated with it. If you want to delete '
