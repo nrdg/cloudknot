@@ -5,8 +5,7 @@ import logging
 import operator
 import sys
 import time
-
-from ..config import get_default_region
+from cloudknot.config import get_default_region
 
 __all__ = ["ResourceDoesNotExistException", "ResourceExistsException",
            "CannotDeleteResourceException",

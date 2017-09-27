@@ -1,9 +1,8 @@
 from __future__ import absolute_import, division, print_function
 
-import os
-import configparser
-
 import cloudknot.aws
+import configparser
+import os
 
 CONFIG = configparser.ConfigParser()
 
@@ -34,9 +33,14 @@ def get_default_region():
         if os.path.isfile(aws_config_file):
             aws_config = configparser.ConfigParser()
             aws_config.read(aws_config_file)
-            return aws_config.get(
-                'default', 'region', fallback=fallback_region
-            )
+            try:
+                return aws_config.get(
+                    'default', 'region', fallback=fallback_region
+                )
+            except TypeError:
+                # python 2.7 compatibility
+                region = aws_config.get('default', 'region')
+                return region if region else fallback_region
         else:
             return fallback_region
 

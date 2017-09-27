@@ -23,13 +23,12 @@ The tests for each resource all follow the same pattern:
 """
 from __future__ import absolute_import, division, print_function
 
+import boto3
+import cloudknot as ck
 import configparser
 import json
 import pytest
 import uuid
-
-import boto3
-import cloudknot as ck
 
 UNIT_TEST_PREFIX = 'cloudknot-unit-test'
 
