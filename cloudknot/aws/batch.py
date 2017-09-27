@@ -1,3 +1,5 @@
+from __future__ import absolute_import, division, print_function
+
 import logging
 import operator
 import time
@@ -788,7 +790,7 @@ class ComputeEnvironment(ObjectWithArn):
 
         # Then delete the compute environment
         attempts = 0
-        max_attempts = 2
+        max_attempts = 3
         done = False
         while attempts < max_attempts and not done:
             try:
