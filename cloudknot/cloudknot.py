@@ -375,11 +375,11 @@ class Pars(object):
 
     def clobber(self):
         # Delete all associated AWS resources
-        self._batch_service_role.clobber()
-        self._ecs_instance_role.clobber()
-        self._spot_fleet_role.clobber()
         self._security_group.clobber()
         self._vpc.clobber()
+        self._spot_fleet_role.clobber()
+        self._ecs_instance_role.clobber()
+        self._batch_service_role.clobber()
 
         # Remove this section from the config file
         CONFIG.read(config.get_config_file())
