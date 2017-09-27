@@ -8,8 +8,10 @@ import time
 
 from ..config import get_default_region
 
-__all__ = ["NamedObject", "ObjectWithArn",
-           "ObjectWithUsernameAndMemory", "IAM", "EC2", "ECR", "BATCH",
+__all__ = ["ResourceDoesNotExistException", "ResourceExistsException",
+           "CannotDeleteResourceException",
+           "NamedObject", "ObjectWithArn", "ObjectWithUsernameAndMemory",
+           "IAM", "EC2", "ECR", "BATCH",
            "wait_for_compute_environment", "wait_for_job_queue"]
 
 IAM = boto3.client('iam', region_name=get_default_region())
