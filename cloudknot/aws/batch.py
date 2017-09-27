@@ -1,5 +1,6 @@
 import logging
 import operator
+import time
 
 from .. import config
 from .base_classes import NamedObject, ObjectWithArn, \
@@ -786,31 +787,42 @@ class ComputeEnvironment(ObjectWithArn):
             wait_for_job_queue(name=queue['jobQueueName'])
 
         # Then delete the compute environment
-        wait_for_compute_environment(arn=self.arn, name=self.name)
-        try:
-            BATCH.delete_compute_environment(computeEnvironment=self.arn)
+        attempts = 0
+        max_attempts = 2
+        done = False
+        while attempts < max_attempts and not done:
+            try:
+                wait_for_compute_environment(arn=self.arn, name=self.name)
+                BATCH.delete_compute_environment(computeEnvironment=self.arn)
 
-            logging.info('Deleted compute environment {name:s}'.format(
-                name=self.name
-            ))
+                logging.info('Deleted compute environment {name:s}'.format(
+                    name=self.name
+                ))
 
-            # Remove this compute env from the list of compute envs
-            # in config file
-            config.remove_resource('compute-environments', self.name)
-        except BATCH.exceptions.ClientException as e:
-            error_message = e.response['Error']['Message']
-            if error_message == 'Cannot delete, found existing ' \
-                                'JobQueue relationship':
-                raise CannotDeleteResourceException(
-                    'Could not delete this compute environment because it has '
-                    'job queue(s) associated with it. If you want to delete '
-                    'this compute environment, first delete the job queues '
-                    'with the following ARNS: '
-                    '{queues:s}'.format(queues=str(associated_queues)),
-                    resource_id=associated_queues
-                )
-            else:  # pragma: nocover
-                raise e
+                # Remove this compute env from the list of compute envs
+                # in config file
+                config.remove_resource('compute-environments', self.name)
+                done = True
+            except BATCH.exceptions.ClientException as e:
+                error_message = e.response['Error']['Message']
+                if error_message == 'Cannot delete, found existing ' \
+                                    'JobQueue relationship':
+                    attempts += 1
+                    if attempts >= max_attempts:
+                        raise CannotDeleteResourceException(
+                            'Could not delete this compute environment '
+                            'because it has job queue(s) associated with it. '
+                            'If you want to delete this compute environment, '
+                            'first delete the job queues with the following '
+                            'ARNS: {queues:s}'.format(
+                                queues=str(associated_queues)
+                            ),
+                            resource_id=associated_queues
+                        )
+                    else:
+                        time.sleep(60)
+                else:
+                    raise e
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
