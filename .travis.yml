@@ -16,7 +16,6 @@ env:
 python:
   - '2.7'
   - '3.6'
-  - '3.7'
 
 install:
 - travis_retry pip install $PIP_DEPS
