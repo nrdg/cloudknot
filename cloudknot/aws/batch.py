@@ -1,16 +1,19 @@
+from __future__ import absolute_import, division, print_function
+
+import cloudknot.config
 import logging
 import operator
+import time
+from collections import namedtuple
 
-from .. import config
 from .base_classes import NamedObject, ObjectWithArn, \
     ObjectWithUsernameAndMemory, BATCH, \
     ResourceExistsException, ResourceDoesNotExistException, \
     CannotDeleteResourceException, wait_for_compute_environment, \
     wait_for_job_queue
-from .iam import IamRole
 from .ec2 import Vpc, SecurityGroup
 from .ecr import DockerImage
-from collections import namedtuple
+from .iam import IamRole
 
 __all__ = ["JobDefinition", "JobQueue",
            "ComputeEnvironment", "BatchJob"]
@@ -93,7 +96,9 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             self._vcpus = resource.vcpus
             self._retries = resource.retries
             self._arn = resource.arn
-            config.add_resource('job-definitions', self.name, self.arn)
+            cloudknot.config.add_resource(
+                'job-definitions', self.name, self.arn
+            )
         else:
             # If user supplied only a name or only an arn, expecting to
             # retrieve info on pre-existing job definition, throw error
@@ -238,7 +243,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         arn = response['jobDefinitionArn']
 
         # Add this job def to the list of job definitions in the config file
-        config.add_resource('job-definitions', self.name, arn)
+        cloudknot.config.add_resource('job-definitions', self.name, arn)
 
         return arn
 
@@ -256,7 +261,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         ))
 
         # Remove this job def from the list of job defs in the config file
-        config.remove_resource('job-definitions', self.name)
+        cloudknot.config.remove_resource('job-definitions', self.name)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -407,7 +412,9 @@ class ComputeEnvironment(ObjectWithArn):
             self._tags = resource.tags
             self._bid_percentage = resource.bid_percentage
             self._arn = resource.arn
-            config.add_resource('compute-environments', self.name, self.arn)
+            cloudknot.config.add_resource(
+                'compute-environments', self.name, self.arn
+            )
         else:
             # If user supplied only a name or only an arn, expecting to
             # retrieve info on pre-existing job queue, throw error
@@ -754,7 +761,7 @@ class ComputeEnvironment(ObjectWithArn):
         arn = response['computeEnvironmentArn']
 
         # Add this compute env to the list of compute envs in the config file
-        config.add_resource('compute-environments', self.name, arn)
+        cloudknot.config.add_resource('compute-environments', self.name, arn)
 
         return arn
 
@@ -772,42 +779,58 @@ class ComputeEnvironment(ObjectWithArn):
             state='DISABLED'
         )
 
+        # Wait for any associated job queues to finish updating
+        response = BATCH.describe_job_queues()
+        associated_queues = list(filter(
+            lambda q: self.arn in [
+                ce['computeEnvironment'] for ce
+                in q['computeEnvironmentOrder']
+            ],
+            response.get('jobQueues')
+        ))
+
+        for queue in associated_queues:
+            wait_for_job_queue(name=queue['jobQueueName'])
+
         # Then delete the compute environment
-        wait_for_compute_environment(arn=self.arn, name=self.name)
-        try:
-            BATCH.delete_compute_environment(computeEnvironment=self.arn)
+        attempts = 0
+        max_attempts = 3
+        done = False
+        while attempts < max_attempts and not done:
+            try:
+                wait_for_compute_environment(arn=self.arn, name=self.name)
+                BATCH.delete_compute_environment(computeEnvironment=self.arn)
 
-            logging.info('Deleted compute environment {name:s}'.format(
-                name=self.name
-            ))
-
-            # Remove this compute env from the list of compute envs
-            # in config file
-            config.remove_resource('compute-environments', self.name)
-        except BATCH.exceptions.ClientException as e:
-            error_message = e.response['Error']['Message']
-            if error_message == 'Cannot delete, found existing ' \
-                                'JobQueue relationship':
-                response = BATCH.describe_job_queues()
-
-                associated_queues = list(filter(
-                    lambda q: self.arn in [
-                        ce['computeEnvironment'] for ce
-                        in q['computeEnvironmentOrder']
-                    ],
-                    response.get('jobQueues')
+                logging.info('Deleted compute environment {name:s}'.format(
+                    name=self.name
                 ))
 
-                raise CannotDeleteResourceException(
-                    'Could not delete this compute environment because it has '
-                    'job queue(s) associated with it. If you want to delete '
-                    'this compute environment, first delete the job queues '
-                    'with the following ARNS: '
-                    '{queues:s}'.format(queues=str(associated_queues)),
-                    resource_id=associated_queues
+                # Remove this compute env from the list of compute envs
+                # in config file
+                cloudknot.config.remove_resource(
+                    'compute-environments', self.name
                 )
-            else:  # pragma: nocover
-                raise e
+                done = True
+            except BATCH.exceptions.ClientException as e:
+                error_message = e.response['Error']['Message']
+                if error_message == 'Cannot delete, found existing ' \
+                                    'JobQueue relationship':
+                    attempts += 1
+                    if attempts >= max_attempts:
+                        raise CannotDeleteResourceException(
+                            'Could not delete this compute environment '
+                            'because it has job queue(s) associated with it. '
+                            'If you want to delete this compute environment, '
+                            'first delete the job queues with the following '
+                            'ARNS: {queues:s}'.format(
+                                queues=str(associated_queues)
+                            ),
+                            resource_id=associated_queues
+                        )
+                    else:
+                        time.sleep(60)
+                else:
+                    raise e
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -871,7 +894,7 @@ class JobQueue(ObjectWithArn):
             self._compute_environment_arns = resource.compute_environment_arns
             self._priority = resource.priority
             self._arn = resource.arn
-            config.add_resource('job-queues', self.name, self.arn)
+            cloudknot.config.add_resource('job-queues', self.name, self.arn)
         else:
             # If user supplied only a name or only an arn, expecting to
             # retrieve info on pre-existing job queue, throw error
@@ -1001,7 +1024,7 @@ class JobQueue(ObjectWithArn):
         logging.info('Created job queue {name:s}'.format(name=self.name))
 
         # Add this job queue to the list of job queues in the config file
-        config.add_resource('job-queues', self.name, arn)
+        cloudknot.config.add_resource('job-queues', self.name, arn)
 
         return arn
 
@@ -1054,7 +1077,7 @@ class JobQueue(ObjectWithArn):
         logging.info('Deleted job queue {name:s}'.format(name=self.name))
 
         # Remove this job queue from the list of job queues in config file
-        config.remove_resource('job-queues', self.name)
+        cloudknot.config.remove_resource('job-queues', self.name)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -1119,7 +1142,7 @@ class BatchJob(NamedObject):
             self._commands = job.commands
             self._environment_variables = job.environment_variables
             self._job_id = job.job_id
-            config.add_resource('jobs', self.job_id, self.name)
+            cloudknot.config.add_resource('jobs', self.job_id, self.name)
         else:
             super(BatchJob, self).__init__(name=name)
 
@@ -1238,7 +1261,7 @@ class BatchJob(NamedObject):
         job_id = response['jobId']
 
         # Add this job to the list of jobs in the config file
-        config.add_resource('jobs', job_id, self.name)
+        cloudknot.config.add_resource('jobs', job_id, self.name)
 
         return job_id
 

@@ -1,11 +1,13 @@
+from __future__ import absolute_import, division, print_function
+
+import cloudknot.config
 import json
 import logging
 import operator
+from collections import namedtuple
 
-from .. import config
 from .base_classes import ObjectWithArn, IAM, \
     ResourceExistsException, ResourceDoesNotExistException
-from collections import namedtuple
 
 __all__ = ["IamRole"]
 
@@ -61,7 +63,7 @@ class IamRole(ObjectWithArn):
             self._service = rpd_statement['Principal']['Service']
             self._policies = role.policies
             self._arn = role.arn
-            config.add_resource('roles', self.name, self.arn)
+            cloudknot.config.add_resource('roles', self.name, self.arn)
         else:
             if not any([description, service, policies]):
                 raise ResourceDoesNotExistException(
@@ -268,7 +270,7 @@ class IamRole(ObjectWithArn):
             ))
 
         # Add this role to the list of roles in the config file
-        config.add_resource('roles', self.name, role_arn)
+        cloudknot.config.add_resource('roles', self.name, role_arn)
 
         return role_arn
 
@@ -337,4 +339,4 @@ class IamRole(ObjectWithArn):
         logging.info('Deleted role {name:s}'.format(name=self.name))
 
         # Remove this role from the list of roles in the config file
-        config.remove_resource('roles', self.name)
+        cloudknot.config.remove_resource('roles', self.name)

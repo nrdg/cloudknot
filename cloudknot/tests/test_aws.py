@@ -23,15 +23,15 @@ The tests for each resource all follow the same pattern:
 """
 from __future__ import absolute_import, division, print_function
 
+import boto3
+import cloudknot as ck
 import configparser
 import json
 import pytest
 import uuid
 
-import boto3
-import cloudknot as ck
-
 UNIT_TEST_PREFIX = 'cloudknot-unit-test'
+
 
 @pytest.fixture(scope='module')
 def pars():
@@ -117,7 +117,7 @@ def test_ObjectWithUsernameAndMemory():
 
 
 def test_IamRole():
-    iam = boto3.client('iam')
+    iam = boto3.client('iam', region_name=ck.config.get_default_region())
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
 
@@ -317,7 +317,7 @@ def test_IamRole():
 
 
 def test_Vpc():
-    ec2 = boto3.client('ec2')
+    ec2 = boto3.client('ec2', region_name=ck.config.get_default_region())
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
 
@@ -553,7 +553,7 @@ def test_Vpc():
 
 
 def test_SecurityGroup():
-    ec2 = boto3.client('ec2')
+    ec2 = boto3.client('ec2', region_name=ck.config.get_default_region())
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
 
@@ -756,7 +756,7 @@ def test_SecurityGroup():
 
 
 def test_JobDefinition(pars):
-    batch = boto3.client('batch')
+    batch = boto3.client('batch', region_name=ck.config.get_default_region())
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
 
@@ -986,7 +986,7 @@ def test_JobDefinition(pars):
 
 
 def test_ComputeEnvironment(pars):
-    batch = boto3.client('batch')
+    batch = boto3.client('batch', region_name=ck.config.get_default_region())
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
 
@@ -1481,7 +1481,7 @@ def test_ComputeEnvironment(pars):
 
 
 def test_JobQueue(pars):
-    batch = boto3.client('batch')
+    batch = boto3.client('batch', region_name=ck.config.get_default_region())
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
 
@@ -1593,7 +1593,9 @@ def test_JobQueue(pars):
         priorities = [4, None]
 
         for (n, c_env, p) in zip(names, compute_environments, priorities):
-            jq = ck.aws.JobQueue(name=n, compute_environments=c_env, priority=p)
+            jq = ck.aws.JobQueue(
+                name=n, compute_environments=c_env, priority=p
+            )
 
             # Use boto3 to confirm their existence and properties
             assert not jq.pre_existing
@@ -1807,7 +1809,7 @@ def test_JobQueue(pars):
         ))
 
         for jq in requires_deletion:
-            wait_for_job_queue(name=jq['name'], max_wait_time=180)
+            ck.aws.wait_for_job_queue(name=jq['name'], max_wait_time=180)
 
             # Finally, delete the job queue
             batch.delete_job_queue(jobQueue=jq['arn'])

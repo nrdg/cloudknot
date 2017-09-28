@@ -1,16 +1,15 @@
 from __future__ import absolute_import, division, print_function
 
-import os
+import cloudknot.aws
 import configparser
-
-from . import aws
+import os
 
 CONFIG = configparser.ConfigParser()
 
 
 def get_config_file():
     try:
-        env_file = os.environ['CLOUDKNOT_config_FILE']
+        env_file = os.environ['CLOUDKNOT_CONFIG_FILE']
         config_file = os.path.abspath(env_file)
     except KeyError:
         home = os.path.expanduser('~')
@@ -22,6 +21,28 @@ def get_config_file():
             f.write('# cloudknot configuration file')
 
     return config_file
+
+
+def get_default_region():
+    try:
+        return os.environ['AWS_DEFAULT_REGION']
+    except KeyError:
+        fallback_region = 'us-east-1'
+        home = os.path.expanduser('~')
+        aws_config_file = os.path.join(home, '.aws', 'config')
+        if os.path.isfile(aws_config_file):
+            aws_config = configparser.ConfigParser()
+            aws_config.read(aws_config_file)
+            try:
+                return aws_config.get(
+                    'default', 'region', fallback=fallback_region
+                )
+            except TypeError:
+                # python 2.7 compatibility
+                region = aws_config.get('default', 'region')
+                return region if region else fallback_region
+        else:
+            return fallback_region
 
 
 def add_resource(section, option, value):
@@ -69,47 +90,47 @@ def prune():
 
     for role_name in CONFIG.options('roles'):
         try:
-            aws.iam.IamRole(name=role_name)
-        except aws.ResourceDoesNotExistException:
+            cloudknot.aws.iam.IamRole(name=role_name)
+        except cloudknot.aws.ResourceDoesNotExistException:
             CONFIG.remove_option('roles', role_name)
 
     for vpc_id in CONFIG.options('vpc'):
         try:
-            aws.ec2.Vpc(vpc_id=vpc_id)
-        except aws.ResourceDoesNotExistException:
+            cloudknot.aws.ec2.Vpc(vpc_id=vpc_id)
+        except cloudknot.aws.ResourceDoesNotExistException:
             CONFIG.remove_option('vpc', vpc_id)
 
     for sg_id in CONFIG.options('security-groups'):
         try:
-            aws.ec2.SecurityGroup(security_group_id=sg_id)
-        except aws.ResourceDoesNotExistException:
+            cloudknot.aws.ec2.SecurityGroup(security_group_id=sg_id)
+        except cloudknot.aws.ResourceDoesNotExistException:
             CONFIG.remove_option('security-groups', sg_id)
 
     # Prune docker containers
-    docker_containers = CONFIG.options('docker-containers')
+    # docker_containers = CONFIG.options('docker-containers')
 
     for job_def_name in CONFIG.options('job-definitions'):
         try:
-            aws.iam.IamRole(name=job_def_name)
-        except aws.ResourceDoesNotExistException:
+            cloudknot.aws.iam.IamRole(name=job_def_name)
+        except cloudknot.aws.ResourceDoesNotExistException:
             CONFIG.remove_option('job-definitions', job_def_name)
 
     for ce_name in CONFIG.options('compute-environments'):
         try:
-            aws.iam.IamRole(name=ce_name)
-        except aws.ResourceDoesNotExistException:
+            cloudknot.aws.iam.IamRole(name=ce_name)
+        except cloudknot.aws.ResourceDoesNotExistException:
             CONFIG.remove_option('compute-environments', ce_name)
 
     for queue_name in CONFIG.options('job-queues'):
         try:
-            aws.iam.IamRole(name=queue_name)
-        except aws.ResourceDoesNotExistException:
+            cloudknot.aws.iam.IamRole(name=queue_name)
+        except cloudknot.aws.ResourceDoesNotExistException:
             CONFIG.remove_option('job-queues', queue_name)
 
     for job_id in CONFIG.options('jobs'):
         try:
-            aws.iam.IamRole(job_id=job_id)
-        except aws.ResourceDoesNotExistException:
+            cloudknot.aws.iam.IamRole(job_id=job_id)
+        except cloudknot.aws.ResourceDoesNotExistException:
             CONFIG.remove_option('jobs', job_id)
 
     # Prune pars

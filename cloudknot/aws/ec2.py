@@ -1,14 +1,23 @@
+from __future__ import absolute_import, division, print_function
+
+import cloudknot.config
 import ipaddress
 import logging
 import operator
+import six
 import time
+from collections import namedtuple
+from math import ceil
 
-from .. import config
 from .base_classes import EC2, BATCH, NamedObject, \
     ResourceExistsException, ResourceDoesNotExistException, \
     CannotDeleteResourceException, wait_for_compute_environment
-from collections import namedtuple
-from math import ceil, log2
+
+try:
+    from math import log2
+except ImportError:
+    # python 2.7 compatibility
+    from math import log
 
 __all__ = ["Vpc", "SecurityGroup"]
 
@@ -49,7 +58,7 @@ class Vpc(NamedObject):
             self._instance_tenancy = resource.instance_tenancy
             self._subnet_ids = resource.subnet_ids
 
-            config.add_resource('vpc', self.vpc_id, self.name)
+            cloudknot.config.add_resource('vpc', self.vpc_id, self.name)
         else:
             if vpc_id:
                 raise ResourceDoesNotExistException(
@@ -62,14 +71,16 @@ class Vpc(NamedObject):
             # Check that ipv4 is a valid network range or set the default value
             if ipv4_cidr:
                 try:
-                    self._ipv4_cidr = str(ipaddress.IPv4Network(ipv4_cidr))
+                    self._ipv4_cidr = str(ipaddress.IPv4Network(
+                        six.text_type(ipv4_cidr)
+                    ))
                 except (ipaddress.AddressValueError, ValueError):
                     raise ValueError(
                         'If provided, ipv4_cidr must be a valid IPv4 network '
                         'range.'
                     )
             else:
-                self._ipv4_cidr = str(ipaddress.IPv4Network('10.0.0.0/16'))
+                self._ipv4_cidr = str(ipaddress.IPv4Network(u'10.0.0.0/16'))
 
             if instance_tenancy:
                 if instance_tenancy in ('default', 'dedicated'):
@@ -235,7 +246,7 @@ class Vpc(NamedObject):
         )
 
         # Add this VPC to the list of VPCs in the config file
-        config.add_resource('vpc', vpc_id, self.name)
+        cloudknot.config.add_resource('vpc', vpc_id, self.name)
 
         return vpc_id
 
@@ -244,15 +255,21 @@ class Vpc(NamedObject):
         response = EC2.describe_availability_zones()
         zones = response.get('AvailabilityZones')
 
-        cidr = ipaddress.IPv4Network(self.ipv4_cidr)
+        cidr = ipaddress.IPv4Network(six.text_type(self.ipv4_cidr))
         if cidr.num_addresses < len(zones):  # pragma: nocover
             raise ValueError('IPv4 CIDR block does not have enough addresses '
                              'for each availability zone')
 
         # Get list of subnets, ensuring that there are at least one subnet
         # per region
+        try:
+            prefixlen_diff = ceil(log2(len(zones)))
+        except NameError:
+            # python 2.7 compatibility
+            prefixlen_diff = int(ceil(log(len(zones), 2)))
+
         subnet_ipv4_cidrs = list(cidr.subnets(
-            prefixlen_diff=ceil(log2(len(zones)))
+            prefixlen_diff=prefixlen_diff
         ))[:len(zones)]
 
         subnet_ids = []
@@ -305,7 +322,7 @@ class Vpc(NamedObject):
             logging.info('Deleted VPC {name:s}'.format(name=self.name))
 
             # Remove this VPC from the list of VPCs in the config file
-            config.remove_resource('vpc', self.vpc_id)
+            cloudknot.config.remove_resource('vpc', self.vpc_id)
         except EC2.exceptions.ClientError as e:
             error_code = e.response['Error']['Code']
             if error_code == 'DependencyViolation':
@@ -393,7 +410,7 @@ class SecurityGroup(NamedObject):
                     resource_id=self.security_group_id
                 )
 
-            config.add_resource(
+            cloudknot.config.add_resource(
                 'security-groups', self.security_group_id, self.name
             )
         else:
@@ -545,7 +562,7 @@ class SecurityGroup(NamedObject):
 
         # Add this security group to the list of security groups in the
         # config file
-        config.add_resource('security-groups', group_id, self.name)
+        cloudknot.config.add_resource('security-groups', group_id, self.name)
 
         return group_id
 
@@ -580,13 +597,13 @@ class SecurityGroup(NamedObject):
             ce['computeEnvironmentName'] for ce
             in response.get('computeEnvironments')
             if self.security_group_id
-               in ce['computeResources']['securityGroupIds']
+            in ce['computeResources']['securityGroupIds']
         ]
         ce_arns = [
             ce['computeEnvironmentArn'] for ce
             in response.get('computeEnvironments')
             if self.security_group_id
-               in ce['computeResources']['securityGroupIds']
+            in ce['computeResources']['securityGroupIds']
         ]
 
         # Wait for them to be updated / deleted
@@ -605,4 +622,6 @@ class SecurityGroup(NamedObject):
                 raise e
 
         # Remove this VPC from the list of VPCs in the config file
-        config.remove_resource('security-groups', self.security_group_id)
+        cloudknot.config.remove_resource(
+            'security-groups', self.security_group_id
+        )
