@@ -5,7 +5,7 @@ import inspect
 import logging
 import operator
 import os
-import pipreqs
+from pipreqs import pipreqs
 import six
 import tempfile
 from collections import namedtuple
