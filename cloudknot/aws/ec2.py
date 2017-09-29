@@ -231,6 +231,8 @@ class Vpc(NamedObject):
         logging.info('Created VPC {vpcid:s}.'.format(vpcid=vpc_id))
 
         # Tag the VPC with name and owner
+        wait_for_vpc = EC2.get_waiter('vpc_available')
+        wait_for_vpc.wait(VpcIds=[vpc_id])
         EC2.create_tags(
             Resources=[vpc_id],
             Tags=[
@@ -286,20 +288,22 @@ class Vpc(NamedObject):
 
             logging.info('Created subnet {id:s}.'.format(id=subnet_id))
 
-            # Tag the subnet with name and owner
-            EC2.create_tags(
-                Resources=[subnet_id],
-                Tags=[
-                    {
-                        'Key': 'owner',
-                        'Value': 'cloudknot'
-                    },
-                    {
-                        'Key': 'vpc-name',
-                        'Value': self.name
-                    }
-                ]
-            )
+        # Tag all subnets with name and owner
+        wait_for_subnet = EC2.get_waiter('subnet_available')
+        wait_for_subnet.wait(SubnetIds=subnet_ids)
+        EC2.create_tags(
+            Resources=subnet_ids,
+            Tags=[
+                {
+                    'Key': 'owner',
+                    'Value': 'cloudknot'
+                },
+                {
+                    'Key': 'vpc-name',
+                    'Value': self.name
+                }
+            ]
+        )
 
         return subnet_ids
 
@@ -343,7 +347,7 @@ class Vpc(NamedObject):
                     resource_id=ids
                 )
             else:  # pragma: nocover
-                # I can't think of a test case to make this happen but one
+                # I can't think of a test case to make this happen
                 raise e
 
 
