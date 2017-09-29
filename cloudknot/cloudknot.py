@@ -185,7 +185,7 @@ class DockerReqs(object):
 
             f.write('# Install python dependencies\n')
             f.write('COPY requirements.txt /tmp/\n')
-            f.write('RUN pip install --requirements /tmp/requirements.txt\n\n')
+            f.write('RUN pip install -r /tmp/requirements.txt\n\n')
 
             f.write('# Create a default user. Available via runtime flag ')
             f.write('`--user {user:s}`.\n'.format(user=self.username))
