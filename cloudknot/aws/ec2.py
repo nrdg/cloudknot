@@ -288,7 +288,6 @@ class Vpc(NamedObject):
 
             logging.info('Created subnet {id:s}.'.format(id=subnet_id))
 
-
         # Tag all subnets with name and owner
         wait_for_subnet = EC2.get_waiter('subnet_available')
         wait_for_subnet.wait(SubnetIds=subnet_ids)
