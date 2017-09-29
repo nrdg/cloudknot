@@ -6,6 +6,10 @@ import os
 
 CONFIG = configparser.ConfigParser()
 
+__all__ = ["get_config_file", "get_default_region",
+           "add_resource", "remove_resource", "verify_sections",
+           "prune"]
+
 
 def get_config_file():
     try:
