@@ -1,11 +1,13 @@
 from __future__ import absolute_import, division, print_function
 
+import cloudknot.config
 import docker
 import logging
 import operator
 import os
 import shutil
 import subprocess
+from collections import namedtuple
 
 from .base_classes import NamedObject, ECR, get_default_region
 
@@ -60,7 +62,8 @@ class DockerImage(NamedObject):
             self._dockerfile = os.path.join(self.build_path, 'Dockerfile')
 
         if not requirements:
-            self._requirements = os.path.join(self.build_path, 'requirements.txt')
+            self._requirements = os.path.join(self.build_path,
+                                              'requirements.txt')
         elif not os.path.isfile(requirements):
             raise ValueError('requirements must be an existing regular file')
         else:
@@ -77,18 +80,29 @@ class DockerImage(NamedObject):
             raise ValueError('Any tag is allowed, except for "latest."')
 
         self._tags = tags
+        self._repo_uri = None
 
-        self._uri = None
+        # Build, tag, and push the docker image
         self._build()
-        self._uri = self._create_repo()
+        repo_info = self._create_repo()
+        self._repo_uri = repo_info.uri
+        self._repo_name = repo_info.name
+        self._repo_registry_id = repo_info.registry_id
         self._tag()
         self._push()
+
+        # Add to config file
+        cloudknot.config.add_resource(
+            'docker-images', self.name, self.repo_uri
+        )
 
     build_path = property(operator.attrgetter('_build_path'))
     dockerfile = property(operator.attrgetter('_dockerfile'))
     requirements = property(operator.attrgetter('_requirements'))
     tags = property(operator.attrgetter('_tags'))
-    uri = property(operator.attrgetter('_uri'))
+    repo_name = property(operator.attrgetter('_repo_name'))
+    repo_uri = property(operator.attrgetter('_repo_uri'))
+    repo_registry_id = property(operator.attrgetter('_repo_registry_id'))
 
     def _build(self):
         """
@@ -140,7 +154,9 @@ class DockerImage(NamedObject):
                 repositoryNames=[self.name]
             )
 
+            repo_name = response['repositories'][0]['repositoryName']
             repo_uri = response['repositories'][0]['repositoryUri']
+            repo_registry_id = response['repositories'][0]['registryId']
 
             logging.info('Repository {name:s} already exists at '
                          '{uri:s}'.format(name=self.name, uri=repo_uri))
@@ -151,13 +167,18 @@ class DockerImage(NamedObject):
                 repositoryName=self.name
             )
 
+            repo_name = response['repository']['repositoryName']
             repo_uri = response['repository']['repositoryUri']
+            repo_registry_id = response['repository']['registryId']
 
             logging.info('Created repository {name:s} at {uri:s}'.format(
                 name=self.name, uri=repo_uri
             ))
 
-        return repo_uri
+        RepoInfo = namedtuple('RepoInfo', ['name', 'uri', 'registry_id'])
+        return RepoInfo(
+            name=repo_name, uri=repo_uri, registry_id=repo_registry_id
+        )
 
     def _tag(self):
         """
@@ -170,7 +191,7 @@ class DockerImage(NamedObject):
             ))
 
             c.tag(image=self.name + ':' + tag,
-                  repository=self.uri, tag=tag)
+                  repository=self.repo_uri, tag=tag)
 
     def _push(self):
         """
@@ -182,16 +203,30 @@ class DockerImage(NamedObject):
                 name=self.name, tag=tag
             ))
 
-            push_result = c.push(repository=self.uri, tag=tag, stream=True)
+            result = c.push(repository=self.repo_uri, tag=tag, stream=True)
 
-            for line in push_result:
+            for line in result:
                 logging.debug(line)
 
     def clobber(self):
-        """ Delete this docker image
+        """ Delete this docker image and remove from the remote repository
 
         Returns
         -------
         None
         """
-        pass
+        # Remove the local docker image
+        c = docker.from_env()
+        for tag in self.tags:
+            c.remove_image(self.name + ':' + tag, force=True)
+            c.remove_image(self.repo_uri + ':' + tag, force=True)
+
+        # Remove the remote docker image
+        ECR.delete_repository(
+            registryId=self.repo_registry_id,
+            repositoryName=self.repo_name,
+            force=True
+        )
+
+        # Remove from the config file
+        cloudknot.config.remove_resource('docker-images', self.name)
