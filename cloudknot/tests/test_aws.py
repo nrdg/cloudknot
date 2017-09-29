@@ -1494,6 +1494,14 @@ def test_JobQueue(pars):
             spot_fleet_role=pars.spot_fleet_role,
         )
 
+        ce2 = ck.aws.ComputeEnvironment(
+            name=get_unit_test_name(),
+            batch_service_role=pars.batch_service_role,
+            instance_role=pars.ecs_instance_role, vpc=pars.vpc,
+            security_group=pars.security_group,
+            spot_fleet_role=pars.spot_fleet_role,
+        )
+
         ck.aws.wait_for_compute_environment(
             arn=ce.arn, name=ce.name, log=False
         )
@@ -1582,13 +1590,6 @@ def test_JobQueue(pars):
 
         # Create four job queues with different parameters
         names = [get_unit_test_name() for i in range(2)]
-        ce2 = ck.aws.ComputeEnvironment(
-            name=get_unit_test_name(),
-            batch_service_role=pars.batch_service_role,
-            instance_role=pars.ecs_instance_role, vpc=pars.vpc,
-            security_group=pars.security_group,
-            spot_fleet_role=pars.spot_fleet_role,
-        )
         compute_environments = [ce, (ce, ce2)]
         priorities = [4, None]
 
@@ -1636,6 +1637,9 @@ def test_JobQueue(pars):
             config.read(config_file)
             assert jq.name not in config.options('job-queues')
 
+        ce.clobber()
+        ce2.clobber()
+
         # Test for correct handling of incorrect input
         # ValueError for neither arn or name
         with pytest.raises(ValueError) as e:
@@ -1662,9 +1666,6 @@ def test_JobQueue(pars):
                 name=get_unit_test_error_assertion_name(),
                 compute_environments=[42, -42]
             )
-
-        ce.clobber()
-        ce2.clobber()
     except Exception as e:  # pragma: nocover
         # Clean up job queues and compute environments from AWS
         # Find all unit testing compute environments
