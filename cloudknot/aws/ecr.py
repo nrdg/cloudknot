@@ -9,7 +9,8 @@ import shutil
 import subprocess
 from collections import namedtuple
 
-from .base_classes import NamedObject, ECR, get_default_region
+from .base_classes import NamedObject, ECR, get_default_region, \
+    ResourceDoesNotExistException
 
 __all__ = ["DockerImage"]
 
@@ -17,10 +18,15 @@ __all__ = ["DockerImage"]
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 class DockerImage(NamedObject):
     """Class for building, tagging, and pushing docker containers"""
-    def __init__(self, name, tags, build_path=None,
+    def __init__(self, name, tags=None, build_path=None,
                  dockerfile=None,
                  requirements=None):
         """ Initialize a Docker image object.
+
+        Use may provide only `name` input, indicating that they would
+        like to retrieve a pre-existing repo/image from AWS ECR. Or
+        they may provide a name, tags, and build_path to build a Docker
+        image locally, tag it, and push it to an AWS ECR repository.
 
         Parameters
         ----------
@@ -28,7 +34,7 @@ class DockerImage(NamedObject):
             Name of the image
 
         tags : list or tuple
-            tuple of strings of desired image tags
+            tuple of strings of desired image tags. May not contain 'latest'
 
         build_path : string
             Path to an existing directory in which to build docker image
@@ -42,60 +48,96 @@ class DockerImage(NamedObject):
             Path to an existing requirements.txt file to build dependencies
             Default: None (i.e. assumes no dependencies)
         """
-        prefix = 'cloudknot/'
-        if name[:len(prefix)] != prefix:
-            name = 'cloudknot/' + name
-        super(DockerImage, self).__init__(name=name)
+        if name and not any([tags, build_path]):
+            super(DockerImage, self).__init__(name=name)
 
-        if build_path:
-            if not os.path.isdir(build_path):
-                raise ValueError('build_path must be an existing directory')
-            self._build_path = os.path.abspath(build_path)
+            # Check for pre-existence based on vpc_id or name
+            resource = self._exists_already()
+            self._pre_existing = resource.exists
+
+            if not self.pre_existing:
+                raise ResourceDoesNotExistException(
+                    'The docker repo/image that you specified does not exist. '
+                    'Either supply the name of a pre-existing repo/image or '
+                    'input `tags` and `build_path` to build a docker image '
+                    'locally, tag it, and push it to an AWS ECR repository.',
+                    self.name
+                )
+
+            self._build_path = None
+            self._dockerfile = None
+            self._requirements = None
+            self._tags = resource.tags
+            self._repo_name = resource.repo_name
+            self._repo_uri = resource.repo_uri
+            self._repo_registry_id = resource.repo_registry_id
         else:
-            self._build_path = os.getcwd()
+            if not all([tags, build_path]):
+                raise ValueError('If building a new image, you must specify '
+                                 'both `tags` and `build_path`.')
 
-        if dockerfile:
-            if not os.path.isfile(dockerfile):
-                raise ValueError('dockerfile must be an existing regular file')
-            self._dockerfile = os.path.abspath(dockerfile)
-        else:
-            self._dockerfile = os.path.join(self.build_path, 'Dockerfile')
+            # If name does not have a 'cloudknot/' prefix, give it one
+            prefix = 'cloudknot/'
+            if name[:len(prefix)] != prefix:
+                name = 'cloudknot/' + name
+            super(DockerImage, self).__init__(name=name)
 
-        if not requirements:
-            self._requirements = os.path.join(self.build_path,
-                                              'requirements.txt')
-        elif not os.path.isfile(requirements):
-            raise ValueError('requirements must be an existing regular file')
-        else:
-            self._requirements = os.path.abspath(requirements)
+            self._pre_existing = False
 
-        if isinstance(tags, str):
-            tags = (tags,)
-        elif all(isinstance(x, str) for x in tags):
-            tags = tuple([t for t in tags])
-        else:
-            raise ValueError('tags must be a string or a sequence of strings.')
+            if build_path:
+                if not os.path.isdir(build_path):
+                    raise ValueError('build_path must be an existing '
+                                     'directory')
+                self._build_path = os.path.abspath(build_path)
+            else:
+                self._build_path = os.getcwd()
 
-        if 'latest' in tags:
-            raise ValueError('Any tag is allowed, except for "latest."')
+            if dockerfile:
+                if not os.path.isfile(dockerfile):
+                    raise ValueError('dockerfile must be an existing '
+                                     'regular file')
+                self._dockerfile = os.path.abspath(dockerfile)
+            else:
+                self._dockerfile = os.path.join(self.build_path, 'Dockerfile')
 
-        self._tags = tags
-        self._repo_uri = None
+            if not requirements:
+                self._requirements = os.path.join(self.build_path,
+                                                  'requirements.txt')
+            elif not os.path.isfile(requirements):
+                raise ValueError('requirements must be an existing '
+                                 'regular file')
+            else:
+                self._requirements = os.path.abspath(requirements)
 
-        # Build, tag, and push the docker image
-        self._build()
-        repo_info = self._create_repo()
-        self._repo_uri = repo_info.uri
-        self._repo_name = repo_info.name
-        self._repo_registry_id = repo_info.registry_id
-        self._tag()
-        self._push()
+            if isinstance(tags, str):
+                tags = [tags]
+            elif all(isinstance(x, str) for x in tags):
+                tags = [t for t in tags]
+            else:
+                raise ValueError('tags must be a string or a sequence '
+                                 'of strings.')
 
-        # Add to config file
-        cloudknot.config.add_resource(
-            'docker-images', self.name, self.repo_uri
-        )
+            if 'latest' in tags:
+                raise ValueError('Any tag is allowed, except for "latest."')
 
+            self._tags = tags
+            self._repo_uri = None
+
+            # Build, tag, and push the docker image
+            self._build()
+            repo_info = self._create_repo()
+            self._repo_uri = repo_info.uri
+            self._repo_name = repo_info.name
+            self._repo_registry_id = repo_info.registry_id
+            self._tag()
+            self._push()
+
+            # Add to config file
+            cloudknot.config.add_resource(
+                'docker-images', self.name, self.repo_uri
+            )
+
+    pre_existing = property(operator.attrgetter('_pre_existing'))
     build_path = property(operator.attrgetter('_build_path'))
     dockerfile = property(operator.attrgetter('_dockerfile'))
     requirements = property(operator.attrgetter('_requirements'))
@@ -103,6 +145,48 @@ class DockerImage(NamedObject):
     repo_name = property(operator.attrgetter('_repo_name'))
     repo_uri = property(operator.attrgetter('_repo_uri'))
     repo_registry_id = property(operator.attrgetter('_repo_registry_id'))
+
+    def _exists_already(self):
+        """ Check if an AWS ECR repo exists already
+
+        If repo exists, return namedtuple with repo info. Otherwise, set the
+        namedtuple's `exists` field to `False`. The remaining fields default
+        to `None`.
+
+        Returns
+        -------
+        namedtuple RoleExists
+            A namedtuple with fields ['exists', 'repo_name', 'repo_uri',
+            'repo_registry_id', 'tags']
+        """
+        # define a namedtuple for return value type
+        ResourceExists = namedtuple(
+            'ResourceExists',
+            ['exists', 'repo_name', 'repo_uri', 'repo_registry_id', 'tags']
+        )
+        # make all but the first value default to None
+        ResourceExists.__new__.__defaults__ = \
+            (None,) * (len(ResourceExists._fields) - 1)
+
+        try:
+            response = ECR.describe_repositories(repositoryNames=[self.name])
+            repo = response.get('repositories')[0]
+            repo_name = repo['repositoryName']
+            repo_uri = repo['repositoryUri']
+            registry_id = repo['registryId']
+
+            response = ECR.describe_images(
+                registryId=registry_id,
+                repositoryName=repo_name
+            )
+
+            tags = response.get('imageDetails')['imageTags']
+            return ResourceExists(
+                exists=True, repo_name=repo_name, repo_uri=repo_uri,
+                repo_registry_id=registry_id, tags=tags
+            )
+        except ECR.exceptions.RepositoryNotFoundException:
+            return ResourceExists(exists=False)
 
     def _build(self):
         """
