@@ -7,7 +7,7 @@ import os
 import shutil
 import subprocess
 
-from .base_classes import NamedObject, ECR
+from .base_classes import NamedObject, ECR, get_default_region
 
 __all__ = ["DockerImage"]
 
@@ -15,8 +15,8 @@ __all__ = ["DockerImage"]
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 class DockerImage(NamedObject):
     """Class for building, tagging, and pushing docker containers"""
-    def __init__(self, name, tags, build_path='.',
-                 dockerfile=os.path.join('.', 'Dockerfile'),
+    def __init__(self, name, tags, build_path=None,
+                 dockerfile=None,
                  requirements=None):
         """ Initialize a Docker image object.
 
@@ -40,18 +40,27 @@ class DockerImage(NamedObject):
             Path to an existing requirements.txt file to build dependencies
             Default: None (i.e. assumes no dependencies)
         """
+        prefix = 'cloudknot/'
+        if name[:len(prefix)] != prefix:
+            name = 'cloudknot/' + name
         super(DockerImage, self).__init__(name=name)
 
-        if not os.path.isdir(build_path):
-            raise ValueError('build_path must be an existing directory')
-        self._build_path = os.path.abspath(build_path)
+        if build_path:
+            if not os.path.isdir(build_path):
+                raise ValueError('build_path must be an existing directory')
+            self._build_path = os.path.abspath(build_path)
+        else:
+            self._build_path = os.getcwd()
 
-        if not os.path.isfile(dockerfile):
-            raise ValueError('dockerfile must be an existing regular file')
-        self._dockerfile = os.path.abspath(dockerfile)
+        if dockerfile:
+            if not os.path.isfile(dockerfile):
+                raise ValueError('dockerfile must be an existing regular file')
+            self._dockerfile = os.path.abspath(dockerfile)
+        else:
+            self._dockerfile = os.path.join(self.build_path, 'Dockerfile')
 
         if not requirements:
-            self._requirements = None
+            self._requirements = os.path.join(self.build_path, 'requirements.txt')
         elif not os.path.isfile(requirements):
             raise ValueError('requirements must be an existing regular file')
         else:
@@ -70,18 +79,23 @@ class DockerImage(NamedObject):
         self._tags = tags
 
         self._uri = None
+        self._build()
+        self._uri = self._create_repo()
+        self._tag()
+        self._push()
 
     build_path = property(operator.attrgetter('_build_path'))
     dockerfile = property(operator.attrgetter('_dockerfile'))
     requirements = property(operator.attrgetter('_requirements'))
     tags = property(operator.attrgetter('_tags'))
+    uri = property(operator.attrgetter('_uri'))
 
     def _build(self):
         """
         Build a DockerContainer image
         """
-        req_build_path = os.path.join(self.build_path + 'requirements.txt')
-        if self.requirements and not os.path.isfile(req_build_path):
+        req_build_path = os.path.join(self.build_path, 'requirements.txt')
+        if not os.path.isfile(req_build_path):
             shutil.copyfile(self.requirements, req_build_path)
             cleanup = True
         else:
@@ -103,11 +117,12 @@ class DockerImage(NamedObject):
         if cleanup:
             os.remove(req_build_path)
 
-    def _create_repo(self, repo_name):
+    def _create_repo(self):
         # Refresh the aws ecr login credentials
-        login_cmd = subprocess.check_output(['aws', 'ecr', 'get-login',
-                                             '--no-include-email', '--region',
-                                             'us-east-1'])
+        login_cmd = subprocess.check_output([
+            'aws', 'ecr', 'get-login', '--no-include-email',
+            '--region', get_default_region()
+        ])
         login_result = subprocess.call(
             login_cmd.decode('ASCII').rstrip('\n').split(' '))
 
@@ -122,56 +137,45 @@ class DockerImage(NamedObject):
         try:
             # First, check to see if it already exists
             response = ECR.describe_repositories(
-                repositoryNames=[repo_name]
+                repositoryNames=[self.name]
             )
 
             repo_uri = response['repositories'][0]['repositoryUri']
 
             logging.info('Repository {name:s} already exists at '
-                         '{uri:s}'.format(name=repo_name, uri=repo_uri))
+                         '{uri:s}'.format(name=self.name, uri=repo_uri))
 
         except ECR.exceptions.RepositoryNotFoundException:
             # If it doesn't exists already, then create it
             response = ECR.create_repository(
-                repositoryName=repo_name
+                repositoryName=self.name
             )
 
             repo_uri = response['repository']['repositoryUri']
 
             logging.info('Created repository {name:s} at {uri:s}'.format(
-                name=repo_name, uri=repo_uri
+                name=self.name, uri=repo_uri
             ))
 
-        self._uri = repo_uri
+        return repo_uri
 
-    @property
-    def uri(self):
-        return self._uri
-
-    def _tag(self, repo_name):
+    def _tag(self):
         """
         Tag a DockerContainer image
         """
-        self._create_repo(repo_name=repo_name)
         c = docker.from_env()
         for tag in self.tags:
             logging.info('Tagging image {name:s} with tag {tag:s}'.format(
                 name=self.name, tag=tag
             ))
 
-            c.tag(image=self.name + ':' + self.tag,
+            c.tag(image=self.name + ':' + tag,
                   repository=self.uri, tag=tag)
 
-    def _push(self, repo_name):
+    def _push(self):
         """
         Push a DockerContainer image to a repository
-
-        Parameters
-        ----------
-        repo_name : string
-            Repository name
         """
-        self._create_repo(repo_name=repo_name)
         c = docker.from_env()
         for tag in self.tags:
             logging.info('Pushing image {name:s} with tag {tag:s}'.format(
@@ -183,7 +187,7 @@ class DockerImage(NamedObject):
             for line in push_result:
                 logging.debug(line)
 
-    def remove_aws_resource(self):
+    def clobber(self):
         """ Delete this docker image
 
         Returns
