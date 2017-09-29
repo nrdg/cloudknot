@@ -48,6 +48,27 @@ def get_unit_test_error_assertion_name():
     return UNIT_TEST_PREFIX + '-assert-error-' + str(uuid.uuid4())
 
 
+def test_wait_for_vpc():
+    # Create a VPC to test the function
+    vpc = None
+    try:
+        vpc = ck.aws.Vpc(name=get_unit_test_name())
+
+        ck.aws.wait_for_vpc(
+            vpc_id=vpc.vpc_id, log=False
+        )
+
+        with pytest.raises(SystemExit):
+            ck.aws.wait_for_vpc(
+                vpc_id=vpc.vpc_id,
+                log=False, max_wait_time=0
+            )
+    finally:  # pragma: nocover
+        # Cleanup
+        if vpc:
+            vpc.clobber()
+
+
 def test_wait_for_compute_environment(pars):
     # Create a ComputeEnvironment to test the function
     ce = None
