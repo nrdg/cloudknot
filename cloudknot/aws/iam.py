@@ -251,15 +251,27 @@ class IamRole(ObjectWithArn):
             instance_profile_name = self.name + '-instance-profile'
 
             try:
+                # Create the instance profile
                 IAM.create_instance_profile(
                     InstanceProfileName=instance_profile_name
                 )
 
+                # Wait for it to show up
+                wait_for_instance_profile = IAM.get_waiter(
+                    'instance_profile_exists'
+                )
+
+                wait_for_instance_profile.wait(
+                    InstanceProfileName=instance_profile_name
+                )
+
+                # Add to role
                 IAM.add_role_to_instance_profile(
                     InstanceProfileName=instance_profile_name,
                     RoleName=self.name
                 )
             except IAM.exceptions.EntityAlreadyExistsException:
+                # Instance profile already exists, just add to role
                 IAM.add_role_to_instance_profile(
                     InstanceProfileName=instance_profile_name,
                     RoleName=self.name
