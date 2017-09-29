@@ -374,7 +374,7 @@ def test_Vpc():
         config.read(config_file)
         assert vpc_id in config.options('vpc')
 
-        # Clobber the role
+        # Clobber the VPC
         vpc.clobber()
 
         # Assert that it was removed from AWS
@@ -393,7 +393,7 @@ def test_Vpc():
         config.read(config_file)
         assert vpc_id not in config.options('vpc')
 
-        # Try to retrieve a security group that does not exist
+        # Try to retrieve a VPC that does not exist
         vpc_id = get_unit_test_name()
         with pytest.raises(ck.aws.ResourceDoesNotExistException) as e:
             ck.aws.Vpc(vpc_id=vpc_id)

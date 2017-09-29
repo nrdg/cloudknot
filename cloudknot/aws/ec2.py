@@ -11,7 +11,8 @@ from math import ceil
 
 from .base_classes import EC2, BATCH, NamedObject, \
     ResourceExistsException, ResourceDoesNotExistException, \
-    CannotDeleteResourceException, wait_for_compute_environment
+    CannotDeleteResourceException, wait_for_compute_environment, \
+    wait_for_vpc
 
 try:
     from math import log2
@@ -231,6 +232,7 @@ class Vpc(NamedObject):
         logging.info('Created VPC {vpcid:s}.'.format(vpcid=vpc_id))
 
         # Tag the VPC with name and owner
+        wait_for_vpc(vpc_id=vpc_id)
         EC2.create_tags(
             Resources=[vpc_id],
             Tags=[
@@ -343,7 +345,7 @@ class Vpc(NamedObject):
                     resource_id=ids
                 )
             else:  # pragma: nocover
-                # I can't think of a test case to make this happen but one
+                # I can't think of a test case to make this happen
                 raise e
 
 
