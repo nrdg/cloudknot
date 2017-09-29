@@ -71,14 +71,14 @@ def verify_sections():
     config_file = get_config_file()
     CONFIG.read(config_file)
     approved_sections = [
-        'roles', 'vpc', 'security-groups', 'docker-containers',
+        'roles', 'vpc', 'security-groups', 'docker-images',
         'job-definitions', 'compute-environments', 'job-queues', 'jobs'
     ]
 
-    def section_approved(section):
+    def section_approved(sec):
         return any([
-            section in approved_sections,
-            section.split(' ', 1)[0] in ['pars', 'jars']
+            sec in approved_sections,
+            sec.split(' ', 1)[0] in ['pars', 'jars']
         ])
 
     for section in CONFIG.sections():
@@ -111,7 +111,7 @@ def prune():
             CONFIG.remove_option('security-groups', sg_id)
 
     # Prune docker containers
-    # docker_containers = CONFIG.options('docker-containers')
+    # docker_containers = CONFIG.options('docker-images')
 
     for job_def_name in CONFIG.options('job-definitions'):
         try:
