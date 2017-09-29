@@ -10,7 +10,7 @@ from cloudknot.config import get_default_region
 __all__ = ["ResourceDoesNotExistException", "ResourceExistsException",
            "CannotDeleteResourceException",
            "NamedObject", "ObjectWithArn", "ObjectWithUsernameAndMemory",
-           "IAM", "EC2", "ECR", "BATCH", "wait_for_vpc",
+           "IAM", "EC2", "ECR", "BATCH",
            "wait_for_compute_environment", "wait_for_job_queue"]
 
 IAM = boto3.client('iam', region_name=get_default_region())
@@ -113,35 +113,6 @@ class ObjectWithUsernameAndMemory(ObjectWithArn):
 
     memory = property(operator.attrgetter('_memory'))
     username = property(operator.attrgetter('_username'))
-
-
-# noinspection PyPropertyAccess,PyAttributeOutsideInit
-def wait_for_vpc(vpc_id, log=True, max_wait_time=60):
-    # Wait for compute environment to finish modifying
-    waiting = True
-    num_waits = 0
-    while waiting:
-        if log:
-            logging.info(
-                'Waiting for AWS to finish modifying VPC '
-                '{vpc_id:s}.'.format(vpc_id=vpc_id)
-            )
-
-        response = EC2.describe_vpcs(VpcIds=[vpc_id])
-
-        try:
-            waiting = (response.get('Vpcs')[0]['State'] == 'pending')
-        except EC2.exceptions.ClientError as e:
-            error_code = e.response['Error']['Code']
-            if error_code == 'InvalidVpcID.NotFound':
-                waiting = False
-            else:
-                raise e
-
-        time.sleep(1)
-        num_waits += 1
-        if num_waits > max_wait_time:
-            sys.exit('Waiting too long for AWS to modify VPC. Aborting.')
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit

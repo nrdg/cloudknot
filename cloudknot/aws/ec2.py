@@ -11,8 +11,7 @@ from math import ceil
 
 from .base_classes import EC2, BATCH, NamedObject, \
     ResourceExistsException, ResourceDoesNotExistException, \
-    CannotDeleteResourceException, wait_for_compute_environment, \
-    wait_for_vpc
+    CannotDeleteResourceException, wait_for_compute_environment
 
 try:
     from math import log2
@@ -232,7 +231,8 @@ class Vpc(NamedObject):
         logging.info('Created VPC {vpcid:s}.'.format(vpcid=vpc_id))
 
         # Tag the VPC with name and owner
-        wait_for_vpc(vpc_id=vpc_id)
+        wait_for_vpc = EC2.get_waiter('vpc_available')
+        wait_for_vpc.wait(VpcIds=[vpc_id])
         EC2.create_tags(
             Resources=[vpc_id],
             Tags=[
@@ -288,20 +288,23 @@ class Vpc(NamedObject):
 
             logging.info('Created subnet {id:s}.'.format(id=subnet_id))
 
-            # Tag the subnet with name and owner
-            EC2.create_tags(
-                Resources=[subnet_id],
-                Tags=[
-                    {
-                        'Key': 'owner',
-                        'Value': 'cloudknot'
-                    },
-                    {
-                        'Key': 'vpc-name',
-                        'Value': self.name
-                    }
-                ]
-            )
+
+        # Tag all subnets with name and owner
+        wait_for_subnet = EC2.get_waiter('subnet_available')
+        wait_for_subnet.wait(SubnetIds=subnet_ids)
+        EC2.create_tags(
+            Resources=subnet_ids,
+            Tags=[
+                {
+                    'Key': 'owner',
+                    'Value': 'cloudknot'
+                },
+                {
+                    'Key': 'vpc-name',
+                    'Value': self.name
+                }
+            ]
+        )
 
         return subnet_ids
 
