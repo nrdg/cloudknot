@@ -1,6 +1,6 @@
 awscli
 boto3
-docker
+docker>=2.0.0
 pipreqs
 six
 
