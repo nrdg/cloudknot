@@ -1233,7 +1233,7 @@ class BatchJob(NamedObject):
         else:
             return JobExists(exists=False)
 
-    def _create(self):
+    def _create(self):  # pragma: nocover
         """ Create AWS batch job using instance parameters
 
         Returns
@@ -1241,6 +1241,8 @@ class BatchJob(NamedObject):
         string
             job ID for the created batch job
         """
+        # no coverage since actually submitting a batch job for
+        # unit testing would be expensive
         container_overrides = {
             'environment': self.environment_variables,
             'command': self.commands

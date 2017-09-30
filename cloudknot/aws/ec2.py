@@ -15,7 +15,7 @@ from .base_classes import EC2, BATCH, NamedObject, \
 
 try:
     from math import log2
-except ImportError:
+except ImportError:  # pragma: nocover
     # python 2.7 compatibility
     from math import log
 
@@ -266,7 +266,7 @@ class Vpc(NamedObject):
         # per region
         try:
             prefixlen_diff = ceil(log2(len(zones)))
-        except NameError:
+        except NameError:  # pragma: nocover
             # python 2.7 compatibility
             prefixlen_diff = int(ceil(log(len(zones), 2)))
 
@@ -617,10 +617,10 @@ class SecurityGroup(NamedObject):
         # Delete the security group
         try:
             EC2.delete_security_group(GroupId=self.security_group_id)
-        except EC2.exceptions.ClientError as e:
+        except EC2.exceptions.ClientError as e:  # pragma: nocover
             error_code = e.response['Error']['Code']
             if error_code == 'DependencyViolation':
-                time.sleep(60)
+                time.sleep(30)
                 EC2.delete_security_group(GroupId=self.security_group_id)
             else:
                 raise e
