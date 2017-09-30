@@ -26,11 +26,15 @@ from __future__ import absolute_import, division, print_function
 import boto3
 import cloudknot as ck
 import configparser
+import docker
 import json
+import os.path as op
 import pytest
+import subprocess
 import uuid
 
 UNIT_TEST_PREFIX = 'cloudknot-unit-test'
+data_path = op.join(ck.__path__[0], 'data')
 
 
 @pytest.fixture(scope='module')
@@ -316,6 +320,223 @@ def test_IamRole():
         raise e
 
 
+def test_DockerImage():
+    ecr = boto3.client('ecr', region_name=ck.config.get_default_region())
+    config = configparser.ConfigParser()
+    config_file = ck.config.get_config_file()
+
+    try:
+        login_cmd = subprocess.check_output([
+            'aws', 'ecr', 'get-login', '--no-include-email',
+            '--region', ck.config.get_default_region()
+        ])
+
+        login_result = subprocess.call(
+            login_cmd.decode('ASCII').rstrip('\n').split(' '))
+
+        if login_result:
+            raise ValueError(
+                'Unable to login to AWS ECR using `{login:s}`'.format(
+                    login=login_cmd
+                )
+            )
+
+        name = get_unit_test_name()
+
+        # Assert that trying to retrieve non-existent repo gives an error
+        with pytest.raises(ck.aws.ResourceDoesNotExistException) as e:
+            ck.aws.DockerImage(name=name)
+
+        assert e.value.resource_id == name
+
+        # Use boto3 to create an ECR repo
+        response = ecr.create_repository(repositoryName=name)
+
+        repo_name = response['repository']['repositoryName']
+        repo_uri = response['repository']['repositoryUri']
+        repo_registry_id = response['repository']['registryId']
+
+        di = ck.aws.DockerImage(name=name)
+
+        assert di.name == name
+        assert di.pre_existing is True
+        assert di.build_path is None
+        assert di.dockerfile is None
+        assert di.requirements is None
+        assert di.tags == []
+        assert di.repo_name == repo_name
+        assert di.repo_uri == repo_uri
+        assert di.repo_registry_id == repo_registry_id
+
+        # Confirm that the docker image is in the config file
+        config.read(config_file)
+        assert name in config.options('docker-images')
+
+        # Clobber the docker image
+        di.clobber()
+
+        # Assert that it was removed from AWS
+        with pytest.raises(ecr.exceptions.RepositoryNotFoundException):
+            ecr.describe_repositories(repositoryNames=[name])
+
+        # Assert that it was removed from the config file
+        # If we just re-read the config file, config will keep the union
+        # of the in memory values and the file values, updating the
+        # intersection of the two with the file values. So we must set
+        # config to None and then re-read the file
+        config = None
+        config = configparser.ConfigParser()
+        config.read(config_file)
+        assert name not in config.options('docker-images')
+
+        names = [get_unit_test_name() for i in range(2)]
+        tags = ['testing', ['testing', '0.1']]
+        build_path = op.abspath(
+            op.join(data_path, 'test_docker_image_data')
+        )
+        build_paths = [op.join(build_path, 'test1'),
+                       op.join(build_path, 'test2')]
+        requirements = [
+            None,
+            op.join(build_path, 'requirements.txt')
+        ]
+        dockerfiles = [
+            None,
+            op.join(build_path, 'test2', 'Dockerfile')
+        ]
+
+        response = ecr.create_repository(repositoryName=names[1])
+
+        repo_name = response['repository']['repositoryName']
+        repo_uri = response['repository']['repositoryUri']
+        repo_registry_id = response['repository']['registryId']
+
+        for (n, t, bp, r, d) in zip(
+            names, tags, build_paths, requirements, dockerfiles
+        ):
+            di = ck.aws.DockerImage(
+                name=n,
+                tags=t,
+                build_path=bp,
+                requirements=r,
+                dockerfile=d
+            )
+
+            assert di.name == n
+            assert di.pre_existing is False
+            assert di.build_path == bp
+            r = r if r else op.join(bp, 'requirements.txt')
+            assert di.requirements == r
+            d = d if d else op.join(bp, 'Dockerfile')
+            assert di.dockerfile == d
+            t = [t] if isinstance(t, str) else t
+            assert di.tags == t
+
+            if n == names[1]:
+                assert di.repo_name == repo_name
+                assert di.repo_uri == repo_uri
+                assert di.repo_registry_id == repo_registry_id
+                ecr.delete_repository(
+                    registryId=repo_registry_id,
+                    repositoryName=repo_name,
+                    force=True
+                )
+
+            di.clobber()
+
+        # Assert ValueError on missing tags
+        with pytest.raises(ValueError):
+            ck.aws.DockerImage(
+                name=get_unit_test_error_assertion_name(),
+                tags=['0.1']
+            )
+
+        # Assert ValueError on missing build_path
+        with pytest.raises(ValueError):
+            ck.aws.DockerImage(
+                name=get_unit_test_error_assertion_name(),
+                build_path='.'
+            )
+
+        # Assert ValueError on invalid build_path
+        with pytest.raises(ValueError):
+            ck.aws.DockerImage(
+                name=get_unit_test_error_assertion_name(),
+                build_path=get_unit_test_error_assertion_name(),
+                tags=['0.1']
+            )
+
+        # Assert ValueError on invalid dockerfile
+        with pytest.raises(ValueError):
+            ck.aws.DockerImage(
+                name=get_unit_test_error_assertion_name(),
+                build_path='.',
+                tags=['0.1'],
+                dockerfile=get_unit_test_error_assertion_name()
+            )
+
+        # Assert ValueError on invalid requirements
+        with pytest.raises(ValueError):
+            ck.aws.DockerImage(
+                name=get_unit_test_error_assertion_name(),
+                build_path='.',
+                tags=['0.1'],
+                requirements=get_unit_test_error_assertion_name()
+            )
+
+        # Assert ValueError on invalid tags
+        with pytest.raises(ValueError):
+            ck.aws.DockerImage(
+                name=get_unit_test_error_assertion_name(),
+                build_path='.',
+                tags=[42, -42],
+            )
+
+        # Assert ValueError on 'latest' in tags
+        with pytest.raises(ValueError):
+            ck.aws.DockerImage(
+                name=get_unit_test_error_assertion_name(),
+                build_path='.',
+                tags=['testing', 'latest'],
+            )
+    except Exception as e:
+        response = ecr.describe_repositories()
+
+        # Get all local images with unit test prefix in any of the repo tags
+        c = docker.from_env()
+        unit_test_images = [
+            im for im in c.images()
+            if any(UNIT_TEST_PREFIX in tag for tag in im['RepoTags'])
+        ]
+
+        # Remove local images
+        for im in unit_test_images:
+            for tag in im['RepoTags']:
+                c.remove_image(tag, force=True)
+
+        # Get all repos with unit test prefix in the name
+        repos = [r for r in response.get('repositories')
+                 if UNIT_TEST_PREFIX in r['repositoryName']]
+
+        # Delete the AWS ECR repo
+        for r in repos:
+            ecr.delete_repository(
+                registryId=r['registryId'],
+                repositoryName=r['repositoryName'],
+                force=True
+            )
+
+        # Clean up config file
+        config.read(config_file)
+        for name in config.options('docker-images'):
+            if UNIT_TEST_PREFIX in name:
+                config.remove_option('docker-images', name)
+        with open(config_file, 'w') as f:
+            config.write(f)
+
+        raise e
+
+
 def test_Vpc():
     ec2 = boto3.client('ec2', region_name=ck.config.get_default_region())
     config = configparser.ConfigParser()
@@ -370,7 +591,7 @@ def test_Vpc():
         assert vpc.vpc_id == vpc_id
         assert vpc.subnet_ids == []
 
-        # Confirm that the role is in the config file
+        # Confirm that the VPC is in the config file
         config.read(config_file)
         assert vpc_id in config.options('vpc')
 
@@ -1826,8 +2047,4 @@ def test_JobQueue(pars):
 
 
 def test_BatchJob():
-    pass
-
-
-def test_DockerImage():
     pass

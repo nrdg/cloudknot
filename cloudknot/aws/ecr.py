@@ -48,9 +48,9 @@ class DockerImage(NamedObject):
             Path to an existing requirements.txt file to build dependencies
             Default: None (i.e. assumes no dependencies)
         """
-        if name and not any([tags, build_path]):
-            super(DockerImage, self).__init__(name=name)
+        super(DockerImage, self).__init__(name=name)
 
+        if name and not any([tags, build_path]):
             # Check for pre-existence based on vpc_id or name
             resource = self._exists_already()
             self._pre_existing = resource.exists
@@ -71,26 +71,21 @@ class DockerImage(NamedObject):
             self._repo_name = resource.repo_name
             self._repo_uri = resource.repo_uri
             self._repo_registry_id = resource.repo_registry_id
+
+            # Add to config file
+            cloudknot.config.add_resource(
+                'docker-images', self.name, self.repo_uri
+            )
         else:
             if not all([tags, build_path]):
                 raise ValueError('If building a new image, you must specify '
                                  'both `tags` and `build_path`.')
-
-            # If name does not have a 'cloudknot/' prefix, give it one
-            prefix = 'cloudknot/'
-            if name[:len(prefix)] != prefix:
-                name = 'cloudknot/' + name
-            super(DockerImage, self).__init__(name=name)
-
             self._pre_existing = False
 
-            if build_path:
-                if not os.path.isdir(build_path):
-                    raise ValueError('build_path must be an existing '
-                                     'directory')
-                self._build_path = os.path.abspath(build_path)
-            else:
-                self._build_path = os.getcwd()
+            if not os.path.isdir(build_path):
+                raise ValueError('build_path must be an existing '
+                                 'directory')
+            self._build_path = os.path.abspath(build_path)
 
             if dockerfile:
                 if not os.path.isfile(dockerfile):
@@ -121,7 +116,6 @@ class DockerImage(NamedObject):
                 raise ValueError('Any tag is allowed, except for "latest."')
 
             self._tags = tags
-            self._repo_uri = None
 
             # Build, tag, and push the docker image
             self._build()
@@ -180,7 +174,11 @@ class DockerImage(NamedObject):
                 repositoryName=repo_name
             )
 
-            tags = response.get('imageDetails')['imageTags']
+            try:
+                tags = response.get('imageDetails')[0]['imageTags']
+            except IndexError:
+                tags = []
+
             return ResourceExists(
                 exists=True, repo_name=repo_name, repo_uri=repo_uri,
                 repo_registry_id=registry_id, tags=tags
@@ -224,7 +222,7 @@ class DockerImage(NamedObject):
         login_result = subprocess.call(
             login_cmd.decode('ASCII').rstrip('\n').split(' '))
 
-        if login_result:
+        if login_result:  # pragma: nocover
             raise ValueError(
                 'Unable to login to AWS ECR using `{login:s}`'.format(
                     login=login_cmd
@@ -305,12 +303,16 @@ class DockerImage(NamedObject):
             c.remove_image(self.name + ':' + tag, force=True)
             c.remove_image(self.repo_uri + ':' + tag, force=True)
 
-        # Remove the remote docker image
-        ECR.delete_repository(
-            registryId=self.repo_registry_id,
-            repositoryName=self.repo_name,
-            force=True
-        )
+        try:
+            # Remove the remote docker image
+            ECR.delete_repository(
+                registryId=self.repo_registry_id,
+                repositoryName=self.repo_name,
+                force=True
+            )
+        except ECR.exceptions.RepositoryNotFoundException:
+            # It doesn't exist anyway, so clear this exception and carry on
+            pass
 
         # Remove from the config file
         cloudknot.config.remove_resource('docker-images', self.name)
