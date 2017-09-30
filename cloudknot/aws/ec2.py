@@ -231,6 +231,8 @@ class Vpc(NamedObject):
         logging.info('Created VPC {vpcid:s}.'.format(vpcid=vpc_id))
 
         # Tag the VPC with name and owner
+        wait_for_vpc = EC2.get_waiter('vpc_exists')
+        wait_for_vpc.wait(VpcIds=[vpc_id])
         wait_for_vpc = EC2.get_waiter('vpc_available')
         wait_for_vpc.wait(VpcIds=[vpc_id])
         EC2.create_tags(
