@@ -503,7 +503,7 @@ def test_DockerImage():
         response = ecr.describe_repositories()
 
         # Get all local images with unit test prefix in any of the repo tags
-        c = docker.from_env()
+        c = docker.from_env().api
         unit_test_images = [
             im for im in c.images()
             if any(UNIT_TEST_PREFIX in tag for tag in im['RepoTags'])

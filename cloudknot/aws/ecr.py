@@ -197,7 +197,7 @@ class DockerImage(NamedObject):
         else:
             cleanup = False
 
-        c = docker.from_env()
+        c = docker.from_env().api
         for tag in self.tags:
             logging.info('Building image {name:s} with tag {tag:s}'.format(
                 name=self.name, tag=tag
@@ -266,7 +266,7 @@ class DockerImage(NamedObject):
         """
         Tag a DockerContainer image
         """
-        c = docker.from_env()
+        c = docker.from_env().api
         for tag in self.tags:
             logging.info('Tagging image {name:s} with tag {tag:s}'.format(
                 name=self.name, tag=tag
@@ -279,7 +279,7 @@ class DockerImage(NamedObject):
         """
         Push a DockerContainer image to a repository
         """
-        c = docker.from_env()
+        c = docker.from_env().api
         for tag in self.tags:
             logging.info('Pushing image {name:s} with tag {tag:s}'.format(
                 name=self.name, tag=tag
@@ -298,7 +298,7 @@ class DockerImage(NamedObject):
         None
         """
         # Remove the local docker image
-        c = docker.from_env()
+        c = docker.from_env().api
         for tag in self.tags:
             c.remove_image(self.name + ':' + tag, force=True)
             c.remove_image(self.repo_uri + ':' + tag, force=True)
