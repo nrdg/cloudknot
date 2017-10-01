@@ -2,9 +2,11 @@ from __future__ import absolute_import, division, print_function
 
 import cloudknot as ck
 import filecmp
+import fileinput
 import os
 import os.path as op
 import pytest
+import six
 import tempfile
 import uuid
 
@@ -59,6 +61,18 @@ def test_DockerReqs():
     correct_dir = op.join(data_path, 'docker_reqs_ref_data', 'ref1')
     correct_req_path = op.join(correct_dir, 'requirements.txt')
     correct_dockerfile = op.join(correct_dir, 'Dockerfile')
+
+    # The reference Dockerfile has "FROM python:3" but this will fail for
+    # python 2 tests. So edit the reference Dockerfile to make sure.
+    with fileinput.FileInput(
+            correct_dockerfile, inplace=True, backup='.bak'
+    ) as file:
+        py_version_str = '3' if six.PY3 else '2'
+        for line in file:
+            print(line.replace(
+                'FROM python:3', 'FROM python:' + py_version_str
+            ), end='')
+
     correct_script_path = op.join(correct_dir, 'unit_testing_func.py')
 
     assert filecmp.cmp(reqs.req_path, correct_req_path, shallow=False)
@@ -99,6 +113,17 @@ def test_DockerReqs():
     correct_dir = op.join(data_path, 'docker_reqs_ref_data', 'ref2')
     correct_req_path = op.join(correct_dir, 'requirements.txt')
     correct_dockerfile = op.join(correct_dir, 'Dockerfile')
+
+    # The reference Dockerfile has "FROM python:3" but this will fail for
+    # python 2 tests. So edit the reference Dockerfile to make sure.
+    with fileinput.FileInput(
+            correct_dockerfile, inplace=True, backup='.bak'
+    ) as file:
+        py_version_str = '3' if six.PY3 else '2'
+        for line in file:
+            print(line.replace(
+                'FROM python:3', 'FROM python:' + py_version_str
+            ), end='')
 
     assert filecmp.cmp(reqs.req_path, correct_req_path, shallow=False)
     assert filecmp.cmp(reqs.docker_path, correct_dockerfile, shallow=False)
