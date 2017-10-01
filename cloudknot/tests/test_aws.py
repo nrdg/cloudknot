@@ -28,6 +28,7 @@ import cloudknot as ck
 import configparser
 import docker
 import json
+import os
 import os.path as op
 import pytest
 import subprocess
@@ -455,7 +456,7 @@ def test_DockerImage():
         with pytest.raises(ValueError):
             ck.aws.DockerImage(
                 name=get_unit_test_error_assertion_name(),
-                build_path='.'
+                build_path=os.getcwd()
             )
 
         # Assert ValueError on invalid build_path
@@ -470,7 +471,7 @@ def test_DockerImage():
         with pytest.raises(ValueError):
             ck.aws.DockerImage(
                 name=get_unit_test_error_assertion_name(),
-                build_path='.',
+                build_path=os.getcwd(),
                 tags=['0.1'],
                 dockerfile=get_unit_test_error_assertion_name()
             )
@@ -479,7 +480,7 @@ def test_DockerImage():
         with pytest.raises(ValueError):
             ck.aws.DockerImage(
                 name=get_unit_test_error_assertion_name(),
-                build_path='.',
+                build_path=os.getcwd(),
                 tags=['0.1'],
                 requirements=get_unit_test_error_assertion_name()
             )
@@ -488,7 +489,7 @@ def test_DockerImage():
         with pytest.raises(ValueError):
             ck.aws.DockerImage(
                 name=get_unit_test_error_assertion_name(),
-                build_path='.',
+                build_path=os.getcwd(),
                 tags=[42, -42],
             )
 
@@ -496,7 +497,7 @@ def test_DockerImage():
         with pytest.raises(ValueError):
             ck.aws.DockerImage(
                 name=get_unit_test_error_assertion_name(),
-                build_path='.',
+                build_path=os.getcwd(),
                 tags=['testing', 'latest'],
             )
     except Exception as e:
