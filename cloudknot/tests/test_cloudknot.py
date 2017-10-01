@@ -2,7 +2,6 @@ from __future__ import absolute_import, division, print_function
 
 import cloudknot as ck
 import filecmp
-import fileinput
 import os
 import os.path as op
 import pytest
