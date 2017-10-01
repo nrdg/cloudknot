@@ -1,7 +1,7 @@
 from clize import run
 
 
-def unit_testing_func(name=None, *, no_capitalize=False):  # noqa: F401
+def unit_testing_func(name=None, no_capitalize=False):
     """Test function for unit testing of cloudknot.DockerReqs
 
     Import statements of various formats are deliberately scattered
