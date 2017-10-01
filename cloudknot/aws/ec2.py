@@ -255,7 +255,7 @@ class Vpc(NamedObject):
         return vpc_id
 
     def _add_subnets(self):
-        # Add a subnet for each region
+        # Add a subnet for each availability zone
         response = EC2.describe_availability_zones()
         zones = response.get('AvailabilityZones')
 

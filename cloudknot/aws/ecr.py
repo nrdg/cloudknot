@@ -56,6 +56,8 @@ class DockerImage(NamedObject):
             self._pre_existing = resource.exists
 
             if not self.pre_existing:
+                # User supplied only name, expecting existing resource,
+                # throw exception
                 raise ResourceDoesNotExistException(
                     'The docker repo/image that you specified does not exist. '
                     'Either supply the name of a pre-existing repo/image or '
@@ -77,33 +79,42 @@ class DockerImage(NamedObject):
                 'docker-images', self.name, self.repo_uri
             )
         else:
+            # User supplied more than a name, make sure they supplied
+            # everything else
             if not all([tags, build_path]):
                 raise ValueError('If building a new image, you must specify '
                                  'both `tags` and `build_path`.')
+
             self._pre_existing = False
 
+            # Validate build_path input
             if not os.path.isdir(build_path):
                 raise ValueError('build_path must be an existing '
                                  'directory')
             self._build_path = os.path.abspath(build_path)
 
-            if dockerfile:
-                if not os.path.isfile(dockerfile):
-                    raise ValueError('dockerfile must be an existing '
-                                     'regular file')
-                self._dockerfile = os.path.abspath(dockerfile)
-            else:
+            if not dockerfile:
+                # Default, just stick Dockerfile in the build_path
                 self._dockerfile = os.path.join(self.build_path, 'Dockerfile')
+            elif not os.path.isfile(dockerfile):
+                # Validate dockerfile input
+                raise ValueError('dockerfile must be an existing file')
+            else:
+                # Use user input
+                self._dockerfile = os.path.abspath(dockerfile)
 
             if not requirements:
+                # Default, just stick requirements.txt in the build_path
                 self._requirements = os.path.join(self.build_path,
                                                   'requirements.txt')
             elif not os.path.isfile(requirements):
-                raise ValueError('requirements must be an existing '
-                                 'regular file')
+                # Validate requirements input
+                raise ValueError('requirements must be an existing file')
             else:
+                # Use user input
                 self._requirements = os.path.abspath(requirements)
 
+            # Validate tags input
             if isinstance(tags, str):
                 tags = [tags]
             elif all(isinstance(x, str) for x in tags):
@@ -112,12 +123,13 @@ class DockerImage(NamedObject):
                 raise ValueError('tags must be a string or a sequence '
                                  'of strings.')
 
+            # Don't allow user to put "latest" in tags.
             if 'latest' in tags:
                 raise ValueError('Any tag is allowed, except for "latest."')
 
             self._tags = tags
 
-            # Build, tag, and push the docker image
+            # Build local image, create repo, tag, and push the docker image
             self._build()
             repo_info = self._create_repo()
             self._repo_uri = repo_info.uri
@@ -131,6 +143,7 @@ class DockerImage(NamedObject):
                 'docker-images', self.name, self.repo_uri
             )
 
+    # Declare read only properties
     pre_existing = property(operator.attrgetter('_pre_existing'))
     build_path = property(operator.attrgetter('_build_path'))
     dockerfile = property(operator.attrgetter('_dockerfile'))
@@ -163,6 +176,7 @@ class DockerImage(NamedObject):
             (None,) * (len(ResourceExists._fields) - 1)
 
         try:
+            # If repository exists, retrieve info
             response = ECR.describe_repositories(repositoryNames=[self.name])
             repo = response.get('repositories')[0]
             repo_name = repo['repositoryName']
@@ -175,8 +189,10 @@ class DockerImage(NamedObject):
             )
 
             try:
+                # Retrieve tags if there are image details
                 tags = response.get('imageDetails')[0]['imageTags']
             except IndexError:
+                # No image details, no tags
                 tags = []
 
             return ResourceExists(
@@ -184,19 +200,26 @@ class DockerImage(NamedObject):
                 repo_registry_id=registry_id, tags=tags
             )
         except ECR.exceptions.RepositoryNotFoundException:
+            # Repo not found, return
             return ResourceExists(exists=False)
 
     def _build(self):
-        """
-        Build a DockerContainer image
+        """Build a DockerContainer image
+
+        Returns
+        -------
+        None
         """
         req_build_path = os.path.join(self.build_path, 'requirements.txt')
         if not os.path.isfile(req_build_path):
+            # If the requirements.txt file is not in the build_path, copy it
             shutil.copyfile(self.requirements, req_build_path)
+            # Set a cleanup flag for after the build
             cleanup = True
         else:
             cleanup = False
 
+        # Use docker low-level APIClient
         c = docker.from_env().api
         for tag in self.tags:
             logging.info('Building image {name:s} with tag {tag:s}'.format(
@@ -211,17 +234,27 @@ class DockerImage(NamedObject):
                 logging.debug(line)
 
         if cleanup:
+            # Remove the copied file if necessary
             os.remove(req_build_path)
 
     def _create_repo(self):
+        """Create or retrieve an AWS ECR repository
+
+        Returns
+        -------
+        None
+        """
         # Refresh the aws ecr login credentials
         login_cmd = subprocess.check_output([
             'aws', 'ecr', 'get-login', '--no-include-email',
             '--region', get_default_region()
         ])
+
+        # Login
         login_result = subprocess.call(
             login_cmd.decode('ASCII').rstrip('\n').split(' '))
 
+        # If login failed, pass error to user
         if login_result:  # pragma: nocover
             raise ValueError(
                 'Unable to login to AWS ECR using `{login:s}`'.format(
@@ -229,9 +262,8 @@ class DockerImage(NamedObject):
                 )
             )
 
-        # Get repository uri
         try:
-            # First, check to see if it already exists
+            # If repo exists, retrieve its info
             response = ECR.describe_repositories(
                 repositoryNames=[self.name]
             )
@@ -242,12 +274,9 @@ class DockerImage(NamedObject):
 
             logging.info('Repository {name:s} already exists at '
                          '{uri:s}'.format(name=self.name, uri=repo_uri))
-
         except ECR.exceptions.RepositoryNotFoundException:
             # If it doesn't exists already, then create it
-            response = ECR.create_repository(
-                repositoryName=self.name
-            )
+            response = ECR.create_repository(repositoryName=self.name)
 
             repo_name = response['repository']['repositoryName']
             repo_uri = response['repository']['repositoryUri']
@@ -257,28 +286,39 @@ class DockerImage(NamedObject):
                 name=self.name, uri=repo_uri
             ))
 
+        # Define and return namedtuple with repo info
         RepoInfo = namedtuple('RepoInfo', ['name', 'uri', 'registry_id'])
         return RepoInfo(
             name=repo_name, uri=repo_uri, registry_id=repo_registry_id
         )
 
     def _tag(self):
+        """Tag a DockerContainer image
+
+        Returns
+        -------
+        None
         """
-        Tag a DockerContainer image
-        """
+        # Use docker low-level APIClient
         c = docker.from_env().api
         for tag in self.tags:
+            # Log tagging info
             logging.info('Tagging image {name:s} with tag {tag:s}'.format(
                 name=self.name, tag=tag
             ))
 
+            # Tag it
             c.tag(image=self.name + ':' + tag,
                   repository=self.repo_uri, tag=tag)
 
     def _push(self):
+        """Push a DockerContainer image to a repository
+        
+        Returns
+        -------
+        None
         """
-        Push a DockerContainer image to a repository
-        """
+        # Use docker low-level APIClient
         c = docker.from_env().api
         for tag in self.tags:
             logging.info('Pushing image {name:s} with tag {tag:s}'.format(
@@ -291,15 +331,16 @@ class DockerImage(NamedObject):
                 logging.debug(line)
 
     def clobber(self):
-        """ Delete this docker image and remove from the remote repository
+        """Delete this docker image and remove from the remote repository
 
         Returns
         -------
         None
         """
-        # Remove the local docker image
+        # Use docker low-level APIClient
         c = docker.from_env().api
         for tag in self.tags:
+            # Remove the local docker image
             c.remove_image(self.name + ':' + tag, force=True)
             c.remove_image(self.repo_uri + ':' + tag, force=True)
 
