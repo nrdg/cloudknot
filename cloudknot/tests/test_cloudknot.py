@@ -11,7 +11,7 @@ import uuid
 data_path = op.join(ck.__path__[0], 'data')
 
 
-def unit_testing_func(name=None, *, no_capitalize=False):  # noqa: F401
+def unit_testing_func(name=None, no_capitalize=False):
     """Test function for unit testing of cloudknot.DockerReqs
 
     Import statements of various formats are deliberately scattered
