@@ -393,17 +393,17 @@ def test_DockerImage():
         names = [get_unit_test_name() for i in range(2)]
         tags = ['testing', ['testing', '0.1']]
         build_path = op.abspath(
-            op.join(data_path, 'test_docker_image_data')
+            op.join(data_path, 'docker_image_ref_data')
         )
-        build_paths = [op.join(build_path, 'test1'),
-                       op.join(build_path, 'test2')]
+        build_paths = [op.join(build_path, 'ref1'),
+                       op.join(build_path, 'ref2')]
         requirements = [
             None,
             op.join(build_path, 'requirements.txt')
         ]
         dockerfiles = [
             None,
-            op.join(build_path, 'test2', 'Dockerfile')
+            op.join(build_path, 'ref2', 'Dockerfile')
         ]
 
         response = ecr.create_repository(repositoryName=names[1])
