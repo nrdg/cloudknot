@@ -1,15 +1,21 @@
 from __future__ import absolute_import, division, print_function
 
+import ast
 import inspect
 import logging
 import operator
+import os
+from pipreqs import pipreqs
+import six
+import tempfile
+from collections import namedtuple
 
 from . import aws
 from . import config
 from .config import CONFIG
 from .due import due, Doi
 
-__all__ = ["CloudKnot", "Pars", "Jars"]
+__all__ = ["CloudKnot", "DockerReqs", "Pars", "Jars"]
 
 # Use duecredit (duecredit.org) to provide a citation to relevant work to
 # be cited. This does nothing, unless the user has duecredit installed,
@@ -18,6 +24,217 @@ due.cite(Doi(""),
          description="",
          tags=[""],
          path='cloudknot')
+
+
+# noinspection PyPropertyAccess,PyAttributeOutsideInit
+class DockerReqs(object):
+    def __init__(
+            self, func=None, script_path=None, dir_name=None, username=None
+    ):
+        if not (func or script_path):
+            raise ValueError('You must suppy either `func` or `script_path`.')
+
+        if script_path and func:
+            raise ValueError('You provided `script_path` and other redundant '
+                             'arguments, either `func` or `dir_name`. ')
+
+        self._func = func
+        self._username = username if username else 'cloudknot-user'
+
+        if dir_name and not os.path.isdir(dir_name):
+            raise ValueError('`dir_name` is not an existing directory')
+
+        if script_path:
+            # User supplied a pre-existing python script.
+            self._clobber_script = False
+
+            # Check that it is a valid path
+            if not os.path.isfile(script_path):
+                raise ValueError('If provided, `script_path` must be an '
+                                 'existing regular file.')
+
+            self._script_path = os.path.abspath(script_path)
+            self._name = os.path.basename(self.script_path)
+
+            # Set the parent directory
+            if dir_name:
+                self._dir_path = os.path.abspath(dir_name)
+            else:
+                self._dir_path = os.path.dirname(self.script_path)
+        else:
+            # We will create the script, Dockerfile, and requirements.txt
+            # in a new directory
+            self._clobber_script = True
+            self._name = func.__name__
+
+            if dir_name:
+                self._dir_path = os.path.abspath(dir_name)
+                self._script_path = os.path.join(self.dir_path,
+                                                 self.name + '.py')
+
+                # Confirm that we will not overwrite an existing script
+                if os.path.isfile(self._script_path):
+                    raise ValueError(
+                        'There is a pre-existing python script in the '
+                        'directory that you provided. Either specify a new '
+                        'directory, move the python script `{file:s}` to a '
+                        'new directory, or delete the existing python script '
+                        'if it is no longer necessary.'.format(
+                            file=self.script_path
+                        )
+                    )
+            else:
+                # Create a new unique directory name
+                prefix = 'cloudknot_docker_' + self.name + '_'
+                self._dir_path = tempfile.mkdtemp(prefix=prefix,
+                                                  dir=os.getcwd())
+
+                self._script_path = os.path.join(self.dir_path,
+                                                 self.name + '.py')
+
+            self._write_script()
+
+        # Create the Dockerfile and requirements.txt in the same directory
+        self._docker_path = os.path.join(self.dir_path, 'Dockerfile')
+        self._req_path = os.path.join(self.dir_path, 'requirements.txt')
+
+        # Confirm that we won't overwrite an existing Dockerfile or
+        # requirements.txt
+        if os.path.isfile(self._docker_path):
+            raise ValueError(
+                'There is a pre-existing Dockerfile in the same directory as '
+                'the python script you provided or in the directory name that '
+                'you provided. Either specify a new directory, move the '
+                'Dockerfile `{file:s}` to a new directory, or delete the '
+                'existing Dockerfile if it is no longer necessary.'.format(
+                    file=self.docker_path
+                )
+            )
+
+        if os.path.isfile(self._req_path):
+            raise ValueError(
+                'There is a pre-existing requirements.txt in the same '
+                'directory as the python script you provided or in the '
+                'directory name that you provided. Either specify a new '
+                'directory, move the requirements file`{file:s}` to its own '
+                'directory or delete the existing requirements file if it '
+                'is no longer needed.'.format(file=self.req_path)
+            )
+
+        import_names = [
+            i.module[0] if i.module else i.name[0] for i in self._get_imports()
+        ]
+        self._pip_imports = pipreqs.get_imports_info(import_names)
+
+        if len(import_names) != len(self.pip_imports):
+            pip_names = [i['name'] for i in self.pip_imports]
+            self._missing_imports = list(set(import_names) - set(pip_names))
+            logging.warning(
+                'Warning, some imports not found by pipreqs. You will need '
+                'to edit the Dockerfile by hand, e.g by installing from '
+                'github. You need to install the following packages '
+                '{missing:s}'.format(missing=str(self.missing_imports))
+            )
+        else:
+            self._missing_imports = None
+
+        pipreqs.generate_requirements_file(self.req_path, self.pip_imports)
+        self._write_dockerfile()
+
+    name = property(operator.attrgetter('_name'))
+    func = property(operator.attrgetter('_func'))
+    dir_path = property(operator.attrgetter('_dir_path'))
+    script_path = property(operator.attrgetter('_script_path'))
+    docker_path = property(operator.attrgetter('_docker_path'))
+    req_path = property(operator.attrgetter('_req_path'))
+    pip_imports = property(operator.attrgetter('_pip_imports'))
+    username = property(operator.attrgetter('_username'))
+    missing_imports = property(operator.attrgetter('_missing_imports'))
+
+    def _write_script(self):
+        with open(self.script_path, 'w') as f:
+            f.write('from clize import run\n\n\n')
+            f.write(inspect.getsource(self.func))
+            f.write('\n\n')
+            f.write('if __name__ == "__main__":\n')
+            f.write('    run({func_name:s})\n'.format(func_name=self.name))
+
+    def _get_imports(self):
+        Import = namedtuple("Import", ["module", "name", "alias"])
+
+        with open(self.script_path) as fh:
+            root = ast.parse(fh.read(), self.script_path)
+
+        for node in ast.walk(root):
+            if isinstance(node, ast.Import):
+                module = []
+            elif isinstance(node, ast.ImportFrom):
+                module = node.module.split('.')
+            else:  # pragma: nocover
+                continue
+
+            for n in node.names:
+                yield Import(module, n.name.split('.'), n.asname)
+
+    def _write_dockerfile(self):
+        with open(self.docker_path, 'w') as f:
+            py_version_str = '3' if six.PY3 else '2'
+            home_dir = '/home/{username:s}'.format(username=self.username)
+
+            f.write('#' * 79 + '\n')
+            f.write('# Dockerfile to build ' + self.name)
+            f.write(' application container\n')
+            f.write('# Based on python ' + py_version_str + '\n')
+            f.write('#' * 79 + '\n\n')
+
+            f.write('# Use official python base image\n')
+            f.write('FROM python:' + py_version_str + '\n\n')
+
+            f.write('# Install python dependencies\n')
+            f.write('COPY requirements.txt /tmp/\n')
+            f.write('RUN pip install -r /tmp/requirements.txt\n\n')
+
+            f.write('# Create a default user. Available via runtime flag ')
+            f.write('`--user {user:s}`.\n'.format(user=self.username))
+            f.write('# Add user to "staff" group.\n')
+            f.write('# Give user a home directory.\n')
+            f.write(
+                'RUN useradd {user:s} \\\n'
+                '    && addgroup {user:s} staff \\\n'
+                '    && mkdir {home:s} \\\n'
+                '    && chown -R {user:s}:staff {home:s}\n\n'.format(
+                    user=self.username, home=home_dir)
+            )
+
+            f.write('ENV HOME {home:s}\n\n'.format(home=home_dir))
+
+            f.write('# Copy the python script\n')
+            f.write('COPY {py_script:s} {home:s}/\n\n'.format(
+                py_script=os.path.basename(self.script_path),
+                home=home_dir
+            ))
+
+            f.write('# Set working directory\n')
+            f.write('WORKDIR {home:s}\n\n'.format(home=home_dir))
+
+            f.write('# Set entrypoint\n')
+            f.write('ENTRYPOINT ["python", "{py_script:s}"]\n'.format(
+                py_script=home_dir + '/' + os.path.basename(self.script_path)
+            ))
+
+    def clobber(self):
+        if self._clobber_script:
+            os.remove(self.script_path)
+
+        os.remove(self.docker_path)
+        os.remove(self.req_path)
+
+        try:
+            os.rmdir(self.dir_path)
+        except OSError:
+            # Directory is not empty. There's pre-existing stuff in there
+            # that we shouldn't mess with.
+            pass
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit

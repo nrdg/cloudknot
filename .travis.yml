@@ -1,5 +1,8 @@
 language: python
-sudo: false
+sudo: required
+
+services:
+  - docker
 
 deploy:
   provider: pypi
