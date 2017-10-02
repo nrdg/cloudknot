@@ -121,7 +121,7 @@ class Vpc(NamedObject):
     subnet_ids = property(operator.attrgetter('_subnet_ids'))
 
     def _exists_already(self, vpc_id, name):
-        """ Check if an AWS VPC exists already
+        """Check if an AWS VPC exists already
 
         If VPC exists, return namedtuple with VPC info. Otherwise, set the
         namedtuple's `exists` field to `False`. The remaining fields default
@@ -238,7 +238,7 @@ class Vpc(NamedObject):
             return ResourceExists(exists=False)
 
     def _create(self):
-        """ Create AWS virtual private cloud (VPC) using instance parameters
+        """Create AWS virtual private cloud (VPC) using instance parameters
 
         Returns
         -------
@@ -396,7 +396,7 @@ class SecurityGroup(NamedObject):
     """Class for defining an AWS Security Group"""
     def __init__(self, security_group_id=None, name=None, vpc=None,
                  description=None):
-        """ Initialize an AWS Security Group.
+        """Initialize an AWS Security Group.
 
         Parameters
         ----------
@@ -486,7 +486,7 @@ class SecurityGroup(NamedObject):
     security_group_id = property(operator.attrgetter('_security_group_id'))
 
     def _exists_already(self, security_group_id, name, vpc_id):
-        """ Check if an AWS security group exists already
+        """Check if an AWS security group exists already
 
         If security group exists, return namedtuple with security group info.
         Otherwise, set the namedtuple's `exists` field to `False`. The
@@ -554,7 +554,7 @@ class SecurityGroup(NamedObject):
             return ResourceExists(exists=False)
 
     def _create(self):
-        """ Create AWS security group using instance parameters
+        """Create AWS security group using instance parameters
 
         Returns
         -------
@@ -618,7 +618,7 @@ class SecurityGroup(NamedObject):
         return group_id
 
     def clobber(self):
-        """ Delete this AWS security group and associated resources
+        """Delete this AWS security group and associated resources
 
         Returns
         -------

@@ -45,8 +45,7 @@ class DockerReqs(object):
     """
     def __init__(self, func=None, script_path=None, dir_name=None,
                  username=None):
-        """
-        Initialize a DockerReqs instance
+        """Initialize a DockerReqs instance
 
         Parameters
         ----------
@@ -202,8 +201,7 @@ class DockerReqs(object):
     missing_imports = property(operator.attrgetter('_missing_imports'))
 
     def _write_script(self):
-        """
-        Write this instance's function to a script with a CLI.
+        """Write this instance's function to a script with a CLI.
 
         Use clize.run to create CLI
 
@@ -219,8 +217,7 @@ class DockerReqs(object):
             f.write('    run({func_name:s})\n'.format(func_name=self.name))
 
     def _get_imports(self):
-        """
-        Generate list of packages imported in this instance's python script
+        """Generate list of packages imported in this instance's python script
 
         Yields
         -------
@@ -244,8 +241,7 @@ class DockerReqs(object):
                 yield Import(module, n.name.split('.'), n.asname)
 
     def _write_dockerfile(self):
-        """
-        Write Dockerfile to containerize this instance's python function
+        """Write Dockerfile to containerize this instance's python function
 
         Returns
         -------
@@ -297,8 +293,7 @@ class DockerReqs(object):
             ))
 
     def clobber(self):
-        """
-        Delete all of the files associated with this instance
+        """Delete all of the files associated with this instance
 
         Always delete the generated requirements.txt and Dockerfile. Only
         delete the script if it was auto-generated. Only delete the parent
@@ -354,8 +349,7 @@ class CloudKnot(object):
 
 
 class Pars(object):
-    """
-    PARS stands for Persistent AWS Resource Set
+    """PARS stands for Persistent AWS Resource Set
 
     This object collects AWS resources that could, in theory, be created only
     once for each cloudknot user and used for all of their subsequent AWS
@@ -366,8 +360,7 @@ class Pars(object):
                  ecs_instance_role_name=None, spot_fleet_role_name=None,
                  vpc_id=None, vpc_name=None,
                  security_group_id=None, security_group_name=None):
-        """
-        Initialize a PARS instance.
+        """Initialize a PARS instance.
 
         Parameters
         ----------
@@ -692,8 +685,7 @@ class Pars(object):
     def _role_setter(attr):
         """Static method to return setter methods for new IamRoles"""
         def set_role(self, new_role):
-            """
-            Setter method to attach new IAM role to this PARS
+            """Setter method to attach new IAM role to this PARS
 
             This method clobbers the old role and adopts the new one.
 
@@ -751,8 +743,7 @@ class Pars(object):
 
     @vpc.setter
     def vpc(self, v):
-        """
-        Setter method to attach new VPC to this PARS
+        """Setter method to attach new VPC to this PARS
 
         This method clobbers the old VPC and adopts the new one.
 
@@ -789,8 +780,7 @@ class Pars(object):
 
     @security_group.setter
     def security_group(self, sg):
-        """
-        Setter method to attach new security group to this PARS
+        """Setter method to attach new security group to this PARS
 
         This method clobbers the old security group and adopts the new one.
 
@@ -824,8 +814,7 @@ class Pars(object):
             CONFIG.write(f)
 
     def clobber(self):
-        """
-        Delete associated AWS resources and remove section from config
+        """Delete associated AWS resources and remove section from config
 
         Returns
         -------

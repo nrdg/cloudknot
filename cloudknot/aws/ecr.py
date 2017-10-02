@@ -21,7 +21,7 @@ class DockerImage(NamedObject):
     def __init__(self, name, tags=None, build_path=None,
                  dockerfile=None,
                  requirements=None):
-        """ Initialize a Docker image object.
+        """Initialize a Docker image object.
 
         Use may provide only `name` input, indicating that they would
         like to retrieve a pre-existing repo/image from AWS ECR. Or
@@ -154,7 +154,7 @@ class DockerImage(NamedObject):
     repo_registry_id = property(operator.attrgetter('_repo_registry_id'))
 
     def _exists_already(self):
-        """ Check if an AWS ECR repo exists already
+        """Check if an AWS ECR repo exists already
 
         If repo exists, return namedtuple with repo info. Otherwise, set the
         namedtuple's `exists` field to `False`. The remaining fields default

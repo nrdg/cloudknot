@@ -24,7 +24,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
     """Class for defining AWS Batch Job Definitions"""
     def __init__(self, arn=None, name=None, job_role=None, docker_image=None,
                  vcpus=None, memory=None, username=None, retries=None):
-        """ Initialize an AWS Batch job definition object.
+        """Initialize an AWS Batch job definition object.
 
         Parameters
         ----------
@@ -157,7 +157,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
     retries = property(operator.attrgetter('_retries'))
 
     def _exists_already(self, arn, name):
-        """ Check if an AWS Job Definition exists already
+        """Check if an AWS Job Definition exists already
 
         If definition exists, return namedtuple with job definition info.
         Otherwise, set the namedtuple's `exists` field to `False`. The
@@ -210,7 +210,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             return ResourceExists(exists=False)
 
     def _create(self):
-        """ Create AWS job definition using instance parameters
+        """Create AWS job definition using instance parameters
 
         Returns
         -------
@@ -248,7 +248,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         return arn
 
     def clobber(self):
-        """ Deregister this AWS batch job definition
+        """Deregister this AWS batch job definition
 
         Returns
         -------
@@ -273,7 +273,7 @@ class ComputeEnvironment(ObjectWithArn):
                  min_vcpus=None, max_vcpus=None, desired_vcpus=None,
                  image_id=None, ec2_key_pair=None, tags=None,
                  bid_percentage=None):
-        """ Initialize an AWS Batch job definition object.
+        """Initialize an AWS Batch job definition object.
 
         Parameters
         ----------
@@ -615,7 +615,7 @@ class ComputeEnvironment(ObjectWithArn):
     bid_percentage = property(operator.attrgetter('_bid_percentage'))
 
     def _exists_already(self, arn, name):
-        """ Check if a compute environment exists already
+        """Check if a compute environment exists already
 
         If compute environment exists, return namedtuple with compute
         environment info. Otherwise, set the namedtuple's `exists` field to
@@ -717,7 +717,7 @@ class ComputeEnvironment(ObjectWithArn):
             return ResourceExists(exists=False)
 
     def _create(self):
-        """ Create AWS compute environment using instance parameters
+        """Create AWS compute environment using instance parameters
 
         Returns
         -------
@@ -766,7 +766,7 @@ class ComputeEnvironment(ObjectWithArn):
         return arn
 
     def clobber(self):
-        """ Delete this compute environment
+        """Delete this compute environment
 
         Returns
         -------
@@ -838,7 +838,7 @@ class JobQueue(ObjectWithArn):
     """Class for defining AWS Batch Job Queues"""
     def __init__(self, arn=None, name=None, compute_environments=None,
                  priority=None):
-        """ Initialize an AWS Batch job definition object.
+        """Initialize an AWS Batch job definition object.
 
         Parameters
         ----------
@@ -953,7 +953,7 @@ class JobQueue(ObjectWithArn):
     priority = property(operator.attrgetter('_priority'))
 
     def _exists_already(self, arn, name):
-        """ Check if an AWS job queue exists already
+        """Check if an AWS job queue exists already
 
         If job queue exists, return namedtuple with job queue info.
         Otherwise, set the namedtuple's `exists` field to `False`.
@@ -1002,7 +1002,7 @@ class JobQueue(ObjectWithArn):
             return ResourceExists(exists=False)
 
     def _create(self):
-        """ Create AWS batch job queue using instance parameters
+        """Create AWS batch job queue using instance parameters
 
         Returns
         -------
@@ -1046,7 +1046,7 @@ class JobQueue(ObjectWithArn):
         return response.get('jobSummaryList')
 
     def clobber(self):
-        """ Delete this batch job queue
+        """Delete this batch job queue
 
         Returns
         -------
@@ -1086,7 +1086,7 @@ class BatchJob(NamedObject):
     def __init__(self, job_id=None, name=None, job_queue=None,
                  job_definition=None, commands=None,
                  environment_variables=None):
-        """ Initialize an AWS Batch Job object.
+        """Initialize an AWS Batch Job object.
 
         If requesting information on a pre-existing job, `job_id` is required.
         Otherwise, `name`, `job_queue`, and `job_definition` are required to
@@ -1190,7 +1190,7 @@ class BatchJob(NamedObject):
     job_id = property(operator.attrgetter('_job_id'))
 
     def _exists_already(self, job_id):
-        """ Check if an AWS batch job exists already
+        """Check if an AWS batch job exists already
 
         If batch job exists, return namedtuple with batch job info.
         Otherwise, set the namedtuple's `exists` field to
@@ -1234,7 +1234,7 @@ class BatchJob(NamedObject):
             return JobExists(exists=False)
 
     def _create(self):  # pragma: nocover
-        """ Create AWS batch job using instance parameters
+        """Create AWS batch job using instance parameters
 
         Returns
         -------
@@ -1269,7 +1269,7 @@ class BatchJob(NamedObject):
 
     @property
     def status(self):
-        """ Query AWS batch job status using instance parameter `self.job_id`
+        """Query AWS batch job status using instance parameter `self.job_id`
 
         Returns
         -------
@@ -1287,7 +1287,7 @@ class BatchJob(NamedObject):
         return status
 
     def terminate(self, reason):
-        """ Terminate AWS batch job using instance parameter `self.job_id`
+        """Terminate AWS batch job using instance parameter `self.job_id`
 
         Parameters
         ----------

@@ -23,8 +23,7 @@ ECR = boto3.client('ecr', region_name=get_default_region())
 class ResourceExistsException(Exception):
     """Exception indicating that the requested AWS resource already exists"""
     def __init__(self, message, resource_id):
-        """
-        Initialize the Exception
+        """Initialize the Exception
 
         Parameters
         ----------
@@ -41,8 +40,7 @@ class ResourceExistsException(Exception):
 class ResourceDoesNotExistException(Exception):
     """Exception indicating that the requested AWS resource does not exists"""
     def __init__(self, message, resource_id):
-        """
-        Initialize the Exception
+        """Initialize the Exception
 
         Parameters
         ----------
@@ -59,8 +57,7 @@ class ResourceDoesNotExistException(Exception):
 class CannotDeleteResourceException(Exception):
     """Exception indicating that an AWS resource cannot be deleted"""
     def __init__(self, message, resource_id):
-        """
-        Initialize the Exception
+        """Initialize the Exception
 
         Parameters
         ----------
@@ -77,7 +74,7 @@ class CannotDeleteResourceException(Exception):
 class NamedObject(object):
     """Base class for building objects with name property"""
     def __init__(self, name):
-        """ Initialize a base class with a name
+        """Initialize a base class with a name
 
         Parameters
         ----------
@@ -91,11 +88,12 @@ class NamedObject(object):
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 class ObjectWithArn(NamedObject):
-    """ Base class for building objects with an Amazon Resource Name (ARN)
+    """Base class for building objects with an Amazon Resource Name (ARN)
+
     Inherits from NamedObject
     """
     def __init__(self, name):
-        """ Initialize a base class with name and Amazon Resource Number (ARN)
+        """Initialize a base class with name and Amazon Resource Number (ARN)
 
         Parameters
         ----------
@@ -112,11 +110,12 @@ class ObjectWithArn(NamedObject):
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 class ObjectWithUsernameAndMemory(ObjectWithArn):
-    """ Base class for building objects with properties memory and username
+    """Base class for building objects with properties memory and username
+
     Inherits from ObjectWithArn
     """
     def __init__(self, name, memory=32000, username='cloudknot-user'):
-        """ Initialize a base class with name, memory, and username properties
+        """Initialize a base class with name, memory, and username properties
 
         Parameters
         ----------
@@ -150,8 +149,7 @@ class ObjectWithUsernameAndMemory(ObjectWithArn):
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 def wait_for_compute_environment(arn, name, log=True, max_wait_time=60):
-    """
-    Wait for a compute environment to finish updating or creating
+    """Wait for a compute environment to finish updating or creating
 
     Parameters
     ----------
@@ -206,8 +204,7 @@ def wait_for_compute_environment(arn, name, log=True, max_wait_time=60):
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 def wait_for_job_queue(name, log=True, max_wait_time=60):
-    """
-    Wait for a job queue to finish updating or creating
+    """Wait for a job queue to finish updating or creating
 
     Parameters
     ----------

@@ -17,7 +17,7 @@ class IamRole(ObjectWithArn):
     """Class for defining AWS IAM Roles"""
     def __init__(self, name, description=None, service=None,
                  policies=(), add_instance_profile=False):
-        """ Initialize an AWS IAM Role object.
+        """Initialize an AWS IAM Role object.
 
         Parameters
         ----------
@@ -153,7 +153,7 @@ class IamRole(ObjectWithArn):
     )
 
     def _exists_already(self):
-        """ Check if an IAM Role exists already
+        """Check if an IAM Role exists already
 
         If role exists, return namedtuple with role info. Otherwise, set the
         namedtuple's `exists` field to `False`. The remaining fields default
@@ -201,7 +201,7 @@ class IamRole(ObjectWithArn):
             return RoleExists(exists=False)
 
     def _create(self, add_instance_profile=False):
-        """ Create AWS IAM role using instance parameters
+        """Create AWS IAM role using instance parameters
 
         Returns
         -------
@@ -309,7 +309,7 @@ class IamRole(ObjectWithArn):
             return None
 
     def clobber(self):
-        """ Delete this AWS IAM role and remove from config file
+        """Delete this AWS IAM role and remove from config file
 
         Returns
         -------
