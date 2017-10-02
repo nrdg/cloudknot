@@ -27,6 +27,23 @@ class Vpc(NamedObject):
     """Class for defining an Amazon Virtual Private Cloud (VPC)"""
     def __init__(self, vpc_id=None, name=None, ipv4_cidr=None,
                  instance_tenancy=None):
+        """Initialize a Vpc instance
+
+        Parameters
+        ----------
+        vpc_id : string
+            VPC-ID for the VPC to be retrieved
+
+        name : string
+            Name of the VPC to be retrieved or created
+
+        ipv4_cidr : string
+            IPv4 CIDR block to be used for creation of a new VPC
+
+        instance_tenancy : string
+            Instance tenancy for this VPC, one of ['default', 'dedicated']
+            Default: 'default'
+        """
         # If user supplies vpc_id, then no other input is allowed
         if not (vpc_id or name):
             raise ValueError('name or vpc_id is required.')
@@ -96,6 +113,7 @@ class Vpc(NamedObject):
             self._vpc_id = self._create()
             self._subnet_ids = self._add_subnets()
 
+    # Declare read-only properties
     pre_existing = property(operator.attrgetter('_pre_existing'))
     ipv4_cidr = property(operator.attrgetter('_ipv4_cidr'))
     instance_tenancy = property(operator.attrgetter('_instance_tenancy'))
@@ -129,15 +147,21 @@ class Vpc(NamedObject):
             try:
                 # If user supplied vpc_id, check that
                 response = EC2.describe_vpcs(VpcIds=[vpc_id])
+
+                # Save vpcs for outside the if/else block
                 vpcs = response.get('Vpcs')
             except EC2.exceptions.ClientError as e:
                 error_code = e.response['Error']['Code']
                 if error_code == 'InvalidVpcID.NotFound':
+                    # VPC doesn't exist
+                    # Save vpcs for outside the if/else block
                     vpcs = None
                 else:  # pragma: nocover
+                    # I can't think of a test case for this
+                    # But we should pass through any unexpected errors
                     raise e
         else:
-            # Else check for the tag "name"
+            # Else check for the tag "Name: name"
             response = EC2.describe_tags(
                 Filters=[
                     {
@@ -230,11 +254,12 @@ class Vpc(NamedObject):
 
         logging.info('Created VPC {vpcid:s}.'.format(vpcid=vpc_id))
 
-        # Tag the VPC with name and owner
+        # Wait for VPC to exist and be available
         wait_for_vpc = EC2.get_waiter('vpc_exists')
         wait_for_vpc.wait(VpcIds=[vpc_id])
         wait_for_vpc = EC2.get_waiter('vpc_available')
         wait_for_vpc.wait(VpcIds=[vpc_id])
+        # Tag the VPC with name and owner
         EC2.create_tags(
             Resources=[vpc_id],
             Tags=[
@@ -255,23 +280,34 @@ class Vpc(NamedObject):
         return vpc_id
 
     def _add_subnets(self):
+        """Add one subnet to this VPC for each availability zone
+
+        Returns
+        -------
+        None
+        """
         # Add a subnet for each availability zone
         response = EC2.describe_availability_zones()
         zones = response.get('AvailabilityZones')
 
+        # Get an IPv4Network instance representing the VPC CIDR block
         cidr = ipaddress.IPv4Network(six.text_type(self.ipv4_cidr))
+
+        # Ensure that the CIDR block has enough addresses to cover each zone
         if cidr.num_addresses < len(zones):  # pragma: nocover
             raise ValueError('IPv4 CIDR block does not have enough addresses '
                              'for each availability zone')
 
-        # Get list of subnets, ensuring that there are at least one subnet
-        # per region
+        # Each increment of prefixlen_diff will give us another power of 2
+        # of subnets. So prefixlen_diff should be the log2 of the number of
+        # subnets we want (i.e. the number of zones)
         try:
             prefixlen_diff = ceil(log2(len(zones)))
         except NameError:  # pragma: nocover
             # python 2.7 compatibility
             prefixlen_diff = int(ceil(log(len(zones), 2)))
 
+        # Get list of subnet CIDR blocks truncating list to len(zones)
         subnet_ipv4_cidrs = list(cidr.subnets(
             prefixlen_diff=prefixlen_diff
         ))[:len(zones)]
@@ -279,6 +315,7 @@ class Vpc(NamedObject):
         subnet_ids = []
 
         for zone, subnet_cidr in zip(zones, subnet_ipv4_cidrs):
+            # Create a subnet for each zone
             response = EC2.create_subnet(
                 AvailabilityZone=zone['ZoneName'],
                 CidrBlock=str(subnet_cidr),
@@ -310,7 +347,7 @@ class Vpc(NamedObject):
         return subnet_ids
 
     def clobber(self):
-        """ Delete this AWS virtual private cloud (VPC)
+        """Delete this AWS virtual private cloud (VPC)
 
         Returns
         -------
@@ -330,6 +367,7 @@ class Vpc(NamedObject):
             # Remove this VPC from the list of VPCs in the config file
             cloudknot.config.remove_resource('vpc', self.vpc_id)
         except EC2.exceptions.ClientError as e:
+            # Check for dependency violation and pass exception to user
             error_code = e.response['Error']['Code']
             if error_code == 'DependencyViolation':
                 response = EC2.describe_security_groups(
@@ -362,8 +400,11 @@ class SecurityGroup(NamedObject):
 
         Parameters
         ----------
+        security_group_id : string
+            ID of the security group to be retrieved
+
         name : string
-            Name of the security group
+            Name of the security group to be created
 
         vpc : Vpc
             Amazon virtual private cloud in which to establish this
@@ -375,12 +416,14 @@ class SecurityGroup(NamedObject):
             "This security group was generated by cloudknot"
             Default: None
         """
+        # User must specify either an ID or a name and VPC
         if not (security_group_id or (name and vpc)):
             raise ValueError(
                 'You must specify either a security group id for an existing '
                 'security group or a name and VPC for a new security group.'
             )
 
+        # Check that user didn't over-specify input
         if security_group_id and any([name, vpc, description]):
             raise ValueError(
                 'You must specify either a security group id for an existing '
@@ -388,6 +431,7 @@ class SecurityGroup(NamedObject):
                 'You cannot do both.'
             )
 
+        # Validate VPC input
         if vpc and not isinstance(vpc, Vpc):
             raise ValueError('If provided, vpc must be an instance of Vpc.')
 
@@ -434,6 +478,7 @@ class SecurityGroup(NamedObject):
                 'This security group was automatically generated by cloudknot.'
             self._security_group_id = self._create()
 
+    # Declare read-only properties
     pre_existing = property(operator.attrgetter('_pre_existing'))
     vpc = property(operator.attrgetter('_vpc'))
     vpc_id = property(operator.attrgetter('_vpc_id'))
@@ -573,7 +618,7 @@ class SecurityGroup(NamedObject):
         return group_id
 
     def clobber(self):
-        """ Delete this AWS security group
+        """ Delete this AWS security group and associated resources
 
         Returns
         -------
