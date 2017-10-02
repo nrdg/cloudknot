@@ -2,6 +2,7 @@ from __future__ import absolute_import, division, print_function
 
 import cloudknot.aws
 import configparser
+import logging
 import os
 
 CONFIG = configparser.ConfigParser()
