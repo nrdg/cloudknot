@@ -105,6 +105,12 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             cloudknot.config.add_resource(
                 'job-definitions', self.name, self.arn
             )
+
+            logging.info(
+                'Retrieved pre-existing job definition {name:s}'.format(
+                    name=self.name
+                )
+            )
         else:
             # If user supplied only a name or only an arn, expecting to
             # retrieve info on pre-existing job definition, throw error
@@ -253,14 +259,14 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             retryStrategy={'attempts': self.retries}
         )
 
-        logging.info('Created AWS batch job definition {name:s}'.format(
-            name=self.name
-        ))
-
         arn = response['jobDefinitionArn']
 
         # Add this job def to the list of job definitions in the config file
         cloudknot.config.add_resource('job-definitions', self.name, arn)
+
+        logging.info('Created AWS batch job definition {name:s}'.format(
+            name=self.name
+        ))
 
         return arn
 
@@ -273,12 +279,12 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         """
         BATCH.deregister_job_definition(jobDefinition=self.arn)
 
+        # Remove this job def from the list of job defs in the config file
+        cloudknot.config.remove_resource('job-definitions', self.name)
+
         logging.info('Deregistered job definition {name:s}'.format(
             name=self.name
         ))
-
-        # Remove this job def from the list of job defs in the config file
-        cloudknot.config.remove_resource('job-definitions', self.name)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -431,8 +437,15 @@ class ComputeEnvironment(ObjectWithArn):
             self._tags = resource.tags
             self._bid_percentage = resource.bid_percentage
             self._arn = resource.arn
+
             cloudknot.config.add_resource(
                 'compute-environments', self.name, self.arn
+            )
+
+            logging.info(
+                'Retrieved pre-existing compute environment {name:s}'.format(
+                    name=self.name
+                )
             )
         else:
             # If user supplied only a name or only an arn, expecting to
@@ -804,6 +817,10 @@ class ComputeEnvironment(ObjectWithArn):
         # Add this compute env to the list of compute envs in the config file
         cloudknot.config.add_resource('compute-environments', self.name, arn)
 
+        logging.info('Created compute environment {name:s}'.format(
+            name=self.name
+        ))
+
         return arn
 
     def clobber(self):
@@ -846,16 +863,17 @@ class ComputeEnvironment(ObjectWithArn):
                 wait_for_compute_environment(arn=self.arn, name=self.name)
                 BATCH.delete_compute_environment(computeEnvironment=self.arn)
 
-                logging.info('Deleted compute environment {name:s}'.format(
-                    name=self.name
-                ))
-
                 # Remove this compute env from the list of compute envs
                 # in config file
                 cloudknot.config.remove_resource(
                     'compute-environments', self.name
                 )
+
                 done = True
+
+                logging.info('Clobbered compute environment {name:s}'.format(
+                    name=self.name
+                ))
             except BATCH.exceptions.ClientException as e:
                 error_message = e.response['Error']['Message']
                 if error_message == 'Cannot delete, found existing ' \
@@ -941,7 +959,12 @@ class JobQueue(ObjectWithArn):
             self._compute_environment_arns = resource.compute_environment_arns
             self._priority = resource.priority
             self._arn = resource.arn
+
             cloudknot.config.add_resource('job-queues', self.name, self.arn)
+
+            logging.info('Retrieved pre-existing job queue {name:s}'.format(
+                name=self.name
+            ))
         else:
             # If user supplied only a name or only an arn, expecting to
             # retrieve info on pre-existing job queue, throw error
@@ -1070,10 +1093,10 @@ class JobQueue(ObjectWithArn):
         # Wait for job queue to be in VALID state
         wait_for_job_queue(name=self.name, max_wait_time=180)
 
-        logging.info('Created job queue {name:s}'.format(name=self.name))
-
         # Add this job queue to the list of job queues in the config file
         cloudknot.config.add_resource('job-queues', self.name, arn)
+
+        logging.info('Created job queue {name:s}'.format(name=self.name))
 
         return arn
 
@@ -1131,15 +1154,17 @@ class JobQueue(ObjectWithArn):
                     reason='Terminated to force job queue deletion'
                 )
 
+                logging.info('Terminated job {id:s}'.format(id=job_id))
+
         wait_for_job_queue(self.name, max_wait_time=180)
 
         # Finally, delete the job queue
         BATCH.delete_job_queue(jobQueue=self.arn)
 
-        logging.info('Deleted job queue {name:s}'.format(name=self.name))
-
         # Remove this job queue from the list of job queues in config file
         cloudknot.config.remove_resource('job-queues', self.name)
+
+        logging.info('Clobbered job queue {name:s}'.format(name=self.name))
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -1204,7 +1229,12 @@ class BatchJob(NamedObject):
             self._commands = job.commands
             self._environment_variables = job.environment_variables
             self._job_id = job.job_id
+
             cloudknot.config.add_resource('jobs', self.job_id, self.name)
+
+            logging.info('Retrieved pre-existing batch job {id:s}'.format(
+                id=self.job_id
+            ))
         else:
             super(BatchJob, self).__init__(name=name)
 
@@ -1317,15 +1347,15 @@ class BatchJob(NamedObject):
             containerOverrides=container_overrides
         )
 
-        logging.info(
-            'Submitted batch job {name:s} with jobID '
-            '{job_id:s}'.format(name=self.name, job_id=response['jobId'])
-        )
-
         job_id = response['jobId']
 
         # Add this job to the list of jobs in the config file
         cloudknot.config.add_resource('jobs', job_id, self.name)
+
+        logging.info(
+            'Submitted batch job {name:s} with jobID '
+            '{job_id:s}'.format(name=self.name, job_id=job_id)
+        )
 
         return job_id
 

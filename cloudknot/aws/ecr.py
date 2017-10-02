@@ -213,6 +213,9 @@ class DockerImage(NamedObject):
         req_build_path = os.path.join(self.build_path, 'requirements.txt')
         if not os.path.isfile(req_build_path):
             # If the requirements.txt file is not in the build_path, copy it
+            logging.info('Copying {req:s} into build path {bp:s}'.format(
+                req=self.requirements, bp=self.build_path
+            ))
             shutil.copyfile(self.requirements, req_build_path)
             # Set a cleanup flag for after the build
             cleanup = True
@@ -234,6 +237,9 @@ class DockerImage(NamedObject):
                 logging.debug(line)
 
         if cleanup:
+            logging.info('Removing temporary file {req:s}'.format(
+                req=req_build_path
+            ))
             # Remove the copied file if necessary
             os.remove(req_build_path)
 
@@ -357,3 +363,5 @@ class DockerImage(NamedObject):
 
         # Remove from the config file
         cloudknot.config.remove_resource('docker-images', self.name)
+
+        logging.info('Clobbered docker image {name:s}'.format(name=self.name))
