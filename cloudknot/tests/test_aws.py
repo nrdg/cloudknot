@@ -45,12 +45,10 @@ def pars():
     p.clobber()
 
 
-def get_unit_test_name():
-    return UNIT_TEST_PREFIX + '-' + str(uuid.uuid4())
-
-
-def get_unit_test_error_assertion_name():
-    return UNIT_TEST_PREFIX + '-assert-error-' + str(uuid.uuid4())
+def get_testing_name():
+    u = str(uuid.uuid4()).replace('-', '')[:8]
+    name = UNIT_TEST_PREFIX + '-' + u
+    return name
 
 
 def test_wait_for_compute_environment(pars):
@@ -58,7 +56,7 @@ def test_wait_for_compute_environment(pars):
     ce = None
     try:
         ce = ck.aws.ComputeEnvironment(
-            name=get_unit_test_name(),
+            name=get_testing_name(),
             batch_service_role=pars.batch_service_role,
             instance_role=pars.ecs_instance_role, vpc=pars.vpc,
             security_group=pars.security_group,
@@ -82,7 +80,7 @@ def test_wait_for_job_queue(pars):
     jq = None
     try:
         ce = ck.aws.ComputeEnvironment(
-            name=get_unit_test_name(),
+            name=get_testing_name(),
             batch_service_role=pars.batch_service_role,
             instance_role=pars.ecs_instance_role, vpc=pars.vpc,
             security_group=pars.security_group,
@@ -93,10 +91,7 @@ def test_wait_for_job_queue(pars):
             arn=ce.arn, name=ce.name, log=False
         )
 
-        jq = ck.aws.JobQueue(
-            name=get_unit_test_name(),
-            compute_environments=ce
-        )
+        jq = ck.aws.JobQueue(name=get_testing_name(), compute_environments=ce)
 
         with pytest.raises(SystemExit):
             ck.aws.wait_for_job_queue(
@@ -116,7 +111,7 @@ def test_ObjectWithUsernameAndMemory():
     for mem in [-42, 'not-an-int']:
         with pytest.raises(ValueError):
             ck.aws.base_classes.ObjectWithUsernameAndMemory(
-                name=get_unit_test_error_assertion_name(),
+                name=get_testing_name(),
                 memory=mem
             )
 
@@ -128,7 +123,7 @@ def test_IamRole():
 
     try:
         # Use boto3 to create a role
-        name = get_unit_test_name()
+        name = get_testing_name()
 
         service = 'batch.amazonaws.com'
         role_policy = {
@@ -197,14 +192,14 @@ def test_IamRole():
         assert name not in config.options('roles')
 
         # Try to retrieve a role that does not exist
-        name = get_unit_test_name()
+        name = get_testing_name()
         with pytest.raises(ck.aws.ResourceDoesNotExistException) as e:
             ck.aws.IamRole(name=name)
 
         assert e.value.resource_id == name
 
         # Create two roles, one with an instance profile and one without.
-        names = [get_unit_test_name() for i in range(2)]
+        names = [get_testing_name() for i in range(2)]
         descriptions = ['Role for unit test of cloudknot.aws.IamRole()', None]
         services = ['ec2', 'ecs-tasks']
         policy_set = ['AmazonS3FullAccess',
@@ -263,7 +258,7 @@ def test_IamRole():
             ck.aws.IamRole(name='not-important', service='ec2',
                            add_instance_profile=455)
 
-        name = get_unit_test_name()
+        name = get_testing_name()
         response = iam.create_instance_profile(
             InstanceProfileName=name + '-instance-profile'
         )
@@ -342,7 +337,7 @@ def test_DockerImage():
                 )
             )
 
-        name = get_unit_test_name()
+        name = get_testing_name()
 
         # Assert that trying to retrieve non-existent repo gives an error
         with pytest.raises(ck.aws.ResourceDoesNotExistException) as e:
@@ -390,7 +385,7 @@ def test_DockerImage():
         config.read(config_file)
         assert name not in config.options('docker-images')
 
-        names = [get_unit_test_name() for i in range(2)]
+        names = [get_testing_name() for i in range(2)]
         tags = ['testing', ['testing', '0.1']]
         build_path = op.abspath(
             op.join(data_path, 'docker_image_ref_data')
@@ -447,48 +442,42 @@ def test_DockerImage():
 
         # Assert ValueError on missing tags
         with pytest.raises(ValueError):
-            ck.aws.DockerImage(
-                name=get_unit_test_error_assertion_name(),
-                tags=['0.1']
-            )
+            ck.aws.DockerImage(name=get_testing_name(), tags=['0.1'])
 
         # Assert ValueError on missing build_path
         with pytest.raises(ValueError):
-            ck.aws.DockerImage(
-                name=get_unit_test_error_assertion_name(),
-                build_path=os.getcwd()
-            )
+            ck.aws.DockerImage(name=get_testing_name(), build_path=os.getcwd())
 
         # Assert ValueError on invalid build_path
         with pytest.raises(ValueError):
             ck.aws.DockerImage(
-                name=get_unit_test_error_assertion_name(),
-                build_path=get_unit_test_error_assertion_name(),
+                name=get_testing_name(),
+                build_path=get_testing_name(),
                 tags=['0.1']
             )
 
         # Assert ValueError on invalid dockerfile
         with pytest.raises(ValueError):
             ck.aws.DockerImage(
-                name=get_unit_test_error_assertion_name(),
+                name=get_testing_name(),
                 build_path=os.getcwd(),
                 tags=['0.1'],
-                dockerfile=get_unit_test_error_assertion_name()
+                dockerfile=get_testing_name()
             )
 
         # Assert ValueError on invalid requirements
         with pytest.raises(ValueError):
             ck.aws.DockerImage(
-                name=get_unit_test_error_assertion_name(),
+                name=get_testing_name(),
                 build_path=os.getcwd(),
                 tags=['0.1'],
-                requirements=get_unit_test_error_assertion_name()
+                requirements=get_testing_name()
             )
 
         # Assert ValueError on invalid tags
         with pytest.raises(ValueError):
             ck.aws.DockerImage(
-                name=get_unit_test_error_assertion_name(),
+                name=get_testing_name(),
                 build_path=os.getcwd(),
                 tags=[42, -42],
             )
@@ -496,7 +485,7 @@ def test_DockerImage():
         # Assert ValueError on 'latest' in tags
         with pytest.raises(ValueError):
             ck.aws.DockerImage(
-                name=get_unit_test_error_assertion_name(),
+                name=get_testing_name(),
                 build_path=os.getcwd(),
                 tags=['testing', 'latest'],
             )
@@ -545,7 +534,7 @@ def test_Vpc():
 
     try:
         # Use boto3 to create a VPC
-        name = get_unit_test_name()
+        name = get_testing_name()
         ipv4_cidr = '10.0.0.0/16'
         instance_tenancy = 'default'
 
@@ -616,14 +605,14 @@ def test_Vpc():
         assert vpc_id not in config.options('vpc')
 
         # Try to retrieve a VPC that does not exist
-        vpc_id = get_unit_test_name()
+        vpc_id = get_testing_name()
         with pytest.raises(ck.aws.ResourceDoesNotExistException) as e:
             ck.aws.Vpc(vpc_id=vpc_id)
 
         assert e.value.resource_id == vpc_id
 
         # Create Vpc instances, with different input types
-        names = [get_unit_test_name() for i in range(3)]
+        names = [get_testing_name() for i in range(3)]
         ipv4s = ['11.0.0.0/16', '10.1.0.0/16', None]
         instance_tenancies = ['default', 'dedicated', None]
 
@@ -680,10 +669,7 @@ def test_Vpc():
         assert name_tag['Value'] == 'cloudknot-acquired-pre-existing-vpc'
 
         # Now associate a security group
-        sg = ck.aws.SecurityGroup(
-            name=get_unit_test_error_assertion_name(),
-            vpc=vpc
-        )
+        sg = ck.aws.SecurityGroup(name=get_testing_name(), vpc=vpc)
 
         # And assert that clobber raises a CannotDeleteResourceException
         with pytest.raises(ck.aws.CannotDeleteResourceException) as e:
@@ -702,27 +688,18 @@ def test_Vpc():
 
         # Assert ValueError on vpc_id and name input
         with pytest.raises(ValueError):
-            ck.aws.Vpc(
-                vpc_id=get_unit_test_error_assertion_name(),
-                name=get_unit_test_error_assertion_name()
-            )
+            ck.aws.Vpc(vpc_id=get_testing_name(), name=get_testing_name())
 
         # Assert ValueError on invalid ipv4_cidr
         with pytest.raises(ValueError):
-            ck.aws.Vpc(
-                name=get_unit_test_error_assertion_name(),
-                ipv4_cidr='not-valid'
-            )
+            ck.aws.Vpc(name=get_testing_name(), ipv4_cidr='not-valid')
 
         # Assert ValueError on invalid instance tenancy
         with pytest.raises(ValueError):
-            ck.aws.Vpc(
-                name=get_unit_test_error_assertion_name(),
-                instance_tenancy='not-valid'
-            )
+            ck.aws.Vpc(name=get_testing_name(), instance_tenancy='not-valid')
 
         # Assert ResourceDoesNotExistException on invalid vpc_id
-        name = get_unit_test_error_assertion_name()
+        name = get_testing_name()
         with pytest.raises(ck.aws.ResourceDoesNotExistException) as e:
             ck.aws.Vpc(vpc_id=name)
 
@@ -781,7 +758,7 @@ def test_SecurityGroup():
 
     try:
         # Use boto3 to create a security group
-        name = get_unit_test_name()
+        name = get_testing_name()
         description = 'Security group for cloudknot unit testing'
 
         # Create a VPC to attach the security group to
@@ -859,14 +836,14 @@ def test_SecurityGroup():
         assert group_id not in config.options('security-groups')
 
         # Try to retrieve a security group that does not exist
-        group_id = get_unit_test_name()
+        group_id = get_testing_name()
         with pytest.raises(ck.aws.ResourceDoesNotExistException) as e:
             ck.aws.SecurityGroup(security_group_id=group_id)
 
         assert e.value.resource_id == group_id
 
         # Create SecurityGroup instances, one with description and one without
-        names = [get_unit_test_name() for i in range(2)]
+        names = [get_testing_name() for i in range(2)]
         vpcs = [vpc, vpc]
         descriptions = [
             'Security Group for unit testing of cloudknot.aws.SecurityGroup()',
@@ -920,16 +897,13 @@ def test_SecurityGroup():
         # Assert ValueError on name and group_id input
         with pytest.raises(ValueError) as e:
             ck.aws.SecurityGroup(
-                security_group_id=get_unit_test_error_assertion_name(),
-                name=get_unit_test_error_assertion_name()
+                security_group_id=get_testing_name(),
+                name=get_testing_name()
             )
 
         # Assert ValueError on invalid vpc input
         with pytest.raises(ValueError) as e:
-            ck.aws.SecurityGroup(
-                name=get_unit_test_error_assertion_name(),
-                vpc=5
-            )
+            ck.aws.SecurityGroup(name=get_testing_name(), vpc=5)
 
         # Finally clean up the VPC that we used for testing
         vpc.clobber()
@@ -984,7 +958,7 @@ def test_JobDefinition(pars):
 
     try:
         # Use boto3 to create a job definition
-        name = get_unit_test_name()
+        name = get_testing_name()
         image = 'ubuntu'
         vcpus = 3
         memory = 8000
@@ -1070,7 +1044,7 @@ def test_JobDefinition(pars):
         # Create two job definitions, one with default values for vcpus,
         # memory, and username and one with explicit values
 
-        names = [get_unit_test_name() for i in range(2)]
+        names = [get_testing_name() for i in range(2)]
         job_roles = [pars.batch_service_role for i in range(2)]
         docker_images = ['ubuntu', 'ubuntu']
         vcpus = [5, None]
@@ -1128,37 +1102,37 @@ def test_JobDefinition(pars):
             ck.aws.JobDefinition()
         with pytest.raises(ValueError) as e:
             ck.aws.JobDefinition(
-                arn=get_unit_test_error_assertion_name(),
-                name=get_unit_test_error_assertion_name()
+                arn=get_testing_name(),
+                name=get_testing_name()
             )
         with pytest.raises(ValueError) as e:
             ck.aws.JobDefinition(
-                name=get_unit_test_error_assertion_name(),
+                name=get_testing_name(),
                 job_role=5, docker_image='ubuntu'
             )
         with pytest.raises(ValueError) as e:
             ck.aws.JobDefinition(
-                name=get_unit_test_error_assertion_name(),
+                name=get_testing_name(),
                 job_role=pars.batch_service_role,
                 docker_image=5
             )
         with pytest.raises(ValueError) as e:
             ck.aws.JobDefinition(
-                name=get_unit_test_error_assertion_name(),
+                name=get_testing_name(),
                 job_role=pars.batch_service_role,
                 docker_image='ubuntu',
                 vcpus=-2
             )
         with pytest.raises(ValueError) as e:
             ck.aws.JobDefinition(
-                name=get_unit_test_error_assertion_name(),
+                name=get_testing_name(),
                 job_role=pars.batch_service_role,
                 docker_image='ubuntu',
                 retries=0
             )
         with pytest.raises(ValueError) as e:
             ck.aws.JobDefinition(
-                name=get_unit_test_error_assertion_name(),
+                name=get_testing_name(),
                 job_role=pars.batch_service_role,
                 docker_image='ubuntu',
                 retries=100
@@ -1214,7 +1188,7 @@ def test_ComputeEnvironment(pars):
 
     try:
         # Use boto3 to create a compute environment
-        name = get_unit_test_name()
+        name = get_testing_name()
 
         resource_type = 'EC2'
         min_vcpus = 1
@@ -1295,10 +1269,7 @@ def test_ComputeEnvironment(pars):
             arn=ce.arn, name=ce.name, log=False
         )
 
-        jq = ck.aws.JobQueue(
-            name=get_unit_test_name(),
-            compute_environments=ce
-        )
+        jq = ck.aws.JobQueue(name=get_testing_name(), compute_environments=ce)
 
         # Clobber the compute environment first, then the job queue
         with pytest.raises(ck.aws.CannotDeleteResourceException) as e:
@@ -1338,7 +1309,7 @@ def test_ComputeEnvironment(pars):
 
         # Create four compute environments with different parameters
 
-        names = [get_unit_test_name() for i in range(4)]
+        names = [get_testing_name() for i in range(4)]
         batch_service_roles = [pars.batch_service_role] * 4
         instance_roles = [pars.ecs_instance_role] * 4
         vpcs = [pars.vpc] * 4
@@ -1438,14 +1409,14 @@ def test_ComputeEnvironment(pars):
         # Value Error for both arn and name
         with pytest.raises(ValueError) as e:
             ck.aws.ComputeEnvironment(
-                arn=get_unit_test_error_assertion_name(),
-                name=get_unit_test_error_assertion_name()
+                arn=get_testing_name(),
+                name=get_testing_name()
             )
 
         # ValueError for 'SPOT' resource with no spot_fleet_role
         with pytest.raises(ValueError) as e:
             ck.aws.ComputeEnvironment(
-                name=get_unit_test_error_assertion_name(),
+                name=get_testing_name(),
                 batch_service_role=pars.batch_service_role,
                 instance_role=pars.ecs_instance_role, vpc=pars.vpc,
                 security_group=pars.security_group,
@@ -1455,7 +1426,7 @@ def test_ComputeEnvironment(pars):
         # ValueError for 'SPOT' resource with no bid_percentage
         with pytest.raises(ValueError) as e:
             ck.aws.ComputeEnvironment(
-                name=get_unit_test_error_assertion_name(),
+                name=get_testing_name(),
                 batch_service_role=pars.batch_service_role,
                 instance_role=pars.ecs_instance_role, vpc=pars.vpc,
                 security_group=pars.security_group,
@@ -1466,7 +1437,7 @@ def test_ComputeEnvironment(pars):
         # ValueError for bad batch_service_role
         with pytest.raises(ValueError) as e:
             ck.aws.ComputeEnvironment(
-                name=get_unit_test_error_assertion_name(),
+                name=get_testing_name(),
                 batch_service_role=pars.ecs_instance_role,
                 instance_role=pars.ecs_instance_role, vpc=pars.vpc,
                 security_group=pars.security_group
@@ -1475,7 +1446,7 @@ def test_ComputeEnvironment(pars):
         # ValueError for bad instance_role
         with pytest.raises(ValueError) as e:
             ck.aws.ComputeEnvironment(
-                name=get_unit_test_error_assertion_name(),
+                name=get_testing_name(),
                 batch_service_role=pars.batch_service_role,
                 instance_role=pars.batch_service_role, vpc=pars.vpc,
                 security_group=pars.security_group
@@ -1484,7 +1455,7 @@ def test_ComputeEnvironment(pars):
         # ValueError for bad vpc
         with pytest.raises(ValueError) as e:
             ck.aws.ComputeEnvironment(
-                name=get_unit_test_error_assertion_name(),
+                name=get_testing_name(),
                 batch_service_role=pars.batch_service_role,
                 instance_role=pars.ecs_instance_role,
                 vpc=pars.security_group,
@@ -1494,7 +1465,7 @@ def test_ComputeEnvironment(pars):
         # ValueError for bad security_group
         with pytest.raises(ValueError) as e:
             ck.aws.ComputeEnvironment(
-                name=get_unit_test_error_assertion_name(),
+                name=get_testing_name(),
                 batch_service_role=pars.batch_service_role,
                 instance_role=pars.ecs_instance_role,
                 vpc=pars.vpc,
@@ -1504,7 +1475,7 @@ def test_ComputeEnvironment(pars):
         # ValueError for bad spot_fleet_role
         with pytest.raises(ValueError) as e:
             ck.aws.ComputeEnvironment(
-                name=get_unit_test_error_assertion_name(),
+                name=get_testing_name(),
                 batch_service_role=pars.batch_service_role,
                 instance_role=pars.ecs_instance_role,
                 vpc=pars.vpc,
@@ -1516,7 +1487,7 @@ def test_ComputeEnvironment(pars):
         for instance_type in [[5, 4], 'bad-instance-type-string']:
             with pytest.raises(ValueError) as e:
                 ck.aws.ComputeEnvironment(
-                    name=get_unit_test_error_assertion_name(),
+                    name=get_testing_name(),
                     batch_service_role=pars.batch_service_role,
                     instance_role=pars.ecs_instance_role,
                     vpc=pars.vpc,
@@ -1527,7 +1498,7 @@ def test_ComputeEnvironment(pars):
         # ValueError for bad resource_type
         with pytest.raises(ValueError) as e:
             ck.aws.ComputeEnvironment(
-                name=get_unit_test_error_assertion_name(),
+                name=get_testing_name(),
                 batch_service_role=pars.batch_service_role,
                 instance_role=pars.ecs_instance_role,
                 vpc=pars.vpc,
@@ -1538,7 +1509,7 @@ def test_ComputeEnvironment(pars):
         # ValueError for bad min_vcpus
         with pytest.raises(ValueError) as e:
             ck.aws.ComputeEnvironment(
-                name=get_unit_test_error_assertion_name(),
+                name=get_testing_name(),
                 batch_service_role=pars.batch_service_role,
                 instance_role=pars.ecs_instance_role,
                 vpc=pars.vpc,
@@ -1549,7 +1520,7 @@ def test_ComputeEnvironment(pars):
         # ValueError for bad max_vcpus
         with pytest.raises(ValueError) as e:
             ck.aws.ComputeEnvironment(
-                name=get_unit_test_error_assertion_name(),
+                name=get_testing_name(),
                 batch_service_role=pars.batch_service_role,
                 instance_role=pars.ecs_instance_role,
                 vpc=pars.vpc,
@@ -1560,7 +1531,7 @@ def test_ComputeEnvironment(pars):
         # ValueError for bad desired_vcpus
         with pytest.raises(ValueError) as e:
             ck.aws.ComputeEnvironment(
-                name=get_unit_test_error_assertion_name(),
+                name=get_testing_name(),
                 batch_service_role=pars.batch_service_role,
                 instance_role=pars.ecs_instance_role,
                 vpc=pars.vpc,
@@ -1571,7 +1542,7 @@ def test_ComputeEnvironment(pars):
         # ValueError for bad image_id
         with pytest.raises(ValueError) as e:
             ck.aws.ComputeEnvironment(
-                name=get_unit_test_error_assertion_name(),
+                name=get_testing_name(),
                 batch_service_role=pars.batch_service_role,
                 instance_role=pars.ecs_instance_role,
                 vpc=pars.vpc,
@@ -1582,7 +1553,7 @@ def test_ComputeEnvironment(pars):
         # ValueError for bad ec2_key_pair
         with pytest.raises(ValueError) as e:
             ck.aws.ComputeEnvironment(
-                name=get_unit_test_error_assertion_name(),
+                name=get_testing_name(),
                 batch_service_role=pars.batch_service_role,
                 instance_role=pars.ecs_instance_role,
                 vpc=pars.vpc,
@@ -1593,7 +1564,7 @@ def test_ComputeEnvironment(pars):
         # ValueError for bad ec2_key_pair
         with pytest.raises(ValueError) as e:
             ck.aws.ComputeEnvironment(
-                name=get_unit_test_error_assertion_name(),
+                name=get_testing_name(),
                 batch_service_role=pars.batch_service_role,
                 instance_role=pars.ecs_instance_role,
                 vpc=pars.vpc,
@@ -1709,7 +1680,7 @@ def test_JobQueue(pars):
 
     try:
         ce = ck.aws.ComputeEnvironment(
-            name=get_unit_test_name(),
+            name=get_testing_name(),
             batch_service_role=pars.batch_service_role,
             instance_role=pars.ecs_instance_role, vpc=pars.vpc,
             security_group=pars.security_group,
@@ -1717,7 +1688,7 @@ def test_JobQueue(pars):
         )
 
         ce2 = ck.aws.ComputeEnvironment(
-            name=get_unit_test_name(),
+            name=get_testing_name(),
             batch_service_role=pars.batch_service_role,
             instance_role=pars.ecs_instance_role, vpc=pars.vpc,
             security_group=pars.security_group,
@@ -1729,7 +1700,7 @@ def test_JobQueue(pars):
         )
 
         # Use boto3 to create a job queue
-        name = get_unit_test_name()
+        name = get_testing_name()
         state = 'ENABLED'
         priority = 1
         compute_environment_arns = [
@@ -1811,7 +1782,7 @@ def test_JobQueue(pars):
         assert e.value.resource_id == nonexistent_arn
 
         # Create four job queues with different parameters
-        names = [get_unit_test_name() for i in range(2)]
+        names = [get_testing_name() for i in range(2)]
         compute_environments = [ce, (ce, ce2)]
         priorities = [4, None]
 
@@ -1869,15 +1840,12 @@ def test_JobQueue(pars):
 
         # Value Error for both arn and name
         with pytest.raises(ValueError) as e:
-            ck.aws.JobQueue(
-                arn=get_unit_test_error_assertion_name(),
-                name=get_unit_test_error_assertion_name()
-            )
+            ck.aws.JobQueue(arn=get_testing_name(), name=get_testing_name())
 
         # Value Error for negative priority
         with pytest.raises(ValueError) as e:
             ck.aws.JobQueue(
-                name=get_unit_test_error_assertion_name(),
+                name=get_testing_name(),
                 compute_environments=ce,
                 priority=-42
             )
@@ -1885,7 +1853,7 @@ def test_JobQueue(pars):
         # Value Error for invalid compute environments
         with pytest.raises(ValueError) as e:
             ck.aws.JobQueue(
-                name=get_unit_test_error_assertion_name(),
+                name=get_testing_name(),
                 compute_environments=[42, -42]
             )
     except Exception as e:  # pragma: nocover
