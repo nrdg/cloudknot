@@ -28,8 +28,10 @@ class JobDefinition(ObjectWithUsernameAndMemory):
 
         Parameters
         ----------
+        arn : string
+            ARN of the job definition to retrieve
         name : string
-            Name of the job definition
+            Name of the job definition to retrieve or create
 
         job_role : IamRole
             IamRole instance for the AWS IAM job role to be used in this
@@ -58,10 +60,12 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             May be between 1 and 10
             Default: 3
         """
+        # Validate for minimum input
         if not (arn or name):
             raise ValueError('You must supply either an arn or name for this '
                              'job definition.')
 
+        # Validate to prevent over-specified input
         if arn and any([
             name, job_role, docker_image, vcpus, memory, username, retries
         ]):
@@ -96,6 +100,8 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             self._vcpus = resource.vcpus
             self._retries = resource.retries
             self._arn = resource.arn
+
+            # Add to config file
             cloudknot.config.add_resource(
                 'job-definitions', self.name, self.arn
             )
@@ -116,10 +122,12 @@ class JobDefinition(ObjectWithUsernameAndMemory):
                 name=name, memory=memory, username=username
             )
 
+            # Validate job role input
             if not isinstance(job_role, IamRole):
                 raise ValueError('job_role must be an instance of IamRole')
             self._job_role = job_role
 
+            # Validate docker_image input
             if not (isinstance(docker_image, DockerImage)
                     or isinstance(docker_image, str)):
                 raise ValueError(
@@ -128,6 +136,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
                 )
             self._docker_image = docker_image
 
+            # Validate vcpus input
             if vcpus:
                 cpus = int(vcpus)
                 if cpus < 1:
@@ -137,6 +146,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             else:
                 self._vcpus = 1
 
+            # Validate retries input
             if retries is not None:
                 retries_int = int(retries)
                 if retries_int < 1:
@@ -150,6 +160,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
 
             self._arn = self._create()
 
+    # Declare read-only parameters
     pre_existing = property(operator.attrgetter('_pre_existing'))
     job_role = property(operator.attrgetter('_job_role'))
     docker_image = property(operator.attrgetter('_docker_image'))
@@ -180,11 +191,14 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             (None,) * (len(ResourceExists._fields) - 1)
 
         if arn:
+            # Retrieve using ARN
             response = BATCH.describe_job_definitions(jobDefinitions=[arn])
         else:
+            # Retrieve using name
             response = BATCH.describe_job_definitions(jobDefinitionName=name)
 
         if response.get('jobDefinitions'):
+            # Job def exists. Get job def details
             job_def = response.get('jobDefinitions')[0]
             job_def_name = job_def['jobDefinitionName']
             job_def_arn = job_def['jobDefinitionArn']
@@ -217,6 +231,8 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         string
             Amazon Resource Number (ARN) for the created job definition
         """
+        # If docker_image is a string, assume it contains the image URI
+        # Else it's a DockerImage instance, get the uri property
         image = self.docker_image if isinstance(self.docker_image, str) \
             else self.docker_image.uri
 
@@ -229,6 +245,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             'user': self.username
         }
 
+        # Register the job def
         response = BATCH.register_job_definition(
             jobDefinitionName=self.name,
             type='container',
@@ -342,12 +359,14 @@ class ComputeEnvironment(ObjectWithArn):
             bid percentage if using spot instances
             Default: 50
         """
+        # Validate for minimum input
         if not (arn or name):
             raise ValueError(
                 'You must supply either an arn or name for this '
                 'compute environment.'
             )
 
+        # Validate in case of over-specified input
         if arn and any([
             name, batch_service_role, instance_role, vpc, security_group,
             spot_fleet_role, instance_types, resource_type, min_vcpus,
@@ -429,6 +448,8 @@ class ComputeEnvironment(ObjectWithArn):
             # Otherwise, validate input and set parameters
             super(ComputeEnvironment, self).__init__(name=name)
 
+            # If resource type is 'SPOT', user must also specify
+            # a bid percentage and a spot fleet IAM role
             if not bid_percentage and resource_type == 'SPOT':
                 raise ValueError(
                     'if resource_type is "SPOT", bid_percentage '
@@ -441,6 +462,7 @@ class ComputeEnvironment(ObjectWithArn):
                     'must be set.'
                 )
 
+            # Validate batch_service_role is actually a batch role
             if not (isinstance(batch_service_role, IamRole)
                     and 'batch' in batch_service_role.service):
                 raise ValueError(
@@ -450,6 +472,7 @@ class ComputeEnvironment(ObjectWithArn):
             self._batch_service_role = batch_service_role
             self._batch_service_arn = batch_service_role.arn
 
+            # Validate instance_role is actually an instance role
             if not (isinstance(instance_role, IamRole)
                     and instance_role.instance_profile_arn):
                 raise ValueError(
@@ -459,11 +482,13 @@ class ComputeEnvironment(ObjectWithArn):
             self._instance_role = instance_role
             self._instance_role_arn = instance_role.instance_profile_arn
 
+            # Validate vpc input
             if not isinstance(vpc, Vpc):
                 raise ValueError('vpc must be an instance of Vpc')
             self._vpc = vpc
             self._subnets = vpc.subnet_ids
 
+            # Validate security group input
             if not isinstance(security_group, SecurityGroup):
                 raise ValueError(
                     'security_group must be an instance of '
@@ -473,6 +498,7 @@ class ComputeEnvironment(ObjectWithArn):
             self._security_group_ids = [security_group.security_group_id]
 
             if spot_fleet_role:
+                # Validate that spot_fleet_role is actually a spot fleet role
                 if not (isinstance(spot_fleet_role, IamRole)
                         and 'spotfleet' in spot_fleet_role.service):
                     raise ValueError(
@@ -486,6 +512,7 @@ class ComputeEnvironment(ObjectWithArn):
                 self._spot_fleet_role = None
                 self._spot_fleet_role_arn = None
 
+            # Default instance type is 'optimal'
             instance_types = instance_types if instance_types else ('optimal',)
             if isinstance(instance_types, str):
                 self._instance_types = [instance_types]
@@ -497,6 +524,7 @@ class ComputeEnvironment(ObjectWithArn):
                     'sequence of strings.'
                 )
 
+            # Validate instance types
             valid_instance_types = {
                 'optimal', 'm3', 'm4', 'c3', 'c4', 'r3', 'i2', 'd2', 'g2',
                 'p2', 'x1', 'm3.medium', 'm3.large', 'm3.xlarge', 'm3.2xlarge',
@@ -517,11 +545,13 @@ class ComputeEnvironment(ObjectWithArn):
                     )
                 )
 
+            # Validate resource type, default to 'EC2'
             resource_type = resource_type if resource_type else 'EC2'
             if resource_type not in ('EC2', 'SPOT'):
                 raise ValueError('resource_type must be "EC2" or "SPOT"')
             self._resource_type = resource_type
 
+            # Validate min_vcpus, default to 0
             min_vcpus = min_vcpus if min_vcpus else 0
             cpus = int(min_vcpus)
             if cpus < 0:
@@ -529,6 +559,7 @@ class ComputeEnvironment(ObjectWithArn):
             else:
                 self._min_vcpus = cpus
 
+            # Validate max_vcpus, default to 256
             max_vcpus = max_vcpus if max_vcpus else 256
             cpus = int(max_vcpus)
             if cpus < 0:
@@ -536,6 +567,7 @@ class ComputeEnvironment(ObjectWithArn):
             else:
                 self._max_vcpus = cpus
 
+            # Validate desired_vcpus input, default to 8
             desired_vcpus = desired_vcpus if desired_vcpus else 8
             cpus = int(desired_vcpus)
             if cpus < 0:
@@ -543,6 +575,7 @@ class ComputeEnvironment(ObjectWithArn):
             else:
                 self._desired_vcpus = cpus
 
+            # Validate image_id input
             if image_id:
                 if not isinstance(image_id, str):
                     raise ValueError('if provided, image_id must be a string')
@@ -550,6 +583,7 @@ class ComputeEnvironment(ObjectWithArn):
             else:
                 self._image_id = None
 
+            # Validate ec2_key_pair input
             if ec2_key_pair:
                 if not isinstance(ec2_key_pair, str):
                     raise ValueError(
@@ -559,6 +593,7 @@ class ComputeEnvironment(ObjectWithArn):
             else:
                 self._ec2_key_pair = None
 
+            # Validate tags input
             if tags:
                 if not isinstance(tags, dict):
                     raise ValueError(
@@ -575,6 +610,7 @@ class ComputeEnvironment(ObjectWithArn):
             else:
                 self._tags = None
 
+            # Validate bid_percentage input
             if bid_percentage:
                 bp_int = int(bid_percentage)
                 if bp_int < 0:
@@ -588,6 +624,7 @@ class ComputeEnvironment(ObjectWithArn):
 
             self._arn = self._create()
 
+    # Declare read-only properties
     pre_existing = property(operator.attrgetter('_pre_existing'))
     batch_service_role = property(operator.attrgetter('_batch_service_role'))
     batch_service_arn = property(operator.attrgetter('_batch_service_arn'))
@@ -645,10 +682,12 @@ class ComputeEnvironment(ObjectWithArn):
             (None,) * (len(ResourceExists._fields) - 1)
 
         if arn:
+            # Search by ARN
             response = BATCH.describe_compute_environments(
                 computeEnvironments=[arn]
             )
         else:
+            # Search by name
             response = BATCH.describe_compute_environments(
                 computeEnvironments=[name]
             )
@@ -668,6 +707,8 @@ class ComputeEnvironment(ObjectWithArn):
             min_vcpus = cr['minvCpus']
             max_vcpus = cr['maxvCpus']
 
+            # Some retrieved compute environments will be missing optional
+            # parameters, so try/catch for KeyErrors for the following.
             try:
                 desired_vcpus = cr['desiredvCpus']
             except KeyError:  # pragma: nocover
@@ -793,8 +834,12 @@ class ComputeEnvironment(ObjectWithArn):
             wait_for_job_queue(name=queue['jobQueueName'])
 
         # Then delete the compute environment
+        # I noticed some latency for deleting compute environments that
+        # didn't go away even when I used `wait_for_compute_environment`.
+        # However, retrying seemed to fix the issue. The retry strategy is
+        # hacky, but it works
         attempts = 0
-        max_attempts = 3
+        max_attempts = 18
         done = False
         while attempts < max_attempts and not done:
             try:
@@ -828,7 +873,7 @@ class ComputeEnvironment(ObjectWithArn):
                             resource_id=associated_queues
                         )
                     else:
-                        time.sleep(60)
+                        time.sleep(10)
                 else:
                     raise e
 
@@ -856,12 +901,14 @@ class JobQueue(ObjectWithArn):
             priority for jobs in this queue
             Default: 1
         """
+        # Test for minimum input
         if not (arn or name):
             raise ValueError(
                 'You must supply either an arn or name for this '
                 'job queue.'
             )
 
+        # Test for over-specified input
         if arn and any([name, compute_environments, priority]):
             raise ValueError(
                 'You may supply either an arn or (name, '
@@ -975,10 +1022,12 @@ class JobQueue(ObjectWithArn):
             (None,) * (len(ResourceExists._fields) - 1)
 
         if arn:
+            # Search by ARN
             response = BATCH.describe_job_queues(
                 jobQueues=[arn]
             )
         else:
+            # Search by name
             response = BATCH.describe_job_queues(
                 jobQueues=[name]
             )
@@ -1029,6 +1078,19 @@ class JobQueue(ObjectWithArn):
         return arn
 
     def get_jobs(self, status='ALL'):
+        """Get jobs in this job queue
+
+        Parameters
+        ----------
+        status : string
+            The status on which to filter job results
+            Default: 'ALL'
+
+        Returns
+        -------
+        job_ids : list
+            A list of job-IDs for jobs in this queue
+        """
         # Validate input
         allowed_statuses = ['ALL', 'SUBMITTED', 'PENDING', 'RUNNABLE',
                             'STARTING', 'RUNNING', 'SUCCEEDED', 'FAILED']
