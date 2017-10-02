@@ -219,7 +219,7 @@ class DockerReqs(object):
 
         logging.info(
             'Wrote python function {func:s} to script {script:s}'.format(
-                func=self.func,
+                func=self.name,
                 script=self.script_path
             )
         )
