@@ -2,6 +2,7 @@ from __future__ import absolute_import, division, print_function
 
 import cloudknot.aws
 import configparser
+import logging
 import os
 
 CONFIG = configparser.ConfigParser()
@@ -36,6 +37,14 @@ def get_config_file():
         # If the config file does not exist, create it
         with open(config_file, 'w') as f:
             f.write('# cloudknot configuration file')
+
+        logging.info('Created new cloudknot config file at {path:s}'.format(
+            path=config_file
+        ))
+
+    logging.info('Using cloudknot config file {path:s}'.format(
+        path=config_file
+    ))
 
     return config_file
 

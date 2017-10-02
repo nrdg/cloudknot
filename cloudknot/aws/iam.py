@@ -362,7 +362,7 @@ class IamRole(ObjectWithArn):
         # Delete role from AWS
         IAM.delete_role(RoleName=self.name)
 
-        logging.info('Deleted role {name:s}'.format(name=self.name))
-
         # Remove this role from the list of roles in the config file
         cloudknot.config.remove_resource('roles', self.name)
+
+        logging.info('Deleted role {name:s}'.format(name=self.name))

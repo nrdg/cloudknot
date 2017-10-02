@@ -76,6 +76,10 @@ class Vpc(NamedObject):
             self._subnet_ids = resource.subnet_ids
 
             cloudknot.config.add_resource('vpc', self.vpc_id, self.name)
+
+            logging.info('Retrieved pre-existing VPC {id:s}'.format(
+                id=self.vpc_id
+            ))
         else:
             if vpc_id:
                 raise ResourceDoesNotExistException(
@@ -362,10 +366,10 @@ class Vpc(NamedObject):
             # Delete the VPC
             EC2.delete_vpc(VpcId=self.vpc_id)
 
-            logging.info('Deleted VPC {name:s}'.format(name=self.name))
-
             # Remove this VPC from the list of VPCs in the config file
             cloudknot.config.remove_resource('vpc', self.vpc_id)
+
+            logging.info('Deleted VPC {name:s}'.format(name=self.name))
         except EC2.exceptions.ClientError as e:
             # Check for dependency violation and pass exception to user
             error_code = e.response['Error']['Code']
@@ -463,6 +467,10 @@ class SecurityGroup(NamedObject):
             cloudknot.config.add_resource(
                 'security-groups', self.security_group_id, self.name
             )
+
+            logging.info('Retrieved pre-existing security group {id:s}'.format(
+                id=self.security_group_id
+            ))
         else:
             if security_group_id:
                 raise ResourceDoesNotExistException(
@@ -641,6 +649,9 @@ class SecurityGroup(NamedObject):
         # Delete the dependent instances
         if deps:
             EC2.terminate_instances(InstanceIds=deps)
+            logging.info('Deleted dependent EC2 instances: {deps:s}'.format(
+                deps=str(deps)
+            ))
 
         # Get dependent compute environments
         response = BATCH.describe_compute_environments()
@@ -676,3 +687,7 @@ class SecurityGroup(NamedObject):
         cloudknot.config.remove_resource(
             'security-groups', self.security_group_id
         )
+
+        logging.info('Clobbered security group {id:s}'.format(
+            id=self.security_group_id
+        ))
