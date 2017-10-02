@@ -17,7 +17,7 @@ class IamRole(ObjectWithArn):
     """Class for defining AWS IAM Roles"""
     def __init__(self, name, description=None, service=None,
                  policies=(), add_instance_profile=False):
-        """ Initialize an AWS IAM Role object.
+        """Initialize an AWS IAM Role object.
 
         Parameters
         ----------
@@ -57,6 +57,7 @@ class IamRole(ObjectWithArn):
                     'pre-existing role, leave all other input blank.',
                     resource_id=self.name
                 )
+
             self._description = role.description
             self._role_policy_document = role.role_policy_document
             rpd_statement = role.role_policy_document['Statement'][0]
@@ -142,16 +143,17 @@ class IamRole(ObjectWithArn):
 
     _allowed_services = ['batch', 'ec2', 'ecs-tasks', 'lambda', 'spotfleet']
 
+    # Declare read-only properties
     pre_existing = property(operator.attrgetter('_pre_existing'))
     description = property(operator.attrgetter('_description'))
     service = property(operator.attrgetter('_service'))
+    policies = property(operator.attrgetter('_policies'))
     role_policy_document = property(
         operator.attrgetter('_role_policy_document')
     )
-    policies = property(operator.attrgetter('_policies'))
 
     def _exists_already(self):
-        """ Check if an IAM Role exists already
+        """Check if an IAM Role exists already
 
         If role exists, return namedtuple with role info. Otherwise, set the
         namedtuple's `exists` field to `False`. The remaining fields default
@@ -174,13 +176,14 @@ class IamRole(ObjectWithArn):
             (None,) * (len(RoleExists._fields) - 1)
 
         try:
+            # If role exists, retrieve info
             response = IAM.get_role(RoleName=self.name)
             arn = response.get('Role')['Arn']
+            role_policy = response.get('Role')['AssumeRolePolicyDocument']
             try:
                 description = response.get('Role')['Description']
             except KeyError:
                 description = ''
-            role_policy = response.get('Role')['AssumeRolePolicyDocument']
 
             response = IAM.list_attached_role_policies(RoleName=self.name)
             attached_policies = response.get('AttachedPolicies')
@@ -198,7 +201,7 @@ class IamRole(ObjectWithArn):
             return RoleExists(exists=False)
 
     def _create(self, add_instance_profile=False):
-        """ Create AWS IAM role using instance parameters
+        """Create AWS IAM role using instance parameters
 
         Returns
         -------
@@ -288,6 +291,13 @@ class IamRole(ObjectWithArn):
 
     @property
     def instance_profile_arn(self):
+        """Return ARN for attached instance profile if any
+
+        Returns
+        -------
+        arn : string or None
+            ARN for attached instance profile if any, otherwise None
+        """
         response = IAM.list_instance_profiles_for_role(RoleName=self.name)
 
         if response.get('InstanceProfiles'):
@@ -299,22 +309,25 @@ class IamRole(ObjectWithArn):
             return None
 
     def clobber(self):
-        """ Delete this AWS IAM role
+        """Delete this AWS IAM role and remove from config file
 
         Returns
         -------
         None
         """
         if self.instance_profile_arn:
+            # Remove any instance profiles associated with this role
             response = IAM.list_instance_profiles_for_role(RoleName=self.name)
 
             instance_profile_name = response.get(
                 'InstanceProfiles'
             )[0]['InstanceProfileName']
+
             IAM.remove_role_from_instance_profile(
                 InstanceProfileName=instance_profile_name,
                 RoleName=self.name
             )
+
             IAM.delete_instance_profile(
                 InstanceProfileName=instance_profile_name
             )
@@ -346,6 +359,7 @@ class IamRole(ObjectWithArn):
                 PolicyArn=policy_arn
             )
 
+        # Delete role from AWS
         IAM.delete_role(RoleName=self.name)
 
         logging.info('Deleted role {name:s}'.format(name=self.name))

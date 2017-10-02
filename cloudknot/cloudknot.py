@@ -28,12 +28,50 @@ due.cite(Doi(""),
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 class DockerReqs(object):
-    def __init__(
-            self, func=None, script_path=None, dir_name=None, username=None
-    ):
+    """Class for building files required to dockerize python script or function
+
+    If given a python function, DockerReqs will create a CLI version for that
+    function, write a requirements.txt file for all import statements in the
+    function, and write a Dockerfile to containerize that python script. If
+    given a path to a python script, DockerReqs will assume it has a CLI and
+    will skip the first step, building a requirements.txt file and a
+    Dockerfile as before.
+
+    If the input script or function contains imports that cannot be identified
+    by pipreqs (i.e. cannot be installed with `pip install package`, those
+    packages will not be included in requirements.txt, DockerReqs will throw
+    a warning, and the user must install those packages by hand in the
+    Dockerfile.
+    """
+    def __init__(self, func=None, script_path=None, dir_name=None,
+                 username=None):
+        """Initialize a DockerReqs instance
+
+        Parameters
+        ----------
+        func : function
+            Python function to be dockerized
+
+        script_path : string
+            Path to file with python script to be dockerized
+
+        dir_name : string
+            Directory to store Dockerfile, requirements.txt, and python
+            script with CLI
+            Default: parent directory of script if `script_path` is provided
+                     else DockerReqs creates a new directory, accessible by
+                     the `dir_path` property.
+
+        username : string
+            Default user created in the Dockerfile
+            Default: 'cloudknot-user'
+        """
+        # User must specify at least `func` or `script_path`
         if not (func or script_path):
             raise ValueError('You must suppy either `func` or `script_path`.')
 
+        # If both `func` and `script_path` are specified,
+        # input is over-specified
         if script_path and func:
             raise ValueError('You provided `script_path` and other redundant '
                              'arguments, either `func` or `dir_name`. ')
@@ -41,11 +79,13 @@ class DockerReqs(object):
         self._func = func
         self._username = username if username else 'cloudknot-user'
 
+        # Validate dir_name input
         if dir_name and not os.path.isdir(dir_name):
             raise ValueError('`dir_name` is not an existing directory')
 
         if script_path:
             # User supplied a pre-existing python script.
+            # Ensure we don't clobber it later
             self._clobber_script = False
 
             # Check that it is a valid path
@@ -89,17 +129,17 @@ class DockerReqs(object):
                 self._dir_path = tempfile.mkdtemp(prefix=prefix,
                                                   dir=os.getcwd())
 
+                # Store the script in the new directory
                 self._script_path = os.path.join(self.dir_path,
                                                  self.name + '.py')
 
             self._write_script()
 
-        # Create the Dockerfile and requirements.txt in the same directory
+        # Create the Dockerfile and requirements.txt in the parent directory
         self._docker_path = os.path.join(self.dir_path, 'Dockerfile')
         self._req_path = os.path.join(self.dir_path, 'requirements.txt')
 
-        # Confirm that we won't overwrite an existing Dockerfile or
-        # requirements.txt
+        # Confirm that we won't overwrite an existing Dockerfile
         if os.path.isfile(self._docker_path):
             raise ValueError(
                 'There is a pre-existing Dockerfile in the same directory as '
@@ -111,6 +151,7 @@ class DockerReqs(object):
                 )
             )
 
+        # Confirm that we won't overwrite an existing requirements.txt
         if os.path.isfile(self._req_path):
             raise ValueError(
                 'There is a pre-existing requirements.txt in the same '
@@ -121,14 +162,20 @@ class DockerReqs(object):
                 'is no longer needed.'.format(file=self.req_path)
             )
 
+        # Get the names of packages imported in the script
         import_names = [
             i.module[0] if i.module else i.name[0] for i in self._get_imports()
         ]
+
+        # Of those names, store that ones that are available via pip
         self._pip_imports = pipreqs.get_imports_info(import_names)
 
         if len(import_names) != len(self.pip_imports):
+            # If some imports were left out, store their names
             pip_names = [i['name'] for i in self.pip_imports]
             self._missing_imports = list(set(import_names) - set(pip_names))
+
+            # And warn the user
             logging.warning(
                 'Warning, some imports not found by pipreqs. You will need '
                 'to edit the Dockerfile by hand, e.g by installing from '
@@ -136,11 +183,14 @@ class DockerReqs(object):
                 '{missing:s}'.format(missing=str(self.missing_imports))
             )
         else:
+            # All imports accounted for
             self._missing_imports = None
 
+        # Write the requirements.txt file and Dockerfile
         pipreqs.generate_requirements_file(self.req_path, self.pip_imports)
         self._write_dockerfile()
 
+    # Declare read-only properties
     name = property(operator.attrgetter('_name'))
     func = property(operator.attrgetter('_func'))
     dir_path = property(operator.attrgetter('_dir_path'))
@@ -152,6 +202,14 @@ class DockerReqs(object):
     missing_imports = property(operator.attrgetter('_missing_imports'))
 
     def _write_script(self):
+        """Write this instance's function to a script with a CLI.
+
+        Use clize.run to create CLI
+
+        Returns
+        -------
+        None
+        """
         with open(self.script_path, 'w') as f:
             f.write('from clize import run\n\n\n')
             f.write(inspect.getsource(self.func))
@@ -160,6 +218,13 @@ class DockerReqs(object):
             f.write('    run({func_name:s})\n'.format(func_name=self.name))
 
     def _get_imports(self):
+        """Generate list of packages imported in this instance's python script
+
+        Yields
+        -------
+        Import (namedtuple with fields ["module", "name", "alias"]) for the
+        next package imported in the file.
+        """
         Import = namedtuple("Import", ["module", "name", "alias"])
 
         with open(self.script_path) as fh:
@@ -177,6 +242,12 @@ class DockerReqs(object):
                 yield Import(module, n.name.split('.'), n.asname)
 
     def _write_dockerfile(self):
+        """Write Dockerfile to containerize this instance's python function
+
+        Returns
+        -------
+        None
+        """
         with open(self.docker_path, 'w') as f:
             py_version_str = '3' if six.PY3 else '2'
             home_dir = '/home/{username:s}'.format(username=self.username)
@@ -223,6 +294,16 @@ class DockerReqs(object):
             ))
 
     def clobber(self):
+        """Delete all of the files associated with this instance
+
+        Always delete the generated requirements.txt and Dockerfile. Only
+        delete the script if it was auto-generated. Only delete the parent
+        directory if it is empty.
+
+        Returns
+        -------
+        None
+        """
         if self._clobber_script:
             os.remove(self.script_path)
 
@@ -269,23 +350,73 @@ class CloudKnot(object):
 
 
 class Pars(object):
+    """PARS stands for Persistent AWS Resource Set
+
+    This object collects AWS resources that could, in theory, be created only
+    once for each cloudknot user and used for all of their subsequent AWS
+    batch jobs. This set consists of IAM roles, a VPC with subnets for each
+    availability zone, and a security group.
+    """
     def __init__(self, name='default', batch_service_role_name=None,
                  ecs_instance_role_name=None, spot_fleet_role_name=None,
                  vpc_id=None, vpc_name=None,
                  security_group_id=None, security_group_name=None):
+        """Initialize a PARS instance.
+
+        Parameters
+        ----------
+        name : string
+            The name of this PARS. If `pars name` exists in the config file,
+            Pars will retrieve those PARS resource parameters. Otherwise,
+            Pars will create a new PARS with this name.
+            Default: 'default'
+
+        batch_service_role_name : string
+            Name of this PARS' batch service IAM role. If the role already
+            exists, Pars will adopt it. Otherwise, it will create it.
+            Default: name + '-cloudknot-batch-service-role'
+
+        ecs_instance_role_name : string
+            Name of this PARS' ECS instance IAM role. If the role already
+            exists, Pars will adopt it. Otherwise, it will create it.
+            Default: name + '-cloudknot-ecs-instance-role'
+
+        spot_fleet_role_name : string
+            Name of this PARS' spot fleet IAM role. If the role already
+            exists, Pars will adopt it. Otherwise, it will create it.
+            Default: name + '-cloudknot-spot-fleet-role'
+
+        vpc_id : string
+            The VPC-ID of the pre-existing VPC that this PARS should adopt
+            Default: None
+
+        vpc_name : string
+            The name of the VPC that this PARS should create
+            Default: name + '-cloudknot-vpc'
+
+        security_group_id : string
+            The ID of the pre-existing security group that this PARS should
+            adopt
+            Default: None
+
+        security_group_name : string
+            The name of the security group that this PARS should create
+            Default: name + '-cloudknot-security-group'
+        """
+        # Validate name input
         if not isinstance(name, str):
             raise ValueError('name must be a string')
 
         self._name = name
 
-        CONFIG.read(config.get_config_file())
-
+        # Validate vpc_name input
         if vpc_name:
             if not isinstance(vpc_name, str):
                 raise ValueError('if provided, vpc_name must be a string.')
         else:
             vpc_name = name + '-cloudknot-vpc'
 
+        # Validate security_group_name input
         if security_group_name:
             if not isinstance(security_group_name, str):
                 raise ValueError('if provided, security_group_name must be '
@@ -293,7 +424,8 @@ class Pars(object):
         else:
             security_group_name = name + '-cloudknot-security-group'
 
-        # Check for existence of this pars
+        # Check for existence of this pars in the config file
+        CONFIG.read(config.get_config_file())
         self._pars_name = 'pars ' + name
         if self._pars_name in CONFIG.sections():
             # Pars exists, check that user did not provide any resource names
@@ -303,12 +435,13 @@ class Pars(object):
                                  'already exists in configuration file '
                                  '{fn:s}.'.format(fn=config.get_config_file()))
 
-            # Use pars values to instantiate new resources
             try:
+                # Use config values to adopt role if it exists already
                 self._batch_service_role = aws.iam.IamRole(
                     name=CONFIG.get(self._pars_name, 'batch-service-role')
                 )
             except aws.ResourceDoesNotExistException:
+                # Otherwise create the new role
                 self._batch_service_role = aws.iam.IamRole(
                     name=CONFIG.get(self._pars_name, 'batch-service-role'),
                     description='This AWS batch service role was '
@@ -319,10 +452,12 @@ class Pars(object):
                 )
 
             try:
+                # Use config values to adopt role if it exists already
                 self._ecs_instance_role = aws.iam.IamRole(
                     name=CONFIG.get(self._pars_name, 'ecs-instance-role')
                 )
             except aws.ResourceDoesNotExistException:
+                # Otherwise create the new role
                 self._ecs_instance_role = aws.iam.IamRole(
                     name=CONFIG.get(self._pars_name, 'ecs-instance-role'),
                     description='This AWS ECS instance role was automatically '
@@ -333,10 +468,12 @@ class Pars(object):
                 )
 
             try:
+                # Use config values to adopt role if it exists already
                 self._spot_fleet_role = aws.iam.IamRole(
                     name=CONFIG.get(self._pars_name, 'spot-fleet-role')
                 )
             except aws.ResourceDoesNotExistException:
+                # Otherwise create the new role
                 self._spot_fleet_role = aws.iam.IamRole(
                     name=CONFIG.get(self._pars_name, 'spot-fleet-role'),
                     description='This AWS spot fleet role was automatically '
@@ -347,20 +484,24 @@ class Pars(object):
                 )
 
             try:
+                # Use config values to adopt VPC if it exists already
                 self._vpc = aws.ec2.Vpc(
                     vpc_id=CONFIG.get(self._pars_name, 'vpc')
                 )
             except aws.ResourceDoesNotExistException:
+                # Otherwise create the new VPC
                 self._vpc = aws.ec2.Vpc(name=vpc_name)
                 CONFIG.set(self._pars_name, 'vpc', self._vpc.vpc_id)
 
             try:
+                # Use config values to adopt security group if it exists
                 self._security_group = aws.ec2.SecurityGroup(
                     security_group_id=CONFIG.get(
                         self._pars_name, 'security-group'
                     )
                 )
             except aws.ResourceDoesNotExistException:
+                # Otherwise create the new security group
                 self._security_group = aws.ec2.SecurityGroup(
                     name=security_group_name,
                     vpc=self._vpc
@@ -374,7 +515,8 @@ class Pars(object):
             with open(config.get_config_file(), 'w') as f:
                 CONFIG.write(f)
         else:
-            # Pars doesn't exist, create it
+            # Pars doesn't exist, use input names to adopt/create resources
+            # Validate role name input
             if batch_service_role_name:
                 if not isinstance(batch_service_role_name, str):
                     raise ValueError('if provided, batch_service_role_name '
@@ -385,6 +527,7 @@ class Pars(object):
                 )
 
             try:
+                # Create new role
                 self._batch_service_role = aws.iam.IamRole(
                     name=batch_service_role_name,
                     description='This AWS batch service role was '
@@ -394,10 +537,12 @@ class Pars(object):
                     add_instance_profile=False
                 )
             except aws.ResourceExistsException as e:
+                # If it already exists, simply adopt it
                 self._batch_service_role = aws.iam.IamRole(
                     name=e.resource_id
                 )
 
+            # Validate role name input
             if ecs_instance_role_name:
                 if not isinstance(ecs_instance_role_name, str):
                     raise ValueError('if provided, ecs_instance_role_name '
@@ -406,6 +551,7 @@ class Pars(object):
                 ecs_instance_role_name = name + '-cloudknot-ecs-instance-role'
 
             try:
+                # Create new role
                 self._ecs_instance_role = aws.iam.IamRole(
                     name=ecs_instance_role_name,
                     description='This AWS ECS instance role was automatically '
@@ -415,10 +561,12 @@ class Pars(object):
                     add_instance_profile=True
                 )
             except aws.ResourceExistsException as e:
+                # If it already exists, simply adopt it
                 self._ecs_instance_role = aws.iam.IamRole(
                     name=e.resource_id
                 )
 
+            # Validate role name input
             if spot_fleet_role_name:
                 if not isinstance(spot_fleet_role_name, str):
                     raise ValueError('if provided, spot_fleet_role_name must '
@@ -427,6 +575,7 @@ class Pars(object):
                 spot_fleet_role_name = name + '-cloudknot-spot-fleet-role'
 
             try:
+                # Create new role
                 self._spot_fleet_role = aws.iam.IamRole(
                     name=spot_fleet_role_name,
                     description='This AWS spot fleet role was automatically '
@@ -436,34 +585,45 @@ class Pars(object):
                     add_instance_profile=False
                 )
             except aws.ResourceExistsException as e:
+                # If it already exists, simply adopt it
                 self._spot_fleet_role = aws.iam.IamRole(
                     name=e.resource_id
                 )
 
             if vpc_id:
+                # Validate vpc_id input
                 if not isinstance(vpc_id, str):
                     raise ValueError('if provided, vpc_id must be a string')
+
+                # Adopt the VPC
                 self._vpc = aws.ec2.Vpc(vpc_id=vpc_id)
             else:
                 try:
+                    # Create new VPC
                     self._vpc = aws.ec2.Vpc(name=vpc_name)
                 except aws.ResourceExistsException as e:
+                    # If it already exists, simply adopt it
                     self._vpc = aws.ec2.Vpc(vpc_id=e.resource_id)
 
             if security_group_id:
+                # Validate security_group_id input
                 if not isinstance(security_group_id, str):
                     raise ValueError('if provided, security_group_id must '
                                      'be a string')
+
+                # Adopt the security group
                 self._security_group = aws.ec2.SecurityGroup(
                     security_group_id=security_group_id
                 )
             else:
                 try:
+                    # Create new security group
                     self._security_group = aws.ec2.SecurityGroup(
                         name=security_group_name,
                         vpc=self.vpc
                     )
                 except aws.ResourceExistsException as e:
+                    # If it already exists, simply adopt it
                     self._security_group = aws.ec2.SecurityGroup(
                         security_group_id=e.resource_id
                     )
@@ -500,6 +660,7 @@ class Pars(object):
 
     @name.setter
     def name(self, n):
+        """Setter method to rename Pars by changing the config file"""
         if not isinstance(n, str):
             raise ValueError('name must be a string')
 
@@ -523,7 +684,21 @@ class Pars(object):
 
     @staticmethod
     def _role_setter(attr):
+        """Static method to return setter methods for new IamRoles"""
         def set_role(self, new_role):
+            """Setter method to attach new IAM role to this PARS
+
+            This method clobbers the old role and adopts the new one.
+
+            Parameters
+            ----------
+            new_role :
+                new IamRole instance to attach to this Pars
+
+            Returns
+            -------
+            None
+            """
             # Verify input
             if not isinstance(new_role, aws.iam.IamRole):
                 raise ValueError('new role must be an instance of IamRole')
@@ -569,6 +744,19 @@ class Pars(object):
 
     @vpc.setter
     def vpc(self, v):
+        """Setter method to attach new VPC to this PARS
+
+        This method clobbers the old VPC and adopts the new one.
+
+        Parameters
+        ----------
+        v : Vpc
+            new Vpc instance to attach to this Pars
+
+        Returns
+        -------
+        None
+        """
         if not isinstance(v, aws.ec2.Vpc):
             raise ValueError('new vpc must be an instance of Vpc')
 
@@ -593,6 +781,19 @@ class Pars(object):
 
     @security_group.setter
     def security_group(self, sg):
+        """Setter method to attach new security group to this PARS
+
+        This method clobbers the old security group and adopts the new one.
+
+        Parameters
+        ----------
+        sg : SecurityGroup
+            new SecurityGroup instance to attach to this Pars
+
+        Returns
+        -------
+        None
+        """
         if not isinstance(sg, aws.ec2.SecurityGroup):
             raise ValueError('new security group must be an instance of '
                              'SecurityGroup')
@@ -614,6 +815,12 @@ class Pars(object):
             CONFIG.write(f)
 
     def clobber(self):
+        """Delete associated AWS resources and remove section from config
+
+        Returns
+        -------
+        None
+        """
         # Delete all associated AWS resources
         self._security_group.clobber()
         self._vpc.clobber()
