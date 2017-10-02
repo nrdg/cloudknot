@@ -70,7 +70,8 @@ class DockerReqs(object):
         if not (func or script_path):
             raise ValueError('You must suppy either `func` or `script_path`.')
 
-        # If both `func` and `script_path` are specified, input is over-specified
+        # If both `func` and `script_path` are specified,
+        # input is over-specified
         if script_path and func:
             raise ValueError('You provided `script_path` and other redundant '
                              'arguments, either `func` or `dir_name`. ')

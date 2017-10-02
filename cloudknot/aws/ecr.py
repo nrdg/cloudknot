@@ -313,7 +313,7 @@ class DockerImage(NamedObject):
 
     def _push(self):
         """Push a DockerContainer image to a repository
-        
+
         Returns
         -------
         None
