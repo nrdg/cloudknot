@@ -1035,6 +1035,13 @@ def test_JobDefinition(pars):
         config.read(config_file)
         assert name not in config.options('job-definitions')
 
+        # The previous job def should be INACTIVE, so try to retrieve it
+        # and assert that we get a ResourceExistsException
+        with pytest.raises(ck.aws.ResourceExistsException) as e:
+            ck.aws.JobDefinition(arn=arn)
+
+        assert e.value.resource_id == arn
+
         # Try to retrieve a job definition that does not exist
         nonexistent_arn = arn.replace(
             UNIT_TEST_PREFIX,

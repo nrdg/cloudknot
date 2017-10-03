@@ -95,11 +95,21 @@ class JobDefinition(ObjectWithUsernameAndMemory):
                 name=resource.name, memory=resource.memory,
                 username=resource.username
             )
+
             self._job_role = resource.job_role
             self._docker_image = resource.docker_image
             self._vcpus = resource.vcpus
             self._retries = resource.retries
             self._arn = resource.arn
+
+            if resource.status == 'INACTIVE':
+                raise ResourceExistsException(
+                    'You retrieved an inactive job definition and cloudknot '
+                    'has no way to reactivate it. Instead of retrieving the '
+                    'job definition using an ARN, create a new one with your '
+                    'desired properties.',
+                    resource.arn
+                )
 
             # Add to config file
             cloudknot.config.add_resource(
@@ -183,13 +193,13 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         Returns
         -------
         namedtuple RoleExists
-            A namedtuple with fields ['exists', 'name', 'job_role',
+            A namedtuple with fields ['exists', 'name', 'status', 'job_role',
             'docker_image', 'vcpus', 'memory', 'username', 'retries', 'arn']
         """
         # define a namedtuple for return value type
         ResourceExists = namedtuple(
             'ResourceExists',
-            ['exists', 'name', 'job_role', 'docker_image', 'vcpus',
+            ['exists', 'name', 'status', 'job_role', 'docker_image', 'vcpus',
              'memory', 'username', 'retries', 'arn']
         )
         # make all but the first value default to None
@@ -207,6 +217,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             # Job def exists. Get job def details
             job_def = response.get('jobDefinitions')[0]
             job_def_name = job_def['jobDefinitionName']
+            job_def_status = job_def['status']
             job_def_arn = job_def['jobDefinitionArn']
             retries = job_def['retryStrategy']['attempts']
 
@@ -222,9 +233,10 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             ))
 
             return ResourceExists(
-                exists=True, name=job_def_name, job_role=job_role_arn,
-                docker_image=container_image, vcpus=vcpus, memory=memory,
-                username=username, retries=retries, arn=job_def_arn
+                exists=True, name=job_def_name, status=job_def_status,
+                job_role=job_role_arn, docker_image=container_image,
+                vcpus=vcpus, memory=memory, username=username,
+                retries=retries, arn=job_def_arn
             )
         else:
             return ResourceExists(exists=False)
