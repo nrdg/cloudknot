@@ -438,6 +438,7 @@ class Pars(object):
             security_group_name = name + '-cloudknot-security-group'
 
         # Check for existence of this pars in the config file
+        CONFIG.clear()
         CONFIG.read(config.get_config_file())
         self._pars_name = 'pars ' + name
         if self._pars_name in CONFIG.sections():
@@ -592,6 +593,8 @@ class Pars(object):
             # Validate role name input
             if ecs_instance_role_name:
                 if not isinstance(ecs_instance_role_name, str):
+                    # Clean up after ourselves and raise ValueError
+                    self.batch_service_role.clobber()
                     raise ValueError('if provided, ecs_instance_role_name '
                                      'must be a string.')
             else:
@@ -620,6 +623,9 @@ class Pars(object):
             # Validate role name input
             if spot_fleet_role_name:
                 if not isinstance(spot_fleet_role_name, str):
+                    # Clean up after ourselves and raise ValueError
+                    self.batch_service_role.clobber()
+                    self.ecs_instance_role.clobber()
                     raise ValueError('if provided, spot_fleet_role_name must '
                                      'be a string.')
             else:
@@ -648,6 +654,10 @@ class Pars(object):
             if vpc_id:
                 # Validate vpc_id input
                 if not isinstance(vpc_id, str):
+                    # Clean up after ourselves and raise ValueError
+                    self.batch_service_role.clobber()
+                    self.ecs_instance_role.clobber()
+                    self.spot_fleet_role.clobber()
                     raise ValueError('if provided, vpc_id must be a string')
 
                 # Adopt the VPC
@@ -672,6 +682,11 @@ class Pars(object):
             if security_group_id:
                 # Validate security_group_id input
                 if not isinstance(security_group_id, str):
+                    # Clean up after ourselves and raise ValueError
+                    self.batch_service_role.clobber()
+                    self.ecs_instance_role.clobber()
+                    self.spot_fleet_role.clobber()
+                    self.vpc.clobber()
                     raise ValueError('if provided, security_group_id must '
                                      'be a string')
 
@@ -736,30 +751,7 @@ class Pars(object):
                 CONFIG.write(f)
 
     name = property(fget=operator.attrgetter('_name'))
-
-    @name.setter
-    def name(self, n):
-        """Setter method to rename Pars by changing the config file"""
-        if not isinstance(n, str):
-            raise ValueError('name must be a string')
-
-        # Read current config file
-        CONFIG.read(config.get_config_file())
-
-        # Retrieve items and remove old section
-        items = CONFIG.items(self._pars_name)
-        CONFIG.remove_section(self._pars_name)
-
-        # Save values under new section name
-        self._name = n
-        self._pars_name = 'pars ' + n
-        CONFIG.add_section(self._pars_name)
-        for option, value in items:
-            CONFIG.set(self._pars_name, option, value)
-
-        # Rewrite config file
-        with open(config.get_config_file(), 'w') as f:
-            CONFIG.write(f)
+    pars_name = property(fget=operator.attrgetter('_pars_name'))
 
     @staticmethod
     def _role_setter(attr):
@@ -798,8 +790,9 @@ class Pars(object):
             setattr(self, attr, new_role)
 
             # Replace the appropriate line in the config file
+            CONFIG.clear()
             CONFIG.read(config.get_config_file())
-            field_name = attr.lstrip('_').replace('_', ' ')
+            field_name = attr.lstrip('_').replace('_', '-')
             CONFIG.set(self._pars_name, field_name, new_role.name)
             with open(config.get_config_file(), 'w') as f:
                 CONFIG.write(f)
@@ -852,11 +845,23 @@ class Pars(object):
             )
         )
 
-        old_vpc = self._vpc
-        old_vpc.clobber()
+        # We have to replace the security group too, since it depends on the
+        # VPC. Create a new security group based on the new VPC but with the
+        # old name and description.
+        sg_name = self.security_group.name
+        sg_desc = self.security_group.description
+
+        # The security group setter method will take care of clobbering the
+        # old security group and updating config, etc.
+        self.security_group = aws.ec2.SecurityGroup(
+            name=sg_name, vpc=v, description=sg_desc
+        )
+
+        self._vpc.clobber()
         self._vpc = v
 
         # Replace the appropriate line in the config file
+        CONFIG.clear()
         CONFIG.read(config.get_config_file())
         CONFIG.set(self._pars_name, 'vpc', v.vpc_id)
         with open(config.get_config_file(), 'w') as f:
@@ -900,6 +905,7 @@ class Pars(object):
         self._security_group = sg
 
         # Replace the appropriate line in the config file
+        CONFIG.clear()
         CONFIG.read(config.get_config_file())
         CONFIG.set(self._pars_name, 'security-group', sg.security_group_id)
         with open(config.get_config_file(), 'w') as f:
@@ -926,6 +932,7 @@ class Pars(object):
         self._batch_service_role.clobber()
 
         # Remove this section from the config file
+        CONFIG.clear()
         CONFIG.read(config.get_config_file())
         CONFIG.remove_section(self._pars_name)
         with open(config.get_config_file(), 'w') as f:
