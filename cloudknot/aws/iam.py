@@ -4,6 +4,7 @@ import cloudknot.config
 import json
 import logging
 import operator
+import tenacity
 from collections import namedtuple
 
 from .base_classes import ObjectWithArn, IAM, \
@@ -177,7 +178,14 @@ class IamRole(ObjectWithArn):
 
         try:
             # If role exists, retrieve info
-            response = IAM.get_role(RoleName=self.name)
+            retry = tenacity.Retrying(
+                wait=tenacity.wait_exponential(max=60),
+                stop=tenacity.stop_after_delay(30),
+                retry=tenacity.retry_if_exception_type(
+                    IAM.exceptions.NoSuchEntityException
+                )
+            )
+            response = retry.call(IAM.get_role(RoleName=self.name))
             arn = response.get('Role')['Arn']
             role_policy = response.get('Role')['AssumeRolePolicyDocument']
             try:
@@ -197,8 +205,11 @@ class IamRole(ObjectWithArn):
                 exists=True, description=description,
                 role_policy_document=role_policy, policies=policies, arn=arn
             )
-        except IAM.exceptions.NoSuchEntityException:
-            return RoleExists(exists=False)
+        except tenacity.RetryError as e:
+            try:
+                e.reraise()
+            except IAM.exceptions.NoSuchEntityException:
+                return RoleExists(exists=False)
 
     def _create(self, add_instance_profile=False):
         """Create AWS IAM role using instance parameters
@@ -241,10 +252,17 @@ class IamRole(ObjectWithArn):
 
             policy_arn = policy_filter[0]['Arn']
 
-            IAM.attach_role_policy(
+            retry = tenacity.Retrying(
+                wait=tenacity.wait_exponential(max=60),
+                stop=tenacity.stop_after_delay(30),
+                retry=tenacity.retry_if_exception_type(
+                    IAM.exceptions.NoSuchEntityException
+                )
+            )
+            retry.call(IAM.attach_role_policy(
                 PolicyArn=policy_arn,
                 RoleName=self.name
-            )
+            ))
 
             logging.info('Attached policy {policy:s} to role {role:s}'.format(
                 policy=policy, role=self.name
