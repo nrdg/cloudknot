@@ -342,7 +342,7 @@ class Vpc(NamedObject):
                 botocore.exceptions.WaiterError
             )
         )
-        retry.call(wait_for_subnet.wait(SubnetIds=subnet_ids))
+        retry.call(wait_for_subnet.wait, SubnetIds=subnet_ids)
         EC2.create_tags(
             Resources=subnet_ids,
             Tags=[
@@ -617,15 +617,17 @@ class SecurityGroup(NamedObject):
                 EC2.exceptions.ClientErro
             )
         )
-        retry.call(EC2.authorize_security_group_ingress(
+        retry.call(
+            EC2.authorize_security_group_ingress,
             GroupId=group_id,
             IpPermissions=ip_permissions
-        ))
+        )
 
         logging.info('Created security group {id:s}'.format(id=group_id))
 
         # Tag the security group with owner=cloudknot
-        retry.call(EC2.create_tags(
+        retry.call(
+            EC2.create_tags,
             Resources=[group_id],
             Tags=[
                 {
@@ -633,7 +635,7 @@ class SecurityGroup(NamedObject):
                     'Value': 'cloudknot'
                 }
             ]
-        ))
+        )
 
         # Add this security group to the list of security groups in the
         # config file

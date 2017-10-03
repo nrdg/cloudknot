@@ -185,7 +185,7 @@ class IamRole(ObjectWithArn):
                     IAM.exceptions.NoSuchEntityException
                 )
             )
-            response = retry.call(IAM.get_role(RoleName=self.name))
+            response = retry.call(IAM.get_role, RoleName=self.name)
             arn = response.get('Role')['Arn']
             role_policy = response.get('Role')['AssumeRolePolicyDocument']
             try:
@@ -259,10 +259,10 @@ class IamRole(ObjectWithArn):
                     IAM.exceptions.NoSuchEntityException
                 )
             )
-            retry.call(IAM.attach_role_policy(
-                PolicyArn=policy_arn,
-                RoleName=self.name
-            ))
+            retry.call(
+                IAM.attach_role_policy,
+                PolicyArn=policy_arn, RoleName=self.name
+            )
 
             logging.info('Attached policy {policy:s} to role {role:s}'.format(
                 policy=policy, role=self.name

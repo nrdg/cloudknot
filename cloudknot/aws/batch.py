@@ -872,9 +872,10 @@ class ComputeEnvironment(ObjectWithArn):
 
         wait_for_compute_environment(arn=self.arn, name=self.name)
         try:
-            retry.call(BATCH.delete_compute_environment(
+            retry.call(
+                BATCH.delete_compute_environment,
                 computeEnvironment=self.arn
-            ))
+            )
         except tenacity.RetryError as e:
             try:
                 e.reraise()
@@ -1152,7 +1153,7 @@ class JobQueue(ObjectWithArn):
                 BATCH.exceptions.ClientException
             )
         )
-        retry.call(BATCH.update_job_queue(jobQueue=self.arn, state='DISABLED'))
+        retry.call(BATCH.update_job_queue, jobQueue=self.arn, state='DISABLED')
 
         # Next, terminate all jobs that have not completed
         for status in [
