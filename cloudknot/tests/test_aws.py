@@ -172,6 +172,7 @@ def test_IamRole():
         assert role.policies == (policy['name'],)
 
         # Confirm that the role is in the config file
+        config.clear()
         config.read(config_file)
         assert name in config.options('roles')
 
@@ -184,10 +185,9 @@ def test_IamRole():
         # Assert that it was removed from the config file
         # If we just re-read the config file, config will keep the union
         # of the in memory values and the file values, updating the
-        # intersection of the two with the file values. So we must set
-        # config to None and then re-read the file
-        config = None
-        config = configparser.ConfigParser()
+        # intersection of the two with the file values. So we must clear
+        # config and then re-read the file
+        config.clear()
         config.read(config_file)
         assert name not in config.options('roles')
 
@@ -225,6 +225,7 @@ def test_IamRole():
                 assert role.instance_profile_arn is None
 
             # Confirm that they exist in the config file
+            config.clear()
             config.read(config_file)
             assert n in config.options('roles')
 
@@ -236,10 +237,9 @@ def test_IamRole():
             # Assert that they were removed from the config file
             # If we just re-read the config file, config will keep the union
             # of the in memory values and the file values, updating the
-            # intersection of the two with the file values. So we must set
-            # config to None and then re-read the file
-            config = None
-            config = configparser.ConfigParser()
+            # intersection of the two with the file values. So we must clear
+            # config and then re-read the file
+            config.clear()
             config.read(config_file)
             assert n not in config.options('roles')
 
@@ -305,6 +305,7 @@ def test_IamRole():
             iam.delete_role(RoleName=role_name)
 
         # Clean up config file
+        config.clear()
         config.read(config_file)
         for role_name in config.options('roles'):
             if UNIT_TEST_PREFIX in role_name:
@@ -365,6 +366,7 @@ def test_DockerImage():
         assert di.repo_registry_id == repo_registry_id
 
         # Confirm that the docker image is in the config file
+        config.clear()
         config.read(config_file)
         assert name in config.options('docker-images')
 
@@ -378,10 +380,9 @@ def test_DockerImage():
         # Assert that it was removed from the config file
         # If we just re-read the config file, config will keep the union
         # of the in memory values and the file values, updating the
-        # intersection of the two with the file values. So we must set
-        # config to None and then re-read the file
-        config = None
-        config = configparser.ConfigParser()
+        # intersection of the two with the file values. So we must clear
+        # config and then re-read the file
+        config.clear()
         config.read(config_file)
         assert name not in config.options('docker-images')
 
@@ -517,6 +518,7 @@ def test_DockerImage():
             )
 
         # Clean up config file
+        config.clear()
         config.read(config_file)
         for name in config.options('docker-images'):
             if UNIT_TEST_PREFIX in name:
@@ -582,6 +584,7 @@ def test_Vpc():
         assert vpc.subnet_ids == []
 
         # Confirm that the VPC is in the config file
+        config.clear()
         config.read(config_file)
         assert vpc_id in config.options('vpc')
 
@@ -599,8 +602,7 @@ def test_Vpc():
         # of the in memory values and the file values, updating the
         # intersection of the two with the file values. So we must set
         # config to None and then re-read the file
-        config = None
-        config = configparser.ConfigParser()
+        config.clear()
         config.read(config_file)
         assert vpc_id not in config.options('vpc')
 
@@ -629,6 +631,7 @@ def test_Vpc():
             assert vpc.subnet_ids
 
             # Confirm that they exist in the config file
+            config.clear()
             config.read(config_file)
             assert vpc.vpc_id in config.options('vpc')
 
@@ -645,10 +648,9 @@ def test_Vpc():
             # Assert that they were removed from the config file
             # If we just re-read the config file, config will keep the union
             # of the in memory values and the file values, updating the
-            # intersection of the two with the file values. So we must set
-            # config to None and then re-read the file
-            config = None
-            config = configparser.ConfigParser()
+            # intersection of the two with the file values. So we must clear
+            # config and then re-read the file
+            config.clear()
             config.read(config_file)
             assert vpc.vpc_id not in config.options('vpc')
 
@@ -708,6 +710,7 @@ def test_Vpc():
     except Exception as e:  # pragma: nocover
         # Clean up VPCs from AWS
         # Find all unit test security groups
+        config.clear()
         config.read(config_file)
 
         # Find all VPCs with a Name tag key
@@ -813,6 +816,7 @@ def test_SecurityGroup():
         assert sg.security_group_id == group_id
 
         # Confirm that the role is in the config file
+        config.clear()
         config.read(config_file)
         assert group_id in config.options('security-groups')
 
@@ -828,10 +832,9 @@ def test_SecurityGroup():
         # Assert that it was removed from the config file
         # If we just re-read the config file, config will keep the union
         # of the in memory values and the file values, updating the
-        # intersection of the two with the file values. So we must set
-        # config to None and then re-read the file
-        config = None
-        config = configparser.ConfigParser()
+        # intersection of the two with the file values. So we must clear
+        # config and then re-read the file
+        config.clear()
         config.read(config_file)
         assert group_id not in config.options('security-groups')
 
@@ -864,6 +867,7 @@ def test_SecurityGroup():
             assert sg.vpc_id == v.vpc_id
 
             # Confirm that they exist in the config file
+            config.clear()
             config.read(config_file)
             assert sg.security_group_id in config.options('security-groups')
 
@@ -880,10 +884,9 @@ def test_SecurityGroup():
             # Assert that they were removed from the config file
             # If we just re-read the config file, config will keep the union
             # of the in memory values and the file values, updating the
-            # intersection of the two with the file values. So we must set
-            # config to None and then re-read the file
-            config = None
-            config = configparser.ConfigParser()
+            # intersection of the two with the file values. So we must clear
+            # config and then re-read the file
+            config.clear()
             config.read(config_file)
             assert sg.security_group_id not in config.options(
                 'security-groups'
@@ -921,6 +924,7 @@ def test_SecurityGroup():
             sgs
         )
 
+        config.clear()
         config.read(config_file)
 
         for sg in unit_test_sgs:
@@ -1010,6 +1014,7 @@ def test_JobDefinition(pars):
         assert jd.arn == arn
 
         # Confirm that the role is in the config file
+        config.clear()
         config.read(config_file)
         assert name in config.options('job-definitions')
 
@@ -1024,10 +1029,9 @@ def test_JobDefinition(pars):
         # Assert that it was removed from the config file
         # If we just re-read the config file, config will keep the union
         # of the in memory values and the file values, updating the
-        # intersection of the two with the file values. So we must set
-        # config to None and then re-read the file
-        config = None
-        config = configparser.ConfigParser()
+        # intersection of the two with the file values. So we must clear
+        # config and then re-read the file
+        config.clear()
         config.read(config_file)
         assert name not in config.options('job-definitions')
 
@@ -1076,6 +1080,7 @@ def test_JobDefinition(pars):
             # assert arn
 
             # Confirm that they exist in the config file
+            config.clear()
             config.read(config_file)
             assert jd.name in config.options('job-definitions')
 
@@ -1090,10 +1095,9 @@ def test_JobDefinition(pars):
             # Assert that they were removed from the config file
             # If we just re-read the config file, config will keep the union
             # of the in memory values and the file values, updating the
-            # intersection of the two with the file values. So we must set
-            # config to None and then re-read the file
-            config = None
-            config = configparser.ConfigParser()
+            # intersection of the two with the file values. So we must clear
+            # config and then re-read the file
+            config.clear()
             config.read(config_file)
             assert jd.name not in config.options('job-definitions')
 
@@ -1165,6 +1169,7 @@ def test_JobDefinition(pars):
                 jds
             ))
 
+        config.clear()
         config.read(config_file)
 
         for jd in unit_test_jds:
@@ -1259,6 +1264,7 @@ def test_ComputeEnvironment(pars):
         assert ce.arn == arn
 
         # Confirm that the role is in the config file
+        config.clear()
         config.read(config_file)
         assert name in config.options('compute-environments')
 
@@ -1290,10 +1296,9 @@ def test_ComputeEnvironment(pars):
         # Assert that it was removed from the config file
         # If we just re-read the config file, config will keep the union
         # of the in memory values and the file values, updating the
-        # intersection of the two with the file values. So we must set
-        # config to None and then re-read the file
-        config = None
-        config = configparser.ConfigParser()
+        # intersection of the two with the file values. So we must clear
+        # config and then re-read the file
+        config.clear()
         config.read(config_file)
         assert name not in config.options('compute-environments')
 
@@ -1378,6 +1383,7 @@ def test_ComputeEnvironment(pars):
             assert ce.bid_percentage == bp
 
             # Confirm that they exist in the config file
+            config.clear()
             config.read(config_file)
             assert ce.name in config.options('compute-environments')
 
@@ -1394,10 +1400,9 @@ def test_ComputeEnvironment(pars):
             # Assert that they were removed from the config file
             # If we just re-read the config file, config will keep the union
             # of the in memory values and the file values, updating the
-            # intersection of the two with the file values. So we must set
-            # config to None and then re-read the file
-            config = None
-            config = configparser.ConfigParser()
+            # intersection of the two with the file values. So we must clear
+            # config and then re-read the file
+            config.clear()
             config.read(config_file)
             assert ce.name not in config.options('compute-environments')
 
@@ -1618,6 +1623,7 @@ def test_ComputeEnvironment(pars):
                 state='DISABLED'
             )
 
+        config.clear()
         config.read(config_file)
 
         for ce in unit_test_CEs:
@@ -1743,6 +1749,7 @@ def test_JobQueue(pars):
         assert jq.arn == arn
 
         # Confirm that the role is in the config file
+        config.clear()
         config.read(config_file)
         assert name in config.options('job-queues')
 
@@ -1764,10 +1771,9 @@ def test_JobQueue(pars):
         # Assert that it was removed from the config file
         # If we just re-read the config file, config will keep the union
         # of the in memory values and the file values, updating the
-        # intersection of the two with the file values. So we must set
-        # config to None and then re-read the file
-        config = None
-        config = configparser.ConfigParser()
+        # intersection of the two with the file values. So we must clear
+        # config and then re-read the file
+        config.clear()
         config.read(config_file)
         assert name not in config.options('job-queues')
 
@@ -1807,6 +1813,7 @@ def test_JobQueue(pars):
             assert jq.priority == p
 
             # Confirm that they exist in the config file
+            config.clear()
             config.read(config_file)
             assert jq.name in config.options('job-queues')
 
@@ -1823,10 +1830,9 @@ def test_JobQueue(pars):
             # Assert that they were removed from the config file
             # If we just re-read the config file, config will keep the union
             # of the in memory values and the file values, updating the
-            # intersection of the two with the file values. So we must set
-            # config to None and then re-read the file
-            config = None
-            config = configparser.ConfigParser()
+            # intersection of the two with the file values. So we must clear
+            # config and then re-read the file
+            config.clear()
             config.read(config_file)
             assert jq.name not in config.options('job-queues')
 
@@ -1903,6 +1909,7 @@ def test_JobQueue(pars):
                 state='DISABLED'
             )
 
+        config.clear()
         config.read(config_file)
 
         for ce in unit_test_CEs:
@@ -1992,6 +1999,7 @@ def test_JobQueue(pars):
             ck.aws.wait_for_job_queue(name=jq['name'], max_wait_time=180)
             batch.update_job_queue(jobQueue=jq['arn'], state='DISABLED')
 
+        config.clear()
         config.read(config_file)
 
         requires_deletion = list(filter(

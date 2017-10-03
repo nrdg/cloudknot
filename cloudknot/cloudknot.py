@@ -438,6 +438,7 @@ class Pars(object):
             security_group_name = name + '-cloudknot-security-group'
 
         # Check for existence of this pars in the config file
+        CONFIG.clear()
         CONFIG.read(config.get_config_file())
         self._pars_name = 'pars ' + name
         if self._pars_name in CONFIG.sections():
@@ -789,6 +790,7 @@ class Pars(object):
             setattr(self, attr, new_role)
 
             # Replace the appropriate line in the config file
+            CONFIG.clear()
             CONFIG.read(config.get_config_file())
             field_name = attr.lstrip('_').replace('_', '-')
             CONFIG.set(self._pars_name, field_name, new_role.name)
@@ -859,6 +861,7 @@ class Pars(object):
         self._vpc = v
 
         # Replace the appropriate line in the config file
+        CONFIG.clear()
         CONFIG.read(config.get_config_file())
         CONFIG.set(self._pars_name, 'vpc', v.vpc_id)
         with open(config.get_config_file(), 'w') as f:
@@ -902,6 +905,7 @@ class Pars(object):
         self._security_group = sg
 
         # Replace the appropriate line in the config file
+        CONFIG.clear()
         CONFIG.read(config.get_config_file())
         CONFIG.set(self._pars_name, 'security-group', sg.security_group_id)
         with open(config.get_config_file(), 'w') as f:
@@ -928,6 +932,7 @@ class Pars(object):
         self._batch_service_role.clobber()
 
         # Remove this section from the config file
+        CONFIG.clear()
         CONFIG.read(config.get_config_file())
         CONFIG.remove_section(self._pars_name)
         with open(config.get_config_file(), 'w') as f:

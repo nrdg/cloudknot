@@ -224,6 +224,50 @@ def test_Pars():
         # And for real this time
         p = ck.Pars(name=name)
 
+        # Now remove the section from config file
+        config.remove_section('pars ' + name)
+        with open(config_file, 'w') as f:
+            config.write(f)
+
+        # And re-instantiate by supplying resource names
+        p = ck.Pars(
+            name=name,
+            batch_service_role_name=p.batch_service_role.name,
+            ecs_instance_role_name=p.ecs_instance_role.name,
+            spot_fleet_role_name=p.spot_fleet_role.name,
+            vpc_id=p.vpc.vpc_id,
+            security_group_id=p.security_group.security_group_id
+        )
+
+        assert p.batch_service_role.name == pre + 'batch-service-role'
+        assert p.ecs_instance_role.name == pre + 'ecs-instance-role'
+        assert p.spot_fleet_role.name == pre + 'spot-fleet-role'
+        assert p.vpc.name == pre + 'vpc'
+        assert p.security_group.name == pre + 'security-group'
+
+        # Do that last part over again but specify VPC and security group
+        # names instead of IDs
+        # Remove the section from config file
+        config.remove_section('pars ' + name)
+        with open(config_file, 'w') as f:
+            config.write(f)
+
+        # And re-instantiate by supplying resource names
+        p = ck.Pars(
+            name=name,
+            batch_service_role_name=p.batch_service_role.name,
+            ecs_instance_role_name=p.ecs_instance_role.name,
+            spot_fleet_role_name=p.spot_fleet_role.name,
+            vpc_name=p.vpc.name,
+            security_group_name=p.security_group.name
+        )
+
+        assert p.batch_service_role.name == pre + 'batch-service-role'
+        assert p.ecs_instance_role.name == pre + 'ecs-instance-role'
+        assert p.spot_fleet_role.name == pre + 'spot-fleet-role'
+        assert p.vpc.name == pre + 'vpc'
+        assert p.security_group.name == pre + 'security-group'
+
         # Test setting new batch service role
         # -----------------------------------
         with pytest.raises(ValueError):
@@ -240,6 +284,7 @@ def test_Pars():
         assert p.batch_service_role == role
 
         # Assert config file changed
+        config.clear()
         config.read(config_file)
         assert config.get(p.pars_name, 'batch-service-role') == role.name
 
@@ -260,6 +305,7 @@ def test_Pars():
         assert p.ecs_instance_role == role
 
         # Assert config file changed
+        config.clear()
         config.read(config_file)
         assert config.get(p.pars_name, 'ecs-instance-role') == role.name
 
@@ -279,6 +325,7 @@ def test_Pars():
         assert p.spot_fleet_role == role
 
         # Assert config file changed
+        config.clear()
         config.read(config_file)
         assert config.get(p.pars_name, 'spot-fleet-role') == role.name
 
@@ -294,6 +341,7 @@ def test_Pars():
         assert p.security_group == sg
 
         # Assert config file changed
+        config.clear()
         config.read(config_file)
         assert (config.get(p.pars_name, 'security-group') ==
                 sg.security_group_id)
@@ -310,13 +358,13 @@ def test_Pars():
         assert p.vpc == vpc
 
         # Assert config file changed
+        config.clear()
         config.read(config_file)
         assert config.get(p.pars_name, 'vpc') == vpc.vpc_id
 
         p.clobber()
 
-        config = None
-        config = configparser.ConfigParser()
+        config.clear()
         config.read(config_file)
         assert 'pars ' + name not in config.sections()
 
