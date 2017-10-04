@@ -336,8 +336,8 @@ class Vpc(NamedObject):
         # Tag all subnets with name and owner
         wait_for_subnet = EC2.get_waiter('subnet_available')
         retry = tenacity.Retrying(
-            wait=tenacity.wait_exponential(max=60),
-            stop=tenacity.stop_after_delay(300),
+            wait=tenacity.wait_exponential(max=32),
+            stop=tenacity.stop_after_delay(60),
             retry=tenacity.retry_if_exception_type(
                 botocore.exceptions.WaiterError
             )
@@ -611,10 +611,10 @@ class SecurityGroup(NamedObject):
         }]
 
         retry = tenacity.Retrying(
-            wait=tenacity.wait_exponential(max=60),
-            stop=tenacity.stop_after_delay(300),
+            wait=tenacity.wait_exponential(max=32),
+            stop=tenacity.stop_after_delay(60),
             retry=tenacity.retry_if_exception_type(
-                EC2.exceptions.ClientErro
+                EC2.exceptions.ClientError
             )
         )
         retry.call(

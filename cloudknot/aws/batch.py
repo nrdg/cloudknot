@@ -863,8 +863,8 @@ class ComputeEnvironment(ObjectWithArn):
             wait_for_job_queue(name=queue['jobQueueName'])
 
         retry = tenacity.Retrying(
-            wait=tenacity.wait_exponential(max=60),
-            stop=tenacity.stop_after_delay(30),
+            wait=tenacity.wait_exponential(max=32),
+            stop=tenacity.stop_after_delay(60),
             retry=tenacity.retry_if_exception_type(
                 BATCH.exceptions.ClientException
             )
@@ -880,7 +880,7 @@ class ComputeEnvironment(ObjectWithArn):
             try:
                 e.reraise()
             except BATCH.exceptions.ClientException as error:
-                error_message = e.response['Error']['Message']
+                error_message = error.response['Error']['Message']
                 if error_message == 'Cannot delete, found existing ' \
                                     'JobQueue relationship':
                     raise CannotDeleteResourceException(
@@ -1147,8 +1147,8 @@ class JobQueue(ObjectWithArn):
         # First, disable submissions to the queue
         wait_for_job_queue(self.name, max_wait_time=180)
         retry = tenacity.Retrying(
-            wait=tenacity.wait_exponential(max=60),
-            stop=tenacity.stop_after_delay(500),
+            wait=tenacity.wait_exponential(max=32),
+            stop=tenacity.stop_after_delay(60),
             retry=tenacity.retry_if_exception_type(
                 BATCH.exceptions.ClientException
             )

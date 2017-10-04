@@ -179,8 +179,8 @@ class IamRole(ObjectWithArn):
         try:
             # If role exists, retrieve info
             retry = tenacity.Retrying(
-                wait=tenacity.wait_exponential(max=60),
-                stop=tenacity.stop_after_delay(30),
+                wait=tenacity.wait_exponential(max=4),
+                stop=tenacity.stop_after_delay(5),
                 retry=tenacity.retry_if_exception_type(
                     IAM.exceptions.NoSuchEntityException
                 )
@@ -253,8 +253,8 @@ class IamRole(ObjectWithArn):
             policy_arn = policy_filter[0]['Arn']
 
             retry = tenacity.Retrying(
-                wait=tenacity.wait_exponential(max=60),
-                stop=tenacity.stop_after_delay(30),
+                wait=tenacity.wait_exponential(max=4),
+                stop=tenacity.stop_after_delay(5),
                 retry=tenacity.retry_if_exception_type(
                     IAM.exceptions.NoSuchEntityException
                 )
