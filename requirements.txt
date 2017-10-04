@@ -3,4 +3,4 @@ boto3
 docker>=2.0.0
 pipreqs
 six
-
+tenacity

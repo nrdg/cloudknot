@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function
 import cloudknot.config
 import logging
 import operator
-import time
+import tenacity
 from collections import namedtuple
 
 from .base_classes import NamedObject, ObjectWithArn, \
@@ -862,50 +862,45 @@ class ComputeEnvironment(ObjectWithArn):
         for queue in associated_queues:
             wait_for_job_queue(name=queue['jobQueueName'])
 
-        # Then delete the compute environment
-        # I noticed some latency for deleting compute environments that
-        # didn't go away even when I used `wait_for_compute_environment`.
-        # However, retrying seemed to fix the issue. The retry strategy is
-        # hacky, but it works
-        attempts = 0
-        max_attempts = 18
-        done = False
-        while attempts < max_attempts and not done:
+        retry = tenacity.Retrying(
+            wait=tenacity.wait_exponential(max=32),
+            stop=tenacity.stop_after_delay(60),
+            retry=tenacity.retry_if_exception_type(
+                BATCH.exceptions.ClientException
+            )
+        )
+
+        wait_for_compute_environment(arn=self.arn, name=self.name)
+        try:
+            retry.call(
+                BATCH.delete_compute_environment,
+                computeEnvironment=self.arn
+            )
+        except tenacity.RetryError as e:
             try:
-                wait_for_compute_environment(arn=self.arn, name=self.name)
-                BATCH.delete_compute_environment(computeEnvironment=self.arn)
-
-                # Remove this compute env from the list of compute envs
-                # in config file
-                cloudknot.config.remove_resource(
-                    'compute-environments', self.name
-                )
-
-                done = True
-
-                logging.info('Clobbered compute environment {name:s}'.format(
-                    name=self.name
-                ))
-            except BATCH.exceptions.ClientException as e:
-                error_message = e.response['Error']['Message']
+                e.reraise()
+            except BATCH.exceptions.ClientException as error:
+                error_message = error.response['Error']['Message']
                 if error_message == 'Cannot delete, found existing ' \
                                     'JobQueue relationship':
-                    attempts += 1
-                    if attempts >= max_attempts:
-                        raise CannotDeleteResourceException(
-                            'Could not delete this compute environment '
-                            'because it has job queue(s) associated with it. '
-                            'If you want to delete this compute environment, '
-                            'first delete the job queues with the following '
-                            'ARNS: {queues:s}'.format(
-                                queues=str(associated_queues)
-                            ),
-                            resource_id=associated_queues
-                        )
-                    else:
-                        time.sleep(10)
-                else:
-                    raise e
+                    raise CannotDeleteResourceException(
+                        'Could not delete this compute environment '
+                        'because it has job queue(s) associated with it. '
+                        'If you want to delete this compute environment, '
+                        'first delete the job queues with the following '
+                        'ARNS: {queues:s}'.format(
+                            queues=str(associated_queues)
+                        ),
+                        resource_id=associated_queues
+                    )
+
+        # Remove this compute env from the list of compute envs
+        # in config file
+        cloudknot.config.remove_resource('compute-environments', self.name)
+
+        logging.info('Clobbered compute environment {name:s}'.format(
+            name=self.name
+        ))
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -1151,7 +1146,14 @@ class JobQueue(ObjectWithArn):
         """
         # First, disable submissions to the queue
         wait_for_job_queue(self.name, max_wait_time=180)
-        BATCH.update_job_queue(jobQueue=self.arn, state='DISABLED')
+        retry = tenacity.Retrying(
+            wait=tenacity.wait_exponential(max=32),
+            stop=tenacity.stop_after_delay(60),
+            retry=tenacity.retry_if_exception_type(
+                BATCH.exceptions.ClientException
+            )
+        )
+        retry.call(BATCH.update_job_queue, jobQueue=self.arn, state='DISABLED')
 
         # Next, terminate all jobs that have not completed
         for status in [

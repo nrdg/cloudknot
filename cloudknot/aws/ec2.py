@@ -1,10 +1,12 @@
 from __future__ import absolute_import, division, print_function
 
+import botocore
 import cloudknot.config
 import ipaddress
 import logging
 import operator
 import six
+import tenacity
 import time
 from collections import namedtuple
 from math import ceil
@@ -333,7 +335,14 @@ class Vpc(NamedObject):
 
         # Tag all subnets with name and owner
         wait_for_subnet = EC2.get_waiter('subnet_available')
-        wait_for_subnet.wait(SubnetIds=subnet_ids)
+        retry = tenacity.Retrying(
+            wait=tenacity.wait_exponential(max=32),
+            stop=tenacity.stop_after_delay(60),
+            retry=tenacity.retry_if_exception_type(
+                botocore.exceptions.WaiterError
+            )
+        )
+        retry.call(wait_for_subnet.wait, SubnetIds=subnet_ids)
         EC2.create_tags(
             Resources=subnet_ids,
             Tags=[
@@ -601,7 +610,15 @@ class SecurityGroup(NamedObject):
             'Ipv6Ranges': ipv6_ranges
         }]
 
-        EC2.authorize_security_group_ingress(
+        retry = tenacity.Retrying(
+            wait=tenacity.wait_exponential(max=32),
+            stop=tenacity.stop_after_delay(60),
+            retry=tenacity.retry_if_exception_type(
+                EC2.exceptions.ClientError
+            )
+        )
+        retry.call(
+            EC2.authorize_security_group_ingress,
             GroupId=group_id,
             IpPermissions=ip_permissions
         )
@@ -609,7 +626,8 @@ class SecurityGroup(NamedObject):
         logging.info('Created security group {id:s}'.format(id=group_id))
 
         # Tag the security group with owner=cloudknot
-        EC2.create_tags(
+        retry.call(
+            EC2.create_tags,
             Resources=[group_id],
             Tags=[
                 {
