@@ -10,9 +10,9 @@ import tenacity
 from collections import namedtuple
 from math import ceil
 
-from .base_classes import EC2, BATCH, NamedObject, \
+from .base_classes import EC2, NamedObject, \
     ResourceExistsException, ResourceDoesNotExistException, \
-    CannotDeleteResourceException, wait_for_compute_environment
+    CannotDeleteResourceException
 
 try:
     from math import log2
@@ -669,25 +669,6 @@ class SecurityGroup(NamedObject):
             logging.info('Deleted dependent EC2 instances: {deps:s}'.format(
                 deps=str(deps)
             ))
-
-        # Get dependent compute environments
-        response = BATCH.describe_compute_environments()
-        ce_names = [
-            ce['computeEnvironmentName'] for ce
-            in response.get('computeEnvironments')
-            if self.security_group_id
-            in ce['computeResources']['securityGroupIds']
-        ]
-        ce_arns = [
-            ce['computeEnvironmentArn'] for ce
-            in response.get('computeEnvironments')
-            if self.security_group_id
-            in ce['computeResources']['securityGroupIds']
-        ]
-
-        # Wait for them to be updated / deleted
-        for name, arn in zip(ce_names, ce_arns):
-            wait_for_compute_environment(arn=arn, name=name)
 
         # Delete the security group
         retry = tenacity.Retrying(

@@ -9,8 +9,7 @@ from collections import namedtuple
 from .base_classes import NamedObject, ObjectWithArn, \
     ObjectWithUsernameAndMemory, BATCH, \
     ResourceExistsException, ResourceDoesNotExistException, \
-    CannotDeleteResourceException, wait_for_compute_environment, \
-    wait_for_job_queue
+    CannotDeleteResourceException, wait_for_job_queue
 from .ec2 import Vpc, SecurityGroup
 from .ecr import DockerRepo
 from .iam import IamRole
@@ -851,7 +850,6 @@ class ComputeEnvironment(ObjectWithArn):
         )
 
         # First set the state to disabled
-        wait_for_compute_environment(arn=self.arn, name=self.name)
         retry.call(
             BATCH.update_compute_environment,
             computeEnvironment=self.arn,
@@ -868,10 +866,6 @@ class ComputeEnvironment(ObjectWithArn):
             response.get('jobQueues')
         ))
 
-        for queue in associated_queues:
-            wait_for_job_queue(name=queue['jobQueueName'])
-
-        wait_for_compute_environment(arn=self.arn, name=self.name)
         try:
             retry.call(
                 BATCH.delete_compute_environment,
@@ -1146,7 +1140,6 @@ class JobQueue(ObjectWithArn):
         None
         """
         # First, disable submissions to the queue
-        wait_for_job_queue(self.name, max_wait_time=180)
         retry = tenacity.Retrying(
             wait=tenacity.wait_exponential(max=32),
             stop=tenacity.stop_after_delay(60),
@@ -1171,8 +1164,6 @@ class JobQueue(ObjectWithArn):
                 )
 
                 logging.info('Terminated job {id:s}'.format(id=job_id))
-
-        wait_for_job_queue(self.name, max_wait_time=180)
 
         # Finally, delete the job queue
         retry.call(BATCH.delete_job_queue, jobQueue=self.arn)
