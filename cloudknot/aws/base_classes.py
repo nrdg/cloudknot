@@ -5,18 +5,19 @@ import logging
 import operator
 import sys
 import time
-from cloudknot.config import get_default_region
+from cloudknot.config import get_region
 
 __all__ = ["ResourceDoesNotExistException", "ResourceExistsException",
            "CannotDeleteResourceException",
            "NamedObject", "ObjectWithArn", "ObjectWithUsernameAndMemory",
-           "IAM", "EC2", "ECR", "BATCH",
-           "wait_for_compute_environment", "wait_for_job_queue"]
+           "clients", "wait_for_compute_environment", "wait_for_job_queue"]
 
-IAM = boto3.client('iam', region_name=get_default_region())
-EC2 = boto3.client('ec2', region_name=get_default_region())
-BATCH = boto3.client('batch', region_name=get_default_region())
-ECR = boto3.client('ecr', region_name=get_default_region())
+clients = {
+    'iam': boto3.client('iam', region_name=get_region()),
+    'ec2': boto3.client('ec2', region_name=get_region()),
+    'batch': boto3.client('batch', region_name=get_region()),
+    'ecr': boto3.client('ecr', region_name=get_region())
+}
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -183,7 +184,7 @@ def wait_for_compute_environment(arn, name, log=True, max_wait_time=60):
             )
 
         # Get compute environment info
-        response = BATCH.describe_compute_environments(
+        response = clients['batch'].describe_compute_environments(
             computeEnvironments=[arn]
         )
 
@@ -235,7 +236,7 @@ def wait_for_job_queue(name, log=True, max_wait_time=60):
             )
 
         # If job queue has status == CREATING/UPDATING, keep waiting
-        response = BATCH.describe_job_queues(jobQueues=[name])
+        response = clients['batch'].describe_job_queues(jobQueues=[name])
         waiting = (response.get('jobQueues') == []
                    or response.get('jobQueues')[0]['status']
                    in ['CREATING', 'UPDATING'])

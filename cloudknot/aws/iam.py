@@ -7,7 +7,7 @@ import operator
 import tenacity
 from collections import namedtuple
 
-from .base_classes import ObjectWithArn, IAM, \
+from .base_classes import ObjectWithArn, clients, \
     ResourceExistsException, ResourceDoesNotExistException
 
 __all__ = ["IamRole"]
@@ -117,13 +117,15 @@ class IamRole(ObjectWithArn):
                                      'sequence of strings')
 
             # Get all AWS policies
-            response = IAM.list_policies()
+            response = clients['iam'].list_policies()
             aws_policies = [d['PolicyName'] for d in response.get('Policies')]
 
             # If results are paginated, continue appending to aws_policies,
             # using `Marker` to tell next call where to start
             while response['IsTruncated']:
-                response = IAM.list_policies(Marker=response['Marker'])
+                response = clients['iam'].list_policies(
+                    Marker=response['Marker']
+                )
                 aws_policies += [d['PolicyName'] for d
                                  in response.get('Policies')]
 
@@ -182,10 +184,10 @@ class IamRole(ObjectWithArn):
                 wait=tenacity.wait_exponential(max=4),
                 stop=tenacity.stop_after_delay(5),
                 retry=tenacity.retry_if_exception_type(
-                    IAM.exceptions.NoSuchEntityException
+                    clients['iam'].exceptions.NoSuchEntityException
                 )
             )
-            response = retry.call(IAM.get_role, RoleName=self.name)
+            response = retry.call(clients['iam'].get_role, RoleName=self.name)
             arn = response.get('Role')['Arn']
             role_policy = response.get('Role')['AssumeRolePolicyDocument']
             try:
@@ -193,7 +195,9 @@ class IamRole(ObjectWithArn):
             except KeyError:
                 description = ''
 
-            response = IAM.list_attached_role_policies(RoleName=self.name)
+            response = clients['iam'].list_attached_role_policies(
+                RoleName=self.name
+            )
             attached_policies = response.get('AttachedPolicies')
             policies = tuple([d['PolicyName'] for d in attached_policies])
 
@@ -208,7 +212,7 @@ class IamRole(ObjectWithArn):
         except tenacity.RetryError as e:
             try:
                 e.reraise()
-            except IAM.exceptions.NoSuchEntityException:
+            except clients['iam'].exceptions.NoSuchEntityException:
                 return RoleExists(exists=False)
 
     def _create(self, add_instance_profile=False):
@@ -219,7 +223,7 @@ class IamRole(ObjectWithArn):
         string
             Amazon Resource Number (ARN) for the created IAM role
         """
-        response = IAM.create_role(
+        response = clients['iam'].create_role(
             RoleName=self.name,
             AssumeRolePolicyDocument=json.dumps(self.role_policy_document),
             Description=self.description
@@ -232,7 +236,7 @@ class IamRole(ObjectWithArn):
 
         for policy in self.policies:
             # Get the corresponding arn for each input policy
-            policy_response = IAM.list_policies()
+            policy_response = clients['iam'].list_policies()
             policy_filter = list(filter(
                 lambda p: p['PolicyName'] == policy,
                 policy_response.get('Policies')
@@ -241,7 +245,7 @@ class IamRole(ObjectWithArn):
             # If policy_filter is empty, it is because the list_policies
             # results are paginated, use `Marker` to get the next page
             while not len(policy_filter):
-                policy_response = IAM.list_policies(
+                policy_response = clients['iam'].list_policies(
                     Marker=policy_response['Marker']
                 )
 
@@ -256,11 +260,11 @@ class IamRole(ObjectWithArn):
                 wait=tenacity.wait_exponential(max=4),
                 stop=tenacity.stop_after_delay(5),
                 retry=tenacity.retry_if_exception_type(
-                    IAM.exceptions.NoSuchEntityException
+                    clients['iam'].exceptions.NoSuchEntityException
                 )
             )
             retry.call(
-                IAM.attach_role_policy,
+                clients['iam'].attach_role_policy,
                 PolicyArn=policy_arn, RoleName=self.name
             )
 
@@ -273,12 +277,12 @@ class IamRole(ObjectWithArn):
 
             try:
                 # Create the instance profile
-                IAM.create_instance_profile(
+                clients['iam'].create_instance_profile(
                     InstanceProfileName=instance_profile_name
                 )
 
                 # Wait for it to show up
-                wait_for_instance_profile = IAM.get_waiter(
+                wait_for_instance_profile = clients['iam'].get_waiter(
                     'instance_profile_exists'
                 )
 
@@ -287,13 +291,13 @@ class IamRole(ObjectWithArn):
                 )
 
                 # Add to role
-                IAM.add_role_to_instance_profile(
+                clients['iam'].add_role_to_instance_profile(
                     InstanceProfileName=instance_profile_name,
                     RoleName=self.name
                 )
-            except IAM.exceptions.EntityAlreadyExistsException:
+            except clients['iam'].exceptions.EntityAlreadyExistsException:
                 # Instance profile already exists, just add to role
-                IAM.add_role_to_instance_profile(
+                clients['iam'].add_role_to_instance_profile(
                     InstanceProfileName=instance_profile_name,
                     RoleName=self.name
                 )
@@ -316,7 +320,9 @@ class IamRole(ObjectWithArn):
         arn : string or None
             ARN for attached instance profile if any, otherwise None
         """
-        response = IAM.list_instance_profiles_for_role(RoleName=self.name)
+        response = clients['iam'].list_instance_profiles_for_role(
+            RoleName=self.name
+        )
 
         if response.get('InstanceProfiles'):
             # This role has instance profiles, return the first
@@ -335,24 +341,26 @@ class IamRole(ObjectWithArn):
         """
         if self.instance_profile_arn:
             # Remove any instance profiles associated with this role
-            response = IAM.list_instance_profiles_for_role(RoleName=self.name)
+            response = clients['iam'].list_instance_profiles_for_role(
+                RoleName=self.name
+            )
 
             instance_profile_name = response.get(
                 'InstanceProfiles'
             )[0]['InstanceProfileName']
 
-            IAM.remove_role_from_instance_profile(
+            clients['iam'].remove_role_from_instance_profile(
                 InstanceProfileName=instance_profile_name,
                 RoleName=self.name
             )
 
-            IAM.delete_instance_profile(
+            clients['iam'].delete_instance_profile(
                 InstanceProfileName=instance_profile_name
             )
 
         for policy in self.policies:
             # Get the corresponding arn for each input policy
-            policy_response = IAM.list_policies()
+            policy_response = clients['iam'].list_policies()
             policy_filter = list(filter(
                 lambda p: p['PolicyName'] == policy,
                 policy_response.get('Policies')
@@ -361,7 +369,7 @@ class IamRole(ObjectWithArn):
             # If policy_filter is empty, it is because the list_policies
             # results are paginated, use `Marker` to get the next page
             while not len(policy_filter):
-                policy_response = IAM.list_policies(
+                policy_response = clients['iam'].list_policies(
                     Marker=policy_response['Marker']
                 )
 
@@ -372,13 +380,13 @@ class IamRole(ObjectWithArn):
 
             policy_arn = policy_filter[0]['Arn']
 
-            IAM.detach_role_policy(
+            clients['iam'].detach_role_policy(
                 RoleName=self.name,
                 PolicyArn=policy_arn
             )
 
         # Delete role from AWS
-        IAM.delete_role(RoleName=self.name)
+        clients['iam'].delete_role(RoleName=self.name)
 
         # Remove this role from the list of roles in the config file
         cloudknot.config.remove_resource('roles', self.name)

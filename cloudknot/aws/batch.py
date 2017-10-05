@@ -7,7 +7,7 @@ import tenacity
 from collections import namedtuple
 
 from .base_classes import NamedObject, ObjectWithArn, \
-    ObjectWithUsernameAndMemory, BATCH, \
+    ObjectWithUsernameAndMemory, clients, \
     ResourceExistsException, ResourceDoesNotExistException, \
     CannotDeleteResourceException, wait_for_job_queue
 from .ec2 import Vpc, SecurityGroup
@@ -207,10 +207,14 @@ class JobDefinition(ObjectWithUsernameAndMemory):
 
         if arn:
             # Retrieve using ARN
-            response = BATCH.describe_job_definitions(jobDefinitions=[arn])
+            response = clients['batch'].describe_job_definitions(
+                jobDefinitions=[arn]
+            )
         else:
             # Retrieve using name
-            response = BATCH.describe_job_definitions(jobDefinitionName=name)
+            response = clients['batch'].describe_job_definitions(
+                jobDefinitionName=name
+            )
 
         if response.get('jobDefinitions'):
             # Job def exists. Get job def details
@@ -263,7 +267,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         }
 
         # Register the job def
-        response = BATCH.register_job_definition(
+        response = clients['batch'].register_job_definition(
             jobDefinitionName=self.name,
             type='container',
             containerProperties=job_container_properties,
@@ -288,7 +292,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         -------
         None
         """
-        BATCH.deregister_job_definition(jobDefinition=self.arn)
+        clients['batch'].deregister_job_definition(jobDefinition=self.arn)
 
         # Remove this job def from the list of job defs in the config file
         cloudknot.config.remove_resource('job-definitions', self.name)
@@ -707,12 +711,12 @@ class ComputeEnvironment(ObjectWithArn):
 
         if arn:
             # Search by ARN
-            response = BATCH.describe_compute_environments(
+            response = clients['batch'].describe_compute_environments(
                 computeEnvironments=[arn]
             )
         else:
             # Search by name
-            response = BATCH.describe_compute_environments(
+            response = clients['batch'].describe_compute_environments(
                 computeEnvironments=[name]
             )
 
@@ -815,7 +819,7 @@ class ComputeEnvironment(ObjectWithArn):
         if self.ec2_key_pair:
             compute_resources['ec2KeyPair'] = self.ec2_key_pair
 
-        response = BATCH.create_compute_environment(
+        response = clients['batch'].create_compute_environment(
             computeEnvironmentName=self.name,
             type='MANAGED',
             state='ENABLED',
@@ -845,19 +849,19 @@ class ComputeEnvironment(ObjectWithArn):
             wait=tenacity.wait_exponential(max=32),
             stop=tenacity.stop_after_delay(60),
             retry=tenacity.retry_if_exception_type(
-                BATCH.exceptions.ClientException
+                clients['batch'].exceptions.ClientException
             )
         )
 
         # First set the state to disabled
         retry.call(
-            BATCH.update_compute_environment,
+            clients['batch'].update_compute_environment,
             computeEnvironment=self.arn,
             state='DISABLED'
         )
 
         # Wait for any associated job queues to finish updating
-        response = BATCH.describe_job_queues()
+        response = clients['batch'].describe_job_queues()
         associated_queues = list(filter(
             lambda q: self.arn in [
                 ce['computeEnvironment'] for ce
@@ -868,13 +872,13 @@ class ComputeEnvironment(ObjectWithArn):
 
         try:
             retry.call(
-                BATCH.delete_compute_environment,
+                clients['batch'].delete_compute_environment,
                 computeEnvironment=self.arn
             )
         except tenacity.RetryError as e:
             try:
                 e.reraise()
-            except BATCH.exceptions.ClientException as error:
+            except clients['batch'].exceptions.ClientException as error:
                 error_message = error.response['Error']['Message']
                 if error_message == 'Cannot delete, found existing ' \
                                     'JobQueue relationship':
@@ -1048,12 +1052,12 @@ class JobQueue(ObjectWithArn):
 
         if arn:
             # Search by ARN
-            response = BATCH.describe_job_queues(
+            response = clients['batch'].describe_job_queues(
                 jobQueues=[arn]
             )
         else:
             # Search by name
-            response = BATCH.describe_job_queues(
+            response = clients['batch'].describe_job_queues(
                 jobQueues=[name]
             )
 
@@ -1095,7 +1099,7 @@ class JobQueue(ObjectWithArn):
         )
 
         response = retry.call(
-            BATCH.create_job_queue,
+            clients['batch'].create_job_queue,
             jobQueueName=self.name,
             state='ENABLED',
             priority=self.priority,
@@ -1136,10 +1140,12 @@ class JobQueue(ObjectWithArn):
 
         if status == 'ALL':
             # status == 'ALL' is equivalent to not specifying a status at all
-            response = BATCH.list_jobs(jobQueue=self.arn)
+            response = clients['batch'].list_jobs(jobQueue=self.arn)
         else:
             # otherwise, filter on status
-            response = BATCH.list_jobs(jobQueue=self.arn, jobStatus=status)
+            response = clients['batch'].list_jobs(
+                jobQueue=self.arn, jobStatus=status
+            )
 
         # Return list of job_ids
         return response.get('jobSummaryList')
@@ -1156,10 +1162,14 @@ class JobQueue(ObjectWithArn):
             wait=tenacity.wait_exponential(max=32),
             stop=tenacity.stop_after_delay(60),
             retry=tenacity.retry_if_exception_type(
-                BATCH.exceptions.ClientException
+                clients['batch'].exceptions.ClientException
             )
         )
-        retry.call(BATCH.update_job_queue, jobQueue=self.arn, state='DISABLED')
+        retry.call(
+            clients['batch'].update_job_queue,
+            jobQueue=self.arn,
+            state='DISABLED'
+        )
 
         # Next, terminate all jobs that have not completed
         for status in [
@@ -1170,7 +1180,7 @@ class JobQueue(ObjectWithArn):
             jobs = self.get_jobs(status=status)
             for job_id in jobs:
                 retry.call(
-                    BATCH.terminate_job,
+                    clients['batch'].terminate_job,
                     jobId=job_id,
                     reason='Terminated to force job queue deletion'
                 )
@@ -1178,7 +1188,7 @@ class JobQueue(ObjectWithArn):
                 logging.info('Terminated job {id:s}'.format(id=job_id))
 
         # Finally, delete the job queue
-        retry.call(BATCH.delete_job_queue, jobQueue=self.arn)
+        retry.call(clients['batch'].delete_job_queue, jobQueue=self.arn)
 
         # Remove this job queue from the list of job queues in config file
         cloudknot.config.remove_resource('job-queues', self.name)
@@ -1324,7 +1334,7 @@ class BatchJob(NamedObject):
         JobExists.__new__.__defaults__ = \
             (None,) * (len(JobExists._fields) - 1)
 
-        response = BATCH.describe_jobs(jobs=[job_id])
+        response = clients['batch'].describe_jobs(jobs=[job_id])
 
         if response.get('jobs'):
             job = response.get('jobs')[0]
@@ -1359,7 +1369,7 @@ class BatchJob(NamedObject):
             'command': self.commands
         }
 
-        response = BATCH.submit_job(
+        response = clients['batch'].submit_job(
             jobName=self.name,
             jobQueue=self.job_queue_arn,
             jobDefinition=self.job_definition_arn,
@@ -1389,7 +1399,7 @@ class BatchJob(NamedObject):
             for this AWS batch job
         """
         # Query the job_id
-        response = BATCH.describe_jobs(jobs=[self.job_id])
+        response = clients['batch'].describe_jobs(jobs=[self.job_id])
         job = response.get('jobs')[0]
 
         # Return only a subset of the job dictionary
@@ -1412,7 +1422,7 @@ class BatchJob(NamedObject):
         if not isinstance(reason, str):
             raise ValueError('reason must be a string.')
 
-        BATCH.terminate_job(jobId=self.job_id, reason=reason)
+        clients['batch'].terminate_job(jobId=self.job_id, reason=reason)
 
         logging.info('Terminated job {name:s} with jobID {job_id:s}'.format(
             name=self.name, job_id=self.job_id
