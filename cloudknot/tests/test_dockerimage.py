@@ -315,11 +315,11 @@ def test_DockerImage():
 
         # Assert ValueError on over-specified input
         with pytest.raises(ValueError):
-            di.push(repo="input doesn't matter here", repo_uri=repo_uri)
+            di.push(repo="input doesn't matter here", repo_uri=str(repo_uri))
 
         # Assert ValueError on push before build
         with pytest.raises(ValueError):
-            di.push(repo_uri=repo_uri)
+            di.push(repo_uri=str(repo_uri))
 
         # Assert ValueError on incorrect build args
         with pytest.raises(ValueError):
@@ -344,7 +344,7 @@ def test_DockerImage():
                 assert im in di.images
 
             if idx % 2:
-                di.push(repo_uri=repo_uri)
+                di.push(repo_uri=str(repo_uri))
             else:
                 di.push(repo=repo)
 
