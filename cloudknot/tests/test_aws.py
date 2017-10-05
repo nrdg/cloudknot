@@ -1935,5 +1935,90 @@ def test_JobQueue(pars):
         raise e
 
 
-def test_BatchJob():
-    pass
+def test_BatchJob(pars):
+    """Test only the input validation of BatchJob.
+
+    If we tested anything else, it would cost money to submit the batch jobs.
+    """
+    job_def = None
+    compute_environment = None
+    job_queue = None
+
+    try:
+        # Make job definition for input testing
+        job_def = ck.aws.JobDefinition(
+            name=get_testing_name(),
+            job_role=pars.batch_service_role,
+            docker_image='ubuntu',
+        )
+
+        # Make compute environment for input into job_queue
+        compute_environment = ck.aws.ComputeEnvironment(
+            name=get_testing_name(),
+            batch_service_role=pars.batch_service_role,
+            instance_role=pars.ecs_instance_role, vpc=pars.vpc,
+            security_group=pars.security_group,
+            spot_fleet_role=pars.spot_fleet_role,
+        )
+
+        # Make job_queue for input testing
+        job_queue = ck.aws.JobQueue(
+            name=get_testing_name(),
+            compute_environments=compute_environment,
+            priority=1
+        )
+
+        # Assert ValueError on insufficient input
+        with pytest.raises(ValueError):
+            ck.aws.BatchJob()
+
+        # Assert ValueError on over-specified input
+        with pytest.raises(ValueError):
+            ck.aws.BatchJob(
+                job_id=42,
+                name=get_testing_name()
+            )
+
+        # Assert ValueError on invalid job_queue
+        with pytest.raises(ValueError):
+            ck.aws.BatchJob(
+                name=get_testing_name(),
+                job_queue=42
+            )
+
+        # Assert ValueError on invalid job_definition
+        with pytest.raises(ValueError):
+            ck.aws.BatchJob(
+                name=get_testing_name(),
+                job_queue=job_queue,
+                job_definition=42
+            )
+
+        # Assert ValueError on invalid commands
+        with pytest.raises(ValueError):
+            ck.aws.BatchJob(
+                name=get_testing_name(),
+                job_queue=job_queue,
+                job_definition=job_def,
+                commands=[42, 42]
+            )
+
+        # Assert ValueError on invalid commands
+        with pytest.raises(ValueError):
+            ck.aws.BatchJob(
+                name=get_testing_name(),
+                job_queue=job_queue,
+                job_definition=job_def,
+                environment_variables=42
+            )
+    except Exception as e:
+        if job_queue:
+            job_queue.clobber()
+
+        if compute_environment:
+            compute_environment.clobber()
+
+        if job_def:
+            job_def.clobber()
+
+        raise e
