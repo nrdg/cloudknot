@@ -1083,7 +1083,19 @@ class JobQueue(ObjectWithArn):
         string
             Amazon Resource Number (ARN) for the created job queue
         """
-        response = BATCH.create_job_queue(
+        # The job queue depends on a compute environment that may still be
+        # updating or in the process of creation. Use tenacity.Retrying to
+        # overcome this latency
+        retry = tenacity.Retrying(
+            wait=tenacity.wait_exponential(max=32),
+            stop=tenacity.stop_after_delay(60),
+            retry=tenacity.retry_if_exception_type(
+                BATCH.exceptions.ClientException
+            )
+        )
+
+        response = retry.call(
+            BATCH.create_job_queue,
             jobQueueName=self.name,
             state='ENABLED',
             priority=self.priority,
