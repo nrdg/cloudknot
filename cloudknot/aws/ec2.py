@@ -7,7 +7,6 @@ import logging
 import operator
 import six
 import tenacity
-import time
 from collections import namedtuple
 from math import ceil
 

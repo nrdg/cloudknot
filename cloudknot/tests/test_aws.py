@@ -29,7 +29,6 @@ import configparser
 import json
 import os.path as op
 import pytest
-import subprocess
 import tenacity
 import uuid
 
@@ -1556,7 +1555,9 @@ def test_ComputeEnvironment(pars):
                         batch.exceptions.ClientException
                     )
                 )
-                retry.call(batch.update_job_queue, jobQueue=arn, state='DISABLED')
+                retry.call(
+                    batch.update_job_queue, jobQueue=arn, state='DISABLED'
+                )
 
                 # Delete the job queue
                 ck.aws.wait_for_job_queue(
