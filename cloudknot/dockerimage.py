@@ -222,8 +222,7 @@ class DockerImage(object):
         pipreqs.generate_requirements_file(self.req_path, self.pip_imports)
         self._write_dockerfile()
 
-        self._image_name = None
-        self._tags = None
+        self._images = []
         self._repo_uri = None
 
         # Add to config file
@@ -239,8 +238,7 @@ class DockerImage(object):
     pip_imports = property(operator.attrgetter('_pip_imports'))
     username = property(operator.attrgetter('_username'))
     missing_imports = property(operator.attrgetter('_missing_imports'))
-    image_name = property(operator.attrgetter('_image_name'))
-    tags = property(operator.attrgetter('_tags'))
+    images = property(operator.attrgetter('_images'))
     repo_uri = property(operator.attrgetter('_repo_uri'))
 
     def _write_script(self):
@@ -340,11 +338,10 @@ class DockerImage(object):
         if 'latest' in tags:
             raise ValueError('Any tag is allowed, except for "latest."')
 
-        self._tags = tags
-        if image_name:
-            self._image_name = image_name
-        else:
-            self._image_name = 'clouknot/' + self.name
+        image_name = image_name if image_name else 'cloudknot/' + self.name
+
+        images = [{'name': image_name, 'tag': t} for t in tags]
+        self._images += images
 
         # Refresh the aws ecr login credentials
         login_cmd = subprocess.check_output([
@@ -366,18 +363,18 @@ class DockerImage(object):
 
         # Use docker low-level APIClient
         c = docker.from_env()
-        for tag in tags:
+        for im in images:
             logging.info('Building image {name:s} with tag {tag:s}'.format(
-                name=self.image_name, tag=tag
+                name=im['name'], tag=im['tag']
             ))
 
             c.images.build(
                 path=self.build_path,
                 dockerfile=self.docker_path,
-                tag=self.image_name + ':' + tag
+                tag=im['name'] + ':' + im['tag']
             )
 
-    def push(self, repo=None, repo_uri=None, ):
+    def push(self, repo=None, repo_uri=None):
         """Tag and push a DockerContainer image to a repository
 
         Returns
@@ -395,17 +392,17 @@ class DockerImage(object):
                              '`repo_uri`.')
 
         # Make sure that the user has called build first or somehow set tags.
-        if self.tags is None or self.image_name is None:
+        if not self.images:
             raise ValueError(
-                'The tags or image_name property is None, indicating that the '
-                'build method has not yet been called. Call '
-                '`build(tags=<tags>)` first before calling `tag()`.'
+                'The images property is empty, indicating that the build '
+                'method has not yet been called. Call `build(tags=<tags>)` '
+                'first before calling `tag()`.'
             )
 
         if repo:
             if not isinstance(repo, aws.DockerRepo):
                 raise ValueError('repo must be a DockerRepo instance.')
-            self._repo_uri = repo.uri
+            self._repo_uri = repo.repo_uri
         else:
             if not isinstance(repo_uri, str):
                 raise ValueError('`repo_uri` must be a string.')
@@ -415,22 +412,24 @@ class DockerImage(object):
         c = docker.from_env().api
         # And the image client for pushing
         cli = docker.from_env().images
-        for tag in self.tags:
+        for im in self.images:
             # Log tagging info
             logging.info('Tagging image {name:s} with tag {tag:s}'.format(
-                name=self.name, tag=tag
+                name=im['name'], tag=im['tag']
             ))
 
-            # Tag it
-            c.tag(image=self.image_name + ':' + tag,
-                  repository=self.repo_uri, tag=tag)
+            # Tag it with the most recently added image_name
+            c.tag(image=im['name'] + ':' + im['tag'],
+                  repository=self.repo_uri, tag=im['tag'])
 
             # Log push info
             logging.info('Pushing image {name:s} with tag {tag:s}'.format(
-                name=self.name, tag=tag
+                name=im['name'], tag=im['tag']
             ))
 
-            for l in cli.push(repository=self.repo_uri, tag=tag, stream=True):
+            for l in cli.push(
+                    repository=self.repo_uri, tag=im['tag'], stream=True
+            ):
                 logging.debug(l)
 
     def clobber(self):
@@ -463,22 +462,24 @@ class DockerImage(object):
             # that we shouldn't mess with.
             pass
 
-        if self.tags and self.image_name:
+        if self.images:
             # Use docker image client to remove local images
             cli = docker.from_env().images
-            for tag in self.tags:
-                # Remove the local docker image
+            for im in self.images:
+                # Remove the local docker image, using the latest image name
                 cli.remove(
-                    image=self.image_name + ':' + tag,
+                    image=im['name'] + ':' + im['tag'],
                     force=True,
                     noprune=False
                 )
-                if self.repo_uri:
-                    cli.remove(
-                        image=self.repo_uri + ':' + tag,
-                        force=True,
-                        noprune=False
-                    )
+
+        if self.repo_uri:
+            for tag in set([d['tag'] for d in self.images]):
+                cli.remove(
+                    image=self.repo_uri + ':' + tag,
+                    force=True,
+                    noprune=False
+                )
 
         # Remove from the config file
         config.remove_resource('docker-images', self.name)
