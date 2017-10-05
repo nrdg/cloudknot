@@ -2,11 +2,11 @@ from clize import run
 
 
 def unit_testing_func(name=None, no_capitalize=False):
-    """Test function for unit testing of cloudknot.DockerReqs
+    """Test function for unit testing of cloudknot.DockerImage
 
     Import statements of various formats are deliberately scattered
     throughout the function to test the pipreqs components of
-    clouknot.DockerReqs
+    clouknot.DockerImage
     """
     import sys  # noqa: F401
     import boto3.ec2  # noqa: F401
