@@ -145,7 +145,7 @@ def verify_sections():
     CONFIG.clear()
     CONFIG.read(config_file)
     approved_sections = [
-        'roles', 'vpc', 'security-groups', 'docker-images',
+        'roles', 'vpc', 'security-groups', 'docker-repos',
         'job-definitions', 'compute-environments', 'job-queues', 'jobs'
     ]
 
@@ -195,7 +195,7 @@ def prune():
             CONFIG.remove_option('security-groups', sg_id)
 
     # Prune docker containers
-    for im in CONFIG.options('docker-images'):
+    for repo in CONFIG.options('docker-repos'):
         pass
 
     # Prune job definitions

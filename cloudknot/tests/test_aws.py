@@ -26,12 +26,9 @@ from __future__ import absolute_import, division, print_function
 import boto3
 import cloudknot as ck
 import configparser
-import docker
 import json
-import os
 import os.path as op
 import pytest
-import subprocess
 import uuid
 
 UNIT_TEST_PREFIX = 'cloudknot-unit-test'
@@ -317,34 +314,13 @@ def test_IamRole():
         raise e
 
 
-def test_DockerImage():
+def test_DockerRepo():
     ecr = boto3.client('ecr', region_name=ck.config.get_default_region())
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
 
     try:
-        login_cmd = subprocess.check_output([
-            'aws', 'ecr', 'get-login', '--no-include-email',
-            '--region', ck.config.get_default_region()
-        ])
-
-        login_result = subprocess.call(
-            login_cmd.decode('ASCII').rstrip('\n').split(' '))
-
-        if login_result:
-            raise ValueError(
-                'Unable to login to AWS ECR using `{login:s}`'.format(
-                    login=login_cmd
-                )
-            )
-
         name = get_testing_name()
-
-        # Assert that trying to retrieve non-existent repo gives an error
-        with pytest.raises(ck.aws.ResourceDoesNotExistException) as e:
-            ck.aws.DockerImage(name=name)
-
-        assert e.value.resource_id == name
 
         # Use boto3 to create an ECR repo
         response = ecr.create_repository(repositoryName=name)
@@ -353,25 +329,20 @@ def test_DockerImage():
         repo_uri = response['repository']['repositoryUri']
         repo_registry_id = response['repository']['registryId']
 
-        di = ck.aws.DockerImage(name=name)
+        # Retrieve that same repo with cloudknot
+        dr = ck.aws.DockerRepo(name=name)
 
-        assert di.name == name
-        assert di.pre_existing is True
-        assert di.build_path is None
-        assert di.dockerfile is None
-        assert di.requirements is None
-        assert di.tags == []
-        assert di.repo_name == repo_name
-        assert di.repo_uri == repo_uri
-        assert di.repo_registry_id == repo_registry_id
+        assert dr.name == repo_name
+        assert dr.repo_uri == repo_uri
+        assert dr.repo_registry_id == repo_registry_id
 
-        # Confirm that the docker image is in the config file
+        # Confirm that the docker repo is in the config file
         config.clear()
         config.read(config_file)
-        assert name in config.options('docker-images')
+        assert name in config.options('docker-repos')
 
-        # Clobber the docker image
-        di.clobber()
+        # Clobber the docker repo
+        dr.clobber()
 
         # Assert that it was removed from AWS
         with pytest.raises(ecr.exceptions.RepositoryNotFoundException):
@@ -384,126 +355,50 @@ def test_DockerImage():
         # config and then re-read the file
         config.clear()
         config.read(config_file)
-        assert name not in config.options('docker-images')
+        assert name not in config.options('docker-repos')
 
-        names = [get_testing_name() for i in range(2)]
-        tags = ['testing', ['testing', '0.1']]
-        build_path = op.abspath(
-            op.join(data_path, 'docker_image_ref_data')
+        # Now create a new repo using only cloudknot
+        name = get_testing_name()
+        dr = ck.aws.DockerRepo(name=name)
+
+        # Confirm that it exists on AWS and retrieve its properties
+        response = ecr.describe_repositories(repositoryNames=[name])
+
+        repo_name = response['repositories'][0]['repositoryName']
+        repo_uri = response['repositories'][0]['repositoryUri']
+        repo_registry_id = response['repositories'][0]['registryId']
+
+        assert dr.name == repo_name
+        assert dr.repo_uri == repo_uri
+        assert dr.repo_registry_id == repo_registry_id
+
+        # Confirm that the docker repo is in the config file
+        config.clear()
+        config.read(config_file)
+        assert name in config.options('docker-repos')
+
+        # Delete the repo from AWS before clobbering
+        ecr.delete_repository(
+            registryId=repo_registry_id, repositoryName=repo_name, force=True
         )
-        build_paths = [op.join(build_path, 'ref1'),
-                       op.join(build_path, 'ref2')]
-        requirements = [
-            None,
-            op.join(build_path, 'requirements.txt')
-        ]
-        dockerfiles = [
-            None,
-            op.join(build_path, 'ref2', 'Dockerfile')
-        ]
 
-        response = ecr.create_repository(repositoryName=names[1])
+        # Clobber the docker repo
+        dr.clobber()
 
-        repo_name = response['repository']['repositoryName']
-        repo_uri = response['repository']['repositoryUri']
-        repo_registry_id = response['repository']['registryId']
+        # Assert that it was removed from AWS
+        with pytest.raises(ecr.exceptions.RepositoryNotFoundException):
+            ecr.describe_repositories(repositoryNames=[name])
 
-        for (n, t, bp, r, d) in zip(
-            names, tags, build_paths, requirements, dockerfiles
-        ):
-            di = ck.aws.DockerImage(
-                name=n,
-                tags=t,
-                build_path=bp,
-                requirements=r,
-                dockerfile=d
-            )
-
-            assert di.name == n
-            assert di.pre_existing is False
-            assert di.build_path == bp
-            r = r if r else op.join(bp, 'requirements.txt')
-            assert di.requirements == r
-            d = d if d else op.join(bp, 'Dockerfile')
-            assert di.dockerfile == d
-            t = [t] if isinstance(t, str) else t
-            assert di.tags == t
-
-            if n == names[1]:
-                assert di.repo_name == repo_name
-                assert di.repo_uri == repo_uri
-                assert di.repo_registry_id == repo_registry_id
-                ecr.delete_repository(
-                    registryId=repo_registry_id,
-                    repositoryName=repo_name,
-                    force=True
-                )
-
-            di.clobber()
-
-        # Assert ValueError on missing tags
-        with pytest.raises(ValueError):
-            ck.aws.DockerImage(name=get_testing_name(), tags=['0.1'])
-
-        # Assert ValueError on missing build_path
-        with pytest.raises(ValueError):
-            ck.aws.DockerImage(name=get_testing_name(), build_path=os.getcwd())
-
-        # Assert ValueError on invalid build_path
-        with pytest.raises(ValueError):
-            ck.aws.DockerImage(
-                name=get_testing_name(),
-                build_path=get_testing_name(),
-                tags=['0.1']
-            )
-
-        # Assert ValueError on invalid dockerfile
-        with pytest.raises(ValueError):
-            ck.aws.DockerImage(
-                name=get_testing_name(),
-                build_path=os.getcwd(),
-                tags=['0.1'],
-                dockerfile=get_testing_name()
-            )
-
-        # Assert ValueError on invalid requirements
-        with pytest.raises(ValueError):
-            ck.aws.DockerImage(
-                name=get_testing_name(),
-                build_path=os.getcwd(),
-                tags=['0.1'],
-                requirements=get_testing_name()
-            )
-
-        # Assert ValueError on invalid tags
-        with pytest.raises(ValueError):
-            ck.aws.DockerImage(
-                name=get_testing_name(),
-                build_path=os.getcwd(),
-                tags=[42, -42],
-            )
-
-        # Assert ValueError on 'latest' in tags
-        with pytest.raises(ValueError):
-            ck.aws.DockerImage(
-                name=get_testing_name(),
-                build_path=os.getcwd(),
-                tags=['testing', 'latest'],
-            )
+        # Assert that it was removed from the config file
+        # If we just re-read the config file, config will keep the union
+        # of the in memory values and the file values, updating the
+        # intersection of the two with the file values. So we must clear
+        # config and then re-read the file
+        config.clear()
+        config.read(config_file)
+        assert name not in config.options('docker-repos')
     except Exception as e:
         response = ecr.describe_repositories()
-
-        # Get all local images with unit test prefix in any of the repo tags
-        c = docker.from_env().api
-        unit_test_images = [
-            im for im in c.images()
-            if any(UNIT_TEST_PREFIX in tag for tag in im['RepoTags'])
-        ]
-
-        # Remove local images
-        for im in unit_test_images:
-            for tag in im['RepoTags']:
-                c.remove_image(tag, force=True)
 
         # Get all repos with unit test prefix in the name
         repos = [r for r in response.get('repositories')
@@ -520,9 +415,9 @@ def test_DockerImage():
         # Clean up config file
         config.clear()
         config.read(config_file)
-        for name in config.options('docker-images'):
+        for name in config.options('docker-repos'):
             if UNIT_TEST_PREFIX in name:
-                config.remove_option('docker-images', name)
+                config.remove_option('docker-repos', name)
         with open(config_file, 'w') as f:
             config.write(f)
 
