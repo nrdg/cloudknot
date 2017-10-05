@@ -842,9 +842,18 @@ class ComputeEnvironment(ObjectWithArn):
         -------
         None
         """
+        retry = tenacity.Retrying(
+            wait=tenacity.wait_exponential(max=32),
+            stop=tenacity.stop_after_delay(60),
+            retry=tenacity.retry_if_exception_type(
+                BATCH.exceptions.ClientException
+            )
+        )
+
         # First set the state to disabled
         wait_for_compute_environment(arn=self.arn, name=self.name)
-        BATCH.update_compute_environment(
+        retry.call(
+            BATCH.update_compute_environment,
             computeEnvironment=self.arn,
             state='DISABLED'
         )
@@ -861,14 +870,6 @@ class ComputeEnvironment(ObjectWithArn):
 
         for queue in associated_queues:
             wait_for_job_queue(name=queue['jobQueueName'])
-
-        retry = tenacity.Retrying(
-            wait=tenacity.wait_exponential(max=32),
-            stop=tenacity.stop_after_delay(60),
-            retry=tenacity.retry_if_exception_type(
-                BATCH.exceptions.ClientException
-            )
-        )
 
         wait_for_compute_environment(arn=self.arn, name=self.name)
         try:
@@ -1163,7 +1164,8 @@ class JobQueue(ObjectWithArn):
             # and then terminate, batch jobs
             jobs = self.get_jobs(status=status)
             for job_id in jobs:
-                BATCH.terminate_job(
+                retry.call(
+                    BATCH.terminate_job,
                     jobId=job_id,
                     reason='Terminated to force job queue deletion'
                 )
@@ -1173,7 +1175,7 @@ class JobQueue(ObjectWithArn):
         wait_for_job_queue(self.name, max_wait_time=180)
 
         # Finally, delete the job queue
-        BATCH.delete_job_queue(jobQueue=self.arn)
+        retry.call(BATCH.delete_job_queue, jobQueue=self.arn)
 
         # Remove this job queue from the list of job queues in config file
         cloudknot.config.remove_resource('job-queues', self.name)

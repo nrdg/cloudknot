@@ -691,15 +691,14 @@ class SecurityGroup(NamedObject):
             wait_for_compute_environment(arn=arn, name=name)
 
         # Delete the security group
-        try:
-            EC2.delete_security_group(GroupId=self.security_group_id)
-        except EC2.exceptions.ClientError as e:  # pragma: nocover
-            error_code = e.response['Error']['Code']
-            if error_code == 'DependencyViolation':
-                time.sleep(30)
-                EC2.delete_security_group(GroupId=self.security_group_id)
-            else:
-                raise e
+        retry = tenacity.Retrying(
+            wait=tenacity.wait_exponential(max=64),
+            stop=tenacity.stop_after_delay(120),
+            retry=tenacity.retry_if_exception_type(
+                botocore.exceptions.ClientError
+            )
+        )
+        retry.call(EC2.delete_security_group, GroupId=self.security_group_id)
 
         # Remove this VPC from the list of VPCs in the config file
         cloudknot.config.remove_resource(
