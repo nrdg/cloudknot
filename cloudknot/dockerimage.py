@@ -346,7 +346,7 @@ class DockerImage(object):
         # Refresh the aws ecr login credentials
         login_cmd = subprocess.check_output([
             'aws', 'ecr', 'get-login', '--no-include-email',
-            '--region', config.get_default_region()
+            '--region', config.get_region()
         ])
 
         # Login
