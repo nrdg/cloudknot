@@ -29,6 +29,7 @@ import configparser
 import json
 import os.path as op
 import pytest
+import tenacity
 import uuid
 
 UNIT_TEST_PREFIX = 'cloudknot-unit-test'
@@ -1547,7 +1548,16 @@ def test_ComputeEnvironment(pars):
                 ck.aws.wait_for_job_queue(
                     name=name, log=False, max_wait_time=180
                 )
-                batch.update_job_queue(jobQueue=arn, state='DISABLED')
+                retry = tenacity.Retrying(
+                    wait=tenacity.wait_exponential(max=64),
+                    stop=tenacity.stop_after_delay(120),
+                    retry=tenacity.retry_if_exception_type(
+                        batch.exceptions.ClientException
+                    )
+                )
+                retry.call(
+                    batch.update_job_queue, jobQueue=arn, state='DISABLED'
+                )
 
                 # Delete the job queue
                 ck.aws.wait_for_job_queue(
