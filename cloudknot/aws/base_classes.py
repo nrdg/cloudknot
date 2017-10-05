@@ -188,9 +188,9 @@ def wait_for_compute_environment(arn, name, log=True, max_wait_time=60):
         )
 
         # If compute environment has status == CREATING/UPDATING, keep waiting
-        waiting = (response.get('computeEnvironments')[0]['status']
-                   in ['CREATING', 'UPDATING']
-                   or response.get('computeEnvironments') == [])
+        waiting = (response.get('computeEnvironments') == []
+                   or response.get('computeEnvironments')[0]['status']
+                   in ['CREATING', 'UPDATING'])
 
         # Wait a second
         time.sleep(1)
@@ -236,7 +236,8 @@ def wait_for_job_queue(name, log=True, max_wait_time=60):
 
         # If job queue has status == CREATING/UPDATING, keep waiting
         response = BATCH.describe_job_queues(jobQueues=[name])
-        waiting = (response.get('jobQueues')[0]['status']
+        waiting = (response.get('jobQueues') == []
+                   or response.get('jobQueues')[0]['status']
                    in ['CREATING', 'UPDATING'])
 
         # Wait a second
