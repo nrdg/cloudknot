@@ -673,7 +673,7 @@ class SecurityGroup(NamedObject):
         # Delete the security group
         retry = tenacity.Retrying(
             wait=tenacity.wait_exponential(max=64),
-            stop=tenacity.stop_after_delay(120),
+            stop=tenacity.stop_after_delay(300),
             retry=tenacity.retry_if_exception_type(
                 botocore.exceptions.ClientError
             )
