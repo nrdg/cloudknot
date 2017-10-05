@@ -7,5 +7,6 @@ omit = */setup.py
     cloudknot/config.py
     cloudknot/version.py
     cloudknot/data/*/*/*.py
+    cloudknot/tests/*.py
 [report]
 include = cloudknot/*
