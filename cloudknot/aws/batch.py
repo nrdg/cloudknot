@@ -12,7 +12,7 @@ from .base_classes import NamedObject, ObjectWithArn, \
     CannotDeleteResourceException, wait_for_compute_environment, \
     wait_for_job_queue
 from .ec2 import Vpc, SecurityGroup
-from .ecr import DockerImage
+from .ecr import DockerRepo
 from .iam import IamRole
 
 __all__ = ["JobDefinition", "JobQueue",
@@ -37,8 +37,8 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             IamRole instance for the AWS IAM job role to be used in this
             job definition
 
-        docker_image : DockerImage or string
-            DockerImage instance for the container to be used in this job
+        docker_image : DockerRepo or string
+            DockerRepo instance for the container to be used in this job
             definition
             or string containing location of docker image on Docker Hub or
             other repository
@@ -144,10 +144,10 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             self._job_role = job_role
 
             # Validate docker_image input
-            if not (isinstance(docker_image, DockerImage)
+            if not (isinstance(docker_image, DockerRepo)
                     or isinstance(docker_image, str)):
                 raise ValueError(
-                    'docker_image must be an instance of DockerImage '
+                    'docker_image must be an instance of DockerRepo '
                     'or a string'
                 )
             self._docker_image = docker_image
@@ -250,7 +250,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             Amazon Resource Number (ARN) for the created job definition
         """
         # If docker_image is a string, assume it contains the image URI
-        # Else it's a DockerImage instance, get the uri property
+        # Else it's a DockerRepo instance, get the uri property
         image = self.docker_image if isinstance(self.docker_image, str) \
             else self.docker_image.uri
 

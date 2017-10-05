@@ -4,6 +4,7 @@ import logging
 
 from . import aws  # noqa
 from . import config  # noqa
+from .dockerimage import *  # noqa
 from .cloudknot import *  # noqa
 from .version import __version__  # noqa
 
