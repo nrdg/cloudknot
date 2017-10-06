@@ -238,7 +238,10 @@ def test_set_region():
         if old_config_file:
             os.environ['CLOUDKNOT_CONFIG_FILE'] = old_config_file
         else:
-            del os.environ['CLOUDKNOT_CONFIG_FILE']
+            try:
+                del os.environ['CLOUDKNOT_CONFIG_FILE']
+            except KeyError:
+                pass
 
 
 def test_list_profiles():
@@ -270,12 +273,18 @@ def test_list_profiles():
         if old_credentials_file:
             os.environ['AWS_SHARED_CREDENTIALS_FILE'] = old_credentials_file
         else:
-            del os.environ['AWS_SHARED_CREDENTIALS_FILE']
+            try:
+                del os.environ['AWS_SHARED_CREDENTIALS_FILE']
+            except KeyError:
+                pass
 
         if old_aws_config_file:
             os.environ['AWS_CONFIG_FILE'] = old_aws_config_file
         else:
-            del os.environ['AWS_CONFIG_FILE']
+            try:
+                del os.environ['AWS_CONFIG_FILE']
+            except KeyError:
+                pass
 
 
 def test_ObjectWithUsernameAndMemory():
