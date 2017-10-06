@@ -74,7 +74,7 @@ def get_region():
 def set_region(region='us-east-1'):
     """Set the AWS region that cloudknot will use
 
-    Set region by modifying the cloudknot config file
+    Set region by modifying the cloudknot config file and clients
 
     Parameters
     ----------
@@ -106,23 +106,179 @@ def set_region(region='us-east-1'):
 
     # Update the boto3 clients so that the region change is reflected
     # throughout the package
-    clients['iam'] = boto3.client('iam', region_name=region)
-    clients['ec2'] = boto3.client('ec2', region_name=region)
-    clients['batch'] = boto3.client('batch', region_name=region)
-    clients['ecr'] = boto3.client('ecr', region_name=region)
+    clients['iam'] = boto3.Session(profile_name=get_profile()).client(
+        'iam', region_name=region
+    )
+    clients['ec2'] = boto3.Session(profile_name=get_profile()).client(
+        'ec2', region_name=region
+    )
+    clients['batch'] = boto3.Session(profile_name=get_profile()).client(
+        'batch', region_name=region
+    )
+    clients['ecr'] = boto3.Session(profile_name=get_profile()).client(
+        'ecr', region_name=region
+    )
+
+
+def list_profiles():
+    """Return a list of available AWS profile names
+
+    Search the aws credentials file and the aws config file for profile names
+
+    Returns
+    -------
+    profile_names : list
+        A list of AWS profiles in the aws config file and the aws shared
+        credentials file
+    """
+    aws = os.path.join(os.path.expanduser('~'), '.aws')
+
+    try:
+        # Get aws credentials file from environment variable
+        env_file = os.environ['AWS_SHARED_CREDENTIALS_FILE']
+        credentials_file = os.path.abspath(env_file)
+    except KeyError:
+        # Fallback on default credentials file path
+        credentials_file = os.path.join(aws, 'credentials')
+
+    try:
+        # Get aws config file from environment variable
+        env_file = os.environ['AWS_SHARED_CREDENTIALS_FILE']
+        aws_config_file = os.path.abspath(env_file)
+    except KeyError:
+        # Fallback on default aws config file path
+        aws_config_file = os.path.join(aws, 'config')
+
+    credentials = configparser.ConfigParser()
+    credentials.read(credentials_file)
+
+    aws_config = configparser.ConfigParser()
+    aws_config.read(aws_config_file)
+
+    profile_names = [s.split()[1] for s in aws_config.sections()
+                     if s.split()[0] == 'profile' and len(s.split()) == 2]
+
+    profile_names += credentials.sections()
+
+    return profile_names
+
+
+def get_profile():
+    """Get the AWS profile to use
+
+    First, check the cloudknot config file for the profile option.
+    If that fails, return 'default'
+
+    Returns
+    -------
+    profile_name : string
+        An AWS profile listed in the aws config file or aws shared
+        credentials file
+    """
+    config_file = get_config_file()
+    CONFIG.clear()
+    CONFIG.read(config_file)
+
+    if CONFIG.has_section('aws') and CONFIG.has_option('aws', 'profile'):
+        return CONFIG.get('aws', 'profile')
+    else:
+        # Set profile in cloudknot config to 'default' and return 'default'
+        if not CONFIG.has_section('aws'):
+            CONFIG.add_section('aws')
+
+        CONFIG.set('aws', 'profile', 'default')
+        with open(config_file, 'w') as f:
+            CONFIG.write(f)
+
+        return 'default'
+
+
+def set_profile(profile_name):
+    """Set the AWS profile that cloudknot will use
+
+    Set profile by modifying the cloudknot config file and clients
+
+    Parameters
+    ----------
+    profile_name : string
+        An AWS profile listed in the aws config file or aws shared
+        credentials file
+
+    Returns
+    -------
+    None
+    """
+    aws = os.path.join(os.path.expanduser('~'), '.aws')
+
+    try:
+        # Get aws credentials file from environment variable
+        env_file = os.environ['AWS_SHARED_CREDENTIALS_FILE']
+        credentials_file = os.path.abspath(env_file)
+    except KeyError:
+        # Fallback on default credentials file path
+        credentials_file = os.path.join(aws, 'credentials')
+
+    try:
+        # Get aws config file from environment variable
+        env_file = os.environ['AWS_SHARED_CREDENTIALS_FILE']
+        aws_config_file = os.path.abspath(env_file)
+    except KeyError:
+        # Fallback on default aws config file path
+        aws_config_file = os.path.join(aws, 'config')
+
+    credentials = configparser.ConfigParser()
+    credentials.read(credentials_file)
+
+    aws_config = configparser.ConfigParser()
+    aws_config.read(aws_config_file)
+
+    profile_exists = (credentials.has_section(profile_name)
+                      or aws_config.has_section(profile_name))
+
+    if not profile_exists:
+        raise ValueError(
+            'The profile you specified does not exist in {cred:s} or '
+            '{conf:s}.'.format(cred=credentials_file, conf=aws_config_file)
+        )
+
+    config_file = get_config_file()
+    CONFIG.clear()
+    CONFIG.read(config_file)
+
+    if not CONFIG.has_section('aws'):
+        CONFIG.add_section('aws')
+
+    CONFIG.set('aws', 'profile', profile_name)
+    with open(config_file, 'w') as f:
+        CONFIG.write(f)
+
+    # Update the boto3 clients so that the profile change is reflected
+    # throughout the package
+    clients['iam'] = boto3.Session(profile_name=profile_name).client(
+        'iam', region_name=get_region()
+    )
+    clients['ec2'] = boto3.Session(profile_name=profile_name).client(
+        'ec2', region_name=get_region()
+    )
+    clients['batch'] = boto3.Session(profile_name=profile_name).client(
+        'batch', region_name=get_region()
+    )
+    clients['ecr'] = boto3.Session(profile_name=profile_name).client(
+        'ecr', region_name=get_region()
+    )
 
 
 clients = {
-    'iam': boto3.Session(profile_name='default').client(
+    'iam': boto3.Session(profile_name=get_profile()).client(
         'iam', region_name=get_region()
     ),
-    'ec2': boto3.Session(profile_name='default').client(
+    'ec2': boto3.Session(profile_name=get_profile()).client(
         'ec2', region_name=get_region()
     ),
-    'batch': boto3.Session(profile_name='default').client(
+    'batch': boto3.Session(profile_name=get_profile()).client(
         'batch', region_name=get_region()
     ),
-    'ecr': boto3.Session(profile_name='default').client(
+    'ecr': boto3.Session(profile_name=get_profile()).client(
         'ecr', region_name=get_region()
     )
 }
