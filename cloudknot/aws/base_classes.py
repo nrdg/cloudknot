@@ -1,16 +1,116 @@
 from __future__ import absolute_import, division, print_function
 
 import boto3
+import configparser
 import logging
 import operator
+import os
 import sys
 import time
-from cloudknot.config import get_region
 
-__all__ = ["ResourceDoesNotExistException", "ResourceExistsException",
-           "CannotDeleteResourceException",
+from ..config import CONFIG, get_config_file
+
+__all__ = ["ResourceDoesNotExistException",
+           "ResourceExistsException", "CannotDeleteResourceException",
            "NamedObject", "ObjectWithArn", "ObjectWithUsernameAndMemory",
            "clients", "wait_for_compute_environment", "wait_for_job_queue"]
+
+
+def get_region():
+    """Get the default AWS region
+
+    First, check the cloudknot config file for the region option.
+    If that fails, check for the AWS_DEFAULT_REGION environment variable.
+    If that fails, use the region in the AWS (not cloudknot) config file.
+    If that fails, use us-east-1.
+
+    Returns
+    -------
+    region : string
+        default AWS region
+    """
+    config_file = get_config_file()
+    CONFIG.clear()
+    CONFIG.read(config_file)
+
+    if CONFIG.has_section('aws') and CONFIG.has_option('aws', 'region'):
+        return CONFIG.get('aws', 'region')
+    else:
+        # Set `region`, the fallback region in case the cloudknot
+        # config file has no region set
+        try:
+            # Get the region from an environment variable
+            region = os.environ['AWS_DEFAULT_REGION']
+        except KeyError:
+            # Get the default region from the AWS config file
+            home = os.path.expanduser('~')
+            aws_config_file = os.path.join(home, '.aws', 'config')
+
+            fallback_region = 'us-east-1'
+            if os.path.isfile(aws_config_file):
+                aws_config = configparser.ConfigParser()
+                aws_config.read(aws_config_file)
+                try:
+                    region = aws_config.get(
+                        'default', 'region', fallback=fallback_region
+                    )
+                except TypeError:
+                    # python 2.7 compatibility
+                    region = aws_config.get('default', 'region')
+                    region = region if region else fallback_region
+            else:
+                region = fallback_region
+
+        if not CONFIG.has_section('aws'):
+            CONFIG.add_section('aws')
+
+        CONFIG.set('aws', 'region', region)
+        with open(config_file, 'w') as f:
+            CONFIG.write(f)
+
+        return region
+
+
+def set_region(region='us-east-1'):
+    """Set the AWS region that cloudknot will use
+
+    Set region by modifying the cloudknot config file
+
+    Parameters
+    ----------
+    region : string
+        An AWS region
+
+    Returns
+    -------
+    None
+    """
+    response = clients['ec2'].describe_regions()
+    region_names = [d['RegionName'] for d in response.get('Regions')]
+
+    if region not in region_names:
+        raise ValueError('`region` must be in {regions:s}'.format(
+            str(region_names)
+        ))
+
+    config_file = get_config_file()
+    CONFIG.clear()
+    CONFIG.read(config_file)
+
+    if not CONFIG.has_section('aws'):
+        CONFIG.add_section('aws')
+
+    CONFIG.set('aws', 'region', region)
+    with open(config_file, 'w') as f:
+        CONFIG.write(f)
+
+    # Update the boto3 clients so that the region change is reflected
+    # throughout the package
+    clients['iam'] = boto3.client('iam', region_name=region)
+    clients['ec2'] = boto3.client('ec2', region_name=region)
+    clients['batch'] = boto3.client('batch', region_name=region)
+    clients['ecr'] = boto3.client('ecr', region_name=region)
+
 
 clients = {
     'iam': boto3.client('iam', region_name=get_region()),

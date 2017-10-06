@@ -12,6 +12,7 @@ from pipreqs import pipreqs
 
 from . import aws
 from . import config
+from .aws.base_classes import get_region
 
 __all__ = ["DockerImage"]
 
@@ -346,7 +347,7 @@ class DockerImage(object):
         # Refresh the aws ecr login credentials
         login_cmd = subprocess.check_output([
             'aws', 'ecr', 'get-login', '--no-include-email',
-            '--region', config.get_region()
+            '--region', get_region()
         ])
 
         # Login
