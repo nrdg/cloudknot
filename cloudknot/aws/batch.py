@@ -1094,7 +1094,7 @@ class JobQueue(ObjectWithArn):
             wait=tenacity.wait_exponential(max=32),
             stop=tenacity.stop_after_delay(60),
             retry=tenacity.retry_if_exception_type(
-                BATCH.exceptions.ClientException
+                clients['batch'].exceptions.ClientException
             )
         )
 
