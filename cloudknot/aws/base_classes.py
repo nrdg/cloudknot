@@ -55,7 +55,7 @@ def get_region():
                     region = aws_config.get(
                         'default', 'region', fallback=fallback_region
                     )
-                except TypeError:
+                except TypeError:  # pragma: nocover
                     # python 2.7 compatibility
                     region = aws_config.get('default', 'region')
                     region = region if region else fallback_region
@@ -91,7 +91,7 @@ def set_region(region='us-east-1'):
 
     if region not in region_names:
         raise ValueError('`region` must be in {regions:s}'.format(
-            str(region_names)
+            regions=str(region_names)
         ))
 
     config_file = get_config_file()

@@ -27,8 +27,11 @@ import boto3
 import cloudknot as ck
 import configparser
 import json
+import os
 import os.path as op
 import pytest
+import shutil
+import tempfile
 import tenacity
 import uuid
 
@@ -103,6 +106,138 @@ def test_wait_for_job_queue(pars):
 
         if ce:
             ce.clobber()
+
+
+def test_get_region():
+    # Save environment variables for restoration later
+    try:
+        old_region = os.environ['AWS_DEFAULT_REGION']
+    except KeyError:
+        old_region = None
+
+    try:
+        old_config_file = os.environ['CLOUDKNOT_CONFIG_FILE']
+    except KeyError:
+        old_config_file = None
+
+    try:
+        # With empty config file, get_region should return the
+        # environment variable AWS_DEFAULT_REGION
+        with tempfile.NamedTemporaryFile(mode='w+') as tmp:
+            os.environ['CLOUDKNOT_CONFIG_FILE'] = tmp.name
+
+            region = 'test-region-0'
+            os.environ['AWS_DEFAULT_REGION'] = region
+            assert ck.get_region() == region
+            del os.environ['AWS_DEFAULT_REGION']
+
+        # With region in a temporary config file, region should simply
+        # read the config file
+        with tempfile.NamedTemporaryFile(mode='w+') as tmp:
+            os.environ['CLOUDKNOT_CONFIG_FILE'] = tmp.name
+
+            region = 'test-region-1'
+            tmp.file.write('[aws]\n')
+            tmp.file.write('region = {region:s}\n'.format(region=region))
+            tmp.file.flush()
+            os.fsync(tmp.file.fileno())
+            assert ck.get_region() == region
+
+        # With no cloudknot config file and no environment variable
+        # get_region should return region in aws config file
+        with tempfile.NamedTemporaryFile(mode='w+') as tmp:
+            os.environ['CLOUDKNOT_CONFIG_FILE'] = tmp.name
+
+            aws_config_file = op.join(op.expanduser('~'), '.aws', 'config')
+
+            try:
+                if op.isfile(aws_config_file):
+                    if op.isfile(aws_config_file + '.bak'):
+                        raise Exception(
+                            'Backup aws config file already exists.'
+                        )
+                    shutil.move(aws_config_file, aws_config_file + '.bak')
+
+                assert ck.get_region() == 'us-east-1'
+            finally:
+                if op.isfile(aws_config_file + '.bak'):
+                    shutil.move(aws_config_file + '.bak', aws_config_file)
+                else:
+                    os.remove(aws_config_file)
+
+        with tempfile.NamedTemporaryFile(mode='w+') as tmp:
+            os.environ['CLOUDKNOT_CONFIG_FILE'] = tmp.name
+
+            aws_config_file = op.join(op.expanduser('~'), '.aws', 'config')
+
+            try:
+                if op.isfile(aws_config_file):
+                    if op.isfile(aws_config_file + '.bak'):
+                        raise Exception(
+                            'Backup aws config file already exists.'
+                        )
+                    shutil.move(aws_config_file, aws_config_file + '.bak')
+
+                region = 'test-region-2'
+
+                with open(aws_config_file, 'w') as f:
+                    f.write('[default]\n')
+                    f.write('region = {region:s}\n'.format(region=region))
+                    f.flush()
+                    os.fsync(f.fileno())
+
+                assert ck.get_region() == region
+            finally:
+                if op.isfile(aws_config_file + '.bak'):
+                    shutil.move(aws_config_file + '.bak', aws_config_file)
+                else:
+                    os.remove(aws_config_file)
+    finally:
+        # Restore old environment variables
+        if old_config_file:
+            os.environ['CLOUDKNOT_CONFIG_FILE'] = old_config_file
+        else:
+            try:
+                del os.environ['CLOUDKNOT_CONFIG_FILE']
+            except KeyError:
+                pass
+
+        if old_region:
+            os.environ['AWS_DEFAULT_REGION'] = old_region
+        else:
+            try:
+                del os.environ['AWS_DEFAULT_REGION']
+            except KeyError:
+                pass
+
+
+def test_set_region():
+    with pytest.raises(ValueError):
+        ck.set_region(region='not a valid region name')
+
+    try:
+        old_config_file = os.environ['CLOUDKNOT_CONFIG_FILE']
+    except KeyError:
+        old_config_file = None
+
+    with tempfile.NamedTemporaryFile() as tmp:
+        os.environ['CLOUDKNOT_CONFIG_FILE'] = tmp.name
+
+        region = 'us-west-1'
+        ck.set_region(region)
+
+        assert ck.get_region() == region
+
+        for service, client in ck.aws.clients.items():
+            if service == 'iam':
+                assert client.meta.region_name == 'aws-global'
+            else:
+                assert client.meta.region_name == region
+
+    if old_config_file:
+        os.environ['CLOUDKNOT_CONFIG_FILE'] = old_config_file
+    else:
+        del os.environ['CLOUDKNOT_CONFIG_FILE']
 
 
 def test_ObjectWithUsernameAndMemory():
