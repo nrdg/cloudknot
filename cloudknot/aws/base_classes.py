@@ -113,10 +113,18 @@ def set_region(region='us-east-1'):
 
 
 clients = {
-    'iam': boto3.client('iam', region_name=get_region()),
-    'ec2': boto3.client('ec2', region_name=get_region()),
-    'batch': boto3.client('batch', region_name=get_region()),
-    'ecr': boto3.client('ecr', region_name=get_region())
+    'iam': boto3.Session(profile_name='default').client(
+        'iam', region_name=get_region()
+    ),
+    'ec2': boto3.Session(profile_name='default').client(
+        'ec2', region_name=get_region()
+    ),
+    'batch': boto3.Session(profile_name='default').client(
+        'batch', region_name=get_region()
+    ),
+    'ecr': boto3.Session(profile_name='default').client(
+        'ecr', region_name=get_region()
+    )
 }
 
 
