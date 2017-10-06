@@ -187,7 +187,7 @@ def test_get_region():
             finally:
                 if op.isfile(aws_config_file + '.bak'):
                     shutil.move(aws_config_file + '.bak', aws_config_file)
-                else:
+                elif isfile(aws_config_file):
                     os.remove(aws_config_file)
     finally:
         # Restore old environment variables
