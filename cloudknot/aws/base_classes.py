@@ -7,6 +7,7 @@ import operator
 import os
 import sys
 import time
+from collections import namedtuple
 
 from ..config import CONFIG, get_config_file
 
@@ -127,7 +128,7 @@ def list_profiles():
 
     Returns
     -------
-    profile_names : list
+    profile_names : namedtuple
         A list of AWS profiles in the aws config file and the aws shared
         credentials file
     """
@@ -160,7 +161,17 @@ def list_profiles():
 
     profile_names += credentials.sections()
 
-    return profile_names
+    # define a namedtuple for return value type
+    ProfileInfo = namedtuple(
+        'ProfileInfo',
+        ['profile_names', 'credentials_file', 'aws_config_file']
+    )
+
+    return ProfileInfo(
+        profile_names=profile_names,
+        credentials_file=credentials_file,
+        aws_config_file=aws_config_file
+    )
 
 
 def get_profile():
@@ -208,37 +219,16 @@ def set_profile(profile_name):
     -------
     None
     """
-    aws = os.path.join(os.path.expanduser('~'), '.aws')
+    profile_info = list_profiles()
 
-    try:
-        # Get aws credentials file from environment variable
-        env_file = os.environ['AWS_SHARED_CREDENTIALS_FILE']
-        credentials_file = os.path.abspath(env_file)
-    except KeyError:
-        # Fallback on default credentials file path
-        credentials_file = os.path.join(aws, 'credentials')
-
-    try:
-        # Get aws config file from environment variable
-        env_file = os.environ['AWS_SHARED_CREDENTIALS_FILE']
-        aws_config_file = os.path.abspath(env_file)
-    except KeyError:
-        # Fallback on default aws config file path
-        aws_config_file = os.path.join(aws, 'config')
-
-    credentials = configparser.ConfigParser()
-    credentials.read(credentials_file)
-
-    aws_config = configparser.ConfigParser()
-    aws_config.read(aws_config_file)
-
-    profile_exists = (credentials.has_section(profile_name)
-                      or aws_config.has_section(profile_name))
-
-    if not profile_exists:
+    if profile_name not in profile_info.profile_names:
         raise ValueError(
-            'The profile you specified does not exist in {cred:s} or '
-            '{conf:s}.'.format(cred=credentials_file, conf=aws_config_file)
+            'The profile you specified does not exist in either the AWS '
+            'config file at {conf:s} or the AWS shared credentials file at '
+            '{cred:s}.'.format(
+                conf=profile_info.aws_config_file,
+                cred=profile_info.credentials_file
+            )
         )
 
     config_file = get_config_file()

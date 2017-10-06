@@ -58,7 +58,7 @@ def unit_testing_func(name=None, no_capitalize=False):
 def test_DockerImage():
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
-    ecr = boto3.Session(profile_name=ck.get_profile).client(
+    ecr = boto3.Session(profile_name=ck.get_profile()).client(
         'ecr', region_name=ck.get_region()
     )
 
