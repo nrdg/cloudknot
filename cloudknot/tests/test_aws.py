@@ -2011,6 +2011,10 @@ def test_BatchJob(pars):
                 job_definition=job_def,
                 environment_variables=42
             )
+
+        job_queue.clobber()
+        compute_environment.clobber()
+        job_def.clobber()
     except Exception as e:
         if job_queue:
             job_queue.clobber()

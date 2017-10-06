@@ -666,7 +666,7 @@ class SecurityGroup(NamedObject):
         # Delete the dependent instances
         if deps:
             clients['ec2'].terminate_instances(InstanceIds=deps)
-            logging.info('Deleted dependent EC2 instances: {deps:s}'.format(
+            logging.warning('Deleted dependent EC2 instances: {deps:s}'.format(
                 deps=str(deps)
             ))
 
