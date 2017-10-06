@@ -129,8 +129,10 @@ def list_profiles():
     Returns
     -------
     profile_names : namedtuple
-        A list of AWS profiles in the aws config file and the aws shared
-        credentials file
+        A named tuple with fields: `profile_names`, a list of AWS profiles in
+        the aws config file and the aws shared credentials file;
+        `credentials_file`, a path to the aws shared credentials file;
+        and `aws_config_file`, a path to the aws config file
     """
     aws = os.path.join(os.path.expanduser('~'), '.aws')
 
@@ -144,7 +146,7 @@ def list_profiles():
 
     try:
         # Get aws config file from environment variable
-        env_file = os.environ['AWS_SHARED_CREDENTIALS_FILE']
+        env_file = os.environ['AWS_CONFIG_FILE']
         aws_config_file = os.path.abspath(env_file)
     except KeyError:
         # Fallback on default aws config file path

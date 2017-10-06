@@ -23,7 +23,6 @@ The tests for each resource all follow the same pattern:
 """
 from __future__ import absolute_import, division, print_function
 
-import boto3
 import cloudknot as ck
 import configparser
 import json
@@ -162,8 +161,6 @@ def test_get_region():
             finally:
                 if op.isfile(aws_config_file + '.bak'):
                     shutil.move(aws_config_file + '.bak', aws_config_file)
-                else:
-                    os.remove(aws_config_file)
 
         with tempfile.NamedTemporaryFile(mode='w+') as tmp:
             os.environ['CLOUDKNOT_CONFIG_FILE'] = tmp.name
@@ -215,29 +212,70 @@ def test_set_region():
     with pytest.raises(ValueError):
         ck.set_region(region='not a valid region name')
 
+    old_region = ck.get_region()
+
     try:
         old_config_file = os.environ['CLOUDKNOT_CONFIG_FILE']
     except KeyError:
         old_config_file = None
 
-    with tempfile.NamedTemporaryFile() as tmp:
-        os.environ['CLOUDKNOT_CONFIG_FILE'] = tmp.name
+    try:
+        with tempfile.NamedTemporaryFile() as tmp:
+            os.environ['CLOUDKNOT_CONFIG_FILE'] = tmp.name
 
-        region = 'us-west-1'
-        ck.set_region(region)
+            region = 'us-west-1'
+            ck.set_region(region)
 
-        assert ck.get_region() == region
+            assert ck.get_region() == region
 
-        for service, client in ck.aws.clients.items():
-            if service == 'iam':
-                assert client.meta.region_name == 'aws-global'
-            else:
-                assert client.meta.region_name == region
+            for service, client in ck.aws.clients.items():
+                if service == 'iam':
+                    assert client.meta.region_name == 'aws-global'
+                else:
+                    assert client.meta.region_name == region
+    finally:
+        ck.set_region(old_region)
+        if old_config_file:
+            os.environ['CLOUDKNOT_CONFIG_FILE'] = old_config_file
+        else:
+            del os.environ['CLOUDKNOT_CONFIG_FILE']
 
-    if old_config_file:
-        os.environ['CLOUDKNOT_CONFIG_FILE'] = old_config_file
-    else:
-        del os.environ['CLOUDKNOT_CONFIG_FILE']
+
+def test_list_profiles():
+    try:
+        old_credentials_file = os.environ['AWS_SHARED_CREDENTIALS_FILE']
+    except KeyError:
+        old_credentials_file = None
+
+    try:
+        old_aws_config_file = os.environ['AWS_CONFIG_FILE']
+    except KeyError:
+        old_aws_config_file = None
+
+    ref_dir = op.join(data_path, 'profiles_ref_data')
+    try:
+        cred_file = op.join(ref_dir, 'credentials')
+        os.environ['AWS_SHARED_CREDENTIALS_FILE'] = cred_file
+
+        config_file = op.join(ref_dir, 'config')
+        os.environ['AWS_CONFIG_FILE'] = config_file
+
+        profile_info = ck.list_profiles()
+        assert profile_info.credentials_file == cred_file
+        assert profile_info.aws_config_file == config_file
+        assert set(profile_info.profile_names) == set(
+            ['name-{i:d}'.format(i=i) for i in range(7)]
+        )
+    finally:
+        if old_credentials_file:
+            os.environ['AWS_SHARED_CREDENTIALS_FILE'] = old_credentials_file
+        else:
+            del os.environ['AWS_SHARED_CREDENTIALS_FILE']
+
+        if old_aws_config_file:
+            os.environ['AWS_CONFIG_FILE'] = old_aws_config_file
+        else:
+            del os.environ['AWS_CONFIG_FILE']
 
 
 def test_ObjectWithUsernameAndMemory():
@@ -250,9 +288,7 @@ def test_ObjectWithUsernameAndMemory():
 
 
 def test_IamRole():
-    iam = boto3.Session(profile_name=ck.get_profile()).client(
-        'iam', region_name=ck.get_region()
-    )
+    iam = ck.aws.clients['iam']
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
 
@@ -453,9 +489,7 @@ def test_IamRole():
 
 
 def test_DockerRepo():
-    ecr = boto3.Session(profile_name=ck.get_profile()).client(
-        'ecr', region_name=ck.get_region()
-    )
+    ecr = ck.aws.clients['ecr']
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
 
@@ -565,9 +599,7 @@ def test_DockerRepo():
 
 
 def test_Vpc():
-    ec2 = boto3.Session(profile_name=ck.get_profile()).client(
-        'ec2', region_name=ck.get_region()
-    )
+    ec2 = ck.aws.clients['ec2']
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
 
@@ -792,9 +824,7 @@ def test_Vpc():
 
 
 def test_SecurityGroup():
-    ec2 = boto3.Session(profile_name=ck.get_profile()).client(
-        'ec2', region_name=ck.get_region()
-    )
+    ec2 = ck.aws.clients['ec2']
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
 
@@ -995,9 +1025,7 @@ def test_SecurityGroup():
 
 
 def test_JobDefinition(pars):
-    batch = boto3.Session(profile_name=ck.get_profile()).client(
-        'batch', region_name=ck.get_region()
-    )
+    batch = ck.aws.clients['batch']
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
 
@@ -1235,9 +1263,7 @@ def test_JobDefinition(pars):
 
 
 def test_ComputeEnvironment(pars):
-    batch = boto3.Session(profile_name=ck.get_profile()).client(
-        'batch', region_name=ck.get_region()
-    )
+    batch = ck.aws.clients['batch']
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
 
@@ -1739,9 +1765,7 @@ def test_ComputeEnvironment(pars):
 
 
 def test_JobQueue(pars):
-    batch = boto3.Session(profile_name=ck.get_profile()).client(
-        'batch', region_name=ck.get_region()
-    )
+    batch = ck.aws.clients['batch']
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
 
