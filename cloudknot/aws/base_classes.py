@@ -193,15 +193,18 @@ def get_profile():
     if CONFIG.has_section('aws') and CONFIG.has_option('aws', 'profile'):
         return CONFIG.get('aws', 'profile')
     else:
-        # Set profile in cloudknot config to 'default' and return 'default'
-        if not CONFIG.has_section('aws'):
-            CONFIG.add_section('aws')
+        if 'default' in list_profiles().profile_names:
+            # Set profile in cloudknot config to 'default' and return 'default'
+            if not CONFIG.has_section('aws'):
+                CONFIG.add_section('aws')
 
-        CONFIG.set('aws', 'profile', 'default')
-        with open(config_file, 'w') as f:
-            CONFIG.write(f)
+            CONFIG.set('aws', 'profile', 'default')
+            with open(config_file, 'w') as f:
+                CONFIG.write(f)
 
-        return 'default'
+            return 'default'
+        else:
+            return None
 
 
 def set_profile(profile_name):
