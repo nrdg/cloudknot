@@ -10,7 +10,7 @@ import tenacity
 from collections import namedtuple
 from math import ceil
 
-from .base_classes import EC2, NamedObject, \
+from .base_classes import clients, NamedObject, \
     ResourceExistsException, ResourceDoesNotExistException, \
     CannotDeleteResourceException
 
@@ -151,11 +151,11 @@ class Vpc(NamedObject):
         if vpc_id:
             try:
                 # If user supplied vpc_id, check that
-                response = EC2.describe_vpcs(VpcIds=[vpc_id])
+                response = clients['ec2'].describe_vpcs(VpcIds=[vpc_id])
 
                 # Save vpcs for outside the if/else block
                 vpcs = response.get('Vpcs')
-            except EC2.exceptions.ClientError as e:
+            except clients['ec2'].exceptions.ClientError as e:
                 error_code = e.response['Error']['Code']
                 if error_code == 'InvalidVpcID.NotFound':
                     # VPC doesn't exist
@@ -167,7 +167,7 @@ class Vpc(NamedObject):
                     raise e
         else:
             # Else check for the tag "Name: name"
-            response = EC2.describe_tags(
+            response = clients['ec2'].describe_tags(
                 Filters=[
                     {
                         'Name': 'resource-type',
@@ -186,7 +186,7 @@ class Vpc(NamedObject):
 
             if response.get('Tags'):
                 vpc_id = response.get('Tags')[0]['ResourceId']
-                response = EC2.describe_vpcs(VpcIds=[vpc_id])
+                response = clients['ec2'].describe_vpcs(VpcIds=[vpc_id])
                 vpcs = response.get('Vpcs')
             else:
                 vpcs = None
@@ -207,7 +207,7 @@ class Vpc(NamedObject):
                 name = name_tag['Value']
             except IndexError:
                 name = 'cloudknot-acquired-pre-existing-vpc'
-                EC2.create_tags(
+                clients['ec2'].create_tags(
                     Resources=[vpc_id],
                     Tags=[
                         {
@@ -221,7 +221,7 @@ class Vpc(NamedObject):
                     ]
                 )
 
-            response = EC2.describe_subnets(
+            response = clients['ec2'].describe_subnets(
                 Filters=[
                     {
                         'Name': 'vpc-id',
@@ -250,7 +250,7 @@ class Vpc(NamedObject):
         string
             VPC-ID for the created VPC
         """
-        response = EC2.create_vpc(
+        response = clients['ec2'].create_vpc(
             CidrBlock=self.ipv4_cidr,
             InstanceTenancy=self.instance_tenancy
         )
@@ -260,12 +260,12 @@ class Vpc(NamedObject):
         logging.info('Created VPC {vpcid:s}.'.format(vpcid=vpc_id))
 
         # Wait for VPC to exist and be available
-        wait_for_vpc = EC2.get_waiter('vpc_exists')
+        wait_for_vpc = clients['ec2'].get_waiter('vpc_exists')
         wait_for_vpc.wait(VpcIds=[vpc_id])
-        wait_for_vpc = EC2.get_waiter('vpc_available')
+        wait_for_vpc = clients['ec2'].get_waiter('vpc_available')
         wait_for_vpc.wait(VpcIds=[vpc_id])
         # Tag the VPC with name and owner
-        EC2.create_tags(
+        clients['ec2'].create_tags(
             Resources=[vpc_id],
             Tags=[
                 {
@@ -292,7 +292,7 @@ class Vpc(NamedObject):
         None
         """
         # Add a subnet for each availability zone
-        response = EC2.describe_availability_zones()
+        response = clients['ec2'].describe_availability_zones()
         zones = response.get('AvailabilityZones')
 
         # Get an IPv4Network instance representing the VPC CIDR block
@@ -321,7 +321,7 @@ class Vpc(NamedObject):
 
         for zone, subnet_cidr in zip(zones, subnet_ipv4_cidrs):
             # Create a subnet for each zone
-            response = EC2.create_subnet(
+            response = clients['ec2'].create_subnet(
                 AvailabilityZone=zone['ZoneName'],
                 CidrBlock=str(subnet_cidr),
                 VpcId=self.vpc_id
@@ -333,7 +333,7 @@ class Vpc(NamedObject):
             logging.info('Created subnet {id:s}.'.format(id=subnet_id))
 
         # Tag all subnets with name and owner
-        wait_for_subnet = EC2.get_waiter('subnet_available')
+        wait_for_subnet = clients['ec2'].get_waiter('subnet_available')
         retry = tenacity.Retrying(
             wait=tenacity.wait_exponential(max=32),
             stop=tenacity.stop_after_delay(60),
@@ -342,7 +342,7 @@ class Vpc(NamedObject):
             )
         )
         retry.call(wait_for_subnet.wait, SubnetIds=subnet_ids)
-        EC2.create_tags(
+        clients['ec2'].create_tags(
             Resources=subnet_ids,
             Tags=[
                 {
@@ -368,21 +368,21 @@ class Vpc(NamedObject):
         try:
             # Delete the subnets
             for subnet_id in self.subnet_ids:
-                EC2.delete_subnet(SubnetId=subnet_id)
+                clients['ec2'].delete_subnet(SubnetId=subnet_id)
                 logging.info('Deleted subnet {id:s}'.format(id=subnet_id))
 
             # Delete the VPC
-            EC2.delete_vpc(VpcId=self.vpc_id)
+            clients['ec2'].delete_vpc(VpcId=self.vpc_id)
 
             # Remove this VPC from the list of VPCs in the config file
             cloudknot.config.remove_resource('vpc', self.vpc_id)
 
             logging.info('Deleted VPC {name:s}'.format(name=self.name))
-        except EC2.exceptions.ClientError as e:
+        except clients['ec2'].exceptions.ClientError as e:
             # Check for dependency violation and pass exception to user
             error_code = e.response['Error']['Code']
             if error_code == 'DependencyViolation':
-                response = EC2.describe_security_groups(
+                response = clients['ec2'].describe_security_groups(
                     Filters=[{
                         'Name': 'vpc-id',
                         'Values': [self.vpc_id]
@@ -525,10 +525,10 @@ class SecurityGroup(NamedObject):
 
         if security_group_id:
             try:
-                response = EC2.describe_security_groups(
+                response = clients['ec2'].describe_security_groups(
                     GroupIds=[security_group_id]
                 )
-            except EC2.exceptions.ClientError as e:
+            except clients['ec2'].exceptions.ClientError as e:
                 # If the group_id doesn't exist or isn't formatted correctly,
                 # return exists=False
                 if e.response.get('Error')['Code'] in [
@@ -543,7 +543,7 @@ class SecurityGroup(NamedObject):
                     # they'll be.
                     raise e
         else:
-            response = EC2.describe_security_groups(
+            response = clients['ec2'].describe_security_groups(
                 Filters=[
                     {
                         'Name': 'group-name',
@@ -578,7 +578,7 @@ class SecurityGroup(NamedObject):
             security group ID for the created security group
         """
         # Create the security group
-        response = EC2.create_security_group(
+        response = clients['ec2'].create_security_group(
             GroupName=self.name,
             Description=self.description,
             VpcId=self.vpc.vpc_id
@@ -613,11 +613,11 @@ class SecurityGroup(NamedObject):
             wait=tenacity.wait_exponential(max=32),
             stop=tenacity.stop_after_delay(60),
             retry=tenacity.retry_if_exception_type(
-                EC2.exceptions.ClientError
+                clients['ec2'].exceptions.ClientError
             )
         )
         retry.call(
-            EC2.authorize_security_group_ingress,
+            clients['ec2'].authorize_security_group_ingress,
             GroupId=group_id,
             IpPermissions=ip_permissions
         )
@@ -626,7 +626,7 @@ class SecurityGroup(NamedObject):
 
         # Tag the security group with owner=cloudknot
         retry.call(
-            EC2.create_tags,
+            clients['ec2'].create_tags,
             Resources=[group_id],
             Tags=[
                 {
@@ -650,7 +650,7 @@ class SecurityGroup(NamedObject):
         None
         """
         # Get dependent EC2 instances
-        response = EC2.describe_instances(Filters=[{
+        response = clients['ec2'].describe_instances(Filters=[{
             'Name': 'vpc-id',
             'Values': [self.vpc_id]
         }])
@@ -665,8 +665,8 @@ class SecurityGroup(NamedObject):
 
         # Delete the dependent instances
         if deps:
-            EC2.terminate_instances(InstanceIds=deps)
-            logging.info('Deleted dependent EC2 instances: {deps:s}'.format(
+            clients['ec2'].terminate_instances(InstanceIds=deps)
+            logging.warning('Deleted dependent EC2 instances: {deps:s}'.format(
                 deps=str(deps)
             ))
 
@@ -678,7 +678,10 @@ class SecurityGroup(NamedObject):
                 botocore.exceptions.ClientError
             )
         )
-        retry.call(EC2.delete_security_group, GroupId=self.security_group_id)
+        retry.call(
+            clients['ec2'].delete_security_group,
+            GroupId=self.security_group_id
+        )
 
         # Remove this VPC from the list of VPCs in the config file
         cloudknot.config.remove_resource(

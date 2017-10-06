@@ -58,7 +58,7 @@ def unit_testing_func(name=None, no_capitalize=False):
 def test_DockerImage():
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
-    ecr = boto3.client('ecr', region_name=ck.config.get_default_region())
+    ecr = boto3.client('ecr', region_name=ck.get_region())
 
     try:
         correct_pip_imports = set([

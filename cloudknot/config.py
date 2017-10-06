@@ -7,9 +7,8 @@ import os
 
 CONFIG = configparser.ConfigParser()
 
-__all__ = ["get_config_file", "get_default_region",
-           "add_resource", "remove_resource", "verify_sections",
-           "prune"]
+__all__ = ["get_config_file", "add_resource", "remove_resource",
+           "verify_sections", "prune"]
 
 
 def get_config_file():
@@ -47,40 +46,6 @@ def get_config_file():
     ))
 
     return config_file
-
-
-def get_default_region():
-    """Get the default AWS region
-
-    First, check for the AWS_DEFAULT_REGION environment variable.
-    If that fails, use the region in the AWS (not cloudknot) config file.
-    If that fails, use us-east-1
-
-    Returns
-    -------
-    region : string
-        default AWS region
-    """
-    try:
-        # Get the region from an environment variable
-        return os.environ['AWS_DEFAULT_REGION']
-    except KeyError:
-        fallback_region = 'us-east-1'
-        home = os.path.expanduser('~')
-        aws_config_file = os.path.join(home, '.aws', 'config')
-        if os.path.isfile(aws_config_file):
-            aws_config = configparser.ConfigParser()
-            aws_config.read(aws_config_file)
-            try:
-                return aws_config.get(
-                    'default', 'region', fallback=fallback_region
-                )
-            except TypeError:
-                # python 2.7 compatibility
-                region = aws_config.get('default', 'region')
-                return region if region else fallback_region
-        else:
-            return fallback_region
 
 
 def add_resource(section, option, value):
@@ -145,7 +110,7 @@ def verify_sections():
     CONFIG.clear()
     CONFIG.read(config_file)
     approved_sections = [
-        'roles', 'vpc', 'security-groups', 'docker-repos',
+        'aws', 'roles', 'vpc', 'security-groups', 'docker-repos',
         'job-definitions', 'compute-environments', 'job-queues', 'jobs'
     ]
 

@@ -5,7 +5,7 @@ import logging
 import operator
 from collections import namedtuple
 
-from .base_classes import NamedObject, ECR
+from .base_classes import NamedObject, clients
 
 __all__ = ["DockerRepo"]
 
@@ -52,7 +52,7 @@ class DockerRepo(NamedObject):
         """
         try:
             # If repo exists, retrieve its info
-            response = ECR.describe_repositories(
+            response = clients['ecr'].describe_repositories(
                 repositoryNames=[self.name]
             )
 
@@ -62,9 +62,11 @@ class DockerRepo(NamedObject):
 
             logging.info('Repository {name:s} already exists at '
                          '{uri:s}'.format(name=self.name, uri=repo_uri))
-        except ECR.exceptions.RepositoryNotFoundException:
+        except clients['ecr'].exceptions.RepositoryNotFoundException:
             # If it doesn't exists already, then create it
-            response = ECR.create_repository(repositoryName=self.name)
+            response = clients['ecr'].create_repository(
+                repositoryName=self.name
+            )
 
             repo_name = response['repository']['repositoryName']
             repo_uri = response['repository']['repositoryUri']
@@ -89,12 +91,12 @@ class DockerRepo(NamedObject):
         """
         try:
             # Remove the remote docker image
-            ECR.delete_repository(
+            clients['ecr'].delete_repository(
                 registryId=self.repo_registry_id,
                 repositoryName=self.name,
                 force=True
             )
-        except ECR.exceptions.RepositoryNotFoundException:
+        except clients['ecr'].exceptions.RepositoryNotFoundException:
             # It doesn't exist anyway, so carry on
             pass
 
