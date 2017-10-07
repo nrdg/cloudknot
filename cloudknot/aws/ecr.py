@@ -9,6 +9,8 @@ from .base_classes import NamedObject, clients
 
 __all__ = ["DockerRepo"]
 
+module_logger = logging.getLogger('__name__')
+
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 class DockerRepo(NamedObject):
@@ -59,7 +61,7 @@ class DockerRepo(NamedObject):
             repo_uri = response['repositories'][0]['repositoryUri']
             repo_registry_id = response['repositories'][0]['registryId']
 
-            logging.info('Repository {name:s} already exists at '
+            module_logger.info('Repository {name:s} already exists at '
                          '{uri:s}'.format(name=self.name, uri=repo_uri))
         except clients['ecr'].exceptions.RepositoryNotFoundException:
             # If it doesn't exists already, then create it
@@ -71,7 +73,7 @@ class DockerRepo(NamedObject):
             repo_uri = response['repository']['repositoryUri']
             repo_registry_id = response['repository']['registryId']
 
-            logging.info('Created repository {name:s} at {uri:s}'.format(
+            module_logger.info('Created repository {name:s} at {uri:s}'.format(
                 name=self.name, uri=repo_uri
             ))
 
@@ -102,4 +104,4 @@ class DockerRepo(NamedObject):
         # Remove from the config file
         cloudknot.config.remove_resource('docker-repos', self.name)
 
-        logging.info('Clobbered docker image {name:s}'.format(name=self.name))
+        module_logger.info('Clobbered docker image {name:s}'.format(name=self.name))

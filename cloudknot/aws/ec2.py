@@ -22,6 +22,8 @@ except ImportError:  # pragma: nocover
 
 __all__ = ["Vpc", "SecurityGroup"]
 
+module_logger = logging.getLogger('__name__')
+
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 class Vpc(NamedObject):
@@ -78,7 +80,7 @@ class Vpc(NamedObject):
 
             cloudknot.config.add_resource('vpc', self.vpc_id, self.name)
 
-            logging.info('Retrieved pre-existing VPC {id:s}'.format(
+            module_logger.info('Retrieved pre-existing VPC {id:s}'.format(
                 id=self.vpc_id
             ))
         else:
@@ -232,7 +234,7 @@ class Vpc(NamedObject):
 
             subnet_ids = [d['SubnetId'] for d in response.get('Subnets')]
 
-            logging.info('VPC {vpcid:s} already exists.'.format(vpcid=vpc_id))
+            module_logger.info('VPC {vpcid:s} already exists.'.format(vpcid=vpc_id))
 
             return ResourceExists(
                 exists=True, name=name, ipv4_cidr=ipv4_cidr,
@@ -257,7 +259,7 @@ class Vpc(NamedObject):
 
         vpc_id = response.get('Vpc')['VpcId']
 
-        logging.info('Created VPC {vpcid:s}.'.format(vpcid=vpc_id))
+        module_logger.info('Created VPC {vpcid:s}.'.format(vpcid=vpc_id))
 
         # Wait for VPC to exist and be available
         wait_for_vpc = clients['ec2'].get_waiter('vpc_exists')
@@ -330,7 +332,7 @@ class Vpc(NamedObject):
             subnet_id = response.get('Subnet')['SubnetId']
             subnet_ids.append(subnet_id)
 
-            logging.info('Created subnet {id:s}.'.format(id=subnet_id))
+            module_logger.info('Created subnet {id:s}.'.format(id=subnet_id))
 
         # Tag all subnets with name and owner
         wait_for_subnet = clients['ec2'].get_waiter('subnet_available')
@@ -369,7 +371,7 @@ class Vpc(NamedObject):
             # Delete the subnets
             for subnet_id in self.subnet_ids:
                 clients['ec2'].delete_subnet(SubnetId=subnet_id)
-                logging.info('Deleted subnet {id:s}'.format(id=subnet_id))
+                module_logger.info('Deleted subnet {id:s}'.format(id=subnet_id))
 
             # Delete the VPC
             clients['ec2'].delete_vpc(VpcId=self.vpc_id)
@@ -377,7 +379,7 @@ class Vpc(NamedObject):
             # Remove this VPC from the list of VPCs in the config file
             cloudknot.config.remove_resource('vpc', self.vpc_id)
 
-            logging.info('Deleted VPC {name:s}'.format(name=self.name))
+            module_logger.info('Deleted VPC {name:s}'.format(name=self.name))
         except clients['ec2'].exceptions.ClientError as e:
             # Check for dependency violation and pass exception to user
             error_code = e.response['Error']['Code']
@@ -476,7 +478,7 @@ class SecurityGroup(NamedObject):
                 'security-groups', self.security_group_id, self.name
             )
 
-            logging.info('Retrieved pre-existing security group {id:s}'.format(
+            module_logger.info('Retrieved pre-existing security group {id:s}'.format(
                 id=self.security_group_id
             ))
         else:
@@ -622,7 +624,7 @@ class SecurityGroup(NamedObject):
             IpPermissions=ip_permissions
         )
 
-        logging.info('Created security group {id:s}'.format(id=group_id))
+        module_logger.info('Created security group {id:s}'.format(id=group_id))
 
         # Tag the security group with owner=cloudknot
         retry.call(
@@ -666,7 +668,7 @@ class SecurityGroup(NamedObject):
         # Delete the dependent instances
         if deps:
             clients['ec2'].terminate_instances(InstanceIds=deps)
-            logging.warning(
+            module_logger.warning(
                 'Deleted dependent EC2 instances: {deps!s}'.format(deps=deps)
             )
 
@@ -688,6 +690,6 @@ class SecurityGroup(NamedObject):
             'security-groups', self.security_group_id
         )
 
-        logging.info('Clobbered security group {id:s}'.format(
+        module_logger.info('Clobbered security group {id:s}'.format(
             id=self.security_group_id
         ))

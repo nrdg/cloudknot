@@ -12,6 +12,8 @@ from .due import due, Doi
 
 __all__ = ["Pars", "Knot"]
 
+module_logger = logging.getLogger('__name__')
+
 # Use duecredit (duecredit.org) to provide a citation to relevant work to
 # be cited. This does nothing, unless the user has duecredit installed,
 # And calls this with duecredit (as in `python -m duecredit script.py`):
@@ -109,12 +111,12 @@ class Pars(object):
                                  'already exists in configuration file '
                                  '{fn:s}.'.format(fn=config.get_config_file()))
 
-            logging.info('Found PARS {name:s} in config'.format(name=name))
+            module_logger.info('Found PARS {name:s} in config'.format(name=name))
             role_name = CONFIG.get(self._pars_name, 'batch-service-role')
             try:
                 # Use config values to adopt role if it exists already
                 self._batch_service_role = aws.iam.IamRole(name=role_name)
-                logging.info('PARS {name:s} adopted role {role:s}'.format(
+                module_logger.info('PARS {name:s} adopted role {role:s}'.format(
                     name=name, role=role_name
                 ))
             except aws.ResourceDoesNotExistException:
@@ -127,7 +129,7 @@ class Pars(object):
                     policies=('AWSBatchServiceRole',),
                     add_instance_profile=False
                 )
-                logging.info('PARS {name:s} created role {role:s}'.format(
+                module_logger.info('PARS {name:s} created role {role:s}'.format(
                     name=name, role=role_name
                 ))
 
@@ -135,7 +137,7 @@ class Pars(object):
             try:
                 # Use config values to adopt role if it exists already
                 self._ecs_instance_role = aws.iam.IamRole(name=role_name)
-                logging.info('PARS {name:s} adopted role {role:s}'.format(
+                module_logger.info('PARS {name:s} adopted role {role:s}'.format(
                     name=name, role=role_name
                 ))
             except aws.ResourceDoesNotExistException:
@@ -148,7 +150,7 @@ class Pars(object):
                     policies=('AmazonEC2ContainerServiceforEC2Role',),
                     add_instance_profile=True
                 )
-                logging.info('PARS {name:s} created role {role:s}'.format(
+                module_logger.info('PARS {name:s} created role {role:s}'.format(
                     name=name, role=role_name
                 ))
 
@@ -156,7 +158,7 @@ class Pars(object):
             try:
                 # Use config values to adopt role if it exists already
                 self._spot_fleet_role = aws.iam.IamRole(name=role_name)
-                logging.info('PARS {name:s} adopted role {role:s}'.format(
+                module_logger.info('PARS {name:s} adopted role {role:s}'.format(
                     name=name, role=role_name
                 ))
             except aws.ResourceDoesNotExistException:
@@ -169,7 +171,7 @@ class Pars(object):
                     policies=('AmazonEC2SpotFleetRole',),
                     add_instance_profile=False
                 )
-                logging.info('PARS {name:s} created role {role:s}'.format(
+                module_logger.info('PARS {name:s} created role {role:s}'.format(
                     name=name, role=role_name
                 ))
 
@@ -177,14 +179,14 @@ class Pars(object):
                 # Use config values to adopt VPC if it exists already
                 id = CONFIG.get(self._pars_name, 'vpc')
                 self._vpc = aws.ec2.Vpc(vpc_id=id)
-                logging.info('PARS {name:s} adopted VPC {id:s}'.format(
+                module_logger.info('PARS {name:s} adopted VPC {id:s}'.format(
                     name=name, id=id
                 ))
             except aws.ResourceDoesNotExistException:
                 # Otherwise create the new VPC
                 self._vpc = aws.ec2.Vpc(name=vpc_name)
                 CONFIG.set(self._pars_name, 'vpc', self.vpc.vpc_id)
-                logging.info('PARS {name:s} created VPC {id:s}'.format(
+                module_logger.info('PARS {name:s} created VPC {id:s}'.format(
                     name=name, id=self.vpc.vpc_id
                 ))
 
@@ -194,7 +196,7 @@ class Pars(object):
                 self._security_group = aws.ec2.SecurityGroup(
                     security_group_id=id
                 )
-                logging.info(
+                module_logger.info(
                     'PARS {name:s} adopted security group {id:s}'.format(
                         name=name, id=id
                     )
@@ -209,7 +211,7 @@ class Pars(object):
                     self._pars_name,
                     'security-group', self.security_group.security_group_id
                 )
-                logging.info(
+                module_logger.info(
                     'PARS {name:s} created security group {id:s}'.format(
                         name=name, id=self.security_group.security_group_id
                     )
@@ -240,13 +242,13 @@ class Pars(object):
                     policies=('AWSBatchServiceRole',),
                     add_instance_profile=False
                 )
-                logging.info('PARS {name:s} created role {role:s}'.format(
+                module_logger.info('PARS {name:s} created role {role:s}'.format(
                     name=name, role=batch_service_role_name
                 ))
             except aws.ResourceExistsException as e:
                 # If it already exists, simply adopt it
                 self._batch_service_role = aws.iam.IamRole(name=e.resource_id)
-                logging.info('PARS {name:s} adopted role {role:s}'.format(
+                module_logger.info('PARS {name:s} adopted role {role:s}'.format(
                     name=name, role=e.resource_id
                 ))
 
@@ -270,13 +272,13 @@ class Pars(object):
                     policies=('AmazonEC2ContainerServiceforEC2Role',),
                     add_instance_profile=True
                 )
-                logging.info('PARS {name:s} created role {role:s}'.format(
+                module_logger.info('PARS {name:s} created role {role:s}'.format(
                     name=name, role=ecs_instance_role_name
                 ))
             except aws.ResourceExistsException as e:
                 # If it already exists, simply adopt it
                 self._ecs_instance_role = aws.iam.IamRole(name=e.resource_id)
-                logging.info('PARS {name:s} adopted role {role:s}'.format(
+                module_logger.info('PARS {name:s} adopted role {role:s}'.format(
                     name=name, role=e.resource_id
                 ))
 
@@ -301,13 +303,13 @@ class Pars(object):
                     policies=('AmazonEC2SpotFleetRole',),
                     add_instance_profile=False
                 )
-                logging.info('PARS {name:s} created role {role:s}'.format(
+                module_logger.info('PARS {name:s} created role {role:s}'.format(
                     name=name, role=spot_fleet_role_name
                 ))
             except aws.ResourceExistsException as e:
                 # If it already exists, simply adopt it
                 self._spot_fleet_role = aws.iam.IamRole(name=e.resource_id)
-                logging.info('PARS {name:s} adopted role {role:s}'.format(
+                module_logger.info('PARS {name:s} adopted role {role:s}'.format(
                     name=name, role=e.resource_id
                 ))
 
@@ -322,20 +324,20 @@ class Pars(object):
 
                 # Adopt the VPC
                 self._vpc = aws.ec2.Vpc(vpc_id=vpc_id)
-                logging.info('PARS {name:s} adopted VPC {id:s}'.format(
+                module_logger.info('PARS {name:s} adopted VPC {id:s}'.format(
                     name=name, id=vpc_id
                 ))
             else:
                 try:
                     # Create new VPC
                     self._vpc = aws.ec2.Vpc(name=vpc_name)
-                    logging.info('PARS {name:s} created VPC {id:s}'.format(
+                    module_logger.info('PARS {name:s} created VPC {id:s}'.format(
                         name=name, id=self.vpc.vpc_id
                     ))
                 except aws.ResourceExistsException as e:
                     # If it already exists, simply adopt it
                     self._vpc = aws.ec2.Vpc(vpc_id=e.resource_id)
-                    logging.info('PARS {name:s} adopted VPC {id:s}'.format(
+                    module_logger.info('PARS {name:s} adopted VPC {id:s}'.format(
                         name=name, id=e.resource_id
                     ))
 
@@ -354,7 +356,7 @@ class Pars(object):
                 self._security_group = aws.ec2.SecurityGroup(
                     security_group_id=security_group_id
                 )
-                logging.info(
+                module_logger.info(
                     'PARS {name:s} adopted security group {id:s}'.format(
                         name=name, id=security_group_id
                     )
@@ -366,7 +368,7 @@ class Pars(object):
                         name=security_group_name,
                         vpc=self.vpc
                     )
-                    logging.info(
+                    module_logger.info(
                         'PARS {name:s} created security group {id:s}'.format(
                             name=name, id=self.security_group.security_group_id
                         )
@@ -376,7 +378,7 @@ class Pars(object):
                     self._security_group = aws.ec2.SecurityGroup(
                         security_group_id=e.resource_id
                     )
-                    logging.info(
+                    module_logger.info(
                         'PARS {name:s} adopted security group {id:s}'.format(
                             name=name, id=e.resource_id
                         )
@@ -436,7 +438,7 @@ class Pars(object):
 
             old_role = getattr(self, attr)
 
-            logging.warning(
+            module_logger.warning(
                 'You are setting a new role for PARS {name:s}. The old '
                 'role {role_name:s} will be clobbered.'.format(
                     name=self.name, role_name=old_role.name
@@ -457,7 +459,7 @@ class Pars(object):
             with open(config.get_config_file(), 'w') as f:
                 CONFIG.write(f)
 
-            logging.info(
+            module_logger.info(
                 'PARS {name:s} adopted new role {role_name:s}'.format(
                     name=self.name, role_name=new_role.name
                 )
@@ -498,7 +500,7 @@ class Pars(object):
         if not isinstance(v, aws.ec2.Vpc):
             raise ValueError('new vpc must be an instance of Vpc')
 
-        logging.warning(
+        module_logger.warning(
             'You are setting a new VPC for PARS {name:s}. The old '
             'VPC {vpc_id:s} will be clobbered.'.format(
                 name=self.name, vpc_id=self.vpc.vpc_id
@@ -527,7 +529,7 @@ class Pars(object):
         with open(config.get_config_file(), 'w') as f:
             CONFIG.write(f)
 
-        logging.info(
+        module_logger.info(
             'PARS {name:s} adopted new VPC {id:s}'.format(
                 name=self.name, id=self.vpc.vpc_id
             )
@@ -554,7 +556,7 @@ class Pars(object):
             raise ValueError('new security group must be an instance of '
                              'SecurityGroup')
 
-        logging.warning(
+        module_logger.warning(
             'You are setting a new security group for PARS {name:s}. The old '
             'security group {sg_id:s} will be clobbered.'.format(
                 name=self.name, sg_id=self.security_group.security_group_id
@@ -571,7 +573,7 @@ class Pars(object):
         with open(config.get_config_file(), 'w') as f:
             CONFIG.write(f)
 
-        logging.info(
+        module_logger.info(
             'PARS {name:s} adopted new security group {id:s}'.format(
                 name=self.name, id=sg.security_group_id
             )
@@ -598,7 +600,7 @@ class Pars(object):
         with open(config.get_config_file(), 'w') as f:
             CONFIG.write(f)
 
-        logging.info('Clobbered PARS {name:s}'.format(name=self.name))
+        module_logger.info('Clobbered PARS {name:s}'.format(name=self.name))
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -811,5 +813,5 @@ class Knot(object):
         with open(config.get_config_file(), 'w') as f:
             CONFIG.write(f)
 
-        logging.info('Clobbered Knot {name:s}'.format(name=self.name))
+        module_logger.info('Clobbered Knot {name:s}'.format(name=self.name))
 

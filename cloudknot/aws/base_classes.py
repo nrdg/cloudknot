@@ -16,6 +16,8 @@ __all__ = ["ResourceDoesNotExistException",
            "NamedObject", "ObjectWithArn", "ObjectWithUsernameAndMemory",
            "clients", "wait_for_compute_environment", "wait_for_job_queue"]
 
+module_logger = logging.getLogger('__name__')
+
 
 def get_region():
     """Get the default AWS region
@@ -452,7 +454,7 @@ def wait_for_compute_environment(arn, name, log=True, max_wait_time=60):
     while waiting:
         if log:
             # Log waiting info
-            logging.info(
+            module_logger.info(
                 'Waiting for AWS to finish modifying compute environment '
                 '{name:s}.'.format(name=name)
             )
@@ -504,7 +506,7 @@ def wait_for_job_queue(name, log=True, max_wait_time=60):
     while waiting:
         if log:
             # Log waiting info
-            logging.info(
+            module_logger.info(
                 'Waiting for AWS to finish modifying job queue '
                 '{name:s}.'.format(name=name)
             )
