@@ -177,7 +177,7 @@ def test_get_region():
                     shutil.move(aws_config_file, aws_config_file + '.bak')
                 else:
                     # Create the config directory if it doesn't exist
-                    aws_config_dir = op.dir_name(aws_config_file)
+                    aws_config_dir = op.dirname(aws_config_file)
                     try:
                         os.makedirs(aws_config_dir)
                     except OSError as e:
