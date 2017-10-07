@@ -16,7 +16,7 @@ from .iam import IamRole
 
 __all__ = ["JobDefinition", "JobQueue", "ComputeEnvironment", "BatchJob"]
 
-module_logger = logging.getLogger('__name__')
+mod_logger = logging.getLogger(__name__)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -72,15 +72,18 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             raise ValueError('You may supply either an arn or other job '
                              'definition details. Not both.')
 
+        # Determine whether the user supplied only an arn or only a name
+        arn_or_name_only = (arn or (name and not any([
+            job_role, docker_image, vcpus, memory, username, retries
+        ])))
+
         resource = self._exists_already(arn=arn, name=name)
         self._pre_existing = resource.exists
 
-        if resource.exists:
-            # Resource exists, if user tried to specify resource parameters,
-            # throw error
-            if any([
-                job_role, docker_image, vcpus, memory, username, retries
-            ]):
+        if resource.exists and resource.status != 'INACTIVE':
+            # Resource exists, if user tried to specify resource parameters
+            # for an active job def, then throw error
+            if any([job_role, docker_image, vcpus, memory, username, retries]):
                 raise ResourceExistsException(
                     'You provided input parameters for a job definition that '
                     'already exists. If you would like to create a new job '
@@ -102,24 +105,24 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             self._retries = resource.retries
             self._arn = resource.arn
 
-            if resource.status == 'INACTIVE':
-                raise ResourceExistsException(
-                    'You retrieved an inactive job definition and cloudknot '
-                    'has no way to reactivate it. Instead of retrieving the '
-                    'job definition using an ARN, create a new one with your '
-                    'desired properties.',
-                    resource.arn
-                )
-
             # Add to config file
             cloudknot.config.add_resource(
                 'job-definitions', self.name, self.arn
             )
 
-            module_logger.info(
+            mod_logger.info(
                 'Retrieved pre-existing job definition {name:s}'.format(
                     name=self.name
                 )
+            )
+        elif (resource.exists and resource.status == 'INACTIVE'
+              and arn_or_name_only):
+            raise ResourceExistsException(
+                'You retrieved an inactive job definition and cloudknot '
+                'has no way to reactivate it. Instead of retrieving the '
+                'job definition using an ARN, create a new one with your '
+                'desired properties.',
+                resource.arn
             )
         else:
             # If user supplied only a name or only an arn, expecting to
@@ -232,7 +235,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             job_role_arn = container_properties['jobRoleArn']
             container_image = container_properties['image']
 
-            module_logger.info('Job definition {name:s} already exists.'.format(
+            mod_logger.info('Job definition {name:s} already exists.'.format(
                 name=job_def_name
             ))
 
@@ -280,7 +283,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         # Add this job def to the list of job definitions in the config file
         cloudknot.config.add_resource('job-definitions', self.name, arn)
 
-        module_logger.info('Created AWS batch job definition {name:s}'.format(
+        mod_logger.info('Created AWS batch job definition {name:s}'.format(
             name=self.name
         ))
 
@@ -298,7 +301,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         # Remove this job def from the list of job defs in the config file
         cloudknot.config.remove_resource('job-definitions', self.name)
 
-        module_logger.info('Deregistered job definition {name:s}'.format(
+        mod_logger.info('Deregistered job definition {name:s}'.format(
             name=self.name
         ))
 
@@ -458,7 +461,7 @@ class ComputeEnvironment(ObjectWithArn):
                 'compute-environments', self.name, self.arn
             )
 
-            module_logger.info(
+            mod_logger.info(
                 'Retrieved pre-existing compute environment {name:s}'.format(
                     name=self.name
                 )
@@ -542,7 +545,7 @@ class ComputeEnvironment(ObjectWithArn):
                 self._spot_fleet_role_arn = None
 
             # Default instance type is 'optimal'
-            instance_types = instance_types if instance_types else ('optimal',)
+            instance_types = instance_types if instance_types else ['optimal']
             if isinstance(instance_types, str):
                 self._instance_types = [instance_types]
             elif all(isinstance(x, str) for x in instance_types):
@@ -629,7 +632,7 @@ class ComputeEnvironment(ObjectWithArn):
                         'if provided, tags must be an instance of dict'
                     )
                 elif self.resource_type == 'SPOT':
-                    module_logger.warning(
+                    mod_logger.warning(
                         'Tags are not supported for compute environment of '
                         'type "SPOT". Ignoring input tags'
                     )
@@ -768,9 +771,11 @@ class ComputeEnvironment(ObjectWithArn):
             except KeyError:
                 spot_fleet_role_arn = None
 
-            module_logger.info('Compute environment {name:s} already exists.'.format(
-                name=ce_name
-            ))
+            mod_logger.info(
+                'Compute environment {name:s} already exists.'.format(
+                    name=ce_name
+                )
+            )
 
             return ResourceExists(
                 exists=True, name=ce_name, batch_service_arn=batch_service_arn,
@@ -833,7 +838,7 @@ class ComputeEnvironment(ObjectWithArn):
         # Add this compute env to the list of compute envs in the config file
         cloudknot.config.add_resource('compute-environments', self.name, arn)
 
-        module_logger.info('Created compute environment {name:s}'.format(
+        mod_logger.info('Created compute environment {name:s}'.format(
             name=self.name
         ))
 
@@ -896,7 +901,7 @@ class ComputeEnvironment(ObjectWithArn):
         # in config file
         cloudknot.config.remove_resource('compute-environments', self.name)
 
-        module_logger.info('Clobbered compute environment {name:s}'.format(
+        mod_logger.info('Clobbered compute environment {name:s}'.format(
             name=self.name
         ))
 
@@ -967,7 +972,7 @@ class JobQueue(ObjectWithArn):
 
             cloudknot.config.add_resource('job-queues', self.name, self.arn)
 
-            module_logger.info('Retrieved pre-existing job queue {name:s}'.format(
+            mod_logger.info('Retrieved pre-existing job queue {name:s}'.format(
                 name=self.name
             ))
         else:
@@ -1067,7 +1072,7 @@ class JobQueue(ObjectWithArn):
             compute_environment_arns = q[0]['computeEnvironmentOrder']
             priority = q[0]['priority']
 
-            module_logger.info('Job Queue {name:s} already exists.'.format(
+            mod_logger.info('Job Queue {name:s} already exists.'.format(
                 name=name
             ))
 
@@ -1113,7 +1118,7 @@ class JobQueue(ObjectWithArn):
         # Add this job queue to the list of job queues in the config file
         cloudknot.config.add_resource('job-queues', self.name, arn)
 
-        module_logger.info('Created job queue {name:s}'.format(name=self.name))
+        mod_logger.info('Created job queue {name:s}'.format(name=self.name))
 
         return arn
 
@@ -1184,7 +1189,7 @@ class JobQueue(ObjectWithArn):
                     reason='Terminated to force job queue deletion'
                 )
 
-                module_logger.info('Terminated job {id:s}'.format(id=job_id))
+                mod_logger.info('Terminated job {id:s}'.format(id=job_id))
 
         # Finally, delete the job queue
         retry.call(clients['batch'].delete_job_queue, jobQueue=self.arn)
@@ -1192,7 +1197,7 @@ class JobQueue(ObjectWithArn):
         # Remove this job queue from the list of job queues in config file
         cloudknot.config.remove_resource('job-queues', self.name)
 
-        module_logger.info('Clobbered job queue {name:s}'.format(name=self.name))
+        mod_logger.info('Clobbered job queue {name:s}'.format(name=self.name))
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -1260,7 +1265,7 @@ class BatchJob(NamedObject):
 
             cloudknot.config.add_resource('jobs', self.job_id, self.name)
 
-            module_logger.info('Retrieved pre-existing batch job {id:s}'.format(
+            mod_logger.info('Retrieved pre-existing batch job {id:s}'.format(
                 id=self.job_id
             ))
         else:
@@ -1343,7 +1348,7 @@ class BatchJob(NamedObject):
             commands = job['container']['command']
             environment_variables = job['container']['environment']
 
-            module_logger.info('Job {id:s} exists.'.format(id=job_id))
+            mod_logger.info('Job {id:s} exists.'.format(id=job_id))
 
             return JobExists(
                 exists=True, name=name, job_queue_arn=job_queue_arn,
@@ -1380,7 +1385,7 @@ class BatchJob(NamedObject):
         # Add this job to the list of jobs in the config file
         cloudknot.config.add_resource('jobs', job_id, self.name)
 
-        module_logger.info(
+        mod_logger.info(
             'Submitted batch job {name:s} with jobID '
             '{job_id:s}'.format(name=self.name, job_id=job_id)
         )
@@ -1423,6 +1428,6 @@ class BatchJob(NamedObject):
 
         clients['batch'].terminate_job(jobId=self.job_id, reason=reason)
 
-        module_logger.info('Terminated job {name:s} with jobID {job_id:s}'.format(
+        mod_logger.info('Terminated job {name:s} with jobID {job_id:s}'.format(
             name=self.name, job_id=self.job_id
         ))
