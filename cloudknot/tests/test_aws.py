@@ -270,7 +270,7 @@ def test_list_profiles():
 
     ref_dir = op.join(data_path, 'profiles_ref_data')
     try:
-        cred_file = op.join(ref_dir, 'credentials')
+        cred_file = op.join(ref_dir, 'credentials_with_default')
         os.environ['AWS_SHARED_CREDENTIALS_FILE'] = cred_file
 
         config_file = op.join(ref_dir, 'config')
@@ -280,7 +280,7 @@ def test_list_profiles():
         assert profile_info.credentials_file == cred_file
         assert profile_info.aws_config_file == config_file
         assert set(profile_info.profile_names) == set(
-            ['name-{i:d}'.format(i=i) for i in range(7)]
+            ['name-{i:d}'.format(i=i) for i in range(7)] + ['default']
         )
     finally:
         if old_credentials_file:
@@ -296,6 +296,70 @@ def test_list_profiles():
         else:
             try:
                 del os.environ['AWS_CONFIG_FILE']
+            except KeyError:
+                pass
+
+
+def test_get_profile():
+    try:
+        old_credentials_file = os.environ['AWS_SHARED_CREDENTIALS_FILE']
+    except KeyError:
+        old_credentials_file = None
+
+    try:
+        old_aws_config_file = os.environ['AWS_CONFIG_FILE']
+    except KeyError:
+        old_aws_config_file = None
+
+    try:
+        old_ck_config_file = os.environ['CLOUDKNOT_CONFIG_FILE']
+    except KeyError:
+        old_ck_config_file = None
+
+    ref_dir = op.join(data_path, 'profiles_ref_data')
+    try:
+        ck_config_file = op.join(ref_dir, 'cloudknot_with_profile')
+        os.environ['CLOUDKNOT_CONFIG_FILE'] = ck_config_file
+
+        assert ck.get_profile() == 'profile_from_cloudknot_config'
+
+        ck_config_file = op.join(ref_dir, 'cloudknot_without_profile')
+        os.environ['CLOUDKNOT_CONFIG_FILE'] = ck_config_file
+
+        config_file = op.join(ref_dir, 'config')
+        os.environ['AWS_CONFIG_FILE'] = config_file
+
+        cred_file = op.join(ref_dir, 'credentials_without_default')
+        os.environ['AWS_SHARED_CREDENTIALS_FILE'] = cred_file
+
+        assert ck.get_profile() is None
+
+        cred_file = op.join(ref_dir, 'credentials_with_default')
+        os.environ['AWS_SHARED_CREDENTIALS_FILE'] = cred_file
+
+        assert ck.get_profile() == 'default'
+    finally:
+        if old_credentials_file:
+            os.environ['AWS_SHARED_CREDENTIALS_FILE'] = old_credentials_file
+        else:
+            try:
+                del os.environ['AWS_SHARED_CREDENTIALS_FILE']
+            except KeyError:
+                pass
+
+        if old_aws_config_file:
+            os.environ['AWS_CONFIG_FILE'] = old_aws_config_file
+        else:
+            try:
+                del os.environ['AWS_CONFIG_FILE']
+            except KeyError:
+                pass
+
+        if old_ck_config_file:
+            os.environ['CLOUDKNOT_CONFIG_FILE'] = old_ck_config_file
+        else:
+            try:
+                del os.environ['CLOUDKNOT_CONFIG_FILE']
             except KeyError:
                 pass
 
