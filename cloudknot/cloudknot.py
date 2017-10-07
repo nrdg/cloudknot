@@ -39,41 +39,41 @@ class Pars(object):
 
         Parameters
         ----------
-        name : string
+        name : str
             The name of this PARS. If `pars name` exists in the config file,
             Pars will retrieve those PARS resource parameters. Otherwise,
             Pars will create a new PARS with this name.
             Default: 'default'
 
-        batch_service_role_name : string
+        batch_service_role_name : str
             Name of this PARS' batch service IAM role. If the role already
             exists, Pars will adopt it. Otherwise, it will create it.
             Default: name + '-cloudknot-batch-service-role'
 
-        ecs_instance_role_name : string
+        ecs_instance_role_name : str
             Name of this PARS' ECS instance IAM role. If the role already
             exists, Pars will adopt it. Otherwise, it will create it.
             Default: name + '-cloudknot-ecs-instance-role'
 
-        spot_fleet_role_name : string
+        spot_fleet_role_name : str
             Name of this PARS' spot fleet IAM role. If the role already
             exists, Pars will adopt it. Otherwise, it will create it.
             Default: name + '-cloudknot-spot-fleet-role'
 
-        vpc_id : string
+        vpc_id : str
             The VPC-ID of the pre-existing VPC that this PARS should adopt
             Default: None
 
-        vpc_name : string
+        vpc_name : str
             The name of the VPC that this PARS should create
             Default: name + '-cloudknot-vpc'
 
-        security_group_id : string
+        security_group_id : str
             The ID of the pre-existing security group that this PARS should
             adopt
             Default: None
 
-        security_group_name : string
+        security_group_name : str
             The name of the security group that this PARS should create
             Default: name + '-cloudknot-security-group'
         """
@@ -614,12 +614,113 @@ class Knot(object):
     of arguments.
     """
     def __init__(self, name='default', **kwargs):
-        """
+        """Initialize a Knot instance
 
         Parameters
         ----------
-        name :
-        kwargs :
+        name : str, optional
+            The name for this knot
+            Default='default'
+        
+        pars : Pars, optional
+            The PARS on which to base this knot's AWS resources
+            Default: instance returned by Pars()
+
+        func : function
+            Python function to be dockerized
+
+        image_script_path : str
+            Path to file with python script to be dockerized
+
+        image_work_dir : string
+            Directory to store Dockerfile, requirements.txt, and python
+            script with CLI
+            Default: parent directory of script if `script_path` is provided
+                     else DockerImage creates a new directory, accessible by
+                     the `docker_image.build_path` property.
+
+        username : string
+            default username created in Dockerfile and in batch job definition
+            Default: 'cloudknot-user'
+
+        repo_name : str, optional
+            Name of the AWS ECR repository to store the created Docker image
+            Default: 'cloudknot/' + self.docker_image.images[0]['name']
+
+        image_tags : str or sequence of str
+            Tags to be applied to this Docker image
+
+        job_definition_name : str, optional
+            Name for this knot's AWS Batch job definition
+            Default: name + '-cloudknot-compute-environment'
+
+        job_def_vcpus : int, optional
+            number of virtual cpus to be used to this knot's job definition
+            Default: 1
+
+        memory : int, optional
+            memory (MiB) to be used for this knot's job definition
+            Default: 32000
+
+        retries : int, optional
+            number of times a job can be moved to 'RUNNABLE' status.
+            May be between 1 and 10
+            Default: 3
+
+        # ComputeEnvironment input
+        compute_environment_name : str
+            Name for this knot's AWS Batch compute environment
+            Default: name + '-cloudknot-compute-environment'
+
+        instance_types : string or sequence of strings, optional
+            Compute environment instance types
+            Default: ('optimal',)
+
+        resource_type : 'EC2' or 'SPOT'
+            Compute environment resource type, either "EC2" or "SPOT"
+            Default: 'EC2'
+
+        min_vcpus : int, optional
+            minimum number of virtual cpus for instances launched in this
+            compute environment
+            Default: 0
+
+        max_vcpus : int, optional
+            maximum number of virtual cpus for instances launched in this
+            compute environment
+            Default: 256
+
+        desired_vcpus : int, optional
+            desired number of virtual cpus for instances launched in this
+            compute environment
+            Default: 8
+
+        image_id : string or None, optional
+            optional AMI id used for instances launched in this compute
+            environment
+            Default: None
+
+        ec2_key_pair : string or None, optional
+            optional EC2 key pair used for instances launched in this compute
+            environment
+            Default: None
+
+        tags : dictionary or None, optional
+            optional key-value pair tags to be applied to resources in this
+            compute environment
+            Default: None
+
+        bid_percentage : int, optional
+            Compute environment bid percentage if using spot instances
+            Default: 50
+
+        job_queue_name : str, optional
+            Name for this knot's AWS Batch job queue
+            Default: name + '-cloudknot-job-queue'
+
+        priority : int, optional
+            Default priority for jobs in this knot's job queue
+            Default: 1
         """
         # Validate name input
         if not isinstance(name, str):

@@ -24,8 +24,8 @@ class DockerRepo(NamedObject):
 
         Parameters
         ----------
-        name : string
-            Name of the image
+        name : str
+            Name of the remote repository
         """
         super(DockerRepo, self).__init__(name=name)
 

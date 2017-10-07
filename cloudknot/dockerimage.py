@@ -326,6 +326,15 @@ class DockerImage(object):
     def build(self, tags, image_name=None):
         """Build a DockerContainer image
 
+        Parameters
+        ----------
+        tags : str or sequence of str
+            Tags to be applied to this Docker image
+
+        image_name : str
+            Name of Docker image to be built
+            Default: 'cloudknot/' + self.name
+
         Returns
         -------
         None
