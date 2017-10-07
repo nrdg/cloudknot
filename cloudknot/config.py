@@ -10,7 +10,7 @@ CONFIG = configparser.ConfigParser()
 __all__ = ["get_config_file", "add_resource", "remove_resource",
            "verify_sections", "prune"]
 
-module_logger = logging.getLogger('__name__')
+mod_logger = logging.getLogger(__name__)
 
 
 def get_config_file():
@@ -39,11 +39,13 @@ def get_config_file():
         with open(config_file, 'w') as f:
             f.write('# cloudknot configuration file')
 
-        module_logger.info('Created new cloudknot config file at {path:s}'.format(
-            path=config_file
-        ))
+        mod_logger.info(
+            'Created new cloudknot config file at {path:s}'.format(
+                path=config_file
+            )
+        )
 
-    module_logger.info('Using cloudknot config file {path:s}'.format(
+    mod_logger.debug('Using cloudknot config file {path:s}'.format(
         path=config_file
     ))
 

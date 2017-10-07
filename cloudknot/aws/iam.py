@@ -12,7 +12,7 @@ from .base_classes import ObjectWithArn, clients, \
 
 __all__ = ["IamRole"]
 
-module_logger = logging.getLogger('__name__')
+mod_logger = logging.getLogger(__name__)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -203,7 +203,7 @@ class IamRole(ObjectWithArn):
             attached_policies = response.get('AttachedPolicies')
             policies = tuple([d['PolicyName'] for d in attached_policies])
 
-            module_logger.info('IAM role {name:s} already exists: {arn:s}'.format(
+            mod_logger.info('IAM role {name:s} already exists: {arn:s}'.format(
                 name=self.name, arn=arn
             ))
 
@@ -232,7 +232,7 @@ class IamRole(ObjectWithArn):
         )
         role_arn = response.get('Role')['Arn']
 
-        module_logger.info('Created role {name:s} with arn {arn:s}'.format(
+        mod_logger.info('Created role {name:s} with arn {arn:s}'.format(
             name=self.name, arn=role_arn
         ))
 
@@ -270,9 +270,11 @@ class IamRole(ObjectWithArn):
                 PolicyArn=policy_arn, RoleName=self.name
             )
 
-            module_logger.info('Attached policy {policy:s} to role {role:s}'.format(
-                policy=policy, role=self.name
-            ))
+            mod_logger.info(
+                'Attached policy {policy:s} to role {role:s}'.format(
+                    policy=policy, role=self.name
+                )
+            )
 
         if add_instance_profile:
             instance_profile_name = self.name + '-instance-profile'
@@ -304,7 +306,7 @@ class IamRole(ObjectWithArn):
                     RoleName=self.name
                 )
 
-            module_logger.info('Created instance profile {name:s}'.format(
+            mod_logger.info('Created instance profile {name:s}'.format(
                 name=instance_profile_name
             ))
 
@@ -393,4 +395,4 @@ class IamRole(ObjectWithArn):
         # Remove this role from the list of roles in the config file
         cloudknot.config.remove_resource('roles', self.name)
 
-        module_logger.info('Deleted role {name:s}'.format(name=self.name))
+        mod_logger.info('Deleted role {name:s}'.format(name=self.name))

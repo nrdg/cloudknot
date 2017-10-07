@@ -11,5 +11,5 @@ from .cloudknot import *  # noqa
 from .dockerimage import *  # noqa
 from .version import __version__  # noqa
 
-module_logger = logging.getLogger(__name__).addHandler(logging.NullHandler())
+module_logger = logging.getLogger(__name__)
 module_logger.info('Started new cloudknot session')

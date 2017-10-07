@@ -16,7 +16,7 @@ from .aws.base_classes import get_region
 
 __all__ = ["DockerImage"]
 
-module_logger = logging.getLogger('__name__')
+mod_logger = logging.getLogger(__name__)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -211,7 +211,7 @@ class DockerImage(object):
             self._missing_imports = list(set(import_names) - set(pip_names))
 
             # And warn the user
-            module_logger.warning(
+            mod_logger.warning(
                 'Warning, some imports not found by pipreqs. You will need '
                 'to edit the Dockerfile by hand, e.g by installing from '
                 'github. You need to install the following packages '
@@ -260,7 +260,7 @@ class DockerImage(object):
             f.write('if __name__ == "__main__":\n')
             f.write('    run({func_name:s})\n'.format(func_name=self.name))
 
-        module_logger.info(
+        mod_logger.info(
             'Wrote python function {func:s} to script {script:s}'.format(
                 func=self.name,
                 script=self.script_path
@@ -319,7 +319,9 @@ class DockerImage(object):
                 py_script=home_dir + '/' + os.path.basename(self.script_path)
             ))
 
-        module_logger.info('Wrote Dockerfile {path:s}'.format(path=self.docker_path))
+        mod_logger.info(
+            'Wrote Dockerfile {path:s}'.format(path=self.docker_path)
+        )
 
     def build(self, tags, image_name=None):
         """Build a DockerContainer image
@@ -367,7 +369,7 @@ class DockerImage(object):
         # Use docker low-level APIClient
         c = docker.from_env()
         for im in images:
-            module_logger.info('Building image {name:s} with tag {tag:s}'.format(
+            mod_logger.info('Building image {name:s} with tag {tag:s}'.format(
                 name=im['name'], tag=im['tag']
             ))
 
@@ -417,7 +419,7 @@ class DockerImage(object):
         cli = docker.from_env().images
         for im in self.images:
             # Log tagging info
-            module_logger.info('Tagging image {name:s} with tag {tag:s}'.format(
+            mod_logger.info('Tagging image {name:s} with tag {tag:s}'.format(
                 name=im['name'], tag=im['tag']
             ))
 
@@ -426,14 +428,14 @@ class DockerImage(object):
                   repository=self.repo_uri, tag=im['tag'])
 
             # Log push info
-            module_logger.info('Pushing image {name:s} with tag {tag:s}'.format(
+            mod_logger.info('Pushing image {name:s} with tag {tag:s}'.format(
                 name=im['name'], tag=im['tag']
             ))
 
             for l in cli.push(
                     repository=self.repo_uri, tag=im['tag'], stream=True
             ):
-                module_logger.debug(l)
+                mod_logger.debug(l)
 
     def clobber(self):
         """Delete all of the files associated with this instance
@@ -450,16 +452,16 @@ class DockerImage(object):
         """
         if self._clobber_script:
             os.remove(self.script_path)
-            module_logger.info('Removed {path:s}'.format(path=self.script_path))
+            mod_logger.info('Removed {path:s}'.format(path=self.script_path))
 
         os.remove(self.docker_path)
-        module_logger.info('Removed {path:s}'.format(path=self.docker_path))
+        mod_logger.info('Removed {path:s}'.format(path=self.docker_path))
         os.remove(self.req_path)
-        module_logger.info('Removed {path:s}'.format(path=self.req_path))
+        mod_logger.info('Removed {path:s}'.format(path=self.req_path))
 
         try:
             os.rmdir(self.build_path)
-            module_logger.info('Removed {path:s}'.format(path=self.build_path))
+            mod_logger.info('Removed {path:s}'.format(path=self.build_path))
         except OSError:
             # Directory is not empty. There's pre-existing stuff in there
             # that we shouldn't mess with.
