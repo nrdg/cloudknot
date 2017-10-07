@@ -1,6 +1,5 @@
 from __future__ import absolute_import, division, print_function
 
-import boto3
 import cloudknot as ck
 import configparser
 import docker
@@ -58,7 +57,7 @@ def unit_testing_func(name=None, no_capitalize=False):
 def test_DockerImage():
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
-    ecr = boto3.client('ecr', region_name=ck.get_region())
+    ecr = ck.aws.clients['ecr']
 
     try:
         correct_pip_imports = set([

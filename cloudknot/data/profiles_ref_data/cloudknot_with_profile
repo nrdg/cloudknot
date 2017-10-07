@@ -1,0 +1,2 @@
+[aws]
+profile = profile_from_cloudknot_config
