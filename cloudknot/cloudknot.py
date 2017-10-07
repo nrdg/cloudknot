@@ -6,6 +6,7 @@ import operator
 
 from . import aws
 from . import config
+from . import dockerimage
 from .config import CONFIG
 from .due import due, Doi
 
@@ -631,16 +632,46 @@ class Pars(object):
 
 
 class Jars(object):
-    def __init__(self, name='default', pars=None,
-                 docker_image_name='cloudknot-docker-image',
-                 job_definition_name='cloudknot-job-definition',
-                 compute_environment_name='cloudknot-compute-environment',
-                 job_queue_name='cloudknot-job-queue', vcpus=1, memory=32000):
+    def __init__(self, name='default', **kwargs):
+        pars = kwargs.pop('pars', None)
+        func = kwargs.pop('func', None)
+        image_script_path = kwargs.pop('image_script_path', None)
+        image_work_dir = kwargs.pop('image_work_dir', None)
+        username = kwargs.pop('username', 'cloudknot-user')
+        repo_name = kwargs.pop('repo_name', None)
+        image_tags = kwargs.pop('image_tags', ['cloudknot'])
+
+        job_definition_name = kwargs.pop('job_def_name',
+                                         name + 'cloudknot-job-definition')
+        desired_vcpus = kwargs.pop('desired_vcpus', None)
+        memory = kwargs.pop('memory', None)
+        retries = kwargs.pop('retries', None)
+
+        compute_environment_name = kwargs.pop(
+            'compute_environment_name', name + 'cloudknot-compute-environment'
+        )
+        instance_types = kwargs.pop('instance_types', None)
+        resource_type = kwargs.pop('resource_type', None)
+        min_vcpus = kwargs.pop('min_vcpus', None)
+        max_vcpus = kwargs.pop('max_vcpus', None)
+        image_id = kwargs.pop('image_id', None)
+        ec2_key_pair = kwargs.pop('ec2_key_pair', None)
+        ce_tags = kwargs.pop('ce_tags', None)
+        bid_percentage = kwargs.pop('bid_percentage', None)
+
+        job_queue_name = kwargs.pop('job_queue_name',
+                                    name + 'cloudknot-job-queue')
+        priority = kwargs.pop('priority', None)
+
+        if kwargs:
+            raise TypeError('Unexpected **kwargs: {0!r}'.format(kwargs))
+
         # Validate name input
         if not isinstance(name, str):
             raise ValueError('name must be a string')
 
         self._name = name
+        self._jars_name = 'jars ' + name
 
         # Validate and set the PARS
         if pars:
@@ -651,68 +682,45 @@ class Jars(object):
         else:
             self._pars = Pars()
 
-        if not isinstance(docker_image_name, str):
-            raise ValueError('docker_image_name must be a string.')
+        self._docker_image = dockerimage.DockerImage(
+            func=func,
+            script_path=image_script_path,
+            dir_name=image_work_dir,
+            username=username
+        )
 
-        if not isinstance(job_definition_name, str):
-            raise ValueError('job_definition_name must be a string.')
+        self.docker_image.build(tags=image_tags)
 
-        if not isinstance(compute_environment_name, str):
-            raise ValueError('compute_environment_name must be a string.')
+        repo_name = (repo_name if repo_name
+                     else self.docker_image.images[0]['name'])
+        self._docker_repo = aws.ecr.DockerRepo(name=repo_name)
 
-        if not isinstance(job_queue_name, str):
-            raise ValueError('job_queue_name must be a string.')
-
-        try:
-            cpus = int(vcpus)
-            if cpus < 1:
-                raise ValueError('vcpus must be positive')
-        except ValueError:
-            raise ValueError('vcpus must be an integer')
-
-        try:
-            mem = int(memory)
-            if mem < 1:
-                raise ValueError('memory must be positive')
-        except ValueError:
-            raise ValueError('memory must be an integer')
-
-        # WIP
-        # self._docker_image = aws.ecr.DockerImage(
-        #     func=func,
-        #     script_path=,
-        #     dir_name=,
-        #     username=
-        # )
-
-        # self._docker_repo = aws.ecr.DockerRepo(
-        #     name=docker_repo_name,
-        # )
+        self.docker_image.push(repo=self.docker_repo)
 
         self._job_definition = aws.batch.JobDefinition(
             name=job_definition_name,
-            job_role=self._infrastructure.ecs_instance_role,
-            docker_image=self._docker_image.uri,
-            vcpus=cpus,
-            memory=mem,
+            job_role=self.pars.ecs_instance_role,
+            docker_image=self.docker_repo.repo_uri,
+            vcpus=desired_vcpus,
+            memory=memory,
             username=username,
             retries=retries
         )
 
         self._compute_environment = aws.batch.ComputeEnvironment(
             name=compute_environment_name,
-            batch_service_role=self._pars.batch_service_role,
-            instance_role=self._pars.ecs_instance_role,
-            vpc=self._pars.vpc,
-            security_group=self._pars.security_group,
-            spot_fleet_role=self._pars.spot_fleet_role,
+            batch_service_role=self.pars.batch_service_role,
+            instance_role=self.pars.ecs_instance_role,
+            vpc=self.pars.vpc,
+            security_group=self.pars.security_group,
+            spot_fleet_role=self.pars.spot_fleet_role,
             instance_types=instance_types,
             resource_type=resource_type,
             min_vcpus=min_vcpus,
-            max_vpucs=max_vcpus,
+            max_vcpus=max_vcpus,
             desired_vcpus=desired_vcpus,
             image_id=image_id,
-            ec2_key_pair=key_pair,
+            ec2_key_pair=ec2_key_pair,
             tags=ce_tags,
             bid_percentage=bid_percentage
         )
@@ -723,9 +731,45 @@ class Jars(object):
             priority=priority
         )
 
-    pars = property(operator.attrgetter('_pars'))
-    docker_image = property(operator.attrgetter('_docker_image'))
-    docker_repo = property(operator.attrgetter('_docker_repo'))
-    job_definition = property(operator.attrgetter('_job_definition'))
-    job_queue = property(operator.attrgetter('_job_queue'))
-    compute_environment = property(operator.attrgetter('_compute_environment'))
+        # Save the new Jars resources in config object
+        # Use CONFIG.set() for python 2.7 compatibility
+        CONFIG.add_section(self._jars_name)
+        CONFIG.set(
+            self._jars_name,
+            'pars', self.pars.name
+        )
+        CONFIG.set(
+            self._jars_name,
+            'docker-image', self.docker_image.name
+        )
+        CONFIG.set(
+            self._jars_name,
+            'docker-repo', self.docker_repo.name
+        )
+        CONFIG.set(
+            self._jars_name,
+            'job-definition', self.job_definition.name
+        )
+        CONFIG.set(
+            self._jars_name,
+            'compute-environment', self.compute_environment.name
+        )
+        CONFIG.set(
+            self._jars_name,
+            'job-queue', self.job_queue.name
+        )
+
+        # Save config to file
+        with open(config.get_config_file(), 'w') as f:
+            CONFIG.write(f)
+
+    name = property(fget=operator.attrgetter('_name'))
+    jars_name = property(fget=operator.attrgetter('_jars_name'))
+    pars = property(fget=operator.attrgetter('_pars'))
+    docker_image = property(fget=operator.attrgetter('_docker_image'))
+    docker_repo = property(fget=operator.attrgetter('_docker_repo'))
+    job_definition = property(fget=operator.attrgetter('_job_definition'))
+    job_queue = property(fget=operator.attrgetter('_job_queue'))
+    compute_environment = property(
+        fget=operator.attrgetter('_compute_environment')
+    )
