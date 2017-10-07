@@ -224,6 +224,8 @@ def test_get_region():
             except KeyError:
                 pass
 
+        ck.refresh_clients()
+
 
 def test_set_region():
     with pytest.raises(ValueError):
@@ -259,6 +261,8 @@ def test_set_region():
                 del os.environ['CLOUDKNOT_CONFIG_FILE']
             except KeyError:
                 pass
+
+        ck.refresh_clients()
 
 
 def test_list_profiles():
@@ -374,7 +378,7 @@ def test_get_profile():
             except KeyError:
                 pass
 
-        ck.set_profile(profile_name='default')
+        ck.refresh_clients()
 
 
 def test_set_profile():
@@ -438,7 +442,7 @@ def test_set_profile():
             except KeyError:
                 pass
 
-        ck.set_profile(profile_name='default')
+        ck.refresh_clients()
 
 
 def test_ObjectWithUsernameAndMemory():

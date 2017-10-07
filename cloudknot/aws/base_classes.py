@@ -279,6 +279,21 @@ clients = {
 }
 
 
+def refresh_clients():
+    clients['iam'] = boto3.Session(profile_name=get_profile()).client(
+        'iam', region_name=get_region()
+    )
+    clients['ec2'] = boto3.Session(profile_name=get_profile()).client(
+        'ec2', region_name=get_region()
+    )
+    clients['batch'] = boto3.Session(profile_name=get_profile()).client(
+        'batch', region_name=get_region()
+    )
+    clients['ecr'] = boto3.Session(profile_name=get_profile()).client(
+        'ecr', region_name=get_region()
+    )
+
+
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 class ResourceExistsException(Exception):
     """Exception indicating that the requested AWS resource already exists"""
