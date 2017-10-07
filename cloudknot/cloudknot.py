@@ -10,7 +10,7 @@ from . import dockerimage
 from .config import CONFIG
 from .due import due, Doi
 
-__all__ = ["CloudKnot", "Pars", "Jars"]
+__all__ = ["Pars", "Knot"]
 
 # Use duecredit (duecredit.org) to provide a citation to relevant work to
 # be cited. This does nothing, unless the user has duecredit installed,
@@ -22,36 +22,6 @@ due.cite(Doi(""),
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-class CloudKnot(object):
-    def __init__(self, func, source_file):
-        if not (func or source_file):
-            raise ValueError('you must supply either a user-defined function '
-                             'or a source file')
-        self.function = func
-        self.source_file = source_file
-
-    function = property(operator.attrgetter('_function'))
-
-    @function.setter
-    def function(self, f):
-        if f:
-            if not inspect.isfunction(f):
-                raise ValueError('if provided, function must be a '
-                                 'user-defined function')
-            self._function = f
-        else:
-            self._function = None
-
-    source_file = property(operator.attrgetter('_source_file'))
-
-    @source_file.setter
-    def source_file(self, fileobj):
-        if fileobj:
-            self._source_file = fileobj
-        else:
-            self._source_file = None
-
-
 class Pars(object):
     """PARS stands for Persistent AWS Resource Set
 
@@ -508,7 +478,7 @@ class Pars(object):
         fset=_role_setter.__func__('_spot_fleet_role')
     )
 
-    vpc = property(operator.attrgetter('_vpc'))
+    vpc = property(fget=operator.attrgetter('_vpc'))
 
     @vpc.setter
     def vpc(self, v):
@@ -631,140 +601,177 @@ class Pars(object):
         logging.info('Clobbered PARS {name:s}'.format(name=self.name))
 
 
-class Jars(object):
+# noinspection PyPropertyAccess,PyAttributeOutsideInit
+class Knot(object):
+    """A collection of resources and methods to submit jobs to AWS Batch
+
+    This object collects AWS resources that should be created once for each
+    type of batch run. The resource set consists of a PARS; a docker image
+    made from an input function or python script; a remote docker repo to
+    house said image; and an AWS batch job definition, compute environment,
+    and job queue. It also contains methods to submit batch jobs for a range
+    of arguments.
+    """
     def __init__(self, name='default', **kwargs):
-        pars = kwargs.pop('pars', None)
-        func = kwargs.pop('func', None)
-        image_script_path = kwargs.pop('image_script_path', None)
-        image_work_dir = kwargs.pop('image_work_dir', None)
-        username = kwargs.pop('username', 'cloudknot-user')
-        repo_name = kwargs.pop('repo_name', None)
-        image_tags = kwargs.pop('image_tags', ['cloudknot'])
+        """
 
-        job_definition_name = kwargs.pop('job_def_name',
-                                         name + 'cloudknot-job-definition')
-        desired_vcpus = kwargs.pop('desired_vcpus', None)
-        memory = kwargs.pop('memory', None)
-        retries = kwargs.pop('retries', None)
-
-        compute_environment_name = kwargs.pop(
-            'compute_environment_name', name + 'cloudknot-compute-environment'
-        )
-        instance_types = kwargs.pop('instance_types', None)
-        resource_type = kwargs.pop('resource_type', None)
-        min_vcpus = kwargs.pop('min_vcpus', None)
-        max_vcpus = kwargs.pop('max_vcpus', None)
-        image_id = kwargs.pop('image_id', None)
-        ec2_key_pair = kwargs.pop('ec2_key_pair', None)
-        ce_tags = kwargs.pop('ce_tags', None)
-        bid_percentage = kwargs.pop('bid_percentage', None)
-
-        job_queue_name = kwargs.pop('job_queue_name',
-                                    name + 'cloudknot-job-queue')
-        priority = kwargs.pop('priority', None)
-
-        if kwargs:
-            raise TypeError('Unexpected **kwargs: {0!r}'.format(kwargs))
-
+        Parameters
+        ----------
+        name :
+        kwargs :
+        """
         # Validate name input
         if not isinstance(name, str):
             raise ValueError('name must be a string')
 
         self._name = name
-        self._jars_name = 'jars ' + name
+        self._knot_name = 'knot ' + name
 
-        # Validate and set the PARS
-        if pars:
-            if not isinstance(pars, Pars):
-                raise ValueError('infrastructure must be an AWSInfrastructure '
-                                 'instance.')
-            self._pars = pars
+        # Check for existence of this pars in the config file
+        CONFIG.clear()
+        CONFIG.read(config.get_config_file())
+        if self._knot_name in CONFIG.sections():
+            pass
         else:
-            self._pars = Pars()
+            # Get input from kwargs. All defaults that are set to None, rely
+            # on the lower-level objects to set their own defaults.
+            pars = kwargs.pop('pars', None)
 
-        self._docker_image = dockerimage.DockerImage(
-            func=func,
-            script_path=image_script_path,
-            dir_name=image_work_dir,
-            username=username
-        )
+            # DockerImage and DockerRepo input
+            func = kwargs.pop('func', None)
+            image_script_path = kwargs.pop('image_script_path', None)
+            image_work_dir = kwargs.pop('image_work_dir', None)
+            username = kwargs.pop('username', 'cloudknot-user')
+            repo_name = kwargs.pop('repo_name', None)
+            image_tags = kwargs.pop('image_tags', ['cloudknot'])
 
-        self.docker_image.build(tags=image_tags)
+            # JobDefinition input
+            job_definition_name = kwargs.pop('job_def_name',
+                                             name + '-cloudknot-job-definition')
+            desired_vcpus = kwargs.pop('desired_vcpus', None)
+            memory = kwargs.pop('memory', None)
+            retries = kwargs.pop('retries', None)
 
-        repo_name = (repo_name if repo_name
-                     else self.docker_image.images[0]['name'])
-        self._docker_repo = aws.ecr.DockerRepo(name=repo_name)
+            # ComputeEnvironment input
+            compute_environment_name = kwargs.pop(
+                'compute_environment_name', name + '-cloudknot-compute-environment'
+            )
+            instance_types = kwargs.pop('instance_types', None)
+            resource_type = kwargs.pop('resource_type', None)
+            min_vcpus = kwargs.pop('min_vcpus', None)
+            max_vcpus = kwargs.pop('max_vcpus', None)
+            image_id = kwargs.pop('image_id', None)
+            ec2_key_pair = kwargs.pop('ec2_key_pair', None)
+            ce_tags = kwargs.pop('ce_tags', None)
+            bid_percentage = kwargs.pop('bid_percentage', None)
 
-        self.docker_image.push(repo=self.docker_repo)
+            # JobQueue input
+            job_queue_name = kwargs.pop('job_queue_name',
+                                        name + '-cloudknot-job-queue')
+            priority = kwargs.pop('priority', None)
 
-        self._job_definition = aws.batch.JobDefinition(
-            name=job_definition_name,
-            job_role=self.pars.ecs_instance_role,
-            docker_image=self.docker_repo.repo_uri,
-            vcpus=desired_vcpus,
-            memory=memory,
-            username=username,
-            retries=retries
-        )
+            # If any other kwargs are left, raise TypeError
+            if kwargs:
+                raise TypeError('Unexpected **kwargs: {0!r}'.format(kwargs))
 
-        self._compute_environment = aws.batch.ComputeEnvironment(
-            name=compute_environment_name,
-            batch_service_role=self.pars.batch_service_role,
-            instance_role=self.pars.ecs_instance_role,
-            vpc=self.pars.vpc,
-            security_group=self.pars.security_group,
-            spot_fleet_role=self.pars.spot_fleet_role,
-            instance_types=instance_types,
-            resource_type=resource_type,
-            min_vcpus=min_vcpus,
-            max_vcpus=max_vcpus,
-            desired_vcpus=desired_vcpus,
-            image_id=image_id,
-            ec2_key_pair=ec2_key_pair,
-            tags=ce_tags,
-            bid_percentage=bid_percentage
-        )
+            # Validate and set the PARS
+            if pars:
+                if not isinstance(pars, Pars):
+                    raise ValueError('pars must be a Pars instance.')
+                self._pars = pars
+            else:
+                self._pars = Pars()
 
-        self._job_queue = aws.batch.JobQueue(
-            name=job_queue_name,
-            compute_environments=self._compute_environment,
-            priority=priority
-        )
+            # Create and build the docker image
+            self._docker_image = dockerimage.DockerImage(
+                func=func,
+                script_path=image_script_path,
+                dir_name=image_work_dir,
+                username=username
+            )
 
-        # Save the new Jars resources in config object
-        # Use CONFIG.set() for python 2.7 compatibility
-        CONFIG.add_section(self._jars_name)
-        CONFIG.set(
-            self._jars_name,
-            'pars', self.pars.name
-        )
-        CONFIG.set(
-            self._jars_name,
-            'docker-image', self.docker_image.name
-        )
-        CONFIG.set(
-            self._jars_name,
-            'docker-repo', self.docker_repo.name
-        )
-        CONFIG.set(
-            self._jars_name,
-            'job-definition', self.job_definition.name
-        )
-        CONFIG.set(
-            self._jars_name,
-            'compute-environment', self.compute_environment.name
-        )
-        CONFIG.set(
-            self._jars_name,
-            'job-queue', self.job_queue.name
-        )
+            self.docker_image.build(tags=image_tags)
 
-        # Save config to file
-        with open(config.get_config_file(), 'w') as f:
-            CONFIG.write(f)
+            # Create the remote repo
+            repo_name = (repo_name if repo_name
+                         else self.docker_image.images[0]['name'])
+            self._docker_repo = aws.ecr.DockerRepo(name=repo_name)
 
+            # Push to remote repo
+            self.docker_image.push(repo=self.docker_repo)
+
+            # Create job definition
+            self._job_definition = aws.batch.JobDefinition(
+                name=job_definition_name,
+                job_role=self.pars.ecs_instance_role,
+                docker_image=self.docker_repo.repo_uri,
+                vcpus=desired_vcpus,
+                memory=memory,
+                username=username,
+                retries=retries
+            )
+
+            # Create compute environment
+            self._compute_environment = aws.batch.ComputeEnvironment(
+                name=compute_environment_name,
+                batch_service_role=self.pars.batch_service_role,
+                instance_role=self.pars.ecs_instance_role,
+                vpc=self.pars.vpc,
+                security_group=self.pars.security_group,
+                spot_fleet_role=self.pars.spot_fleet_role,
+                instance_types=instance_types,
+                resource_type=resource_type,
+                min_vcpus=min_vcpus,
+                max_vcpus=max_vcpus,
+                desired_vcpus=desired_vcpus,
+                image_id=image_id,
+                ec2_key_pair=ec2_key_pair,
+                tags=ce_tags,
+                bid_percentage=bid_percentage
+            )
+
+            # Create job queue
+            self._job_queue = aws.batch.JobQueue(
+                name=job_queue_name,
+                compute_environments=self._compute_environment,
+                priority=priority
+            )
+
+            # Save the new Knot resources in config object
+            # Use CONFIG.set() for python 2.7 compatibility
+            CONFIG.add_section(self._knot_name)
+            CONFIG.set(
+                self._knot_name,
+                'pars', self.pars.name
+            )
+            CONFIG.set(
+                self._knot_name,
+                'docker-image', self.docker_image.name
+            )
+            CONFIG.set(
+                self._knot_name,
+                'docker-repo', self.docker_repo.name
+            )
+            CONFIG.set(
+                self._knot_name,
+                'job-definition', self.job_definition.name
+            )
+            CONFIG.set(
+                self._knot_name,
+                'compute-environment', self.compute_environment.name
+            )
+            CONFIG.set(
+                self._knot_name,
+                'job-queue', self.job_queue.name
+            )
+
+            # Save config to file
+            with open(config.get_config_file(), 'w') as f:
+                CONFIG.write(f)
+
+    # Declare read-only properties
     name = property(fget=operator.attrgetter('_name'))
-    jars_name = property(fget=operator.attrgetter('_jars_name'))
+    knot_name = property(fget=operator.attrgetter('_knot_name'))
     pars = property(fget=operator.attrgetter('_pars'))
     docker_image = property(fget=operator.attrgetter('_docker_image'))
     docker_repo = property(fget=operator.attrgetter('_docker_repo'))
@@ -773,3 +780,36 @@ class Jars(object):
     compute_environment = property(
         fget=operator.attrgetter('_compute_environment')
     )
+
+    def clobber(self, clobber_pars=False):
+        """Delete associated AWS resources and remove section from config
+
+        Parameters
+        ----------
+        clobber_pars : boolean
+            If true, clobber the associated Pars instance
+            Default: False
+
+        Returns
+        -------
+        None
+        """
+        # Delete all associated AWS resources
+        self.job_queue.clobber()
+        self.compute_environment.clobber()
+        self.job_definition.clobber()
+        self.docker_repo.clobber()
+        self.docker_image.clobber()
+
+        if clobber_pars:
+            self.pars.clobber()
+
+        # Remove this section from the config file
+        CONFIG.clear()
+        CONFIG.read(config.get_config_file())
+        CONFIG.remove_section(self._knot_name)
+        with open(config.get_config_file(), 'w') as f:
+            CONFIG.write(f)
+
+        logging.info('Clobbered Knot {name:s}'.format(name=self.name))
+
