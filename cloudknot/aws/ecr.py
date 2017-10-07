@@ -16,10 +16,9 @@ class DockerRepo(NamedObject):
     def __init__(self, name):
         """Initialize a Docker repo object.
 
-        Use may provide only `name` input, indicating that they would
-        like to retrieve a pre-existing repo/image from AWS ECR. Or
-        they may provide a name, tags, and build_path to build a Docker
-        image locally, tag it, and push it to an AWS ECR repository.
+        User may provide only `name` input, indicating that they would
+        like to retrieve a pre-existing repo/image from AWS ECR. Or, if
+        the repo does not exist, it will be created.
 
         Parameters
         ----------
