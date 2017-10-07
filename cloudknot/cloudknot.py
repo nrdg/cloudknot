@@ -631,16 +631,25 @@ class Pars(object):
 
 
 class Jars(object):
-    def __init__(self, pars,
+    def __init__(self, name='default', pars=None,
                  docker_image_name='cloudknot-docker-image',
                  job_definition_name='cloudknot-job-definition',
                  compute_environment_name='cloudknot-compute-environment',
                  job_queue_name='cloudknot-job-queue', vcpus=1, memory=32000):
-        if not isinstance(pars, Pars):
-            raise ValueError('infrastructure must be an AWSInfrastructure '
-                             'instance.')
+        # Validate name input
+        if not isinstance(name, str):
+            raise ValueError('name must be a string')
 
-        self._pars = pars
+        self._name = name
+
+        # Validate and set the PARS
+        if pars:
+            if not isinstance(pars, Pars):
+                raise ValueError('infrastructure must be an AWSInfrastructure '
+                                 'instance.')
+            self._pars = pars
+        else:
+            self._pars = Pars()
 
         if not isinstance(docker_image_name, str):
             raise ValueError('docker_image_name must be a string.')
@@ -669,11 +678,15 @@ class Jars(object):
             raise ValueError('memory must be an integer')
 
         # WIP
-        # self._docker_image = aws.ecr.DockerRepo(
-        #     name=docker_image_name#,
-        #     #build_path=,
-        #     #dockerfile=,
-        #     #requirements=
+        # self._docker_image = aws.ecr.DockerImage(
+        #     func=func,
+        #     script_path=,
+        #     dir_name=,
+        #     username=
+        # )
+
+        # self._docker_repo = aws.ecr.DockerRepo(
+        #     name=docker_repo_name,
         # )
 
         self._job_definition = aws.batch.JobDefinition(
@@ -681,7 +694,9 @@ class Jars(object):
             job_role=self._infrastructure.ecs_instance_role,
             docker_image=self._docker_image.uri,
             vcpus=cpus,
-            memory=mem
+            memory=mem,
+            username=username,
+            retries=retries
         )
 
         self._compute_environment = aws.batch.ComputeEnvironment(
@@ -690,16 +705,27 @@ class Jars(object):
             instance_role=self._pars.ecs_instance_role,
             vpc=self._pars.vpc,
             security_group=self._pars.security_group,
-            desired_vcpus=cpus
+            spot_fleet_role=self._pars.spot_fleet_role,
+            instance_types=instance_types,
+            resource_type=resource_type,
+            min_vcpus=min_vcpus,
+            max_vpucs=max_vcpus,
+            desired_vcpus=desired_vcpus,
+            image_id=image_id,
+            ec2_key_pair=key_pair,
+            tags=ce_tags,
+            bid_percentage=bid_percentage
         )
 
         self._job_queue = aws.batch.JobQueue(
             name=job_queue_name,
-            compute_environments=self._compute_environment
+            compute_environments=self._compute_environment,
+            priority=priority
         )
 
     pars = property(operator.attrgetter('_pars'))
     docker_image = property(operator.attrgetter('_docker_image'))
+    docker_repo = property(operator.attrgetter('_docker_repo'))
     job_definition = property(operator.attrgetter('_job_definition'))
     job_queue = property(operator.attrgetter('_job_queue'))
     compute_environment = property(operator.attrgetter('_compute_environment'))
