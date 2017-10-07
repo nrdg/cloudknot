@@ -1,6 +1,5 @@
 from __future__ import absolute_import, division, print_function
 
-import inspect
 import logging
 import operator
 
@@ -12,7 +11,7 @@ from .due import due, Doi
 
 __all__ = ["Pars", "Knot"]
 
-module_logger = logging.getLogger('__name__')
+mod_logger = logging.getLogger(__name__)
 
 # Use duecredit (duecredit.org) to provide a citation to relevant work to
 # be cited. This does nothing, unless the user has duecredit installed,
@@ -111,12 +110,12 @@ class Pars(object):
                                  'already exists in configuration file '
                                  '{fn:s}.'.format(fn=config.get_config_file()))
 
-            module_logger.info('Found PARS {name:s} in config'.format(name=name))
+            mod_logger.info('Found PARS {name:s} in config'.format(name=name))
             role_name = CONFIG.get(self._pars_name, 'batch-service-role')
             try:
                 # Use config values to adopt role if it exists already
                 self._batch_service_role = aws.iam.IamRole(name=role_name)
-                module_logger.info('PARS {name:s} adopted role {role:s}'.format(
+                mod_logger.info('PARS {name:s} adopted role {role:s}'.format(
                     name=name, role=role_name
                 ))
             except aws.ResourceDoesNotExistException:
@@ -129,7 +128,7 @@ class Pars(object):
                     policies=('AWSBatchServiceRole',),
                     add_instance_profile=False
                 )
-                module_logger.info('PARS {name:s} created role {role:s}'.format(
+                mod_logger.info('PARS {name:s} created role {role:s}'.format(
                     name=name, role=role_name
                 ))
 
@@ -137,7 +136,7 @@ class Pars(object):
             try:
                 # Use config values to adopt role if it exists already
                 self._ecs_instance_role = aws.iam.IamRole(name=role_name)
-                module_logger.info('PARS {name:s} adopted role {role:s}'.format(
+                mod_logger.info('PARS {name:s} adopted role {role:s}'.format(
                     name=name, role=role_name
                 ))
             except aws.ResourceDoesNotExistException:
@@ -150,7 +149,7 @@ class Pars(object):
                     policies=('AmazonEC2ContainerServiceforEC2Role',),
                     add_instance_profile=True
                 )
-                module_logger.info('PARS {name:s} created role {role:s}'.format(
+                mod_logger.info('PARS {name:s} created role {role:s}'.format(
                     name=name, role=role_name
                 ))
 
@@ -158,7 +157,7 @@ class Pars(object):
             try:
                 # Use config values to adopt role if it exists already
                 self._spot_fleet_role = aws.iam.IamRole(name=role_name)
-                module_logger.info('PARS {name:s} adopted role {role:s}'.format(
+                mod_logger.info('PARS {name:s} adopted role {role:s}'.format(
                     name=name, role=role_name
                 ))
             except aws.ResourceDoesNotExistException:
@@ -171,7 +170,7 @@ class Pars(object):
                     policies=('AmazonEC2SpotFleetRole',),
                     add_instance_profile=False
                 )
-                module_logger.info('PARS {name:s} created role {role:s}'.format(
+                mod_logger.info('PARS {name:s} created role {role:s}'.format(
                     name=name, role=role_name
                 ))
 
@@ -179,14 +178,14 @@ class Pars(object):
                 # Use config values to adopt VPC if it exists already
                 id = CONFIG.get(self._pars_name, 'vpc')
                 self._vpc = aws.ec2.Vpc(vpc_id=id)
-                module_logger.info('PARS {name:s} adopted VPC {id:s}'.format(
+                mod_logger.info('PARS {name:s} adopted VPC {id:s}'.format(
                     name=name, id=id
                 ))
             except aws.ResourceDoesNotExistException:
                 # Otherwise create the new VPC
                 self._vpc = aws.ec2.Vpc(name=vpc_name)
                 CONFIG.set(self._pars_name, 'vpc', self.vpc.vpc_id)
-                module_logger.info('PARS {name:s} created VPC {id:s}'.format(
+                mod_logger.info('PARS {name:s} created VPC {id:s}'.format(
                     name=name, id=self.vpc.vpc_id
                 ))
 
@@ -196,7 +195,7 @@ class Pars(object):
                 self._security_group = aws.ec2.SecurityGroup(
                     security_group_id=id
                 )
-                module_logger.info(
+                mod_logger.info(
                     'PARS {name:s} adopted security group {id:s}'.format(
                         name=name, id=id
                     )
@@ -211,7 +210,7 @@ class Pars(object):
                     self._pars_name,
                     'security-group', self.security_group.security_group_id
                 )
-                module_logger.info(
+                mod_logger.info(
                     'PARS {name:s} created security group {id:s}'.format(
                         name=name, id=self.security_group.security_group_id
                     )
@@ -242,13 +241,13 @@ class Pars(object):
                     policies=('AWSBatchServiceRole',),
                     add_instance_profile=False
                 )
-                module_logger.info('PARS {name:s} created role {role:s}'.format(
+                mod_logger.info('PARS {name:s} created role {role:s}'.format(
                     name=name, role=batch_service_role_name
                 ))
             except aws.ResourceExistsException as e:
                 # If it already exists, simply adopt it
                 self._batch_service_role = aws.iam.IamRole(name=e.resource_id)
-                module_logger.info('PARS {name:s} adopted role {role:s}'.format(
+                mod_logger.info('PARS {name:s} adopted role {role:s}'.format(
                     name=name, role=e.resource_id
                 ))
 
@@ -272,13 +271,13 @@ class Pars(object):
                     policies=('AmazonEC2ContainerServiceforEC2Role',),
                     add_instance_profile=True
                 )
-                module_logger.info('PARS {name:s} created role {role:s}'.format(
+                mod_logger.info('PARS {name:s} created role {role:s}'.format(
                     name=name, role=ecs_instance_role_name
                 ))
             except aws.ResourceExistsException as e:
                 # If it already exists, simply adopt it
                 self._ecs_instance_role = aws.iam.IamRole(name=e.resource_id)
-                module_logger.info('PARS {name:s} adopted role {role:s}'.format(
+                mod_logger.info('PARS {name:s} adopted role {role:s}'.format(
                     name=name, role=e.resource_id
                 ))
 
@@ -303,13 +302,13 @@ class Pars(object):
                     policies=('AmazonEC2SpotFleetRole',),
                     add_instance_profile=False
                 )
-                module_logger.info('PARS {name:s} created role {role:s}'.format(
+                mod_logger.info('PARS {name:s} created role {role:s}'.format(
                     name=name, role=spot_fleet_role_name
                 ))
             except aws.ResourceExistsException as e:
                 # If it already exists, simply adopt it
                 self._spot_fleet_role = aws.iam.IamRole(name=e.resource_id)
-                module_logger.info('PARS {name:s} adopted role {role:s}'.format(
+                mod_logger.info('PARS {name:s} adopted role {role:s}'.format(
                     name=name, role=e.resource_id
                 ))
 
@@ -324,20 +323,20 @@ class Pars(object):
 
                 # Adopt the VPC
                 self._vpc = aws.ec2.Vpc(vpc_id=vpc_id)
-                module_logger.info('PARS {name:s} adopted VPC {id:s}'.format(
+                mod_logger.info('PARS {name:s} adopted VPC {id:s}'.format(
                     name=name, id=vpc_id
                 ))
             else:
                 try:
                     # Create new VPC
                     self._vpc = aws.ec2.Vpc(name=vpc_name)
-                    module_logger.info('PARS {name:s} created VPC {id:s}'.format(
+                    mod_logger.info('PARS {name:s} created VPC {id:s}'.format(
                         name=name, id=self.vpc.vpc_id
                     ))
                 except aws.ResourceExistsException as e:
                     # If it already exists, simply adopt it
                     self._vpc = aws.ec2.Vpc(vpc_id=e.resource_id)
-                    module_logger.info('PARS {name:s} adopted VPC {id:s}'.format(
+                    mod_logger.info('PARS {name:s} adopted VPC {id:s}'.format(
                         name=name, id=e.resource_id
                     ))
 
@@ -356,7 +355,7 @@ class Pars(object):
                 self._security_group = aws.ec2.SecurityGroup(
                     security_group_id=security_group_id
                 )
-                module_logger.info(
+                mod_logger.info(
                     'PARS {name:s} adopted security group {id:s}'.format(
                         name=name, id=security_group_id
                     )
@@ -368,7 +367,7 @@ class Pars(object):
                         name=security_group_name,
                         vpc=self.vpc
                     )
-                    module_logger.info(
+                    mod_logger.info(
                         'PARS {name:s} created security group {id:s}'.format(
                             name=name, id=self.security_group.security_group_id
                         )
@@ -378,7 +377,7 @@ class Pars(object):
                     self._security_group = aws.ec2.SecurityGroup(
                         security_group_id=e.resource_id
                     )
-                    module_logger.info(
+                    mod_logger.info(
                         'PARS {name:s} adopted security group {id:s}'.format(
                             name=name, id=e.resource_id
                         )
@@ -438,7 +437,7 @@ class Pars(object):
 
             old_role = getattr(self, attr)
 
-            module_logger.warning(
+            mod_logger.warning(
                 'You are setting a new role for PARS {name:s}. The old '
                 'role {role_name:s} will be clobbered.'.format(
                     name=self.name, role_name=old_role.name
@@ -459,7 +458,7 @@ class Pars(object):
             with open(config.get_config_file(), 'w') as f:
                 CONFIG.write(f)
 
-            module_logger.info(
+            mod_logger.info(
                 'PARS {name:s} adopted new role {role_name:s}'.format(
                     name=self.name, role_name=new_role.name
                 )
@@ -500,7 +499,7 @@ class Pars(object):
         if not isinstance(v, aws.ec2.Vpc):
             raise ValueError('new vpc must be an instance of Vpc')
 
-        module_logger.warning(
+        mod_logger.warning(
             'You are setting a new VPC for PARS {name:s}. The old '
             'VPC {vpc_id:s} will be clobbered.'.format(
                 name=self.name, vpc_id=self.vpc.vpc_id
@@ -529,7 +528,7 @@ class Pars(object):
         with open(config.get_config_file(), 'w') as f:
             CONFIG.write(f)
 
-        module_logger.info(
+        mod_logger.info(
             'PARS {name:s} adopted new VPC {id:s}'.format(
                 name=self.name, id=self.vpc.vpc_id
             )
@@ -556,7 +555,7 @@ class Pars(object):
             raise ValueError('new security group must be an instance of '
                              'SecurityGroup')
 
-        module_logger.warning(
+        mod_logger.warning(
             'You are setting a new security group for PARS {name:s}. The old '
             'security group {sg_id:s} will be clobbered.'.format(
                 name=self.name, sg_id=self.security_group.security_group_id
@@ -573,7 +572,7 @@ class Pars(object):
         with open(config.get_config_file(), 'w') as f:
             CONFIG.write(f)
 
-        module_logger.info(
+        mod_logger.info(
             'PARS {name:s} adopted new security group {id:s}'.format(
                 name=self.name, id=sg.security_group_id
             )
@@ -600,7 +599,7 @@ class Pars(object):
         with open(config.get_config_file(), 'w') as f:
             CONFIG.write(f)
 
-        module_logger.info('Clobbered PARS {name:s}'.format(name=self.name))
+        mod_logger.info('Clobbered PARS {name:s}'.format(name=self.name))
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -648,20 +647,23 @@ class Knot(object):
             image_tags = kwargs.pop('image_tags', ['cloudknot'])
 
             # JobDefinition input
-            job_definition_name = kwargs.pop('job_def_name',
-                                             name + '-cloudknot-job-definition')
-            desired_vcpus = kwargs.pop('desired_vcpus', None)
+            job_definition_name = kwargs.pop(
+                'job_def_name', name + '-cloudknot-job-definition'
+            )
+            job_def_vcpus = kwargs.pop('job_def_vcpus', None)
             memory = kwargs.pop('memory', None)
             retries = kwargs.pop('retries', None)
 
             # ComputeEnvironment input
             compute_environment_name = kwargs.pop(
-                'compute_environment_name', name + '-cloudknot-compute-environment'
+                'compute_environment_name',
+                name + '-cloudknot-compute-environment'
             )
             instance_types = kwargs.pop('instance_types', None)
             resource_type = kwargs.pop('resource_type', None)
             min_vcpus = kwargs.pop('min_vcpus', None)
             max_vcpus = kwargs.pop('max_vcpus', None)
+            desired_vcpus = kwargs.pop('desired_vcpus', None)
             image_id = kwargs.pop('image_id', None)
             ec2_key_pair = kwargs.pop('ec2_key_pair', None)
             ce_tags = kwargs.pop('ce_tags', None)
@@ -702,42 +704,126 @@ class Knot(object):
             # Push to remote repo
             self.docker_image.push(repo=self.docker_repo)
 
-            # Create job definition
-            self._job_definition = aws.batch.JobDefinition(
-                name=job_definition_name,
-                job_role=self.pars.ecs_instance_role,
-                docker_image=self.docker_repo.repo_uri,
-                vcpus=desired_vcpus,
-                memory=memory,
-                username=username,
-                retries=retries
-            )
+            try:
+                # Create job definition
+                self._job_definition = aws.batch.JobDefinition(
+                    name=job_definition_name,
+                    job_role=self.pars.ecs_instance_role,
+                    docker_image=self.docker_repo.repo_uri,
+                    vcpus=job_def_vcpus,
+                    memory=memory,
+                    username=username,
+                    retries=retries
+                )
+            except aws.ResourceExistsException as e:
+                # Job def already exists, retrieve it
+                jd = aws.batch.JobDefinition(arn=e.resource_id)
 
-            # Create compute environment
-            self._compute_environment = aws.batch.ComputeEnvironment(
-                name=compute_environment_name,
-                batch_service_role=self.pars.batch_service_role,
-                instance_role=self.pars.ecs_instance_role,
-                vpc=self.pars.vpc,
-                security_group=self.pars.security_group,
-                spot_fleet_role=self.pars.spot_fleet_role,
-                instance_types=instance_types,
-                resource_type=resource_type,
-                min_vcpus=min_vcpus,
-                max_vcpus=max_vcpus,
-                desired_vcpus=desired_vcpus,
-                image_id=image_id,
-                ec2_key_pair=ec2_key_pair,
-                tags=ce_tags,
-                bid_percentage=bid_percentage
-            )
+                # But confirm that all of the properties match the input
+                # or that the input was unspecified (i.e. is None)
+                eq_role = jd.job_role == self.pars.ecs_instance_role
+                eq_image = jd.docker_image == self.docker_repo.repo_uri
+                eq_vcpus = job_def_vcpus is None or jd.vcpus == job_def_vcpus
+                eq_retries = retries is None or jd.retries == retries
+                eq_mem = memory is None or jd.memory == memory
+                eq_user = jd.username == username
+                if not all([
+                    eq_role, eq_image, eq_vcpus, eq_retries, eq_mem, eq_user
+                ]):
+                    raise ValueError(
+                        'The requested job definition already exists but '
+                        'does not match the input parameters'
+                    )
 
-            # Create job queue
-            self._job_queue = aws.batch.JobQueue(
-                name=job_queue_name,
-                compute_environments=self._compute_environment,
-                priority=priority
-            )
+                self._job_definition = jd
+
+            try:
+                # Create compute environment
+                self._compute_environment = aws.batch.ComputeEnvironment(
+                    name=compute_environment_name,
+                    batch_service_role=self.pars.batch_service_role,
+                    instance_role=self.pars.ecs_instance_role,
+                    vpc=self.pars.vpc,
+                    security_group=self.pars.security_group,
+                    spot_fleet_role=self.pars.spot_fleet_role,
+                    instance_types=instance_types,
+                    resource_type=resource_type,
+                    min_vcpus=min_vcpus,
+                    max_vcpus=max_vcpus,
+                    desired_vcpus=desired_vcpus,
+                    image_id=image_id,
+                    ec2_key_pair=ec2_key_pair,
+                    tags=ce_tags,
+                    bid_percentage=bid_percentage
+                )
+            except aws.ResourceExistsException as e:
+                # Compute environment already exists, retrieve it
+                ce = aws.batch.ComputeEnvironment(arn=e.resource_id)
+
+                # But confirm that all of the properties match the input
+                # or that the input was unspecified (i.e. is None)
+                eq_bsr = (ce.batch_service_role_arn
+                          == self.pars.batch_service_role.arn)
+                eq_eir = (ce.instance_role_arn
+                          == self.pars.ecs_instance_role.arn)
+                eq_vpc = ce.subnets == self.pars.vpc.subnet_ids
+                eq_sg = (ce.security_group_ids
+                         == [self.pars.security_group.security_group_id])
+                if resource_type == 'SPOT':
+                    eq_sfr = (ce.spot_fleet_role_arn
+                              == self.pars.spot_fleet_role.arn)
+                else:
+                    eq_sfr = ce.spot_fleet_role_arn is None
+                eq_it = (instance_types is None
+                         or ce.instance_types == instance_types)
+                eq_rt = (resource_type is None
+                         or ce.resource_type == resource_type)
+                eq_min_vcpus = min_vcpus is None or ce.min_vcpus == min_vcpus
+                eq_max_vcpus = max_vcpus is None or ce.max_vcpus == max_vcpus
+                eq_des_vcpus = (desired_vcpus is None
+                                or ce.desired_vcpus == desired_vcpus)
+                eq_image_id = image_id is None or ce.image_id == image_id
+                eq_kp = ec2_key_pair is None or ce.ec2_key_pair == ec2_key_pair
+                eq_tags = ce_tags is None or ce.tags == ce_tags
+                eq_bp = (bid_percentage is None
+                         or ce.bid_percentage == bid_percentage)
+
+                if not all([
+                    eq_bsr, eq_eir, eq_vpc, eq_sg, eq_sfr, eq_it, eq_rt,
+                    eq_min_vcpus, eq_max_vcpus, eq_des_vcpus, eq_image_id,
+                    eq_kp, eq_tags, eq_bp
+                ]):
+                    raise ValueError(
+                        'The requested compute environment already exists '
+                        'but does not match the input parameters'
+                    )
+
+                self._compute_environment = ce
+
+            try:
+                # Create job queue
+                self._job_queue = aws.batch.JobQueue(
+                    name=job_queue_name,
+                    compute_environments=self.compute_environment,
+                    priority=priority
+                )
+            except aws.ResourceExistsException as e:
+                # Job queue already exists, retrieve it
+                jq = aws.batch.JobQueue(arn=e.resource_id)
+
+                # But confirm that all of the properties match the input
+                # or that the input was unspecified (i.e. is None)
+                ce_arns = [d['computeEnvironment']
+                           for d in jq.compute_environment_arns]
+                eq_ce = ce_arns == [self.compute_environment.arn]
+                eq_priority = priority is None or jq.priority == priority
+                if not all([eq_ce, eq_priority]):
+                    raise ValueError(
+                        'The requested job queue already exists '
+                        'but does not match the input parameters'
+                    )
+
+                self._job_queue = jq
 
             # Save the new Knot resources in config object
             # Use CONFIG.set() for python 2.7 compatibility
@@ -813,5 +899,4 @@ class Knot(object):
         with open(config.get_config_file(), 'w') as f:
             CONFIG.write(f)
 
-        module_logger.info('Clobbered Knot {name:s}'.format(name=self.name))
-
+        mod_logger.info('Clobbered Knot {name:s}'.format(name=self.name))
