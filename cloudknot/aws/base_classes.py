@@ -90,8 +90,8 @@ def set_region(region='us-east-1'):
     region_names = [d['RegionName'] for d in response.get('Regions')]
 
     if region not in region_names:
-        raise ValueError('`region` must be in {regions:s}'.format(
-            regions=str(region_names)
+        raise ValueError('`region` must be in {regions!s}'.format(
+            regions=region_names
         ))
 
     config_file = get_config_file()

@@ -213,7 +213,7 @@ class DockerImage(object):
                 'Warning, some imports not found by pipreqs. You will need '
                 'to edit the Dockerfile by hand, e.g by installing from '
                 'github. You need to install the following packages '
-                '{missing:s}'.format(missing=str(self.missing_imports))
+                '{missing!s}'.format(missing=missing_imports)
             )
         else:
             # All imports accounted for

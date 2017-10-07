@@ -395,7 +395,7 @@ class Vpc(NamedObject):
                     'It may have security groups associated with it. If you '
                     'still want to delete this VPC, you should first delete '
                     'the security groups with the following IDs '
-                    '{sg_ids:s}'.format(sg_ids=str(ids)),
+                    '{sg_ids!s}'.format(sg_ids=ids),
                     resource_id=ids
                 )
             else:  # pragma: nocover
@@ -666,9 +666,9 @@ class SecurityGroup(NamedObject):
         # Delete the dependent instances
         if deps:
             clients['ec2'].terminate_instances(InstanceIds=deps)
-            logging.warning('Deleted dependent EC2 instances: {deps:s}'.format(
-                deps=str(deps)
-            ))
+            logging.warning(
+                'Deleted dependent EC2 instances: {deps!s}'.format(deps=deps)
+            )
 
         # Delete the security group
         retry = tenacity.Retrying(

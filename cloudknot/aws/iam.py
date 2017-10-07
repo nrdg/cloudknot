@@ -133,8 +133,8 @@ class IamRole(ObjectWithArn):
             if not (input_policies < set(aws_policies)):
                 bad_policies = input_policies - set(aws_policies)
                 raise ValueError(
-                    'Could not find the policies {bad_policies:s} on '
-                    'AWS.'.format(bad_policies=str(bad_policies))
+                    'Could not find the policies {bad_policies!s} on '
+                    'AWS.'.format(bad_policies=bad_policies)
                 )
 
             self._policies = tuple(input_policies)

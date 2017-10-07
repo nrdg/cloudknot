@@ -568,8 +568,8 @@ class ComputeEnvironment(ObjectWithArn):
             }
             if not set(self._instance_types) < valid_instance_types:
                 raise ValueError(
-                    'instance_types must be a subset of {types:s}'.format(
-                        types=str(valid_instance_types)
+                    'instance_types must be a subset of {types!s}'.format(
+                        types=valid_instance_types
                     )
                 )
 
@@ -887,9 +887,7 @@ class ComputeEnvironment(ObjectWithArn):
                         'because it has job queue(s) associated with it. '
                         'If you want to delete this compute environment, '
                         'first delete the job queues with the following '
-                        'ARNS: {queues:s}'.format(
-                            queues=str(associated_queues)
-                        ),
+                        'ARNS: {queues!s}'.format(queues=associated_queues),
                         resource_id=associated_queues
                     )
 
