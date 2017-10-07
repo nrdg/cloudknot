@@ -111,9 +111,11 @@ def test_wait_for_job_queue(pars):
 def test_get_region():
     # Save environment variables for restoration later
     try:
-        old_region = os.environ['AWS_DEFAULT_REGION']
+        old_region_env = os.environ['AWS_DEFAULT_REGION']
     except KeyError:
-        old_region = None
+        old_region_env = None
+
+    old_region = ck.get_region()
 
     try:
         old_config_file = os.environ['CLOUDKNOT_CONFIG_FILE']
@@ -203,6 +205,8 @@ def test_get_region():
                 elif op.isfile(aws_config_file):
                     os.remove(aws_config_file)
     finally:
+        ck.set_region(old_region)
+
         # Restore old environment variables
         if old_config_file:
             os.environ['CLOUDKNOT_CONFIG_FILE'] = old_config_file
@@ -212,8 +216,8 @@ def test_get_region():
             except KeyError:
                 pass
 
-        if old_region:
-            os.environ['AWS_DEFAULT_REGION'] = old_region
+        if old_region_env:
+            os.environ['AWS_DEFAULT_REGION'] = old_region_env
         else:
             try:
                 del os.environ['AWS_DEFAULT_REGION']
@@ -317,14 +321,17 @@ def test_get_profile():
         old_ck_config_file = None
 
     ref_dir = op.join(data_path, 'profiles_ref_data')
+    ck_config_with_profile = op.join(ref_dir, 'cloudknot_with_profile')
+    ck_config_without_profile = op.join(ref_dir, 'cloudknot_without_profile')
+
+    shutil.copy(ck_config_with_profile, ck_config_with_profile + '.bak')
+    shutil.copy(ck_config_without_profile, ck_config_without_profile + '.bak')
     try:
-        ck_config_file = op.join(ref_dir, 'cloudknot_with_profile')
-        os.environ['CLOUDKNOT_CONFIG_FILE'] = ck_config_file
+        os.environ['CLOUDKNOT_CONFIG_FILE'] = ck_config_with_profile
 
         assert ck.get_profile() == 'profile_from_cloudknot_config'
 
-        ck_config_file = op.join(ref_dir, 'cloudknot_without_profile')
-        os.environ['CLOUDKNOT_CONFIG_FILE'] = ck_config_file
+        os.environ['CLOUDKNOT_CONFIG_FILE'] = ck_config_without_profile
 
         config_file = op.join(ref_dir, 'config')
         os.environ['AWS_CONFIG_FILE'] = config_file
@@ -339,6 +346,10 @@ def test_get_profile():
 
         assert ck.get_profile() == 'default'
     finally:
+        shutil.move(ck_config_with_profile + '.bak', ck_config_with_profile)
+        shutil.move(ck_config_without_profile + '.bak',
+                    ck_config_without_profile)
+
         if old_credentials_file:
             os.environ['AWS_SHARED_CREDENTIALS_FILE'] = old_credentials_file
         else:
@@ -362,6 +373,8 @@ def test_get_profile():
                 del os.environ['CLOUDKNOT_CONFIG_FILE']
             except KeyError:
                 pass
+
+        ck.set_profile(profile_name='default')
 
 
 def test_set_profile():
@@ -381,8 +394,9 @@ def test_set_profile():
         old_ck_config_file = None
 
     ref_dir = op.join(data_path, 'profiles_ref_data')
+    ck_config_file = op.join(ref_dir, 'cloudknot_without_profile')
+    shutil.copy(ck_config_file, ck_config_file + '.bak')
     try:
-        ck_config_file = op.join(ref_dir, 'cloudknot_without_profile')
         os.environ['CLOUDKNOT_CONFIG_FILE'] = ck_config_file
 
         config_file = op.join(ref_dir, 'config')
@@ -392,12 +406,14 @@ def test_set_profile():
         os.environ['AWS_SHARED_CREDENTIALS_FILE'] = cred_file
 
         with pytest.raises(ValueError):
-            ck.set_profile('not_in_list_of_profiles')
+            ck.set_profile(profile_name='not_in_list_of_profiles')
 
         profile = 'name-5'
-        ck.set_profile(profile)
+        ck.set_profile(profile_name=profile)
         assert ck.get_profile() == profile
     finally:
+        shutil.move(ck_config_file + '.bak', ck_config_file)
+
         if old_credentials_file:
             os.environ['AWS_SHARED_CREDENTIALS_FILE'] = old_credentials_file
         else:
@@ -421,6 +437,8 @@ def test_set_profile():
                 del os.environ['CLOUDKNOT_CONFIG_FILE']
             except KeyError:
                 pass
+
+        ck.set_profile(profile_name='default')
 
 
 def test_ObjectWithUsernameAndMemory():
