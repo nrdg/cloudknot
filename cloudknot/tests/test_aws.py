@@ -25,6 +25,7 @@ from __future__ import absolute_import, division, print_function
 
 import cloudknot as ck
 import configparser
+import errno
 import json
 import os
 import os.path as op
@@ -174,6 +175,18 @@ def test_get_region():
                             'Backup aws config file already exists.'
                         )
                     shutil.move(aws_config_file, aws_config_file + '.bak')
+                else:
+                    # Create the config directory if it doesn't exist
+                    aws_config_dir = op.dir_name(aws_config_file)
+                    try:
+                        os.makedirs(aws_config_dir)
+                    except OSError as e:
+                        pre_existing = (e.errno == errno.EEXIST
+                                        and op.isdir(aws_config_dir))
+                        if pre_existing:
+                            pass
+                        else:
+                            raise e
 
                 region = 'test-region-2'
 
