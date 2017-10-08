@@ -121,7 +121,7 @@ def verify_sections():
     def section_approved(sec):
         return any([
             sec in approved_sections,
-            sec.split(' ', 1)[0] in ['pars', 'jars']
+            sec.split(' ', 1)[0] in ['pars', 'knot', 'docker-image']
         ])
 
     for section in CONFIG.sections():

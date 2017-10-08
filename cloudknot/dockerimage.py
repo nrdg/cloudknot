@@ -12,7 +12,8 @@ from pipreqs import pipreqs
 
 from . import aws
 from . import config
-from .aws.base_classes import get_region
+from .aws.base_classes import get_region, ResourceDoesNotExistException
+from .config import CONFIG, get_config_file
 
 __all__ = ["DockerImage"]
 
@@ -78,12 +79,16 @@ class DockerImage(object):
         location of remote repository to which the image was pushed with the
         push method
     """
-    def __init__(self, func=None, script_path=None, dir_name=None,
-                 username=None):
+    def __init__(self, name=None, func=None, script_path=None,
+                 dir_name=None, username=None):
         """Initialize a DockerImage instance
 
         Parameters
         ----------
+        name : str
+            Name of DockerImage, only used to retrieve DockerImage from
+            config file info. Do not use to create new DockerImage
+
         func : function
             Python function to be dockerized
 
@@ -102,8 +107,18 @@ class DockerImage(object):
             Default: 'cloudknot-user'
         """
         # User must specify at least `func` or `script_path`
-        if not (func or script_path):
-            raise ValueError('You must suppy either `func` or `script_path`.')
+        if name and any([func, script_path, dir_name, username]):
+            raise ValueError(
+                "You specified a name plus other stuff. The name parameter is "
+                "only used to retrieve a pre-existing DockerImage instance. "
+                "If you'd like to create a new one, do not provide a name "
+                "argument."
+            )
+
+        # User must specify at least `func` or `script_path`
+        if not any([name, func, script_path]):
+            raise ValueError('You must suppy either `name`, `func` or '
+                             '`script_path`.')
 
         # If both `func` and `script_path` are specified,
         # input is over-specified
@@ -111,125 +126,197 @@ class DockerImage(object):
             raise ValueError('You provided `script_path` and other redundant '
                              'arguments, either `func` or `dir_name`. ')
 
-        self._func = func
-        self._username = username if username else 'cloudknot-user'
+        if name:
+            # Validate name input
+            if not isinstance(name, str):
+                raise ValueError('name must be a string')
 
-        # Validate dir_name input
-        if dir_name and not os.path.isdir(dir_name):
-            raise ValueError('`dir_name` is not an existing directory')
+            self._name = name
 
-        if script_path:
-            # User supplied a pre-existing python script.
-            # Ensure we don't clobber it later
-            self._clobber_script = False
+            section_name = 'docker-image ' + name
 
-            # Check that it is a valid path
-            if not os.path.isfile(script_path):
-                raise ValueError('If provided, `script_path` must be an '
-                                 'existing regular file.')
+            config_file = get_config_file()
+            CONFIG.clear()
+            CONFIG.read(config_file)
 
-            self._script_path = os.path.abspath(script_path)
-            self._name = os.path.basename(self.script_path)
-
-            # Set the parent directory
-            if dir_name:
-                self._build_path = os.path.abspath(dir_name)
-            else:
-                self._build_path = os.path.dirname(self.script_path)
-        else:
-            # We will create the script, Dockerfile, and requirements.txt
-            # in a new directory
-            self._clobber_script = True
-            self._name = func.__name__
-
-            if dir_name:
-                self._build_path = os.path.abspath(dir_name)
-                self._script_path = os.path.join(self.build_path,
-                                                 self.name + '.py')
-
-                # Confirm that we will not overwrite an existing script
-                if os.path.isfile(self._script_path):
-                    raise ValueError(
-                        'There is a pre-existing python script in the '
-                        'directory that you provided. Either specify a new '
-                        'directory, move the python script `{file:s}` to a '
-                        'new directory, or delete the existing python script '
-                        'if it is no longer necessary.'.format(
-                            file=self.script_path
-                        )
-                    )
-            else:
-                # Create a new unique directory name
-                prefix = 'cloudknot_docker_' + self.name + '_'
-                self._build_path = tempfile.mkdtemp(prefix=prefix,
-                                                    dir=os.getcwd())
-
-                # Store the script in the new directory
-                self._script_path = os.path.join(self.build_path,
-                                                 self.name + '.py')
-
-            self._write_script()
-
-        # Create the Dockerfile and requirements.txt in the parent directory
-        self._docker_path = os.path.join(self.build_path, 'Dockerfile')
-        self._req_path = os.path.join(self.build_path, 'requirements.txt')
-
-        # Confirm that we won't overwrite an existing Dockerfile
-        if os.path.isfile(self._docker_path):
-            raise ValueError(
-                'There is a pre-existing Dockerfile in the same directory as '
-                'the python script you provided or in the directory name that '
-                'you provided. Either specify a new directory, move the '
-                'Dockerfile `{file:s}` to a new directory, or delete the '
-                'existing Dockerfile if it is no longer necessary.'.format(
-                    file=self.docker_path
+            if section_name not in CONFIG.sections():
+                raise ResourceDoesNotExistException(
+                    'Could not find {name:s} in config_file '
+                    '{file:s}'.format(name=section_name, file=config_file)
                 )
-            )
 
-        # Confirm that we won't overwrite an existing requirements.txt
-        if os.path.isfile(self._req_path):
-            raise ValueError(
-                'There is a pre-existing requirements.txt in the same '
-                'directory as the python script you provided or in the '
-                'directory name that you provided. Either specify a new '
-                'directory, move the requirements file`{file:s}` to its own '
-                'directory or delete the existing requirements file if it '
-                'is no longer needed.'.format(file=self.req_path)
-            )
+            self._func = None
+            self._build_path = CONFIG.get(section_name, 'build-path')
+            self._script_path = CONFIG.get(section_name, 'script-path')
+            self._docker_path = CONFIG.get(section_name, 'docker-path')
+            self._req_path = CONFIG.get(section_name, 'req-path')
+            self._username = CONFIG.get(section_name, 'username')
+            self._clobber_script = CONFIG.getboolean(section_name,
+                                                     'clobber-script')
 
-        # Get the names of packages imported in the script
-        import_names = pipreqs.get_all_imports(os.path.dirname(
-            self.script_path
-        ))
+            images_str = CONFIG.get(section_name, 'images')
+            if images_str == '':
+                self._images = None
+            else:
+                images_list = [s.split(':') for s in images_str.split()]
+                self._images = [{'name': i[0], 'tag': i[1]}
+                                for i in images_list]
 
-        # Of those names, store that ones that are available via pip
-        self._pip_imports = pipreqs.get_imports_info(import_names)
+            self._repo_uri = CONFIG.get(section_name, 'repo-uri')
+            if self.repo_uri == '':
+                self._repo_uri = None
 
-        if len(import_names) != len(self.pip_imports):
-            # If some imports were left out, store their names
-            pip_names = [i['name'] for i in self.pip_imports]
-            self._missing_imports = list(set(import_names) - set(pip_names))
+            # Get the names of packages imported in the script
+            import_names = pipreqs.get_all_imports(os.path.dirname(
+                self.script_path
+            ))
 
-            # And warn the user
-            mod_logger.warning(
-                'Warning, some imports not found by pipreqs. You will need '
-                'to edit the Dockerfile by hand, e.g by installing from '
-                'github. You need to install the following packages '
-                '{missing!s}'.format(missing=self.missing_imports)
-            )
+            # Of those names, store that ones that are available via pip
+            self._pip_imports = pipreqs.get_imports_info(import_names)
+
+            if len(import_names) != len(self.pip_imports):
+                # If some imports were left out, store their names
+                pip_names = set([i['name'] for i in self.pip_imports])
+                self._missing_imports = list(set(import_names) - pip_names)
+
+                # And warn the user
+                mod_logger.warning(
+                    'Warning, some imports not found by pipreqs. You will '
+                    'need to edit the Dockerfile by hand, e.g by installing '
+                    'from github. You need to install the following packages '
+                    '{missing!s}'.format(missing=self.missing_imports)
+                )
+            else:
+                # All imports accounted for
+                self._missing_imports = None
         else:
-            # All imports accounted for
-            self._missing_imports = None
+            self._func = func
+            self._username = username if username else 'cloudknot-user'
 
-        # Write the requirements.txt file and Dockerfile
-        pipreqs.generate_requirements_file(self.req_path, self.pip_imports)
-        self._write_dockerfile()
+            # Validate dir_name input
+            if dir_name and not os.path.isdir(dir_name):
+                raise ValueError('`dir_name` is not an existing directory')
 
-        self._images = []
-        self._repo_uri = None
+            if script_path:
+                # User supplied a pre-existing python script.
+                # Ensure we don't clobber it later
+                self._clobber_script = False
 
-        # Add to config file
-        config.add_resource('docker-images', self.name, self.build_path)
+                # Check that it is a valid path
+                if not os.path.isfile(script_path):
+                    raise ValueError('If provided, `script_path` must be an '
+                                     'existing regular file.')
+
+                self._script_path = os.path.abspath(script_path)
+                self._name = os.path.basename(self.script_path)
+
+                # Set the parent directory
+                if dir_name:
+                    self._build_path = os.path.abspath(dir_name)
+                else:
+                    self._build_path = os.path.dirname(self.script_path)
+            else:
+                # We will create the script, Dockerfile, and requirements.txt
+                # in a new directory
+                self._clobber_script = True
+                self._name = func.__name__
+
+                if dir_name:
+                    self._build_path = os.path.abspath(dir_name)
+                    self._script_path = os.path.join(self.build_path,
+                                                     self.name + '.py')
+
+                    # Confirm that we will not overwrite an existing script
+                    if os.path.isfile(self._script_path):
+                        raise ValueError(
+                            'There is a pre-existing python script in the '
+                            'directory that you provided. Either specify a '
+                            'new directory, move the python script `{file:s}` '
+                            'to a new directory, or delete the existing '
+                            'python script if it is no longer '
+                            'necessary.'.format(file=self.script_path)
+                        )
+                else:
+                    # Create a new unique directory name
+                    prefix = 'cloudknot_docker_' + self.name + '_'
+                    self._build_path = tempfile.mkdtemp(prefix=prefix,
+                                                        dir=os.getcwd())
+
+                    # Store the script in the new directory
+                    self._script_path = os.path.join(self.build_path,
+                                                     self.name + '.py')
+
+                self._write_script()
+
+            # Create the Dockerfile and requirements.txt in the parent dir
+            self._docker_path = os.path.join(self.build_path, 'Dockerfile')
+            self._req_path = os.path.join(self.build_path, 'requirements.txt')
+
+            # Confirm that we won't overwrite an existing Dockerfile
+            if os.path.isfile(self._docker_path):
+                raise ValueError(
+                    'There is a pre-existing Dockerfile in the same directory '
+                    'as the python script you provided or in the directory '
+                    'name that you provided. Either specify a new directory, '
+                    'move the Dockerfile `{file:s}` to a new directory, or '
+                    'delete the existing Dockerfile if it is no longer '
+                    'necessary.'.format(file=self.docker_path)
+                )
+
+            # Confirm that we won't overwrite an existing requirements.txt
+            if os.path.isfile(self._req_path):
+                raise ValueError(
+                    'There is a pre-existing requirements.txt in the same '
+                    'directory as the python script you provided or in the '
+                    'directory name that you provided. Either specify a new '
+                    'directory, move the requirements file`{file:s}` to its '
+                    'own directory or delete the existing requirements file '
+                    'if it is no longer needed.'.format(file=self.req_path)
+                )
+
+            # Get the names of packages imported in the script
+            import_names = pipreqs.get_all_imports(os.path.dirname(
+                self.script_path
+            ))
+
+            # Of those names, store that ones that are available via pip
+            self._pip_imports = pipreqs.get_imports_info(import_names)
+
+            if len(import_names) != len(self.pip_imports):
+                # If some imports were left out, store their names
+                pip_names = set([i['name'] for i in self.pip_imports])
+                self._missing_imports = list(set(import_names) - pip_names)
+
+                # And warn the user
+                mod_logger.warning(
+                    'Warning, some imports not found by pipreqs. You will '
+                    'need to edit the Dockerfile by hand, e.g by installing '
+                    'from github. You need to install the following packages '
+                    '{missing!s}'.format(missing=self.missing_imports)
+                )
+            else:
+                # All imports accounted for
+                self._missing_imports = None
+
+            # Write the requirements.txt file and Dockerfile
+            pipreqs.generate_requirements_file(self.req_path, self.pip_imports)
+            self._write_dockerfile()
+
+            self._images = []
+            self._repo_uri = None
+
+            # Add to config file
+            section_name = 'docker-image ' + self.name
+            config.add_resource(section_name, 'build-path', self.build_path)
+            config.add_resource(section_name, 'script-path', self.script_path)
+            config.add_resource(section_name, 'docker-path', self.docker_path)
+            config.add_resource(section_name, 'req-path', self.req_path)
+            config.add_resource(section_name, 'username', self.username)
+            config.add_resource(section_name, 'images', '')
+            config.add_resource(section_name, 'repo-uri', '')
+            config.add_resource(
+                section_name, 'clobber-script', str(self._clobber_script)
+            )
 
     # Declare read-only properties
     name = property(operator.attrgetter('_name'))
@@ -388,6 +475,15 @@ class DockerImage(object):
                 tag=im['name'] + ':' + im['tag']
             )
 
+        config_file = get_config_file()
+        CONFIG.clear()
+        CONFIG.read(config_file)
+        config_images = CONFIG.get('docker-image ' + self.name, 'images')
+        config_images += ' '.join([i['name'] + ':' + i['tag'] for i in images])
+
+        section_name = 'docker-image ' + self.name
+        config.add_resource(section_name, 'images', config_images)
+
     def push(self, repo=None, repo_uri=None):
         """Tag and push a DockerContainer image to a repository
 
@@ -446,6 +542,9 @@ class DockerImage(object):
             ):
                 mod_logger.debug(l)
 
+        section_name = 'docker-image ' + self.name
+        config.add_resource(section_name, 'repo-uri', self.repo_uri)
+
     def clobber(self):
         """Delete all of the files associated with this instance
 
@@ -496,4 +595,4 @@ class DockerImage(object):
                 )
 
         # Remove from the config file
-        config.remove_resource('docker-images', self.name)
+        CONFIG.remove_section('docker-image ' + self.name)

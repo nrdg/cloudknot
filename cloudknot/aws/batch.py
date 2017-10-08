@@ -221,8 +221,16 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             )
 
         if response.get('jobDefinitions'):
+            # Get active job definitions
+            active_job_defs = [jd for jd in response.get('jobDefinitions')
+                               if jd['status'] == 'ACTIVE']
+            if active_job_defs:
+                job_def = sorted(active_job_defs, key=lambda j: j['revision'],
+                                 reverse=True)[0]
+            else:
+                job_def = response.get('jobDefinitions')[0]
+
             # Job def exists. Get job def details
-            job_def = response.get('jobDefinitions')[0]
             job_def_name = job_def['jobDefinitionName']
             job_def_status = job_def['status']
             job_def_arn = job_def['jobDefinitionArn']
@@ -432,7 +440,7 @@ class ComputeEnvironment(ObjectWithArn):
             super(ComputeEnvironment, self).__init__(name=resource.name)
 
             self._batch_service_role = None
-            self._batch_service_arn = resource.batch_service_arn
+            self._batch_service_role_arn = resource.batch_service_role_arn
 
             self._instance_role = None
             self._instance_role_arn = resource.instance_role_arn
@@ -502,7 +510,7 @@ class ComputeEnvironment(ObjectWithArn):
                     'instance with service type "batch"'
                 )
             self._batch_service_role = batch_service_role
-            self._batch_service_arn = batch_service_role.arn
+            self._batch_service_role_arn = batch_service_role.arn
 
             # Validate instance_role is actually an instance role
             if not (isinstance(instance_role, IamRole)
@@ -659,7 +667,9 @@ class ComputeEnvironment(ObjectWithArn):
     # Declare read-only properties
     pre_existing = property(operator.attrgetter('_pre_existing'))
     batch_service_role = property(operator.attrgetter('_batch_service_role'))
-    batch_service_arn = property(operator.attrgetter('_batch_service_arn'))
+    batch_service_role_arn = property(
+        operator.attrgetter('_batch_service_role_arn')
+    )
 
     instance_role = property(operator.attrgetter('_instance_role'))
     instance_role_arn = property(operator.attrgetter('_instance_role_arn'))
@@ -694,7 +704,7 @@ class ComputeEnvironment(ObjectWithArn):
         -------
         namedtuple ResourceExists
             A namedtuple with fields
-            ['exists', 'name', 'batch_service_arn', 'instance_role_arn',
+            ['exists', 'name', 'batch_service_role_arn', 'instance_role_arn',
              'subnets', 'security_group_ids', 'spot_fleet_role_arn',
              'instance_types', 'resource_type', 'min_vcpus', 'max_vcpus',
              'desired_vcpus', 'image_id', 'ec2_key_pair', 'tags',
@@ -703,7 +713,7 @@ class ComputeEnvironment(ObjectWithArn):
         # define a namedtuple for return value type
         ResourceExists = namedtuple(
             'ResourceExists',
-            ['exists', 'name', 'batch_service_arn', 'instance_role_arn',
+            ['exists', 'name', 'batch_service_role_arn', 'instance_role_arn',
              'subnets', 'security_group_ids', 'spot_fleet_role_arn',
              'instance_types', 'resource_type', 'min_vcpus', 'max_vcpus',
              'desired_vcpus', 'image_id', 'ec2_key_pair', 'tags',
@@ -727,7 +737,7 @@ class ComputeEnvironment(ObjectWithArn):
         if response.get('computeEnvironments'):
             ce = response.get('computeEnvironments')[0]
             ce_name = ce['computeEnvironmentName']
-            batch_service_arn = ce['serviceRole']
+            batch_service_role_arn = ce['serviceRole']
             ce_arn = ce['computeEnvironmentArn']
 
             cr = ce['computeResources']
@@ -778,7 +788,8 @@ class ComputeEnvironment(ObjectWithArn):
             )
 
             return ResourceExists(
-                exists=True, name=ce_name, batch_service_arn=batch_service_arn,
+                exists=True, name=ce_name,
+                batch_service_role_arn=batch_service_role_arn,
                 instance_role_arn=instance_role_arn, subnets=subnets,
                 security_group_ids=security_group_ids,
                 spot_fleet_role_arn=spot_fleet_role_arn,
@@ -830,7 +841,7 @@ class ComputeEnvironment(ObjectWithArn):
             type='MANAGED',
             state='ENABLED',
             computeResources=compute_resources,
-            serviceRole=self.batch_service_arn
+            serviceRole=self.batch_service_role_arn
         )
 
         arn = response['computeEnvironmentArn']

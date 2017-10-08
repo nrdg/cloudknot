@@ -395,13 +395,9 @@ class Pars(object):
                 'ecs-instance-role', self._ecs_instance_role.name
             )
             CONFIG.set(
-                self._pars_name,
-                'spot-fleet-role', self._spot_fleet_role.name
+                self._pars_name, 'spot-fleet-role', self._spot_fleet_role.name
             )
-            CONFIG.set(
-                self._pars_name,
-                'vpc', self._vpc.vpc_id
-            )
+            CONFIG.set(self._pars_name, 'vpc', self._vpc.vpc_id)
             CONFIG.set(
                 self._pars_name,
                 'security-group', self._security_group.security_group_id
@@ -621,7 +617,7 @@ class Knot(object):
         name : str, optional
             The name for this knot
             Default='default'
-        
+
         pars : Pars, optional
             The PARS on which to base this knot's AWS resources
             Default: instance returned by Pars()
@@ -729,11 +725,64 @@ class Knot(object):
         self._name = name
         self._knot_name = 'knot ' + name
 
+        image_tags = kwargs.pop('image_tags', ['cloudknot'])
+
         # Check for existence of this pars in the config file
         CONFIG.clear()
         CONFIG.read(config.get_config_file())
         if self._knot_name in CONFIG.sections():
-            pass
+            if kwargs:
+                raise ValueError('You specified configuration arguments for '
+                                 'a knot that already exists. To create a '
+                                 'new knot, please choose a new name or '
+                                 'clobber the pre-existing knot.')
+
+            mod_logger.info('Found knot {name:s} in config'.format(name=name))
+
+            pars_name = CONFIG.get(self._knot_name, 'pars')
+            self._pars = Pars(name=pars_name)
+            mod_logger.info('Knot {name:s} adopted PARS '
+                            '{id:s}'.format(name=self.name, id=self.pars.name))
+
+            image_name = CONFIG.get(self._knot_name, 'docker-image')
+            self._docker_image = dockerimage.DockerImage(name=image_name)
+            mod_logger.info('Knot {name:s} adopted docker image {dr:s}'
+                            ''.format(name=self.name, dr=image_name))
+
+            if self.docker_image.images is None:
+                self.docker_image.build(tags=image_tags)
+                mod_logger.info(
+                    'Knot {name:s} built docker image {dr:s}'
+                    ''.format(name=self.name, dr=self.docker_image.name)
+                )
+
+            repo_name = CONFIG.get(self._knot_name, 'docker-repo')
+            self._docker_repo = aws.ecr.DockerRepo(name=repo_name)
+            mod_logger.info('Knot {name:s} adopted docker repository '
+                            '{dr:s}'.format(name=self.name, dr=repo_name))
+
+            if self.docker_image.repo_uri is None:
+                self.docker_image.push(repo=self.docker_repo)
+                mod_logger.info(
+                    'Knot {name:s} pushed docker image {dr:s}'
+                    ''.format(name=self.name, dr=self.docker_image.name)
+                )
+
+            job_def_name = CONFIG.get(self._knot_name, 'job-definition')
+            self._job_definition = aws.batch.JobDefinition(name=job_def_name)
+            mod_logger.info('Knot {name:s} adopted job definition '
+                            '{jd:s}'.format(name=self.name, jd=job_def_name))
+
+            ce = CONFIG.get(self._knot_name, 'compute-environment')
+            self._compute_environment = aws.batch.ComputeEnvironment(name=ce)
+            mod_logger.info('Knot {name:s} adopted compute environment '
+                            '{ce:s}'.format(name=self.name, ce=ce))
+
+            job_queue_name = CONFIG.get(self._knot_name, 'job-queue')
+            self._job_queue = aws.batch.JobQueue(name=job_queue_name)
+            mod_logger.info('Knot {name:s} adopted job queue {q:s}'.format(
+                name=self.name, q=job_queue_name
+            ))
         else:
             # Get input from kwargs. All defaults that are set to None, rely
             # on the lower-level objects to set their own defaults.
@@ -745,7 +794,6 @@ class Knot(object):
             image_work_dir = kwargs.pop('image_work_dir', None)
             username = kwargs.pop('username', 'cloudknot-user')
             repo_name = kwargs.pop('repo_name', None)
-            image_tags = kwargs.pop('image_tags', ['cloudknot'])
 
             # JobDefinition input
             job_definition_name = kwargs.pop(
@@ -784,8 +832,14 @@ class Knot(object):
                 if not isinstance(pars, Pars):
                     raise ValueError('pars must be a Pars instance.')
                 self._pars = pars
+                mod_logger.info('knot {name:s} adopted PARS {id:s}'.format(
+                    name=self.name, id=self.pars.name
+                ))
             else:
                 self._pars = Pars()
+                mod_logger.info('knot {name:s} created PARS {id:s}'.format(
+                    name=self.name, id=self.pars.name
+                ))
 
             # Create and build the docker image
             self._docker_image = dockerimage.DockerImage(
@@ -797,13 +851,27 @@ class Knot(object):
 
             self.docker_image.build(tags=image_tags)
 
+            mod_logger.info('knot {name:s} built docker image {id!s}'.format(
+                name=self.name, id=self.docker_image.images
+            ))
+
             # Create the remote repo
             repo_name = (repo_name if repo_name
                          else self.docker_image.images[0]['name'])
             self._docker_repo = aws.ecr.DockerRepo(name=repo_name)
 
+            mod_logger.info(
+                'knot {name:s} created/adopted docker repo '
+                '{id:s}'.format(name=self.name, id=self.docker_repo.name)
+            )
+
             # Push to remote repo
             self.docker_image.push(repo=self.docker_repo)
+
+            mod_logger.info(
+                "knot {name:s} pushed it's docker image to the repo "
+                "{id:s}".format(name=self.name, id=self.docker_repo.name)
+            )
 
             try:
                 # Create job definition
@@ -815,6 +883,12 @@ class Knot(object):
                     memory=memory,
                     username=username,
                     retries=retries
+                )
+
+                mod_logger.info(
+                    'knot {name:s} created job definition {id:s}'.format(
+                        name=self.name, id=self.job_definition.name
+                    )
                 )
             except aws.ResourceExistsException as e:
                 # Job def already exists, retrieve it
@@ -838,6 +912,12 @@ class Knot(object):
 
                 self._job_definition = jd
 
+                mod_logger.info(
+                    'knot {name:s} adopted job definition {id:s}'.format(
+                        name=self.name, id=self.job_definition.name
+                    )
+                )
+
             try:
                 # Create compute environment
                 self._compute_environment = aws.batch.ComputeEnvironment(
@@ -856,6 +936,12 @@ class Knot(object):
                     ec2_key_pair=ec2_key_pair,
                     tags=ce_tags,
                     bid_percentage=bid_percentage
+                )
+
+                mod_logger.info(
+                    'knot {name:s} created compute environment {id:s}'.format(
+                        name=self.name, id=self.compute_environment.name
+                    )
                 )
             except aws.ResourceExistsException as e:
                 # Compute environment already exists, retrieve it
@@ -900,6 +986,11 @@ class Knot(object):
                     )
 
                 self._compute_environment = ce
+                mod_logger.info(
+                    'knot {name:s} adopted compute environment {id:s}'.format(
+                        name=self.name, id=self.compute_environment.name
+                    )
+                )
 
             try:
                 # Create job queue
@@ -907,6 +998,11 @@ class Knot(object):
                     name=job_queue_name,
                     compute_environments=self.compute_environment,
                     priority=priority
+                )
+
+                mod_logger.info(
+                    'knot {name:s} created job queue '
+                    '{id:s}'.format(name=self.name, id=self.job_queue.name)
                 )
             except aws.ResourceExistsException as e:
                 # Job queue already exists, retrieve it
@@ -925,34 +1021,25 @@ class Knot(object):
                     )
 
                 self._job_queue = jq
+                mod_logger.info(
+                    'knot {name:s} adopted job queue '
+                    '{id:s}'.format(name=self.name, id=self.job_queue.name)
+                )
 
             # Save the new Knot resources in config object
             # Use CONFIG.set() for python 2.7 compatibility
             CONFIG.add_section(self._knot_name)
+            CONFIG.set(self._knot_name, 'pars', self.pars.name)
+            CONFIG.set(self._knot_name, 'docker-image', self.docker_image.name)
+            CONFIG.set(self._knot_name, 'docker-repo', self.docker_repo.name)
             CONFIG.set(
-                self._knot_name,
-                'pars', self.pars.name
-            )
-            CONFIG.set(
-                self._knot_name,
-                'docker-image', self.docker_image.name
-            )
-            CONFIG.set(
-                self._knot_name,
-                'docker-repo', self.docker_repo.name
-            )
-            CONFIG.set(
-                self._knot_name,
-                'job-definition', self.job_definition.name
+                self._knot_name, 'job-definition', self.job_definition.name
             )
             CONFIG.set(
                 self._knot_name,
                 'compute-environment', self.compute_environment.name
             )
-            CONFIG.set(
-                self._knot_name,
-                'job-queue', self.job_queue.name
-            )
+            CONFIG.set(self._knot_name, 'job-queue', self.job_queue.name)
 
             # Save config to file
             with open(config.get_config_file(), 'w') as f:
@@ -992,6 +1079,9 @@ class Knot(object):
 
         if clobber_pars:
             self.pars.clobber()
+            mod_logger.info('Knot {name:s} clobbered PARS {pars:s}'.format(
+                name=self.name, pars=self.pars.name
+            ))
 
         # Remove this section from the config file
         CONFIG.clear()

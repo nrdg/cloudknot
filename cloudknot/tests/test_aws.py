@@ -1484,7 +1484,7 @@ def test_ComputeEnvironment(pars):
         assert ce.pre_existing
         assert ce.name == name
         assert ce.batch_service_role is None
-        assert ce.batch_service_arn == pars.batch_service_role.arn
+        assert ce.batch_service_role_arn == pars.batch_service_role.arn
         assert ce.instance_role is None
         assert (ce.instance_role_arn ==
                 pars.ecs_instance_role.instance_profile_arn)
@@ -1592,7 +1592,7 @@ def test_ComputeEnvironment(pars):
             assert not ce.pre_existing
             assert ce.name == n
             assert ce.batch_service_role == bsr
-            assert ce.batch_service_arn == bsr.arn
+            assert ce.batch_service_role_arn == bsr.arn
             assert ce.instance_role == ir
             assert ce.instance_role_arn == ir.instance_profile_arn
             assert ce.vpc == v
