@@ -595,4 +595,9 @@ class DockerImage(object):
                 )
 
         # Remove from the config file
+        config_file = get_config_file()
+        CONFIG.clear()
+        CONFIG.read(config_file)
         CONFIG.remove_section('docker-image ' + self.name)
+        with open(config_file, 'w') as f:
+            CONFIG.write(f)

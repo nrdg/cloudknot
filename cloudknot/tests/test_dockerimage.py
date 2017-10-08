@@ -99,7 +99,7 @@ def test_DockerImage():
         # Confirm that the docker image is in the config file
         config.clear()
         config.read(config_file)
-        assert di.name in config.options('docker-images')
+        assert 'docker-image ' + di.name in config.sections()
 
         # Clobber and confirm that it deleted all the created files and dirs
         di.clobber()
@@ -115,7 +115,7 @@ def test_DockerImage():
         # config and then re-read the file
         config.clear()
         config.read(config_file)
-        assert di.name not in config.options('docker-images')
+        assert 'docker-image ' + di.name not in config.sections()
 
         # Second, test a DockerImage with a func and a dir_name
         # -----------------------------------------------------
@@ -142,7 +142,7 @@ def test_DockerImage():
         # Confirm that the docker image is in the config file
         config.clear()
         config.read(config_file)
-        assert di.name in config.options('docker-images')
+        assert 'docker-image ' + di.name in config.sections()
 
         # Clobber and confirm that it deleted all the created files and dirs
         di.clobber()
@@ -158,7 +158,7 @@ def test_DockerImage():
         # config and then re-read the file
         config.clear()
         config.read(config_file)
-        assert di.name not in config.options('docker-images')
+        assert 'docker-image ' + di.name not in config.sections()
 
         # Third, test a DockerImage with script_path and dir_name input
         # -------------------------------------------------------------
@@ -205,7 +205,7 @@ def test_DockerImage():
         # Confirm that the docker image is in the config file
         config.clear()
         config.read(config_file)
-        assert di.name in config.options('docker-images')
+        assert 'docker-image ' + di.name in config.sections()
 
         # Clobber and confirm that it deleted all the created files
         di.clobber()
@@ -229,7 +229,7 @@ def test_DockerImage():
         # config and then re-read the file
         config.clear()
         config.read(config_file)
-        assert di.name not in config.options('docker-images')
+        assert 'docker-image ' + di.name not in config.sections()
 
         # Test for exception handling of incorrect input
         # ----------------------------------------------
@@ -394,9 +394,9 @@ def test_DockerImage():
         # Clean up config file
         config.clear()
         config.read(config_file)
-        for name in config.options('docker-repos'):
-            if UNIT_TEST_PREFIX in name:
-                config.remove_option('docker-repos', name)
+        for name in config.sections():
+            if UNIT_TEST_PREFIX in name and 'docker-image' in name:
+                config.remove_section(name)
         with open(config_file, 'w') as f:
             config.write(f)
 
