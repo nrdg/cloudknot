@@ -67,7 +67,7 @@ def test_wait_for_compute_environment(pars):
         with pytest.raises(SystemExit):
             ck.aws.wait_for_compute_environment(
                 arn=ce.arn, name=ce.name,
-                log=False, max_wait_time=0
+                log=True, max_wait_time=0
             )
     finally:  # pragma: nocover
         # Cleanup
@@ -97,7 +97,7 @@ def test_wait_for_job_queue(pars):
         with pytest.raises(SystemExit):
             ck.aws.wait_for_job_queue(
                 name=jq.name,
-                log=False, max_wait_time=0
+                log=True, max_wait_time=0
             )
     finally:  # pragma: nocover
         # Cleanup
