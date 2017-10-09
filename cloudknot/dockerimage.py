@@ -155,12 +155,9 @@ class DockerImage(object):
                                                      'clobber-script')
 
             images_str = CONFIG.get(section_name, 'images')
-            if images_str == '':
-                self._images = None
-            else:
-                images_list = [s.split(':') for s in images_str.split()]
-                self._images = [{'name': i[0], 'tag': i[1]}
-                                for i in images_list]
+            images_list = [s.split(':') for s in images_str.split()]
+            self._images = [{'name': i[0], 'tag': i[1]}
+                            for i in images_list]
 
             self._repo_uri = CONFIG.get(section_name, 'repo-uri')
             if self.repo_uri == '':
