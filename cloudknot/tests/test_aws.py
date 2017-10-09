@@ -64,6 +64,8 @@ def test_wait_for_compute_environment(pars):
             spot_fleet_role=pars.spot_fleet_role
         )
 
+        ck.aws.wait_for_compute_environment(arn=ce.arn, name=ce.name, log=True)
+
         with pytest.raises(SystemExit):
             ck.aws.wait_for_compute_environment(
                 arn=ce.arn, name=ce.name,
@@ -88,17 +90,12 @@ def test_wait_for_job_queue(pars):
             spot_fleet_role=pars.spot_fleet_role
         )
 
-        ck.aws.wait_for_compute_environment(
-            arn=ce.arn, name=ce.name, log=False
-        )
+        ck.aws.wait_for_compute_environment(arn=ce.arn, name=ce.name, log=True)
 
         jq = ck.aws.JobQueue(name=get_testing_name(), compute_environments=ce)
 
         with pytest.raises(SystemExit):
-            ck.aws.wait_for_job_queue(
-                name=jq.name,
-                log=True, max_wait_time=0
-            )
+            ck.aws.wait_for_job_queue(name=jq.name, log=True, max_wait_time=0)
     finally:  # pragma: nocover
         # Cleanup
         if jq:
@@ -1886,7 +1883,7 @@ def test_ComputeEnvironment(pars):
 
                 # Disable submissions to the queue
                 ck.aws.wait_for_job_queue(
-                    name=name, log=False, max_wait_time=180
+                    name=name, log=True, max_wait_time=180
                 )
                 retry = tenacity.Retrying(
                     wait=tenacity.wait_exponential(max=64),
@@ -1901,7 +1898,7 @@ def test_ComputeEnvironment(pars):
 
                 # Delete the job queue
                 ck.aws.wait_for_job_queue(
-                    name=name, log=False, max_wait_time=180
+                    name=name, log=True, max_wait_time=180
                 )
                 batch.delete_job_queue(jobQueue=arn)
 
@@ -2181,13 +2178,13 @@ def test_JobQueue(pars):
 
                 # Disable submissions to the queue
                 ck.aws.wait_for_job_queue(
-                    name=name, log=False, max_wait_time=180
+                    name=name, log=True, max_wait_time=180
                 )
                 batch.update_job_queue(jobQueue=arn, state='DISABLED')
 
                 # Delete the job queue
                 ck.aws.wait_for_job_queue(
-                    name=name, log=False, max_wait_time=180
+                    name=name, log=True, max_wait_time=180
                 )
                 batch.delete_job_queue(jobQueue=arn)
 

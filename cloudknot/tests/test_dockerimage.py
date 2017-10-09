@@ -101,8 +101,22 @@ def test_DockerImage():
         config.read(config_file)
         assert 'docker-image ' + di.name in config.sections()
 
+        # Next, retrieve another instance with the same name, confirm that it
+        # retrieves the same info from the config file
+        di2 = ck.DockerImage(name=di.name)
+        assert di2.build_path == di.build_path
+        assert di2.docker_path == di.docker_path
+        assert di2.images == di.images
+        assert di2.missing_imports == di.missing_imports
+        assert di2.name == di.name
+        assert di2.pip_imports == di.pip_imports
+        assert di2.repo_uri == di.repo_uri
+        assert di2.req_path == di.req_path
+        assert di2.script_path == di.script_path
+        assert di2.username == di.username
+
         # Clobber and confirm that it deleted all the created files and dirs
-        di.clobber()
+        di2.clobber()
         assert not op.isfile(di.req_path)
         assert not op.isfile(di.docker_path)
         assert not op.isfile(di.script_path)
@@ -238,6 +252,18 @@ def test_DockerImage():
         with pytest.raises(ValueError):
             ck.DockerImage()
 
+        # Assert ValueError on name plus other input
+        with pytest.raises(ValueError):
+            ck.DockerImage(name=get_testing_name(), func=unit_testing_func)
+
+        # Assert ValueError on non-string name input
+        with pytest.raises(ValueError):
+            ck.DockerImage(name=42)
+
+        # Assert ValueError on non-existent name input
+        with pytest.raises(ck.aws.ResourceDoesNotExistException):
+            ck.DockerImage(name=get_testing_name())
+
         # Assert ValueError on redundant input
         with pytest.raises(ValueError):
             ck.DockerImage(
@@ -248,10 +274,7 @@ def test_DockerImage():
 
         # Assert ValueError on invalid script path
         with pytest.raises(ValueError):
-            ck.DockerImage(
-                script_path=str(uuid.uuid4()),
-                dir_name=os.getcwd()
-            )
+            ck.DockerImage(script_path=str(uuid.uuid4()), dir_name=os.getcwd())
 
         # Assert ValueError on invalid dir name
         with pytest.raises(ValueError):
@@ -265,16 +288,11 @@ def test_DockerImage():
         )
         # Assert ValueError to prevent overwriting existing script
         with pytest.raises(ValueError):
-            ck.DockerImage(
-                func=unit_testing_func,
-                dir_name=correct_dir
-            )
+            ck.DockerImage(func=unit_testing_func, dir_name=correct_dir)
 
         # Assert ValueError to prevent overwriting existing Dockerfile
         with pytest.raises(ValueError):
-            ck.DockerImage(
-                script_path=correct_script_path,
-            )
+            ck.DockerImage(script_path=correct_script_path)
 
         # Assert ValueError to prevent overwriting existing requirements.txt
         # First, avoid the existing Dockerfile error by renaming the Dockerfile
@@ -287,9 +305,7 @@ def test_DockerImage():
 
         # Assert the ValueError
         with pytest.raises(ValueError):
-            ck.DockerImage(
-                script_path=correct_script_path,
-            )
+            ck.DockerImage(script_path=correct_script_path)
 
         # Clean up our mess by renaming to the old Dockerfile
         os.rename(new_dockerfile, old_dockerfile)
@@ -371,7 +387,8 @@ def test_DockerImage():
         c = docker.from_env().api
         unit_test_images = [
             im for im in c.images()
-            if any(UNIT_TEST_PREFIX in tag for tag in im['RepoTags'])
+            if any(('unit_testing_func' in tag or 'test_func_input' in tag)
+                   for tag in im['RepoTags'])
         ]
 
         # Remove local images
@@ -381,7 +398,8 @@ def test_DockerImage():
 
         # Get all repos with unit test prefix in the name
         repos = [r for r in response.get('repositories')
-                 if UNIT_TEST_PREFIX in r['repositoryName']]
+                 if ('unit_testing_func' in r['repositoryName']
+                     or 'test_func_input' in r['repositoryName'])]
 
         # Delete the AWS ECR repo
         for r in repos:
@@ -395,7 +413,8 @@ def test_DockerImage():
         config.clear()
         config.read(config_file)
         for name in config.sections():
-            if UNIT_TEST_PREFIX in name and 'docker-image' in name:
+            if name in ['docker-image unit_testing_func',
+                        'docker-image test_func_input.py']:
                 config.remove_section(name)
         with open(config_file, 'w') as f:
             config.write(f)

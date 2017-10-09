@@ -100,7 +100,7 @@ def set_region(region='us-east-1'):
     CONFIG.clear()
     CONFIG.read(config_file)
 
-    if not CONFIG.has_section('aws'):
+    if not CONFIG.has_section('aws'):  # pragma: nocover
         CONFIG.add_section('aws')
 
     CONFIG.set('aws', 'region', region)
@@ -242,7 +242,7 @@ def set_profile(profile_name):
     CONFIG.clear()
     CONFIG.read(config_file)
 
-    if not CONFIG.has_section('aws'):
+    if not CONFIG.has_section('aws'):  # pragma: nocover
         CONFIG.add_section('aws')
 
     CONFIG.set('aws', 'profile', profile_name)
@@ -504,7 +504,7 @@ def wait_for_job_queue(name, log=True, max_wait_time=60):
     waiting = True
     num_waits = 0
     while waiting:
-        if log:
+        if log:  # pragma: nocover
             # Log waiting info
             mod_logger.info(
                 'Waiting for AWS to finish modifying job queue '

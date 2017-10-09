@@ -142,7 +142,8 @@ class DockerImage(object):
             if section_name not in CONFIG.sections():
                 raise ResourceDoesNotExistException(
                     'Could not find {name:s} in config_file '
-                    '{file:s}'.format(name=section_name, file=config_file)
+                    '{file:s}'.format(name=section_name, file=config_file),
+                    resource_id=name
                 )
 
             self._func = None
@@ -159,33 +160,11 @@ class DockerImage(object):
             self._images = [{'name': i[0], 'tag': i[1]}
                             for i in images_list]
 
-            self._repo_uri = CONFIG.get(section_name, 'repo-uri')
-            if self.repo_uri == '':
-                self._repo_uri = None
+            uri = CONFIG.get(section_name, 'repo-uri')
+            self._repo_uri = uri if uri else None
 
-            # Get the names of packages imported in the script
-            import_names = pipreqs.get_all_imports(os.path.dirname(
-                self.script_path
-            ))
-
-            # Of those names, store that ones that are available via pip
-            self._pip_imports = pipreqs.get_imports_info(import_names)
-
-            if len(import_names) != len(self.pip_imports):
-                # If some imports were left out, store their names
-                pip_names = set([i['name'] for i in self.pip_imports])
-                self._missing_imports = list(set(import_names) - pip_names)
-
-                # And warn the user
-                mod_logger.warning(
-                    'Warning, some imports not found by pipreqs. You will '
-                    'need to edit the Dockerfile by hand, e.g by installing '
-                    'from github. You need to install the following packages '
-                    '{missing!s}'.format(missing=self.missing_imports)
-                )
-            else:
-                # All imports accounted for
-                self._missing_imports = None
+            # Set self.pip_imports and self.missing_imports
+            self._set_imports()
         else:
             self._func = func
             self._username = username if username else 'cloudknot-user'
@@ -271,29 +250,8 @@ class DockerImage(object):
                     'if it is no longer needed.'.format(file=self.req_path)
                 )
 
-            # Get the names of packages imported in the script
-            import_names = pipreqs.get_all_imports(os.path.dirname(
-                self.script_path
-            ))
-
-            # Of those names, store that ones that are available via pip
-            self._pip_imports = pipreqs.get_imports_info(import_names)
-
-            if len(import_names) != len(self.pip_imports):
-                # If some imports were left out, store their names
-                pip_names = set([i['name'] for i in self.pip_imports])
-                self._missing_imports = list(set(import_names) - pip_names)
-
-                # And warn the user
-                mod_logger.warning(
-                    'Warning, some imports not found by pipreqs. You will '
-                    'need to edit the Dockerfile by hand, e.g by installing '
-                    'from github. You need to install the following packages '
-                    '{missing!s}'.format(missing=self.missing_imports)
-                )
-            else:
-                # All imports accounted for
-                self._missing_imports = None
+            # Set self.pip_imports and self.missing_imports
+            self._set_imports()
 
             # Write the requirements.txt file and Dockerfile
             pipreqs.generate_requirements_file(self.req_path, self.pip_imports)
@@ -406,6 +364,33 @@ class DockerImage(object):
         mod_logger.info(
             'Wrote Dockerfile {path:s}'.format(path=self.docker_path)
         )
+
+    def _set_imports(self):
+        """Set the imports required for the python script at self.script_path
+        """
+        # Get the names of packages imported in the script
+        import_names = pipreqs.get_all_imports(os.path.dirname(
+            self.script_path
+        ))
+
+        # Of those names, store that ones that are available via pip
+        self._pip_imports = pipreqs.get_imports_info(import_names)
+
+        if len(import_names) != len(self.pip_imports):
+            # If some imports were left out, store their names
+            pip_names = set([i['name'] for i in self.pip_imports])
+            self._missing_imports = list(set(import_names) - pip_names)
+
+            # And warn the user
+            mod_logger.warning(
+                'Warning, some imports not found by pipreqs. You will '
+                'need to edit the Dockerfile by hand, e.g by installing '
+                'from github. You need to install the following packages '
+                '{missing!s}'.format(missing=self.missing_imports)
+            )
+        else:
+            # All imports accounted for
+            self._missing_imports = None
 
     def build(self, tags, image_name=None):
         """Build a DockerContainer image
