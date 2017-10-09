@@ -898,7 +898,7 @@ class ComputeEnvironment(ObjectWithArn):
             except clients['batch'].exceptions.ClientException as error:
                 error_message = error.response['Error']['Message']
                 if error_message == 'Cannot delete, found existing ' \
-                                    'JobQueue relationship':
+                                    'JobQueue relationship':  # pragma: nocover
                     raise CannotDeleteResourceException(
                         'Could not delete this compute environment '
                         'because it has job queue(s) associated with it. '
