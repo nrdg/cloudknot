@@ -424,7 +424,7 @@ class DockerImage(object):
         image_name = image_name if image_name else 'cloudknot/' + self.name
 
         images = [{'name': image_name, 'tag': t} for t in tags]
-        self._images += images
+        self._images += [im for im in images if im not in self.images]
 
         # Refresh the aws ecr login credentials
         login_cmd = subprocess.check_output([
@@ -440,7 +440,7 @@ class DockerImage(object):
         if login_result:  # pragma: nocover
             raise ValueError(
                 'Unable to login to AWS ECR using `{login:s}`'.format(
-                    login=login_cmd
+                    login=login_cmd.decode()
                 )
             )
 
@@ -557,16 +557,25 @@ class DockerImage(object):
             # that we shouldn't mess with.
             pass
 
-        if self.images:
-            # Use docker image client to remove local images
-            cli = docker.from_env().images
-            for im in self.images:
-                # Remove the local docker image, using the latest image name
+        cli = docker.from_env().images
+        # Get local images first (lol stands for list_of_lists
+        local_image_lol = [im.tags for im in cli.list()]
+        # Flatten the list of lists
+        local_images = [im for sublist in local_image_lol for im in sublist]
+
+        # Use docker image client to remove local images
+        for im in self.images:
+            if im['name'] + ':' + im['tag'] in local_images:
+                # Remove the local docker image, using the image name
                 cli.remove(
                     image=im['name'] + ':' + im['tag'],
                     force=True,
                     noprune=False
                 )
+                # Update local_images to prevent redundant image removal
+                local_image_lol = [im.tags for im in cli.list()]
+                local_images = [im for sublist in local_image_lol
+                                for im in sublist]
 
         if self.repo_uri:
             for tag in set([d['tag'] for d in self.images]):
@@ -575,6 +584,9 @@ class DockerImage(object):
                     force=True,
                     noprune=False
                 )
+
+        mod_logger.info('Removed local docker images '
+                        '{images!s}'.format(images=self.images))
 
         # Remove from the config file
         config_file = get_config_file()
