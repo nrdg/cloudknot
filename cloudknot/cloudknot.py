@@ -622,6 +622,9 @@ class Knot(object):
             The PARS on which to base this knot's AWS resources
             Default: instance returned by Pars()
 
+        docker_image_name : str, optional
+            The name of the pre-existing DockerImage instance to adopt
+
         func : function
             Python function to be dockerized
 
@@ -663,7 +666,6 @@ class Knot(object):
             May be between 1 and 10
             Default: 3
 
-        # ComputeEnvironment input
         compute_environment_name : str
             Name for this knot's AWS Batch compute environment
             Default: name + '-cloudknot-compute-environment'
@@ -789,15 +791,16 @@ class Knot(object):
             pars = kwargs.pop('pars', None)
 
             # DockerImage and DockerRepo input
+            docker_image_name = kwargs.pop('docker_image_name', None)
             func = kwargs.pop('func', None)
             image_script_path = kwargs.pop('image_script_path', None)
             image_work_dir = kwargs.pop('image_work_dir', None)
-            username = kwargs.pop('username', 'cloudknot-user')
+            username = kwargs.pop('username', None)
             repo_name = kwargs.pop('repo_name', None)
 
             # JobDefinition input
             job_definition_name = kwargs.pop(
-                'job_def_name', name + '-cloudknot-job-definition'
+                'job_definition_name', name + '-cloudknot-job-definition'
             )
             job_def_vcpus = kwargs.pop('job_def_vcpus', None)
             memory = kwargs.pop('memory', None)
@@ -843,6 +846,7 @@ class Knot(object):
 
             # Create and build the docker image
             self._docker_image = dockerimage.DockerImage(
+                name=docker_image_name,
                 func=func,
                 script_path=image_script_path,
                 dir_name=image_work_dir,
@@ -896,18 +900,27 @@ class Knot(object):
 
                 # But confirm that all of the properties match the input
                 # or that the input was unspecified (i.e. is None)
-                eq_role = jd.job_role == self.pars.ecs_instance_role
+                eq_role = jd.job_role_arn == self.pars.ecs_instance_role.arn
                 eq_image = jd.docker_image == self.docker_repo.repo_uri
                 eq_vcpus = job_def_vcpus is None or jd.vcpus == job_def_vcpus
                 eq_retries = retries is None or jd.retries == retries
                 eq_mem = memory is None or jd.memory == memory
-                eq_user = jd.username == username
-                if not all([
-                    eq_role, eq_image, eq_vcpus, eq_retries, eq_mem, eq_user
-                ]):
+                eq_user = username is None or jd.username == username
+
+                matches = {
+                    'instance role matches': eq_role,
+                    'docker image matches': eq_image,
+                    'VCPUs match': eq_vcpus,
+                    'retries match': eq_retries,
+                    'memory matches': eq_mem,
+                    'username matches': eq_user
+                }
+
+                if not all(matches.values()):
                     raise ValueError(
                         'The requested job definition already exists but '
-                        'does not match the input parameters'
+                        'does not match the input parameters. '
+                        '{matches!s}'.format(matches=matches)
                     )
 
                 self._job_definition = jd
@@ -917,6 +930,11 @@ class Knot(object):
                         name=self.name, id=self.job_definition.name
                     )
                 )
+
+            if self.job_definition.username != self.docker_image.username:
+                raise ValueError("The username for this knot's job definition "
+                                 "does not match the username for this knot's "
+                                 "Docker image.")
 
             try:
                 # Create compute environment
@@ -952,8 +970,8 @@ class Knot(object):
                 eq_bsr = (ce.batch_service_role_arn
                           == self.pars.batch_service_role.arn)
                 eq_eir = (ce.instance_role_arn
-                          == self.pars.ecs_instance_role.arn)
-                eq_vpc = ce.subnets == self.pars.vpc.subnet_ids
+                          == self.pars.ecs_instance_role.instance_profile_arn)
+                eq_vpc = set(ce.subnets) == set(self.pars.vpc.subnet_ids)
                 eq_sg = (ce.security_group_ids
                          == [self.pars.security_group.security_group_id])
                 if resource_type == 'SPOT':
@@ -975,14 +993,28 @@ class Knot(object):
                 eq_bp = (bid_percentage is None
                          or ce.bid_percentage == bid_percentage)
 
-                if not all([
-                    eq_bsr, eq_eir, eq_vpc, eq_sg, eq_sfr, eq_it, eq_rt,
-                    eq_min_vcpus, eq_max_vcpus, eq_des_vcpus, eq_image_id,
-                    eq_kp, eq_tags, eq_bp
-                ]):
+                matches = {
+                    'batch service role matches': eq_bsr,
+                    'instance profile matches': eq_eir,
+                    'subnets match': eq_vpc,
+                    'security groups match': eq_sg,
+                    'spot fleet role matches': eq_sfr,
+                    'instance types match': eq_it,
+                    'resource type matches': eq_rt,
+                    'min VCPUs match': eq_min_vcpus,
+                    'max VCPUs match': eq_max_vcpus,
+                    'desired VCPUs match': eq_des_vcpus,
+                    'image ID matches': eq_image_id,
+                    'EC2 key pair matches': eq_kp,
+                    'tags match': eq_tags,
+                    'bid percentage matches': eq_bp
+                }
+
+                if not all(matches.values()):
                     raise ValueError(
                         'The requested compute environment already exists '
-                        'but does not match the input parameters'
+                        'but does not match the input parameters. '
+                        '{matches!s}.'.format(matches=matches)
                     )
 
                 self._compute_environment = ce
@@ -1014,10 +1046,17 @@ class Knot(object):
                            for d in jq.compute_environment_arns]
                 eq_ce = ce_arns == [self.compute_environment.arn]
                 eq_priority = priority is None or jq.priority == priority
-                if not all([eq_ce, eq_priority]):
+
+                matches = {
+                    'compute environment ARNS match': eq_ce,
+                    'priority matches': eq_priority
+                }
+
+                if not all(matches.values()):
                     raise ValueError(
                         'The requested job queue already exists '
-                        'but does not match the input parameters'
+                        'but does not match the input parameters. '
+                        '{matches!s}'.format(matches=matches)
                     )
 
                 self._job_queue = jq

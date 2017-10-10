@@ -235,3 +235,179 @@ def test_Pars():
             p.clobber()
 
         raise e
+
+
+def knot_testing_func(name=None, no_capitalize=False):
+    """Test function for unit testing of cloudknot.DockerImage
+
+    Import statements of various formats are deliberately scattered
+    throughout the function to test the pipreqs components of
+    clouknot.DockerImage
+    """
+    import sys  # noqa: F401
+    import boto3.ec2  # noqa: F401
+    if name:
+        from docker import api  # noqa: F401
+        from os.path import join  # noqa: F401
+
+        if not no_capitalize:
+            import pytest as pt  # noqa: F401
+            import h5py.utils as h5utils  # noqa: F401
+
+            name = name.title()
+
+        return 'Hello {0}!'.format(name)
+
+    from six import binary_type as bt  # noqa: F401
+    from dask.base import curry as dbc  # noqa: F401
+
+    return 'Hello world!'
+
+
+def test_Knot():
+    config = configparser.ConfigParser()
+    config_file = ck.config.get_config_file()
+    knot, knot2 = None, None
+
+    try:
+        name = get_testing_name()
+        knot = ck.Knot(name=name, func=knot_testing_func)
+
+        # Assert ValueError for supplying kwargs to pre-existing knot
+        with pytest.raises(ValueError):
+            ck.Knot(name=name, func=knot_testing_func)
+
+        # Re-instantiate the knot so that it retrieves from config
+        # with resources that already exist
+        knot = ck.Knot(name=name)
+
+        # Assert properties are as expected
+        assert knot.name == name
+        assert knot.knot_name == 'knot ' + name
+        assert knot.pars.name == 'default'
+        assert knot.docker_image.name == knot_testing_func.__name__
+        repo_name = knot.docker_image.images[0]['name']
+        assert knot.docker_repo.name == repo_name
+        pre = name + '-cloudknot-'
+        assert knot.job_definition.name == pre + 'job-definition'
+        assert knot.job_queue.name == pre + 'job-queue'
+        assert knot.compute_environment.name == pre + 'compute-environment'
+
+        # Now remove the knot section from config file
+        config.clear()
+        config.read(config_file)
+        config.remove_section('knot ' + name)
+        with open(config_file, 'w') as f:
+            config.write(f)
+
+        # And re-instantiate by supplying resource names
+        knot2 = ck.Knot(
+            name=name,
+            pars=knot.pars,
+            docker_image_name=knot.docker_image.name,
+            repo_name=knot.docker_repo.name,
+            job_definition_name=knot.job_definition.name,
+            compute_environment_name=knot.compute_environment.name,
+            job_queue_name=knot.job_queue.name
+        )
+
+        # Assert properties are as expected
+        assert knot2.name == name
+        assert knot2.knot_name == 'knot ' + name
+        assert knot2.pars.name == 'default'
+        assert knot2.docker_image.name == knot_testing_func.__name__
+        repo_name = knot.docker_image.images[0]['name']
+        assert knot2.docker_repo.name == repo_name
+        assert knot2.job_definition.name == pre + 'job-definition'
+        assert knot2.job_queue.name == pre + 'job-queue'
+        assert knot2.compute_environment.name == pre + 'compute-environment'
+
+        knot2.clobber()
+    except Exception as e:
+        if knot2:
+            knot2.clobber(clobber_pars=True)
+        elif knot:
+            knot.clobber(clobber_pars=True)
+
+        raise e
+
+    pars = None
+    ce = None
+    jd = None
+    jq = None
+    knot = None
+    try:
+        # New pars for input testing
+        pars = ck.Pars(name=get_testing_name())
+
+        # Make a job definition for input testing
+        jd = ck.aws.JobDefinition(
+            name=get_testing_name(),
+            job_role=pars.batch_service_role,
+            docker_image='ubuntu',
+        )
+
+        # Make a compute environment for input testing
+        ce = ck.aws.ComputeEnvironment(
+            name=get_testing_name(),
+            batch_service_role=pars.batch_service_role,
+            instance_role=pars.ecs_instance_role, vpc=pars.vpc,
+            security_group=pars.security_group,
+            spot_fleet_role=pars.spot_fleet_role,
+        )
+
+        ck.aws.wait_for_compute_environment(
+            arn=ce.arn, name=ce.name
+        )
+
+        # Make a job queue for input testing
+        jq = ck.aws.JobQueue(
+            name=get_testing_name(),
+            compute_environments=ce,
+            priority=1
+        )
+
+        with pytest.raises(ValueError):
+            knot = ck.Knot(
+                name=get_testing_name(),
+                job_definition_name=jd.name,
+                job_def_vcpus=42
+            )
+
+        with pytest.raises(ValueError):
+            knot = ck.Knot(
+                name=get_testing_name(),
+                compute_environment_name=ce.name,
+                desired_vcpus=42
+            )
+
+        with pytest.raises(ValueError):
+            knot = ck.Knot(
+                name=get_testing_name(),
+                job_queue_name=jq.name,
+                priority=42
+            )
+    finally:
+        for resource in [jq, ce, jd]:
+            if resource:
+                resource.clobber()
+
+        if pars:
+            pars.clobber()
+
+        if knot:
+            knot.clobber()
+
+    # Test Exceptions on invalid input
+    # --------------------------------
+    # Assert ValueError on invalid name
+    with pytest.raises(ValueError):
+        ck.Knot(name=42)
+
+    # Assert TypeError on invalid kwarg
+    with pytest.raises(TypeError):
+        ck.Knot(func=knot_testing_func, other_kwarg=42)
+
+    # Assert ValueError on invalid pars input
+    with pytest.raises(ValueError):
+        ck.Knot(func=knot_testing_func, pars=42)
