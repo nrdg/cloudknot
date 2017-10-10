@@ -917,6 +917,7 @@ class Knot(object):
                 }
 
                 if not all(matches.values()):
+                    jd.clobber()
                     raise ValueError(
                         'The requested job definition already exists but '
                         'does not match the input parameters. '
@@ -1011,6 +1012,8 @@ class Knot(object):
                 }
 
                 if not all(matches.values()):
+                    ce.clobber()
+                    self.job_definition.clobber()
                     raise ValueError(
                         'The requested compute environment already exists '
                         'but does not match the input parameters. '
@@ -1053,6 +1056,9 @@ class Knot(object):
                 }
 
                 if not all(matches.values()):
+                    jq.clobber()
+                    self.compute_environment.clobber()
+                    self.job_definition.clobber()
                     raise ValueError(
                         'The requested job queue already exists '
                         'but does not match the input parameters. '
