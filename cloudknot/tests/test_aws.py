@@ -1238,7 +1238,8 @@ def test_JobDefinition(pars):
         # Confirm that the instance has the right properties.
         assert jd.pre_existing
         assert jd.name == name
-        assert jd.job_role == pars.batch_service_role.arn
+        assert jd.job_role is None
+        assert jd.job_role_arn == pars.batch_service_role.arn
         assert jd.docker_image == image
         assert jd.vcpus == vcpus
         assert jd.memory == memory
@@ -1309,6 +1310,7 @@ def test_JobDefinition(pars):
             assert jd.name == n
             assert not jd.pre_existing
             assert jd.job_role == jr
+            assert jd.job_role_arn == jr.arn
             assert jd.docker_image == di
             v = v if v else 1
             assert jd.vcpus == v

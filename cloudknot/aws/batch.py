@@ -99,7 +99,8 @@ class JobDefinition(ObjectWithUsernameAndMemory):
                 username=resource.username
             )
 
-            self._job_role = resource.job_role
+            self._job_role = None
+            self._job_role_arn = resource.job_role_arn
             self._docker_image = resource.docker_image
             self._vcpus = resource.vcpus
             self._retries = resource.retries
@@ -145,6 +146,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             if not isinstance(job_role, IamRole):
                 raise ValueError('job_role must be an instance of IamRole')
             self._job_role = job_role
+            self._job_role_arn = job_role.arn
 
             # Validate docker_image input
             if not (isinstance(docker_image, DockerRepo)
@@ -182,6 +184,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
     # Declare read-only parameters
     pre_existing = property(operator.attrgetter('_pre_existing'))
     job_role = property(operator.attrgetter('_job_role'))
+    job_role_arn = property(operator.attrgetter('_job_role_arn'))
     docker_image = property(operator.attrgetter('_docker_image'))
     vcpus = property(operator.attrgetter('_vcpus'))
     retries = property(operator.attrgetter('_retries'))
@@ -202,8 +205,8 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         # define a namedtuple for return value type
         ResourceExists = namedtuple(
             'ResourceExists',
-            ['exists', 'name', 'status', 'job_role', 'docker_image', 'vcpus',
-             'memory', 'username', 'retries', 'arn']
+            ['exists', 'name', 'status', 'job_role_arn', 'docker_image',
+             'vcpus', 'memory', 'username', 'retries', 'arn']
         )
         # make all but the first value default to None
         ResourceExists.__new__.__defaults__ = \
@@ -249,7 +252,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
 
             return ResourceExists(
                 exists=True, name=job_def_name, status=job_def_status,
-                job_role=job_role_arn, docker_image=container_image,
+                job_role_arn=job_role_arn, docker_image=container_image,
                 vcpus=vcpus, memory=memory, username=username,
                 retries=retries, arn=job_def_arn
             )
@@ -274,7 +277,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             'vcpus': self.vcpus,
             'memory': self.memory,
             'command': [],
-            'jobRoleArn': self.job_role.arn,
+            'jobRoleArn': self.job_role_arn,
             'user': self.username
         }
 
