@@ -370,6 +370,7 @@ def test_Knot():
         with pytest.raises(ValueError):
             knot = ck.Knot(
                 name=get_testing_name(),
+                func=knot_testing_func,
                 job_definition_name=jd.name,
                 job_def_vcpus=42
             )
@@ -377,6 +378,7 @@ def test_Knot():
         with pytest.raises(ValueError):
             knot = ck.Knot(
                 name=get_testing_name(),
+                func=knot_testing_func,
                 compute_environment_name=ce.name,
                 desired_vcpus=42
             )
@@ -384,6 +386,7 @@ def test_Knot():
         with pytest.raises(ValueError):
             knot = ck.Knot(
                 name=get_testing_name(),
+                func=knot_testing_func,
                 job_queue_name=jq.name,
                 priority=42
             )
