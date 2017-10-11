@@ -751,7 +751,7 @@ class Knot(object):
             mod_logger.info('Knot {name:s} adopted docker image {dr:s}'
                             ''.format(name=self.name, dr=image_name))
 
-            if self.docker_image.images is None:
+            if not self.docker_image.images:
                 self.docker_image.build(tags=image_tags)
                 mod_logger.info(
                     'Knot {name:s} built docker image {dr:s}'
@@ -862,6 +862,19 @@ class Knot(object):
             # Create the remote repo
             repo_name = (repo_name if repo_name
                          else self.docker_image.images[0]['name'])
+
+            # Later in __init__, we may abort this init because of
+            # inconsistent job def, compute env, or job queue parameters
+            # If we do that, we don't want to leave a bunch of newly created
+            # resources around so keep track of whether this repo was created
+            # or adopted.
+            if CONFIG.has_option('docker-repos', repo_name):
+                # Pre-existing repo, no cleanup necessary
+                repo_cleanup = False
+            else:
+                # Freshly created repo, cleanup necessary
+                repo_cleanup = True
+
             self._docker_repo = aws.ecr.DockerRepo(name=repo_name)
 
             mod_logger.info(
@@ -894,6 +907,14 @@ class Knot(object):
                         name=self.name, id=self.job_definition.name
                     )
                 )
+
+                # Later in __init__, we may abort this init because of
+                # inconsistent compute env, or job queue parameters
+                # If we do that, we don't want to leave a bunch of newly
+                # created resources around so keep track of whether this job
+                # def was created or adopted. Here, we created it, so cleanup
+                # is needed
+                jd_cleanup = True
             except aws.ResourceExistsException as e:
                 # Job def already exists, retrieve it
                 jd = aws.batch.JobDefinition(arn=e.resource_id)
@@ -917,7 +938,9 @@ class Knot(object):
                 }
 
                 if not all(matches.values()):
-                    jd.clobber()
+                    if repo_cleanup:
+                        self.docker_repo.clobber()
+
                     raise ValueError(
                         'The requested job definition already exists but '
                         'does not match the input parameters. '
@@ -925,6 +948,9 @@ class Knot(object):
                     )
 
                 self._job_definition = jd
+                # jd_cleanup description is same as above. Here, we adopted it,
+                # so cleanup isn't needed
+                jd_cleanup = False
 
                 mod_logger.info(
                     'knot {name:s} adopted job definition {id:s}'.format(
@@ -962,6 +988,9 @@ class Knot(object):
                         name=self.name, id=self.compute_environment.name
                     )
                 )
+
+                # ce_cleanup logic same as for jd_cleanup
+                ce_cleanup = True
             except aws.ResourceExistsException as e:
                 # Compute environment already exists, retrieve it
                 ce = aws.batch.ComputeEnvironment(arn=e.resource_id)
@@ -1012,8 +1041,12 @@ class Knot(object):
                 }
 
                 if not all(matches.values()):
-                    ce.clobber()
-                    self.job_definition.clobber()
+                    if repo_cleanup:
+                        self.docker_repo.clobber()
+
+                    if jd_cleanup:
+                        self.job_definition.clobber()
+
                     raise ValueError(
                         'The requested compute environment already exists '
                         'but does not match the input parameters. '
@@ -1021,6 +1054,8 @@ class Knot(object):
                     )
 
                 self._compute_environment = ce
+                # ce_cleanup logic same as for jd_cleanup
+                ce_cleanup = False
                 mod_logger.info(
                     'knot {name:s} adopted compute environment {id:s}'.format(
                         name=self.name, id=self.compute_environment.name
@@ -1056,9 +1091,15 @@ class Knot(object):
                 }
 
                 if not all(matches.values()):
-                    jq.clobber()
-                    self.compute_environment.clobber()
-                    self.job_definition.clobber()
+                    if repo_cleanup:
+                        self.docker_repo.clobber()
+
+                    if jd_cleanup:
+                        self.job_definition.clobber()
+
+                    if ce_cleanup:
+                        self.compute_environment.clobber()
+
                     raise ValueError(
                         'The requested job queue already exists '
                         'but does not match the input parameters. '

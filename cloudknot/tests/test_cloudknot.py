@@ -270,21 +270,32 @@ def test_Knot():
     knot, knot2 = None, None
 
     try:
+        pars = ck.Pars(name=get_testing_name())
+
         name = get_testing_name()
-        knot = ck.Knot(name=name, func=knot_testing_func)
+        knot = ck.Knot(name=name, pars=pars, func=knot_testing_func)
 
         # Assert ValueError for supplying kwargs to pre-existing knot
         with pytest.raises(ValueError):
             ck.Knot(name=name, func=knot_testing_func)
 
+        # Now remove the images and repo-uri from the docker-image
+        # Forcing the next call to Knot to rebuild and re-push the image.
+        config.clear()
+        config.read(config_file)
+        config.set('docker-image knot_testing_func', 'images', '')
+        config.set('docker-image knot_testing_func', 'repo-uri', '')
+        with open(config_file, 'w') as f:
+            config.write(f)
+
         # Re-instantiate the knot so that it retrieves from config
-        # with resources that already exist
+        # with AWS resources that already exist
         knot = ck.Knot(name=name)
 
         # Assert properties are as expected
         assert knot.name == name
         assert knot.knot_name == 'knot ' + name
-        assert knot.pars.name == 'default'
+        assert knot.pars.name == pars.name
         assert knot.docker_image.name == knot_testing_func.__name__
         repo_name = knot.docker_image.images[0]['name']
         assert knot.docker_repo.name == repo_name
@@ -314,7 +325,7 @@ def test_Knot():
         # Assert properties are as expected
         assert knot2.name == name
         assert knot2.knot_name == 'knot ' + name
-        assert knot2.pars.name == 'default'
+        assert knot2.pars.name == pars.name
         assert knot2.docker_image.name == knot_testing_func.__name__
         repo_name = knot.docker_image.images[0]['name']
         assert knot2.docker_repo.name == repo_name
@@ -322,7 +333,7 @@ def test_Knot():
         assert knot2.job_queue.name == pre + 'job-queue'
         assert knot2.compute_environment.name == pre + 'compute-environment'
 
-        knot2.clobber()
+        knot2.clobber(clobber_pars=True)
     except Exception as e:
         if knot2:
             knot2.clobber(clobber_pars=True)
@@ -336,9 +347,16 @@ def test_Knot():
     jd = None
     jq = None
     knot = None
+
+    # The next tests will use the default pars, if it already exists in the
+    # config file, we shouldn't delete it when we're done.
+    # Otherwise, clobber it
+    config.clear()
+    config.read(config_file)
+    clobber_pars = 'pars default' in config.sections()
+
     try:
-        # New pars for input testing
-        pars = ck.Pars(name=get_testing_name())
+        pars = ck.Pars()
 
         # Make a job definition for input testing
         jd = ck.aws.JobDefinition(
@@ -395,7 +413,7 @@ def test_Knot():
             if resource:
                 resource.clobber()
 
-        if pars:
+        if pars and clobber_pars:
             pars.clobber()
 
         if knot:
