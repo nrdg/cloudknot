@@ -33,7 +33,11 @@ def get_region():
         default AWS region
     """
     config_file = get_config_file()
-    CONFIG.clear()
+    try:
+        CONFIG.clear()
+    except AttributeError:
+        CONFIG = None
+        CONFIG = configparser.ConfigParser()
     CONFIG.read(config_file)
 
     if CONFIG.has_section('aws') and CONFIG.has_option('aws', 'region'):
@@ -97,7 +101,11 @@ def set_region(region='us-east-1'):
         ))
 
     config_file = get_config_file()
-    CONFIG.clear()
+    try:
+        CONFIG.clear()
+    except AttributeError:
+        CONFIG = None
+        CONFIG = configparser.ConfigParser()
     CONFIG.read(config_file)
 
     if not CONFIG.has_section('aws'):  # pragma: nocover
@@ -191,7 +199,11 @@ def get_profile():
         credentials file
     """
     config_file = get_config_file()
-    CONFIG.clear()
+    try:
+        CONFIG.clear()
+    except AttributeError:
+        CONFIG = None
+        CONFIG = configparser.ConfigParser()
     CONFIG.read(config_file)
 
     if CONFIG.has_section('aws') and CONFIG.has_option('aws', 'profile'):
@@ -239,7 +251,11 @@ def set_profile(profile_name):
         )
 
     config_file = get_config_file()
-    CONFIG.clear()
+    try:
+        CONFIG.clear()
+    except AttributeError:
+        CONFIG = None
+        CONFIG = configparser.ConfigParser()
     CONFIG.read(config_file)
 
     if not CONFIG.has_section('aws'):  # pragma: nocover

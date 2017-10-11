@@ -97,7 +97,11 @@ def test_DockerImage():
         assert filecmp.cmp(di.script_path, correct_script_path, shallow=False)
 
         # Confirm that the docker image is in the config file
-        config.clear()
+        try:
+            config.clear()
+        except AttributeError:
+            config = None
+            config = configparser.ConfigParser()
         config.read(config_file)
         assert 'docker-image ' + di.name in config.sections()
 
@@ -127,7 +131,11 @@ def test_DockerImage():
         # of the in memory values and the file values, updating the
         # intersection of the two with the file values. So we must clear
         # config and then re-read the file
-        config.clear()
+        try:
+            config.clear()
+        except AttributeError:
+            config = None
+            config = configparser.ConfigParser()
         config.read(config_file)
         assert 'docker-image ' + di.name not in config.sections()
 
@@ -154,7 +162,11 @@ def test_DockerImage():
         assert filecmp.cmp(di.script_path, correct_script_path, shallow=False)
 
         # Confirm that the docker image is in the config file
-        config.clear()
+        try:
+            config.clear()
+        except AttributeError:
+            config = None
+            config = configparser.ConfigParser()
         config.read(config_file)
         assert 'docker-image ' + di.name in config.sections()
 
@@ -170,7 +182,11 @@ def test_DockerImage():
         # of the in memory values and the file values, updating the
         # intersection of the two with the file values. So we must clear
         # config and then re-read the file
-        config.clear()
+        try:
+            config.clear()
+        except AttributeError:
+            config = None
+            config = configparser.ConfigParser()
         config.read(config_file)
         assert 'docker-image ' + di.name not in config.sections()
 
@@ -217,7 +233,11 @@ def test_DockerImage():
         assert filecmp.cmp(di.docker_path, correct_dockerfile, shallow=False)
 
         # Confirm that the docker image is in the config file
-        config.clear()
+        try:
+            config.clear()
+        except AttributeError:
+            config = None
+            config = configparser.ConfigParser()
         config.read(config_file)
         assert 'docker-image ' + di.name in config.sections()
 
@@ -241,7 +261,11 @@ def test_DockerImage():
         # of the in memory values and the file values, updating the
         # intersection of the two with the file values. So we must clear
         # config and then re-read the file
-        config.clear()
+        try:
+            config.clear()
+        except AttributeError:
+            config = None
+            config = configparser.ConfigParser()
         config.read(config_file)
         assert 'docker-image ' + di.name not in config.sections()
 
@@ -410,7 +434,11 @@ def test_DockerImage():
             )
 
         # Clean up config file
-        config.clear()
+        try:
+            config.clear()
+        except AttributeError:
+            config = None
+            config = configparser.ConfigParser()
         config.read(config_file)
         for name in config.sections():
             if name in ['docker-image unit_testing_func',

@@ -71,7 +71,11 @@ def add_resource(section, option, value):
     None
     """
     config_file = get_config_file()
-    CONFIG.clear()
+    try:
+        CONFIG.clear()
+    except AttributeError:
+        CONFIG = None
+        CONFIG = configparser.ConfigParser()
     CONFIG.read(config_file)
     if section not in CONFIG.sections():
         CONFIG.add_section(section)
@@ -96,7 +100,11 @@ def remove_resource(section, option):
     None
     """
     config_file = get_config_file()
-    CONFIG.clear()
+    try:
+        CONFIG.clear()
+    except AttributeError:
+        CONFIG = None
+        CONFIG = configparser.ConfigParser()
     CONFIG.read(config_file)
     CONFIG.remove_option(section, option)
     with open(config_file, 'w') as f:
@@ -111,7 +119,11 @@ def verify_sections():
     None
     """
     config_file = get_config_file()
-    CONFIG.clear()
+    try:
+        CONFIG.clear()
+    except AttributeError:
+        CONFIG = None
+        CONFIG = configparser.ConfigParser()
     CONFIG.read(config_file)
     approved_sections = [
         'aws', 'roles', 'vpc', 'security-groups', 'docker-repos',
@@ -139,7 +151,11 @@ def prune():
     verify_sections()
 
     config_file = get_config_file()
-    CONFIG.clear()
+    try:
+        CONFIG.clear()
+    except AttributeError:
+        CONFIG = None
+        CONFIG = configparser.ConfigParser()
     CONFIG.read(config_file)
 
     # Prune roles

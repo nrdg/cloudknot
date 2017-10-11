@@ -136,7 +136,11 @@ class DockerImage(object):
             section_name = 'docker-image ' + name
 
             config_file = get_config_file()
-            CONFIG.clear()
+            try:
+                CONFIG.clear()
+            except AttributeError:
+                CONFIG = None
+                CONFIG = configparser.ConfigParser()
             CONFIG.read(config_file)
 
             if section_name not in CONFIG.sections():
@@ -458,7 +462,11 @@ class DockerImage(object):
             )
 
         config_file = get_config_file()
-        CONFIG.clear()
+        try:
+            CONFIG.clear()
+        except AttributeError:
+            CONFIG = None
+            CONFIG = configparser.ConfigParser()
         CONFIG.read(config_file)
         config_images = CONFIG.get('docker-image ' + self.name, 'images')
         config_images += ' '.join([i['name'] + ':' + i['tag'] for i in images])
@@ -590,7 +598,11 @@ class DockerImage(object):
 
         # Remove from the config file
         config_file = get_config_file()
-        CONFIG.clear()
+        try:
+            CONFIG.clear()
+        except AttributeError:
+            CONFIG = None
+            CONFIG = configparser.ConfigParser()
         CONFIG.read(config_file)
         CONFIG.remove_section('docker-image ' + self.name)
         with open(config_file, 'w') as f:
