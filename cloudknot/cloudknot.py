@@ -1,12 +1,12 @@
 from __future__ import absolute_import, division, print_function
 
+import configparser
 import logging
 import operator
 
 from . import aws
-from . import config
+from .config import get_config_file
 from . import dockerimage
-from .config import CONFIG
 from .due import due, Doi
 
 __all__ = ["Pars", "Knot"]
@@ -99,23 +99,19 @@ class Pars(object):
             security_group_name = name + '-cloudknot-security-group'
 
         # Check for existence of this pars in the config file
-        try:
-            CONFIG.clear()
-        except AttributeError:
-            CONFIG = None
-            CONFIG = configparser.ConfigParser()
-        CONFIG.read(config.get_config_file())
+        config = configparser.ConfigParser()
+        config.read(get_config_file())
         self._pars_name = 'pars ' + name
-        if self._pars_name in CONFIG.sections():
+        if self._pars_name in config.sections():
             # Pars exists, check that user did not provide any resource names
             if any([batch_service_role_name, ecs_instance_role_name,
                     spot_fleet_role_name, vpc_id, security_group_id]):
                 raise ValueError('You provided resources for a pars that '
                                  'already exists in configuration file '
-                                 '{fn:s}.'.format(fn=config.get_config_file()))
+                                 '{fn:s}.'.format(fn=get_config_file()))
 
             mod_logger.info('Found PARS {name:s} in config'.format(name=name))
-            role_name = CONFIG.get(self._pars_name, 'batch-service-role')
+            role_name = config.get(self._pars_name, 'batch-service-role')
             try:
                 # Use config values to adopt role if it exists already
                 self._batch_service_role = aws.iam.IamRole(name=role_name)
@@ -136,7 +132,7 @@ class Pars(object):
                     name=name, role=role_name
                 ))
 
-            role_name = CONFIG.get(self._pars_name, 'ecs-instance-role')
+            role_name = config.get(self._pars_name, 'ecs-instance-role')
             try:
                 # Use config values to adopt role if it exists already
                 self._ecs_instance_role = aws.iam.IamRole(name=role_name)
@@ -157,7 +153,7 @@ class Pars(object):
                     name=name, role=role_name
                 ))
 
-            role_name = CONFIG.get(self._pars_name, 'spot-fleet-role')
+            role_name = config.get(self._pars_name, 'spot-fleet-role')
             try:
                 # Use config values to adopt role if it exists already
                 self._spot_fleet_role = aws.iam.IamRole(name=role_name)
@@ -180,7 +176,7 @@ class Pars(object):
 
             try:
                 # Use config values to adopt VPC if it exists already
-                id = CONFIG.get(self._pars_name, 'vpc')
+                id = config.get(self._pars_name, 'vpc')
                 self._vpc = aws.ec2.Vpc(vpc_id=id)
                 mod_logger.info('PARS {name:s} adopted VPC {id:s}'.format(
                     name=name, id=id
@@ -188,14 +184,14 @@ class Pars(object):
             except aws.ResourceDoesNotExistException:
                 # Otherwise create the new VPC
                 self._vpc = aws.ec2.Vpc(name=vpc_name)
-                CONFIG.set(self._pars_name, 'vpc', self.vpc.vpc_id)
+                config.set(self._pars_name, 'vpc', self.vpc.vpc_id)
                 mod_logger.info('PARS {name:s} created VPC {id:s}'.format(
                     name=name, id=self.vpc.vpc_id
                 ))
 
             try:
                 # Use config values to adopt security group if it exists
-                id = CONFIG.get(self._pars_name, 'security-group')
+                id = config.get(self._pars_name, 'security-group')
                 self._security_group = aws.ec2.SecurityGroup(
                     security_group_id=id
                 )
@@ -210,7 +206,7 @@ class Pars(object):
                     name=security_group_name,
                     vpc=self._vpc
                 )
-                CONFIG.set(
+                config.set(
                     self._pars_name,
                     'security-group', self.security_group.security_group_id
                 )
@@ -221,8 +217,8 @@ class Pars(object):
                 )
 
             # Save config to file
-            with open(config.get_config_file(), 'w') as f:
-                CONFIG.write(f)
+            with open(get_config_file(), 'w') as f:
+                config.write(f)
         else:
             # Pars doesn't exist, use input names to adopt/create resources
             # Validate role name input
@@ -388,28 +384,28 @@ class Pars(object):
                     )
 
             # Save the new pars resources in config object
-            # Use CONFIG.set() for python 2.7 compatibility
-            CONFIG.add_section(self._pars_name)
-            CONFIG.set(
+            # Use config.set() for python 2.7 compatibility
+            config.add_section(self._pars_name)
+            config.set(
                 self._pars_name,
                 'batch-service-role', self._batch_service_role.name
             )
-            CONFIG.set(
+            config.set(
                 self._pars_name,
                 'ecs-instance-role', self._ecs_instance_role.name
             )
-            CONFIG.set(
+            config.set(
                 self._pars_name, 'spot-fleet-role', self._spot_fleet_role.name
             )
-            CONFIG.set(self._pars_name, 'vpc', self._vpc.vpc_id)
-            CONFIG.set(
+            config.set(self._pars_name, 'vpc', self._vpc.vpc_id)
+            config.set(
                 self._pars_name,
                 'security-group', self._security_group.security_group_id
             )
 
             # Save config to file
-            with open(config.get_config_file(), 'w') as f:
-                CONFIG.write(f)
+            with open(get_config_file(), 'w') as f:
+                config.write(f)
 
     name = property(fget=operator.attrgetter('_name'))
     pars_name = property(fget=operator.attrgetter('_pars_name'))
@@ -451,16 +447,12 @@ class Pars(object):
             setattr(self, attr, new_role)
 
             # Replace the appropriate line in the config file
-            try:
-                CONFIG.clear()
-            except AttributeError:
-                CONFIG = None
-                CONFIG = configparser.ConfigParser()
-            CONFIG.read(config.get_config_file())
+            config = configparser.ConfigParser()
+            config.read(get_config_file())
             field_name = attr.lstrip('_').replace('_', '-')
-            CONFIG.set(self._pars_name, field_name, new_role.name)
-            with open(config.get_config_file(), 'w') as f:
-                CONFIG.write(f)
+            config.set(self._pars_name, field_name, new_role.name)
+            with open(get_config_file(), 'w') as f:
+                config.write(f)
 
             mod_logger.info(
                 'PARS {name:s} adopted new role {role_name:s}'.format(
@@ -526,15 +518,11 @@ class Pars(object):
         self._vpc = v
 
         # Replace the appropriate line in the config file
-        try:
-            CONFIG.clear()
-        except AttributeError:
-            CONFIG = None
-            CONFIG = configparser.ConfigParser()
-        CONFIG.read(config.get_config_file())
-        CONFIG.set(self._pars_name, 'vpc', v.vpc_id)
-        with open(config.get_config_file(), 'w') as f:
-            CONFIG.write(f)
+        config = configparser.ConfigParser()
+        config.read(get_config_file())
+        config.set(self._pars_name, 'vpc', v.vpc_id)
+        with open(get_config_file(), 'w') as f:
+            config.write(f)
 
         mod_logger.info(
             'PARS {name:s} adopted new VPC {id:s}'.format(
@@ -574,15 +562,11 @@ class Pars(object):
         self._security_group = sg
 
         # Replace the appropriate line in the config file
-        try:
-            CONFIG.clear()
-        except AttributeError:
-            CONFIG = None
-            CONFIG = configparser.ConfigParser()
-        CONFIG.read(config.get_config_file())
-        CONFIG.set(self._pars_name, 'security-group', sg.security_group_id)
-        with open(config.get_config_file(), 'w') as f:
-            CONFIG.write(f)
+        config = configparser.ConfigParser()
+        config.read(get_config_file())
+        config.set(self._pars_name, 'security-group', sg.security_group_id)
+        with open(get_config_file(), 'w') as f:
+            config.write(f)
 
         mod_logger.info(
             'PARS {name:s} adopted new security group {id:s}'.format(
@@ -605,15 +589,11 @@ class Pars(object):
         self._batch_service_role.clobber()
 
         # Remove this section from the config file
-        try:
-            CONFIG.clear()
-        except AttributeError:
-            CONFIG = None
-            CONFIG = configparser.ConfigParser()
-        CONFIG.read(config.get_config_file())
-        CONFIG.remove_section(self._pars_name)
-        with open(config.get_config_file(), 'w') as f:
-            CONFIG.write(f)
+        config = configparser.ConfigParser()
+        config.read(get_config_file())
+        config.remove_section(self._pars_name)
+        with open(get_config_file(), 'w') as f:
+            config.write(f)
 
         mod_logger.info('Clobbered PARS {name:s}'.format(name=self.name))
 
@@ -750,13 +730,9 @@ class Knot(object):
         image_tags = kwargs.pop('image_tags', ['cloudknot'])
 
         # Check for existence of this pars in the config file
-        try:
-            CONFIG.clear()
-        except AttributeError:
-            CONFIG = None
-            CONFIG = configparser.ConfigParser()
-        CONFIG.read(config.get_config_file())
-        if self._knot_name in CONFIG.sections():
+        config = configparser.ConfigParser()
+        config.read(get_config_file())
+        if self._knot_name in config.sections():
             if kwargs:
                 raise ValueError('You specified configuration arguments for '
                                  'a knot that already exists. To create a '
@@ -765,12 +741,12 @@ class Knot(object):
 
             mod_logger.info('Found knot {name:s} in config'.format(name=name))
 
-            pars_name = CONFIG.get(self._knot_name, 'pars')
+            pars_name = config.get(self._knot_name, 'pars')
             self._pars = Pars(name=pars_name)
             mod_logger.info('Knot {name:s} adopted PARS '
                             '{id:s}'.format(name=self.name, id=self.pars.name))
 
-            image_name = CONFIG.get(self._knot_name, 'docker-image')
+            image_name = config.get(self._knot_name, 'docker-image')
             self._docker_image = dockerimage.DockerImage(name=image_name)
             mod_logger.info('Knot {name:s} adopted docker image {dr:s}'
                             ''.format(name=self.name, dr=image_name))
@@ -782,7 +758,7 @@ class Knot(object):
                     ''.format(name=self.name, dr=self.docker_image.name)
                 )
 
-            repo_name = CONFIG.get(self._knot_name, 'docker-repo')
+            repo_name = config.get(self._knot_name, 'docker-repo')
             self._docker_repo = aws.ecr.DockerRepo(name=repo_name)
             mod_logger.info('Knot {name:s} adopted docker repository '
                             '{dr:s}'.format(name=self.name, dr=repo_name))
@@ -794,17 +770,17 @@ class Knot(object):
                     ''.format(name=self.name, dr=self.docker_image.name)
                 )
 
-            job_def_name = CONFIG.get(self._knot_name, 'job-definition')
+            job_def_name = config.get(self._knot_name, 'job-definition')
             self._job_definition = aws.batch.JobDefinition(name=job_def_name)
             mod_logger.info('Knot {name:s} adopted job definition '
                             '{jd:s}'.format(name=self.name, jd=job_def_name))
 
-            ce = CONFIG.get(self._knot_name, 'compute-environment')
+            ce = config.get(self._knot_name, 'compute-environment')
             self._compute_environment = aws.batch.ComputeEnvironment(name=ce)
             mod_logger.info('Knot {name:s} adopted compute environment '
                             '{ce:s}'.format(name=self.name, ce=ce))
 
-            job_queue_name = CONFIG.get(self._knot_name, 'job-queue')
+            job_queue_name = config.get(self._knot_name, 'job-queue')
             self._job_queue = aws.batch.JobQueue(name=job_queue_name)
             mod_logger.info('Knot {name:s} adopted job queue {q:s}'.format(
                 name=self.name, q=job_queue_name
@@ -892,7 +868,7 @@ class Knot(object):
             # If we do that, we don't want to leave a bunch of newly created
             # resources around so keep track of whether this repo was created
             # or adopted.
-            if CONFIG.has_option('docker-repos', repo_name):
+            if config.has_option('docker-repos', repo_name):
                 # Pre-existing repo, no cleanup necessary
                 repo_cleanup = False
             else:
@@ -919,7 +895,7 @@ class Knot(object):
                 self._job_definition = aws.batch.JobDefinition(
                     name=job_definition_name,
                     job_role=self.pars.ecs_instance_role,
-                    docker_image=self.docker_repo.repo_uri,
+                    docker_image=self.docker_repo,
                     vcpus=job_def_vcpus,
                     memory=memory,
                     username=username,
@@ -1137,23 +1113,23 @@ class Knot(object):
                 )
 
             # Save the new Knot resources in config object
-            # Use CONFIG.set() for python 2.7 compatibility
-            CONFIG.add_section(self._knot_name)
-            CONFIG.set(self._knot_name, 'pars', self.pars.name)
-            CONFIG.set(self._knot_name, 'docker-image', self.docker_image.name)
-            CONFIG.set(self._knot_name, 'docker-repo', self.docker_repo.name)
-            CONFIG.set(
+            # Use config.set() for python 2.7 compatibility
+            config.add_section(self._knot_name)
+            config.set(self._knot_name, 'pars', self.pars.name)
+            config.set(self._knot_name, 'docker-image', self.docker_image.name)
+            config.set(self._knot_name, 'docker-repo', self.docker_repo.name)
+            config.set(
                 self._knot_name, 'job-definition', self.job_definition.name
             )
-            CONFIG.set(
+            config.set(
                 self._knot_name,
                 'compute-environment', self.compute_environment.name
             )
-            CONFIG.set(self._knot_name, 'job-queue', self.job_queue.name)
+            config.set(self._knot_name, 'job-queue', self.job_queue.name)
 
             # Save config to file
-            with open(config.get_config_file(), 'w') as f:
-                CONFIG.write(f)
+            with open(get_config_file(), 'w') as f:
+                config.write(f)
 
     # Declare read-only properties
     name = property(fget=operator.attrgetter('_name'))
@@ -1194,14 +1170,10 @@ class Knot(object):
             ))
 
         # Remove this section from the config file
-        try:
-            CONFIG.clear()
-        except AttributeError:
-            CONFIG = None
-            CONFIG = configparser.ConfigParser()
-        CONFIG.read(config.get_config_file())
-        CONFIG.remove_section(self._knot_name)
-        with open(config.get_config_file(), 'w') as f:
-            CONFIG.write(f)
+        config = configparser.ConfigParser()
+        config.read(get_config_file())
+        config.remove_section(self._knot_name)
+        with open(get_config_file(), 'w') as f:
+            config.write(f)
 
         mod_logger.info('Clobbered Knot {name:s}'.format(name=self.name))

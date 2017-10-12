@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division, print_function
 
+import configparser
 import docker
 import inspect
 import logging
@@ -11,9 +12,9 @@ import tempfile
 from pipreqs import pipreqs
 
 from . import aws
-from . import config
+from . import config as ckconfig
 from .aws.base_classes import get_region, ResourceDoesNotExistException
-from .config import CONFIG, get_config_file
+from .config import get_config_file
 
 __all__ = ["DockerImage"]
 
@@ -136,14 +137,10 @@ class DockerImage(object):
             section_name = 'docker-image ' + name
 
             config_file = get_config_file()
-            try:
-                CONFIG.clear()
-            except AttributeError:
-                CONFIG = None
-                CONFIG = configparser.ConfigParser()
-            CONFIG.read(config_file)
+            config = configparser.ConfigParser()
+            config.read(config_file)
 
-            if section_name not in CONFIG.sections():
+            if section_name not in config.sections():
                 raise ResourceDoesNotExistException(
                     'Could not find {name:s} in config_file '
                     '{file:s}'.format(name=section_name, file=config_file),
@@ -151,20 +148,20 @@ class DockerImage(object):
                 )
 
             self._func = None
-            self._build_path = CONFIG.get(section_name, 'build-path')
-            self._script_path = CONFIG.get(section_name, 'script-path')
-            self._docker_path = CONFIG.get(section_name, 'docker-path')
-            self._req_path = CONFIG.get(section_name, 'req-path')
-            self._username = CONFIG.get(section_name, 'username')
-            self._clobber_script = CONFIG.getboolean(section_name,
+            self._build_path = config.get(section_name, 'build-path')
+            self._script_path = config.get(section_name, 'script-path')
+            self._docker_path = config.get(section_name, 'docker-path')
+            self._req_path = config.get(section_name, 'req-path')
+            self._username = config.get(section_name, 'username')
+            self._clobber_script = config.getboolean(section_name,
                                                      'clobber-script')
 
-            images_str = CONFIG.get(section_name, 'images')
+            images_str = config.get(section_name, 'images')
             images_list = [s.split(':') for s in images_str.split()]
             self._images = [{'name': i[0], 'tag': i[1]}
                             for i in images_list]
 
-            uri = CONFIG.get(section_name, 'repo-uri')
+            uri = config.get(section_name, 'repo-uri')
             self._repo_uri = uri if uri else None
 
             # Set self.pip_imports and self.missing_imports
@@ -266,14 +263,18 @@ class DockerImage(object):
 
             # Add to config file
             section_name = 'docker-image ' + self.name
-            config.add_resource(section_name, 'build-path', self.build_path)
-            config.add_resource(section_name, 'script-path', self.script_path)
-            config.add_resource(section_name, 'docker-path', self.docker_path)
-            config.add_resource(section_name, 'req-path', self.req_path)
-            config.add_resource(section_name, 'username', self.username)
-            config.add_resource(section_name, 'images', '')
-            config.add_resource(section_name, 'repo-uri', '')
-            config.add_resource(
+            ckconfig.add_resource(section_name, 'build-path', self.build_path)
+            ckconfig.add_resource(
+                section_name, 'script-path', self.script_path
+            )
+            ckconfig.add_resource(
+                section_name, 'docker-path', self.docker_path
+            )
+            ckconfig.add_resource(section_name, 'req-path', self.req_path)
+            ckconfig.add_resource(section_name, 'username', self.username)
+            ckconfig.add_resource(section_name, 'images', '')
+            ckconfig.add_resource(section_name, 'repo-uri', '')
+            ckconfig.add_resource(
                 section_name, 'clobber-script', str(self._clobber_script)
             )
 
@@ -462,17 +463,13 @@ class DockerImage(object):
             )
 
         config_file = get_config_file()
-        try:
-            CONFIG.clear()
-        except AttributeError:
-            CONFIG = None
-            CONFIG = configparser.ConfigParser()
-        CONFIG.read(config_file)
-        config_images = CONFIG.get('docker-image ' + self.name, 'images')
+        config = configparser.ConfigParser()
+        config.read(config_file)
+        config_images = config.get('docker-image ' + self.name, 'images')
         config_images += ' '.join([i['name'] + ':' + i['tag'] for i in images])
 
         section_name = 'docker-image ' + self.name
-        config.add_resource(section_name, 'images', config_images)
+        ckconfig.add_resource(section_name, 'images', config_images)
 
     def push(self, repo=None, repo_uri=None):
         """Tag and push a DockerContainer image to a repository
@@ -533,7 +530,7 @@ class DockerImage(object):
                 mod_logger.debug(l)
 
         section_name = 'docker-image ' + self.name
-        config.add_resource(section_name, 'repo-uri', self.repo_uri)
+        ckconfig.add_resource(section_name, 'repo-uri', self.repo_uri)
 
     def clobber(self):
         """Delete all of the files associated with this instance
@@ -598,12 +595,8 @@ class DockerImage(object):
 
         # Remove from the config file
         config_file = get_config_file()
-        try:
-            CONFIG.clear()
-        except AttributeError:
-            CONFIG = None
-            CONFIG = configparser.ConfigParser()
-        CONFIG.read(config_file)
-        CONFIG.remove_section('docker-image ' + self.name)
+        config = configparser.ConfigParser()
+        config.read(config_file)
+        config.remove_section('docker-image ' + self.name)
         with open(config_file, 'w') as f:
-            CONFIG.write(f)
+            config.write(f)

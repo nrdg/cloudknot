@@ -507,11 +507,7 @@ def test_IamRole():
         assert role.policies == (policy['name'],)
 
         # Confirm that the role is in the config file
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
         assert name in config.options('roles')
 
@@ -526,11 +522,7 @@ def test_IamRole():
         # of the in memory values and the file values, updating the
         # intersection of the two with the file values. So we must clear
         # config and then re-read the file
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
         assert name not in config.options('roles')
 
@@ -568,11 +560,7 @@ def test_IamRole():
                 assert role.instance_profile_arn is None
 
             # Confirm that they exist in the config file
-            try:
-                config.clear()
-            except AttributeError:
-                config = None
-                config = configparser.ConfigParser()
+            config = configparser.ConfigParser()
             config.read(config_file)
             assert n in config.options('roles')
 
@@ -586,11 +574,7 @@ def test_IamRole():
             # of the in memory values and the file values, updating the
             # intersection of the two with the file values. So we must clear
             # config and then re-read the file
-            try:
-                config.clear()
-            except AttributeError:
-                config = None
-                config = configparser.ConfigParser()
+            config = configparser.ConfigParser()
             config.read(config_file)
             assert n not in config.options('roles')
 
@@ -656,11 +640,7 @@ def test_IamRole():
             iam.delete_role(RoleName=role_name)
 
         # Clean up config file
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
         for role_name in config.options('roles'):
             if UNIT_TEST_PREFIX in role_name:
@@ -695,11 +675,7 @@ def test_DockerRepo():
         assert dr.repo_registry_id == repo_registry_id
 
         # Confirm that the docker repo is in the config file
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
         assert name in config.options('docker-repos')
 
@@ -715,11 +691,7 @@ def test_DockerRepo():
         # of the in memory values and the file values, updating the
         # intersection of the two with the file values. So we must clear
         # config and then re-read the file
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
         assert name not in config.options('docker-repos')
 
@@ -739,11 +711,7 @@ def test_DockerRepo():
         assert dr.repo_registry_id == repo_registry_id
 
         # Confirm that the docker repo is in the config file
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
         assert name in config.options('docker-repos')
 
@@ -764,11 +732,7 @@ def test_DockerRepo():
         # of the in memory values and the file values, updating the
         # intersection of the two with the file values. So we must clear
         # config and then re-read the file
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
         assert name not in config.options('docker-repos')
     except Exception as e:
@@ -787,11 +751,7 @@ def test_DockerRepo():
             )
 
         # Clean up config file
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
         for name in config.options('docker-repos'):
             if UNIT_TEST_PREFIX in name:
@@ -857,11 +817,7 @@ def test_Vpc():
         assert vpc.subnet_ids == []
 
         # Confirm that the VPC is in the config file
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
         assert vpc_id in config.options('vpc')
 
@@ -879,11 +835,7 @@ def test_Vpc():
         # of the in memory values and the file values, updating the
         # intersection of the two with the file values. So we must set
         # config to None and then re-read the file
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
         assert vpc_id not in config.options('vpc')
 
@@ -912,11 +864,7 @@ def test_Vpc():
             assert vpc.subnet_ids
 
             # Confirm that they exist in the config file
-            try:
-                config.clear()
-            except AttributeError:
-                config = None
-                config = configparser.ConfigParser()
+            config = configparser.ConfigParser()
             config.read(config_file)
             assert vpc.vpc_id in config.options('vpc')
 
@@ -935,11 +883,7 @@ def test_Vpc():
             # of the in memory values and the file values, updating the
             # intersection of the two with the file values. So we must clear
             # config and then re-read the file
-            try:
-                config.clear()
-            except AttributeError:
-                config = None
-                config = configparser.ConfigParser()
+            config = configparser.ConfigParser()
             config.read(config_file)
             assert vpc.vpc_id not in config.options('vpc')
 
@@ -999,11 +943,7 @@ def test_Vpc():
     except Exception as e:  # pragma: nocover
         # Clean up VPCs from AWS
         # Find all unit test security groups
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
 
         # Find all VPCs with a Name tag key
@@ -1109,11 +1049,7 @@ def test_SecurityGroup():
         assert sg.security_group_id == group_id
 
         # Confirm that the role is in the config file
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
         assert group_id in config.options('security-groups')
 
@@ -1131,11 +1067,7 @@ def test_SecurityGroup():
         # of the in memory values and the file values, updating the
         # intersection of the two with the file values. So we must clear
         # config and then re-read the file
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
         assert group_id not in config.options('security-groups')
 
@@ -1168,11 +1100,7 @@ def test_SecurityGroup():
             assert sg.vpc_id == v.vpc_id
 
             # Confirm that they exist in the config file
-            try:
-                config.clear()
-            except AttributeError:
-                config = None
-                config = configparser.ConfigParser()
+            config = configparser.ConfigParser()
             config.read(config_file)
             assert sg.security_group_id in config.options('security-groups')
 
@@ -1191,11 +1119,7 @@ def test_SecurityGroup():
             # of the in memory values and the file values, updating the
             # intersection of the two with the file values. So we must clear
             # config and then re-read the file
-            try:
-                config.clear()
-            except AttributeError:
-                config = None
-                config = configparser.ConfigParser()
+            config = configparser.ConfigParser()
             config.read(config_file)
             assert sg.security_group_id not in config.options(
                 'security-groups'
@@ -1233,11 +1157,7 @@ def test_SecurityGroup():
             sgs
         )
 
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
 
         for sg in unit_test_sgs:
@@ -1328,11 +1248,7 @@ def test_JobDefinition(pars):
         assert jd.arn == arn
 
         # Confirm that the role is in the config file
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
         assert name in config.options('job-definitions')
 
@@ -1349,11 +1265,7 @@ def test_JobDefinition(pars):
         # of the in memory values and the file values, updating the
         # intersection of the two with the file values. So we must clear
         # config and then re-read the file
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
         assert name not in config.options('job-definitions')
 
@@ -1410,11 +1322,7 @@ def test_JobDefinition(pars):
             # assert arn
 
             # Confirm that they exist in the config file
-            try:
-                config.clear()
-            except AttributeError:
-                config = None
-                config = configparser.ConfigParser()
+            config = configparser.ConfigParser()
             config.read(config_file)
             assert jd.name in config.options('job-definitions')
 
@@ -1431,11 +1339,7 @@ def test_JobDefinition(pars):
             # of the in memory values and the file values, updating the
             # intersection of the two with the file values. So we must clear
             # config and then re-read the file
-            try:
-                config.clear()
-            except AttributeError:
-                config = None
-                config = configparser.ConfigParser()
+            config = configparser.ConfigParser()
             config.read(config_file)
             assert jd.name not in config.options('job-definitions')
 
@@ -1507,11 +1411,7 @@ def test_JobDefinition(pars):
                 jds
             ))
 
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
 
         for jd in unit_test_jds:
@@ -1606,11 +1506,7 @@ def test_ComputeEnvironment(pars):
         assert ce.arn == arn
 
         # Confirm that the role is in the config file
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
         assert name in config.options('compute-environments')
 
@@ -1644,11 +1540,7 @@ def test_ComputeEnvironment(pars):
         # of the in memory values and the file values, updating the
         # intersection of the two with the file values. So we must clear
         # config and then re-read the file
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
         assert name not in config.options('compute-environments')
 
@@ -1733,11 +1625,7 @@ def test_ComputeEnvironment(pars):
             assert ce.bid_percentage == bp
 
             # Confirm that they exist in the config file
-            try:
-                config.clear()
-            except AttributeError:
-                config = None
-                config = configparser.ConfigParser()
+            config = configparser.ConfigParser()
             config.read(config_file)
             assert ce.name in config.options('compute-environments')
 
@@ -1756,11 +1644,7 @@ def test_ComputeEnvironment(pars):
             # of the in memory values and the file values, updating the
             # intersection of the two with the file values. So we must clear
             # config and then re-read the file
-            try:
-                config.clear()
-            except AttributeError:
-                config = None
-                config = configparser.ConfigParser()
+            config = configparser.ConfigParser()
             config.read(config_file)
             assert ce.name not in config.options('compute-environments')
 
@@ -1981,11 +1865,7 @@ def test_ComputeEnvironment(pars):
                 state='DISABLED'
             )
 
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
 
         for ce in unit_test_CEs:
@@ -2120,11 +2000,7 @@ def test_JobQueue(pars):
         assert jq.arn == arn
 
         # Confirm that the role is in the config file
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
         assert name in config.options('job-queues')
 
@@ -2148,11 +2024,7 @@ def test_JobQueue(pars):
         # of the in memory values and the file values, updating the
         # intersection of the two with the file values. So we must clear
         # config and then re-read the file
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
         assert name not in config.options('job-queues')
 
@@ -2192,11 +2064,7 @@ def test_JobQueue(pars):
             assert jq.priority == p
 
             # Confirm that they exist in the config file
-            try:
-                config.clear()
-            except AttributeError:
-                config = None
-                config = configparser.ConfigParser()
+            config = configparser.ConfigParser()
             config.read(config_file)
             assert jq.name in config.options('job-queues')
 
@@ -2215,11 +2083,7 @@ def test_JobQueue(pars):
             # of the in memory values and the file values, updating the
             # intersection of the two with the file values. So we must clear
             # config and then re-read the file
-            try:
-                config.clear()
-            except AttributeError:
-                config = None
-                config = configparser.ConfigParser()
+            config = configparser.ConfigParser()
             config.read(config_file)
             assert jq.name not in config.options('job-queues')
 
@@ -2296,11 +2160,7 @@ def test_JobQueue(pars):
                 state='DISABLED'
             )
 
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
 
         for ce in unit_test_CEs:
@@ -2390,11 +2250,7 @@ def test_JobQueue(pars):
             ck.aws.wait_for_job_queue(name=jq['name'], max_wait_time=180)
             batch.update_job_queue(jobQueue=jq['arn'], state='DISABLED')
 
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
 
         requires_deletion = list(filter(

@@ -77,6 +77,8 @@ def test_Pars():
         # Do that last part over again but specify VPC and security group
         # names instead of IDs
         # Remove the section from config file
+        config = configparser.ConfigParser()
+        config_file = ck.config.get_config_file()
         config.remove_section('pars ' + name)
         with open(config_file, 'w') as f:
             config.write(f)
@@ -113,11 +115,7 @@ def test_Pars():
         assert p.batch_service_role == role
 
         # Assert config file changed
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
         assert config.get(p.pars_name, 'batch-service-role') == role.name
 
@@ -138,11 +136,7 @@ def test_Pars():
         assert p.ecs_instance_role == role
 
         # Assert config file changed
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
         assert config.get(p.pars_name, 'ecs-instance-role') == role.name
 
@@ -162,11 +156,7 @@ def test_Pars():
         assert p.spot_fleet_role == role
 
         # Assert config file changed
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
         assert config.get(p.pars_name, 'spot-fleet-role') == role.name
 
@@ -182,11 +172,7 @@ def test_Pars():
         assert p.security_group == sg
 
         # Assert config file changed
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
         assert (config.get(p.pars_name, 'security-group') ==
                 sg.security_group_id)
@@ -203,21 +189,13 @@ def test_Pars():
         assert p.vpc == vpc
 
         # Assert config file changed
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
         assert config.get(p.pars_name, 'vpc') == vpc.vpc_id
 
         p.clobber()
 
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
         assert 'pars ' + name not in config.sections()
 
@@ -305,11 +283,7 @@ def test_Knot():
 
         # Now remove the images and repo-uri from the docker-image
         # Forcing the next call to Knot to rebuild and re-push the image.
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
         config.set('docker-image knot_testing_func', 'images', '')
         config.set('docker-image knot_testing_func', 'repo-uri', '')
@@ -333,11 +307,7 @@ def test_Knot():
         assert knot.compute_environment.name == pre + 'compute-environment'
 
         # Now remove the knot section from config file
-        try:
-            config.clear()
-        except AttributeError:
-            config = None
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(config_file)
         config.remove_section('knot ' + name)
         with open(config_file, 'w') as f:
@@ -383,11 +353,7 @@ def test_Knot():
     # The next tests will use the default pars, if it already exists in the
     # config file, we shouldn't delete it when we're done.
     # Otherwise, clobber it
-    try:
-        config.clear()
-    except AttributeError:
-        config = None
-        config = configparser.ConfigParser()
+    config = configparser.ConfigParser()
     config.read(config_file)
     clobber_pars = 'pars default' in config.sections()
 
