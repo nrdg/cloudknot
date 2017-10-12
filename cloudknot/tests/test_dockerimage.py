@@ -375,11 +375,7 @@ def test_DockerImage():
 
         di.clobber()
 
-        ecr.delete_repository(
-            registryId=repo_registry_id,
-            repositoryName=repo_name,
-            force=True
-        )
+        repo.clobber()
     except Exception as e:
         response = ecr.describe_repositories()
 
@@ -416,6 +412,14 @@ def test_DockerImage():
             if name in ['docker-image unit_testing_func',
                         'docker-image test_func_input.py']:
                 config.remove_section(name)
+
+        try:
+            for option in config.options('docker-repos'):
+                if UNIT_TEST_PREFIX in option:
+                    config.remove_option('docker-repos', option)
+        except configparser.NoSectionError:
+            pass
+
         with open(config_file, 'w') as f:
             config.write(f)
 
