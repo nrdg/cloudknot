@@ -677,12 +677,14 @@ def test_Knot(cleanup):
         assert knot2.compute_environment.name == pre + 'compute-environment'
 
         knot2.clobber(clobber_pars=True)
-        pars.clobber()
     except Exception as e:
-        if knot2:
-            knot2.clobber(clobber_pars=True)
-        elif knot:
-            knot.clobber(clobber_pars=True)
+        try:
+            if knot2:
+                knot2.clobber(clobber_pars=True)
+            elif knot:
+                knot.clobber(clobber_pars=True)
+        except Exception:
+            pass
 
         raise e
 
@@ -697,7 +699,7 @@ def test_Knot(cleanup):
     # Otherwise, clobber it
     config = configparser.ConfigParser()
     config.read(config_file)
-    clobber_pars = 'pars default' in config.sections()
+    clobber_pars = 'pars default' not in config.sections()
 
     try:
         pars = ck.Pars()
@@ -753,15 +755,18 @@ def test_Knot(cleanup):
                 priority=42
             )
     finally:
-        for resource in [jq, ce, jd]:
-            if resource:
-                resource.clobber()
+        try:
+            if knot:
+                knot.clobber()
 
-        if pars and clobber_pars:
-            pars.clobber()
+            for resource in [jq, ce, jd]:
+                if resource:
+                    resource.clobber()
 
-        if knot:
-            knot.clobber()
+            if pars and clobber_pars:
+                pars.clobber()
+        except Exception:
+            pass
 
     # Test Exceptions on invalid input
     # --------------------------------
