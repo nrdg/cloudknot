@@ -98,7 +98,10 @@ def cleanup():
             batch.delete_job_queue(jobQueue=arn)
 
             # Clean up config file
-            config.remove_option('job-queues', name)
+            try:
+                config.remove_option('job-queues', name)
+            except configparser.NoSectionError:
+                pass
 
     requires_deletion = list(filter(
         lambda d: d['status'] not in ['DELETED', 'DELETING'],
@@ -114,7 +117,10 @@ def cleanup():
         batch.delete_compute_environment(computeEnvironment=ce['arn'])
 
         # Clean up config file
-        config.remove_option('compute-environments', ce['name'])
+        try:
+            config.remove_option('compute-environments', ce['name'])
+        except configparser.NoSectionError:
+            pass
 
     with open(config_file, 'w') as f:
         config.write(f)
@@ -174,7 +180,10 @@ def cleanup():
         batch.delete_job_queue(jobQueue=jq['arn'])
 
         # Clean up config file
-        config.remove_option('job-queues', jq['name'])
+        try:
+            config.remove_option('job-queues', jq['name'])
+        except configparser.NoSectionError:
+            pass
 
     with open(config_file, 'w') as f:
         config.write(f)
@@ -215,7 +224,10 @@ def cleanup():
         batch.deregister_job_definition(jobDefinition=jd['arn'])
 
         # Clean up config file
-        config.remove_option('job-definitions', jd['name'])
+        try:
+            config.remove_option('job-definitions', jd['name'])
+        except configparser.NoSectionError:
+            pass
 
     with open(config_file, 'w') as f:
         config.write(f)
@@ -241,7 +253,10 @@ def cleanup():
         ec2.delete_security_group(GroupId=sg['id'])
 
         # Clean up config file
-        config.remove_option('security-groups', sg['id'])
+        try:
+            config.remove_option('security-groups', sg['id'])
+        except configparser.NoSectionError:
+            pass
 
     with open(config_file, 'w') as f:
         config.write(f)
@@ -283,7 +298,10 @@ def cleanup():
             ec2.delete_vpc(VpcId=vpc['VpcId'])
 
             # Clean up config file
-            config.remove_option('vpc', vpc['VpcId'])
+            try:
+                config.remove_option('vpc', vpc['VpcId'])
+            except configparser.NoSectionError:
+                pass
 
     with open(config_file, 'w') as f:
         config.write(f)

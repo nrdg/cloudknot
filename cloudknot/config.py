@@ -96,7 +96,10 @@ def remove_resource(section, option):
     config_file = get_config_file()
     config = configparser.ConfigParser()
     config.read(config_file)
-    config.remove_option(section, option)
+    try:
+        config.remove_option(section, option)
+    except configparser.NoSectionError:
+        pass
     with open(config_file, 'w') as f:
         config.write(f)
 
