@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function
 import cloudknot.config
 import logging
 import operator
+import six
 import tenacity
 from collections import namedtuple
 
@@ -150,7 +151,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
 
             # Validate docker_image input
             if not (isinstance(docker_image, DockerRepo)
-                    or isinstance(docker_image, str)):
+                    or isinstance(docker_image, six.string_types)):
                 raise ValueError(
                     'docker_image must be an instance of DockerRepo '
                     'or a string'
@@ -269,8 +270,9 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         """
         # If docker_image is a string, assume it contains the image URI
         # Else it's a DockerRepo instance, get the uri property
-        image = self.docker_image if isinstance(self.docker_image, str) \
-            else self.docker_image.uri
+        image = self.docker_image \
+            if isinstance(self.docker_image, six.string_types) \
+            else self.docker_image.repo_uri
 
         job_container_properties = {
             'image': image,
@@ -557,9 +559,9 @@ class ComputeEnvironment(ObjectWithArn):
 
             # Default instance type is 'optimal'
             instance_types = instance_types if instance_types else ['optimal']
-            if isinstance(instance_types, str):
+            if isinstance(instance_types, six.string_types):
                 self._instance_types = [instance_types]
-            elif all(isinstance(x, str) for x in instance_types):
+            elif all(isinstance(x, six.string_types) for x in instance_types):
                 self._instance_types = list(instance_types)
             else:
                 raise ValueError(
@@ -620,7 +622,7 @@ class ComputeEnvironment(ObjectWithArn):
 
             # Validate image_id input
             if image_id:
-                if not isinstance(image_id, str):
+                if not isinstance(image_id, six.string_types):
                     raise ValueError('if provided, image_id must be a string')
                 self._image_id = image_id
             else:
@@ -628,7 +630,7 @@ class ComputeEnvironment(ObjectWithArn):
 
             # Validate ec2_key_pair input
             if ec2_key_pair:
-                if not isinstance(ec2_key_pair, str):
+                if not isinstance(ec2_key_pair, six.string_types):
                     raise ValueError(
                         'if provided, ec2_key_pair must be a string'
                     )
@@ -1296,9 +1298,9 @@ class BatchJob(NamedObject):
             self._job_definition_arn = job_definition.arn
 
             if commands:
-                if isinstance(commands, str):
+                if isinstance(commands, six.string_types):
                     self._commands = [commands]
-                elif all(isinstance(x, str) for x in commands):
+                elif all(isinstance(x, six.string_types) for x in commands):
                     self._commands = list(commands)
                 else:
                     raise ValueError('if provided, commands must be a string '
@@ -1437,7 +1439,7 @@ class BatchJob(NamedObject):
             Batch activity logs.
         """
         # Require the user to supply a reason for job termination
-        if not isinstance(reason, str):
+        if not isinstance(reason, six.string_types):
             raise ValueError('reason must be a string.')
 
         clients['batch'].terminate_job(jobId=self.job_id, reason=reason)
