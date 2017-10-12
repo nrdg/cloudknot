@@ -15,6 +15,11 @@ def cleanup():
     """Use this fixture to delete all unit testing resources
     regardless of of the failure or success of the test"""
     yield None
+    iam = ck.aws.client['iam']
+    ec2 = ck.aws.client['ec2']
+    batch = ck.aws.clients['batch']
+    config_file = ck.config.get_config_file()
+
     # Clean up compute environments from AWS
     # --------------------------------------
     # Find all unit testing compute environments
