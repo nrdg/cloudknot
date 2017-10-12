@@ -882,6 +882,13 @@ class ComputeEnvironment(ObjectWithArn):
             state='DISABLED'
         )
 
+        # Now delete the associated ECS cluster
+        response = clients['batch'].describe_compute_environments(
+            computeEnvironments=[self.arn]
+        )
+        cluster_arn = response.get('computeEnvironments')[0]['ecsClusterArn']
+        clients['ecs'].delete_cluster(cluster=cluster_arn)
+
         # Wait for any associated job queues to finish updating
         response = clients['batch'].describe_job_queues()
         associated_queues = list(filter(

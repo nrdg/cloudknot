@@ -121,6 +121,9 @@ def set_region(region='us-east-1'):
     clients['ecr'] = boto3.Session(profile_name=get_profile()).client(
         'ecr', region_name=region
     )
+    clients['ecs'] = boto3.Session(profile_name=get_profile()).client(
+        'ecs', region_name=region
+    )
 
 
 def list_profiles():
@@ -263,6 +266,9 @@ def set_profile(profile_name):
     clients['ecr'] = boto3.Session(profile_name=profile_name).client(
         'ecr', region_name=get_region()
     )
+    clients['ecs'] = boto3.Session(profile_name=profile_name).client(
+        'ecs', region_name=get_region()
+    )
 
 
 clients = {
@@ -277,6 +283,9 @@ clients = {
     ),
     'ecr': boto3.Session(profile_name=get_profile()).client(
         'ecr', region_name=get_region()
+    ),
+    'ecs': boto3.Session(profile_name=get_profile()).client(
+        'ecs', region_name=get_region()
     )
 }
 
@@ -293,6 +302,9 @@ def refresh_clients():
     )
     clients['ecr'] = boto3.Session(profile_name=get_profile()).client(
         'ecr', region_name=get_region()
+    )
+    clients['ecs'] = boto3.Session(profile_name=get_profile()).client(
+        'ecs', region_name=get_region()
     )
 
 
