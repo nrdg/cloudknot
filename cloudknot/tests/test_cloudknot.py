@@ -393,6 +393,8 @@ def test_Pars(cleanup):
         p = ck.Pars(name=name)
 
         # Now remove the section from config file
+        config = configparser.ConfigParser()
+        config.read(config_file)
         config.remove_section('pars ' + name)
         with open(config_file, 'w') as f:
             config.write(f)
@@ -417,7 +419,7 @@ def test_Pars(cleanup):
         # names instead of IDs
         # Remove the section from config file
         config = configparser.ConfigParser()
-        config_file = ck.config.get_config_file()
+        config.read(config_file)
         config.remove_section('pars ' + name)
         with open(config_file, 'w') as f:
             config.write(f)
@@ -624,8 +626,8 @@ def test_Knot(cleanup):
         # Forcing the next call to Knot to rebuild and re-push the image.
         config = configparser.ConfigParser()
         config.read(config_file)
-        config.set('docker-image knot_testing_func', 'images', '')
-        config.set('docker-image knot_testing_func', 'repo-uri', '')
+        config.set('docker-image ' + knot.docker_image.name, 'images', '')
+        config.set('docker-image ' + knot.docker_image.name, 'repo-uri', '')
         with open(config_file, 'w') as f:
             config.write(f)
 
@@ -675,6 +677,7 @@ def test_Knot(cleanup):
         assert knot2.compute_environment.name == pre + 'compute-environment'
 
         knot2.clobber(clobber_pars=True)
+        pars.clobber()
     except Exception as e:
         if knot2:
             knot2.clobber(clobber_pars=True)

@@ -184,7 +184,11 @@ class Pars(object):
             except aws.ResourceDoesNotExistException:
                 # Otherwise create the new VPC
                 self._vpc = aws.ec2.Vpc(name=vpc_name)
+                config = configparser.ConfigParser()
+                config.read(get_config_file())
                 config.set(self._pars_name, 'vpc', self.vpc.vpc_id)
+                with open(get_config_file(), 'w') as f:
+                    config.write(f)
                 mod_logger.info('PARS {name:s} created VPC {id:s}'.format(
                     name=name, id=self.vpc.vpc_id
                 ))
@@ -206,10 +210,14 @@ class Pars(object):
                     name=security_group_name,
                     vpc=self._vpc
                 )
+                config = configparser.ConfigParser()
+                config.read(get_config_file())
                 config.set(
                     self._pars_name,
                     'security-group', self.security_group.security_group_id
                 )
+                with open(get_config_file(), 'w') as f:
+                    config.write(f)
                 mod_logger.info(
                     'PARS {name:s} created security group {id:s}'.format(
                         name=name, id=self.security_group.security_group_id
@@ -217,6 +225,8 @@ class Pars(object):
                 )
 
             # Save config to file
+            config = configparser.ConfigParser()
+            config.read(get_config_file())
             with open(get_config_file(), 'w') as f:
                 config.write(f)
         else:
@@ -385,6 +395,8 @@ class Pars(object):
 
             # Save the new pars resources in config object
             # Use config.set() for python 2.7 compatibility
+            config = configparser.ConfigParser()
+            config.read(get_config_file())
             config.add_section(self._pars_name)
             config.set(
                 self._pars_name,
@@ -1114,6 +1126,8 @@ class Knot(object):
 
             # Save the new Knot resources in config object
             # Use config.set() for python 2.7 compatibility
+            config = configparser.ConfigParser()
+            config.read(get_config_file())
             config.add_section(self._knot_name)
             config.set(self._knot_name, 'pars', self.pars.name)
             config.set(self._knot_name, 'docker-image', self.docker_image.name)
