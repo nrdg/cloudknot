@@ -942,7 +942,6 @@ def test_Vpc():
 
     except Exception as e:  # pragma: nocover
         # Clean up VPCs from AWS
-        # Find all unit test security groups
         config = configparser.ConfigParser()
         config.read(config_file)
 
