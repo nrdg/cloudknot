@@ -10,13 +10,329 @@ UNIT_TEST_PREFIX = 'cloudknot-unit-test'
 data_path = op.join(ck.__path__[0], 'data')
 
 
+@pytest.fixture
+def cleanup():
+    """Use this fixture to delete all unit testing resources
+    regardless of of the failure or success of the test"""
+    yield None
+    # Clean up compute environments from AWS
+    # --------------------------------------
+    # Find all unit testing compute environments
+    response = batch.describe_compute_environments()
+
+    comp_envs = [
+        {
+            'name': d['computeEnvironmentName'],
+            'arn': d['computeEnvironmentArn'],
+            'state': d['state'],
+            'status': d['status']
+        } for d in response.get('computeEnvironments')
+    ]
+
+    while response.get('nextToken'):
+        response = batch.describe_compute_environments(
+            nextToken=response.get('nextToken')
+        )
+
+        comp_envs = comp_envs + [
+            {
+                'name': d['computeEnvironmentName'],
+                'arn': d['computeEnvironmentArn'],
+                'state': d['state'],
+                'status': d['status']
+            } for d in response.get('computeEnvironments')
+        ]
+
+    unit_test_CEs = list(filter(
+        lambda d: UNIT_TEST_PREFIX in d['name'], comp_envs
+    ))
+
+    enabled = list(filter(
+        lambda d: d['state'] == 'ENABLED', unit_test_CEs
+    ))
+
+    for ce in enabled:
+        ck.aws.wait_for_compute_environment(
+            arn=ce['arn'], name=ce['name'], log=False
+        )
+
+        # Set the compute environment state to 'DISABLED'
+        batch.update_compute_environment(
+            computeEnvironment=ce['arn'],
+            state='DISABLED'
+        )
+
+    config = configparser.ConfigParser()
+    config.read(config_file)
+
+    for ce in unit_test_CEs:
+        # Then disassociate from any job queues
+        response = batch.describe_job_queues()
+        associated_queues = list(filter(
+            lambda q: ce['arn'] in [
+                c['computeEnvironment'] for c
+                in q['computeEnvironmentOrder']
+            ],
+            response.get('jobQueues')
+        ))
+
+        for queue in associated_queues:
+            arn = queue['jobQueueArn']
+            name = queue['jobQueueName']
+
+            # Disable submissions to the queue
+            ck.aws.wait_for_job_queue(
+                name=name, log=True, max_wait_time=180
+            )
+            batch.update_job_queue(jobQueue=arn, state='DISABLED')
+
+            # Delete the job queue
+            ck.aws.wait_for_job_queue(
+                name=name, log=True, max_wait_time=180
+            )
+            batch.delete_job_queue(jobQueue=arn)
+
+            # Clean up config file
+            config.remove_option('job-queues', name)
+
+    requires_deletion = list(filter(
+        lambda d: d['status'] not in ['DELETED', 'DELETING'],
+        unit_test_CEs
+    ))
+
+    for ce in requires_deletion:
+        ck.aws.wait_for_compute_environment(
+            arn=ce['arn'], name=ce['name'], log=False
+        )
+
+        # Delete the compute environment
+        batch.delete_compute_environment(computeEnvironment=ce['arn'])
+
+        # Clean up config file
+        config.remove_option('compute-environments', ce['name'])
+
+    with open(config_file, 'w') as f:
+        config.write(f)
+
+    # Clean up job queues from AWS
+    # ----------------------------
+    # Find all unit testing job queues
+    response = batch.describe_job_queues()
+
+    job_queues = [
+        {
+            'name': d['jobQueueName'],
+            'arn': d['jobQueueArn'],
+            'state': d['state'],
+            'status': d['status']
+        } for d in response.get('jobQueues')
+    ]
+
+    while response.get('nextToken'):
+        response = batch.describe_job_queues(
+            nextToken=response.get('nextToken')
+        )
+
+        job_queues = job_queues + [
+            {
+                'name': d['jobQueueName'],
+                'arn': d['jobQueueArn'],
+                'state': d['state'],
+                'status': d['status']
+            } for d in response.get('jobQueues')
+        ]
+
+    unit_test_JQs = list(filter(
+        lambda d: UNIT_TEST_PREFIX in d['name'], job_queues
+    ))
+
+    enabled = list(filter(
+        lambda d: d['state'] == 'ENABLED', unit_test_JQs
+    ))
+
+    for jq in enabled:
+        ck.aws.wait_for_job_queue(name=jq['name'], max_wait_time=180)
+        batch.update_job_queue(jobQueue=jq['arn'], state='DISABLED')
+
+    config = configparser.ConfigParser()
+    config.read(config_file)
+
+    requires_deletion = list(filter(
+        lambda d: d['status'] not in ['DELETED', 'DELETING'],
+        unit_test_JQs
+    ))
+
+    for jq in requires_deletion:
+        ck.aws.wait_for_job_queue(name=jq['name'], max_wait_time=180)
+
+        # Finally, delete the job queue
+        batch.delete_job_queue(jobQueue=jq['arn'])
+
+        # Clean up config file
+        config.remove_option('job-queues', jq['name'])
+
+    with open(config_file, 'w') as f:
+        config.write(f)
+
+    # Clean up job definitions from AWS
+    # ---------------------------------
+    # Find all unit testing job definitions
+    response = batch.describe_job_definitions(status='ACTIVE')
+
+    jds = [{'name': d['jobDefinitionName'], 'arn': d['jobDefinitionArn']}
+           for d in response.get('jobDefinitions')]
+
+    unit_test_jds = list(filter(
+        lambda d: UNIT_TEST_PREFIX in d['name'],
+        jds
+    ))
+
+    while response.get('nextToken'):
+        response = batch.describe_job_definitions(
+            status='ACTIVE',
+            nextToken=response.get('nextToken')
+        )
+
+        jds = [{'name': d['jobDefinitionName'],
+                'arn': d['jobDefinitionArn']}
+               for d in response.get('jobDefinitions')]
+
+        unit_test_jds = unit_test_jds + list(filter(
+            lambda d: UNIT_TEST_PREFIX in d['name'],
+            jds
+        ))
+
+    config = configparser.ConfigParser()
+    config.read(config_file)
+
+    for jd in unit_test_jds:
+        # Deregister the job definition
+        batch.deregister_job_definition(jobDefinition=jd['arn'])
+
+        # Clean up config file
+        config.remove_option('job-definitions', jd['name'])
+
+    with open(config_file, 'w') as f:
+        config.write(f)
+
+    # Clean up security_groups from AWS
+    # ---------------------------------
+    # Find all unit test security groups
+    response = ec2.describe_security_groups()
+    sgs = [
+        {'name': d['GroupName'], 'id': d['GroupId']}
+        for d in response.get('SecurityGroups')
+    ]
+    unit_test_sgs = filter(
+        lambda d: UNIT_TEST_PREFIX in d['name'],
+        sgs
+    )
+
+    config = configparser.ConfigParser()
+    config.read(config_file)
+
+    for sg in unit_test_sgs:
+        # Delete role
+        ec2.delete_security_group(GroupId=sg['id'])
+
+        # Clean up config file
+        config.remove_option('security-groups', sg['id'])
+
+    with open(config_file, 'w') as f:
+        config.write(f)
+
+    # Clean up VPCs from AWS
+    # ----------------------
+    config = configparser.ConfigParser()
+    config.read(config_file)
+
+    # Find all VPCs with a Name tag key
+    response = ec2.describe_vpcs(
+        Filters=[{
+            'Name': 'tag-key',
+            'Values': ['Name']
+        }]
+    )
+
+    for vpc in response.get('Vpcs'):
+        # Test if the unit-test prefix is in the name
+        if UNIT_TEST_PREFIX in [
+            d for d in vpc['Tags'] if d['Key'] == 'Name'
+        ][0]['Value']:
+            # Retrieve and delete subnets
+            response = ec2.describe_subnets(
+                Filters=[
+                    {
+                        'Name': 'vpc-id',
+                        'Values': [vpc['VpcId']]
+                    }
+                ]
+            )
+
+            subnets = [d['SubnetId'] for d in response.get('Subnets')]
+
+            for subnet_id in subnets:
+                ec2.delete_subnet(SubnetId=subnet_id)
+
+            # delete the VPC
+            ec2.delete_vpc(VpcId=vpc['VpcId'])
+
+            # Clean up config file
+            config.remove_option('vpc', vpc['VpcId'])
+
+    with open(config_file, 'w') as f:
+        config.write(f)
+
+    # Clean up roles from AWS
+    # -----------------------
+    # Find all unit test roles
+    response = iam.list_roles()
+    role_names = [d['RoleName'] for d in response.get('Roles')]
+    unit_test_roles = filter(
+        lambda n: UNIT_TEST_PREFIX in n,
+        role_names
+    )
+
+    for role_name in unit_test_roles:
+        # Remove instance profiles
+        response = iam.list_instance_profiles_for_role(RoleName=role_name)
+        for ip in response.get('InstanceProfiles'):
+            iam.remove_role_from_instance_profile(
+                InstanceProfileName=ip['InstanceProfileName'],
+                RoleName=role_name
+            )
+            iam.delete_instance_profile(
+                InstanceProfileName=ip['InstanceProfileName']
+            )
+
+        # Detach policies from role
+        response = iam.list_attached_role_policies(RoleName=role_name)
+        for policy in response.get('AttachedPolicies'):
+            iam.detach_role_policy(
+                RoleName=role_name,
+                PolicyArn=policy['PolicyArn']
+            )
+
+        # Delete role
+        iam.delete_role(RoleName=role_name)
+
+    # Clean up config file
+    config = configparser.ConfigParser()
+    config.read(config_file)
+    for role_name in config.options('roles'):
+        if UNIT_TEST_PREFIX in role_name:
+            config.remove_option('roles', role_name)
+    with open(config_file, 'w') as f:
+        config.write(f)
+
+
 def get_testing_name():
     u = str(uuid.uuid4()).replace('-', '')[:8]
     name = UNIT_TEST_PREFIX + '-' + u
     return name
 
 
-def test_Pars():
+def test_Pars(cleanup):
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
     p = None
@@ -266,7 +582,7 @@ def knot_testing_func(name=None, no_capitalize=False):
     return 'Hello world!'
 
 
-def test_Knot():
+def test_Knot(cleanup):
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
     knot, knot2 = None, None
