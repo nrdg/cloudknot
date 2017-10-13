@@ -320,7 +320,6 @@ def test_DockerImage():
         response = ecr.create_repository(repositoryName=get_testing_name())
         repo_name = response['repository']['repositoryName']
         repo_uri = response['repository']['repositoryUri']
-        repo_registry_id = response['repository']['registryId']
 
         repo = ck.aws.DockerRepo(name=repo_name)
 
