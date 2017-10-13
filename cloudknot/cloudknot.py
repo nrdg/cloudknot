@@ -79,7 +79,8 @@ class Pars(object):
         """
         # Validate name input
         if not isinstance(name, str):
-            raise ValueError('name must be a string')
+            raise ValueError('PARS name must be a string. You passed a '
+                             '{t!s}'.format(t=type(name)))
 
         self._name = name
 
@@ -734,7 +735,8 @@ class Knot(object):
         """
         # Validate name input
         if not isinstance(name, str):
-            raise ValueError('name must be a string')
+            raise ValueError('Knot name must be a string. You passed a '
+                             '{t!s}'.format(t=type(name)))
 
         self._name = name
         self._knot_name = 'knot ' + name

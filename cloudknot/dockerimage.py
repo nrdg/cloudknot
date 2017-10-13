@@ -130,7 +130,8 @@ class DockerImage(object):
         if name:
             # Validate name input
             if not isinstance(name, str):
-                raise ValueError('name must be a string')
+                raise ValueError('Docker image name must be a string. You '
+                                 'passed a {t!s}'.format(t=type(name)))
 
             self._name = name
 
