@@ -116,7 +116,7 @@ def verify_sections():
     config.read(config_file)
     approved_sections = [
         'aws', 'roles', 'vpc', 'security-groups', 'docker-repos',
-        'job-definitions', 'compute-environments', 'job-queues', 'jobs'
+        'job-definitions', 'compute-environments', 'job-queues', 'batch-jobs'
     ]
 
     def section_approved(sec):

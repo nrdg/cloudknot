@@ -1286,7 +1286,7 @@ class BatchJob(NamedObject):
             self._environment_variables = job.environment_variables
             self._job_id = job.job_id
 
-            cloudknot.config.add_resource('jobs', self.job_id, self.name)
+            cloudknot.config.add_resource('batch-jobs', self.job_id, self.name)
 
             mod_logger.info('Retrieved pre-existing batch job {id:s}'.format(
                 id=self.job_id
@@ -1405,8 +1405,8 @@ class BatchJob(NamedObject):
 
         job_id = response['jobId']
 
-        # Add this job to the list of jobs in the config file
-        cloudknot.config.add_resource('jobs', job_id, self.name)
+        # Remove this job from the list of jobs in the config file
+        cloudknot.config.add_resource('batch-jobs', self.job_id, self.name)
 
         mod_logger.info(
             'Submitted batch job {name:s} with jobID '
@@ -1435,22 +1435,46 @@ class BatchJob(NamedObject):
         return status
 
     def terminate(self, reason):
-        """Terminate AWS batch job using instance parameter `self.job_id`
+        """Kill AWS batch job using instance parameter `self.job_id`
+
+        kill() combines the cancel and terminate AWS CLI commands. Jobs that
+        are in the SUBMITTED, PENDING, or RUNNABLE state must be cancelled,
+        while jobs that are in the STARTING or RUNNING state must be
+        terminated.
 
         Parameters
         ----------
         reason : string
             A message to attach to the job that explains the reason for
-            cancelling it. This message is returned by future DescribeJobs
-            operations on the job. This message is also recorded in the AWS
-            Batch activity logs.
+            cancelling/terminating it. This message is returned by future
+            DescribeJobs operations on the job. This message is also recorded
+            in the AWS Batch activity logs.
         """
         # Require the user to supply a reason for job termination
         if not isinstance(reason, six.string_types):
             raise ValueError('reason must be a string.')
 
-        clients['batch'].terminate_job(jobId=self.job_id, reason=reason)
+        state = self.status['status']
 
-        mod_logger.info('Terminated job {name:s} with jobID {job_id:s}'.format(
-            name=self.name, job_id=self.job_id
-        ))
+        if state in ['SUBMITTED', 'PENDING', 'RUNNABLE']:
+            clients['batch'].cancel_job(jobId=self.job_id, reason=reason)
+            mod_logger.info(
+                'Cancelled job {name:s} with jobID {job_id:s}'.format(
+                    name=self.name, job_id=self.job_id
+                )
+            )
+        elif state in ['STARTING', 'RUNNING']:
+            clients['batch'].terminate_job(jobId=self.job_id, reason=reason)
+            mod_logger.info(
+                'Terminated job {name:s} with jobID {job_id:s}'.format(
+                    name=self.name, job_id=self.job_id
+                )
+            )
+
+    def clobber(self):
+        """Kill an batch job and remove it's info from config"""
+        self.terminate(reason='Cloudknot job killed after calling '
+                              'BatchJob.clobber()')
+
+        # Remove this job from the list of jobs in the config file
+        cloudknot.config.remove_resource('batch-jobs', self.job_id)
