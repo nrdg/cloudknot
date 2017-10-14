@@ -129,7 +129,7 @@ class DockerImage(object):
 
         if name:
             # Validate name input
-            if not isinstance(name, str):
+            if not isinstance(name, six.string_types):
                 raise ValueError('Docker image name must be a string. You '
                                  'passed a {t!s}'.format(t=type(name)))
 
@@ -415,9 +415,9 @@ class DockerImage(object):
         None
         """
         # Validate tags input
-        if isinstance(tags, str):
+        if isinstance(tags, six.string_types):
             tags = [tags]
-        elif all(isinstance(x, str) for x in tags):
+        elif all(isinstance(x, six.string_types) for x in tags):
             tags = [t for t in tags]
         else:
             raise ValueError('tags must be a string or a sequence '
@@ -502,7 +502,7 @@ class DockerImage(object):
                 raise ValueError('repo must be a DockerRepo instance.')
             self._repo_uri = repo.repo_uri
         else:
-            if not isinstance(repo_uri, str):
+            if not isinstance(repo_uri, six.string_types):
                 raise ValueError('`repo_uri` must be a string.')
             self._repo_uri = repo_uri
 

@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function
 import configparser
 import logging
 import operator
+import six
 
 from . import aws
 from .config import get_config_file
@@ -78,7 +79,7 @@ class Pars(object):
             Default: name + '-cloudknot-security-group'
         """
         # Validate name input
-        if not isinstance(name, str):
+        if not isinstance(name, six.string_types):
             raise ValueError('PARS name must be a string. You passed a '
                              '{t!s}'.format(t=type(name)))
 
@@ -86,14 +87,14 @@ class Pars(object):
 
         # Validate vpc_name input
         if vpc_name:
-            if not isinstance(vpc_name, str):
+            if not isinstance(vpc_name, six.string_types):
                 raise ValueError('if provided, vpc_name must be a string.')
         else:
             vpc_name = name + '-cloudknot-vpc'
 
         # Validate security_group_name input
         if security_group_name:
-            if not isinstance(security_group_name, str):
+            if not isinstance(security_group_name, six.string_types):
                 raise ValueError('if provided, security_group_name must be '
                                  'a string.')
         else:
@@ -234,7 +235,7 @@ class Pars(object):
             # Pars doesn't exist, use input names to adopt/create resources
             # Validate role name input
             if batch_service_role_name:
-                if not isinstance(batch_service_role_name, str):
+                if not isinstance(batch_service_role_name, six.string_types):
                     raise ValueError('if provided, batch_service_role_name '
                                      'must be a string.')
             else:
@@ -264,7 +265,7 @@ class Pars(object):
 
             # Validate role name input
             if ecs_instance_role_name:
-                if not isinstance(ecs_instance_role_name, str):
+                if not isinstance(ecs_instance_role_name, six.string_types):
                     # Clean up after ourselves and raise ValueError
                     self.batch_service_role.clobber()
                     raise ValueError('if provided, ecs_instance_role_name '
@@ -294,7 +295,7 @@ class Pars(object):
 
             # Validate role name input
             if spot_fleet_role_name:
-                if not isinstance(spot_fleet_role_name, str):
+                if not isinstance(spot_fleet_role_name, six.string_types):
                     # Clean up after ourselves and raise ValueError
                     self.batch_service_role.clobber()
                     self.ecs_instance_role.clobber()
@@ -325,7 +326,7 @@ class Pars(object):
 
             if vpc_id:
                 # Validate vpc_id input
-                if not isinstance(vpc_id, str):
+                if not isinstance(vpc_id, six.string_types):
                     # Clean up after ourselves and raise ValueError
                     self.batch_service_role.clobber()
                     self.ecs_instance_role.clobber()
@@ -353,7 +354,7 @@ class Pars(object):
 
             if security_group_id:
                 # Validate security_group_id input
-                if not isinstance(security_group_id, str):
+                if not isinstance(security_group_id, six.string_types):
                     # Clean up after ourselves and raise ValueError
                     self.batch_service_role.clobber()
                     self.ecs_instance_role.clobber()
@@ -734,7 +735,7 @@ class Knot(object):
             Default: 1
         """
         # Validate name input
-        if not isinstance(name, str):
+        if not isinstance(name, six.string_types):
             raise ValueError('Knot name must be a string. You passed a '
                              '{t!s}'.format(t=type(name)))
 

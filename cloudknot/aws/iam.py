@@ -4,6 +4,7 @@ import cloudknot.config
 import json
 import logging
 import operator
+import six
 import tenacity
 from collections import namedtuple
 
@@ -105,11 +106,11 @@ class IamRole(ObjectWithArn):
 
             # Check the user supplied policies against the available policies
             # Remove redundant entries
-            if isinstance(policies, str):
+            if isinstance(policies, six.string_types):
                 input_policies = {policies}
             else:
                 try:
-                    if all(isinstance(x, str) for x in policies):
+                    if all(isinstance(x, six.string_types) for x in policies):
                         input_policies = set(list(policies))
                     else:
                         raise ValueError('policies must be a string or a '

@@ -350,7 +350,7 @@ def test_DockerImage():
             di.build(tags=tag, image_name=n)
 
             n = n if n else 'cloudknot/' + di.name
-            if isinstance(tag, str):
+            if isinstance(tag, six.string_types):
                 tag = [tag]
 
             images = [{'name': n, 'tag': t} for t in tag]
