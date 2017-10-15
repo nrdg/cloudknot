@@ -8,19 +8,10 @@ import six
 from . import aws
 from .config import get_config_file
 from . import dockerimage
-from .due import due, Doi
 
 __all__ = ["Pars", "Knot"]
 
 mod_logger = logging.getLogger(__name__)
-
-# Use duecredit (duecredit.org) to provide a citation to relevant work to
-# be cited. This does nothing, unless the user has duecredit installed,
-# And calls this with duecredit (as in `python -m duecredit script.py`):
-due.cite(Doi(""),
-         description="",
-         tags=[""],
-         path='cloudknot')
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
