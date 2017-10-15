@@ -370,6 +370,14 @@ class IamRole(ObjectWithArn):
                 InstanceProfileName=instance_profile_name
             )
 
+        if self.service == 'batch.amazonaws.com':
+            # Wait for any dependent compute environments to finish deleting
+            # In order to prevent INVALID compute environment as described in
+            # docs.aws.amazon.com/batch/latest/userguide/troubleshooting.html
+            response = clients['batch'].describe_compute_environments()
+            dependent_ces = [c for c in response.get('computeEnvironment')
+                             if c['serviceRole'] == self.arn]
+
         for policy in self.policies:
             # Get the corresponding arn for each input policy
             policy_response = clients['iam'].list_policies()
@@ -392,6 +400,7 @@ class IamRole(ObjectWithArn):
 
             policy_arn = policy_filter[0]['Arn']
 
+            # Detach the policy from this role
             clients['iam'].detach_role_policy(
                 RoleName=self.name,
                 PolicyArn=policy_arn
