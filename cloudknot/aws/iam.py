@@ -9,7 +9,8 @@ import tenacity
 from collections import namedtuple
 
 from .base_classes import ObjectWithArn, clients, \
-    ResourceExistsException, ResourceDoesNotExistException
+    ResourceExistsException, ResourceDoesNotExistException, \
+    ResourceClobberedException
 
 __all__ = ["IamRole"]
 
@@ -325,6 +326,12 @@ class IamRole(ObjectWithArn):
         arn : string or None
             ARN for attached instance profile if any, otherwise None
         """
+        if self.clobbered:
+            raise ResourceClobberedException(
+                'This batch job has already been clobbered.',
+                self.arn
+            )
+
         response = clients['iam'].list_instance_profiles_for_role(
             RoleName=self.name
         )
@@ -395,5 +402,9 @@ class IamRole(ObjectWithArn):
 
         # Remove this role from the list of roles in the config file
         cloudknot.config.remove_resource('roles', self.name)
+
+        # Set the clobbered parameter to True,
+        # preventing subsequent method calls
+        self._clobbered = True
 
         mod_logger.info('Deleted role {name:s}'.format(name=self.name))

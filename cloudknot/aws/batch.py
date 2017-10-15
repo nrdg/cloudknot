@@ -10,7 +10,8 @@ from collections import namedtuple
 from .base_classes import NamedObject, ObjectWithArn, \
     ObjectWithUsernameAndMemory, clients, \
     ResourceExistsException, ResourceDoesNotExistException, \
-    CannotDeleteResourceException, wait_for_job_queue
+    ResourceClobberedException, CannotDeleteResourceException, \
+    wait_for_job_queue
 from .ec2 import Vpc, SecurityGroup
 from .ecr import DockerRepo
 from .iam import IamRole
@@ -313,6 +314,10 @@ class JobDefinition(ObjectWithUsernameAndMemory):
 
         # Remove this job def from the list of job defs in the config file
         cloudknot.config.remove_resource('job-definitions', self.name)
+
+        # Set the clobbered parameter to True,
+        # preventing subsequent method calls
+        self._clobbered = True
 
         mod_logger.info('Deregistered job definition {name:s}'.format(
             name=self.name
@@ -924,6 +929,10 @@ class ComputeEnvironment(ObjectWithArn):
         # in config file
         cloudknot.config.remove_resource('compute-environments', self.name)
 
+        # Set the clobbered parameter to True,
+        # preventing subsequent method calls
+        self._clobbered = True
+
         mod_logger.info('Clobbered compute environment {name:s}'.format(
             name=self.name
         ))
@@ -1159,6 +1168,12 @@ class JobQueue(ObjectWithArn):
         job_ids : list
             A list of job-IDs for jobs in this queue
         """
+        if self.clobbered:
+            raise ResourceClobberedException(
+                'This job queue has already been clobbered.',
+                self.arn
+            )
+
         # Validate input
         allowed_statuses = ['ALL', 'SUBMITTED', 'PENDING', 'RUNNABLE',
                             'STARTING', 'RUNNING', 'SUCCEEDED', 'FAILED']
@@ -1219,6 +1234,10 @@ class JobQueue(ObjectWithArn):
 
         # Remove this job queue from the list of job queues in config file
         cloudknot.config.remove_resource('job-queues', self.name)
+
+        # Set the clobbered parameter to True,
+        # preventing subsequent method calls
+        self._clobbered = True
 
         mod_logger.info('Clobbered job queue {name:s}'.format(name=self.name))
 
@@ -1425,6 +1444,12 @@ class BatchJob(NamedObject):
             dictionary with keys: {status, statusReason, attempts}
             for this AWS batch job
         """
+        if self.clobbered:
+            raise ResourceClobberedException(
+                'This batch job has already been clobbered.',
+                self.job_id
+            )
+
         # Query the job_id
         response = clients['batch'].describe_jobs(jobs=[self.job_id])
         job = response.get('jobs')[0]
@@ -1450,6 +1475,12 @@ class BatchJob(NamedObject):
             DescribeJobs operations on the job. This message is also recorded
             in the AWS Batch activity logs.
         """
+        if self.clobbered:
+            raise ResourceClobberedException(
+                'This batch job has already been clobbered.',
+                self.job_id
+            )
+
         # Require the user to supply a reason for job termination
         if not isinstance(reason, six.string_types):
             raise ValueError('reason must be a string.')
@@ -1475,6 +1506,10 @@ class BatchJob(NamedObject):
         """Kill an batch job and remove it's info from config"""
         self.terminate(reason='Cloudknot job killed after calling '
                               'BatchJob.clobber()')
+
+        # Set the clobbered parameter to True,
+        # preventing subsequent method calls
+        self._clobbered = True
 
         # Remove this job from the list of jobs in the config file
         cloudknot.config.remove_resource('batch-jobs', self.job_id)

@@ -15,7 +15,7 @@ mod_logger = logging.getLogger(__name__)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-class Pars(object):
+class Pars(aws.NamedObject):
     """PARS stands for Persistent AWS Resource Set
 
     This object collects AWS resources that could, in theory, be created only
@@ -74,7 +74,7 @@ class Pars(object):
             raise ValueError('PARS name must be a string. You passed a '
                              '{t!s}'.format(t=type(name)))
 
-        self._name = name
+        super(Pars, self).__init__(name=name)
 
         # Validate vpc_name input
         if vpc_name:
@@ -432,6 +432,12 @@ class Pars(object):
             -------
             None
             """
+            if self.clobbered:
+                raise aws.ResourceClobberedException(
+                    'This PARS has already been clobbered.',
+                    self.name
+                )
+
             # Verify input
             if not isinstance(new_role, aws.IamRole):
                 raise ValueError('new role must be an instance of IamRole')
@@ -497,6 +503,12 @@ class Pars(object):
         -------
         None
         """
+        if self.clobbered:
+            raise aws.ResourceClobberedException(
+                'This PARS has already been clobbered.',
+                self.name
+            )
+
         if not isinstance(v, aws.Vpc):
             raise ValueError('new vpc must be an instance of Vpc')
 
@@ -552,6 +564,12 @@ class Pars(object):
         -------
         None
         """
+        if self.clobbered:
+            raise aws.ResourceClobberedException(
+                'This PARS has already been clobbered.',
+                self.name
+            )
+
         if not isinstance(sg, aws.SecurityGroup):
             raise ValueError('new security group must be an instance of '
                              'SecurityGroup')
@@ -600,11 +618,15 @@ class Pars(object):
         with open(get_config_file(), 'w') as f:
             config.write(f)
 
+        # Set the clobbered parameter to True,
+        # preventing subsequent method calls
+        self._clobbered = True
+
         mod_logger.info('Clobbered PARS {name:s}'.format(name=self.name))
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-class Knot(object):
+class Knot(aws.NamedObject):
     """A collection of resources and methods to submit jobs to AWS Batch
 
     This object collects AWS resources that should be created once for each
@@ -730,7 +752,7 @@ class Knot(object):
             raise ValueError('Knot name must be a string. You passed a '
                              '{t!s}'.format(t=type(name)))
 
-        self._name = name
+        super(Knot, self).__init__(name=name)
         self._knot_name = 'knot ' + name
 
         image_tags = kwargs.pop('image_tags', ['cloudknot'])
@@ -1161,6 +1183,12 @@ class Knot(object):
     job_ids = property(fget=operator.attrgetter('_job_ids'))
 
     def submit(self, commands, env_vars):
+        if self.clobbered:
+            raise aws.ResourceClobberedException(
+                'This Knot has already been clobbered.',
+                self.name
+            )
+
         # commands should be a sequence of sequences of strings
         if not all(all(isinstance(s, six.string_types) for s in sublist)
                    for sublist in commands):
@@ -1210,6 +1238,12 @@ class Knot(object):
             A list of dicts [{'job': BatchJob instance, 'name': BatchJob.name,
             'status': BatchJob.status, 'id': BatchJob.job_id},]
         """
+        if self.clobbered:
+            raise aws.ResourceClobberedException(
+                'This Knot has already been clobbered.',
+                self.name
+            )
+
         jobs_info = [
             {
                 'job': job,
@@ -1224,6 +1258,12 @@ class Knot(object):
 
     def view_jobs(self):
         """Print the job_id, name, and status of all jobs in self.jobs"""
+        if self.clobbered:
+            raise aws.ResourceClobberedException(
+                'This Knot has already been clobbered.',
+                self.name
+            )
+
         order = {'SUBMITTED': 0, 'PENDING': 1, 'RUNNABLE': 2, 'STARTING': 3,
                  'RUNNING': 4, 'FAILED': 5, 'SUCCEEDED': 6}
         job_info = sorted(self.get_jobs(), key=lambda j: order[j['status']])
@@ -1271,5 +1311,9 @@ class Knot(object):
         config.remove_section(self._knot_name)
         with open(get_config_file(), 'w') as f:
             config.write(f)
+
+        # Set the clobbered parameter to True,
+        # preventing subsequent method calls
+        self._clobbered = True
 
         mod_logger.info('Clobbered Knot {name:s}'.format(name=self.name))
