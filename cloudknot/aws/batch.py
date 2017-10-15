@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function
 import cloudknot.config
 import logging
 import operator
+import six
 import tenacity
 from collections import namedtuple
 
@@ -14,8 +15,9 @@ from .ec2 import Vpc, SecurityGroup
 from .ecr import DockerRepo
 from .iam import IamRole
 
-__all__ = ["JobDefinition", "JobQueue",
-           "ComputeEnvironment", "BatchJob"]
+__all__ = ["JobDefinition", "JobQueue", "ComputeEnvironment", "BatchJob"]
+
+mod_logger = logging.getLogger(__name__)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -71,15 +73,18 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             raise ValueError('You may supply either an arn or other job '
                              'definition details. Not both.')
 
+        # Determine whether the user supplied only an arn or only a name
+        arn_or_name_only = (arn or (name and not any([
+            job_role, docker_image, vcpus, memory, username, retries
+        ])))
+
         resource = self._exists_already(arn=arn, name=name)
         self._pre_existing = resource.exists
 
-        if resource.exists:
-            # Resource exists, if user tried to specify resource parameters,
-            # throw error
-            if any([
-                job_role, docker_image, vcpus, memory, username, retries
-            ]):
+        if resource.exists and resource.status != 'INACTIVE':
+            # Resource exists, if user tried to specify resource parameters
+            # for an active job def, then throw error
+            if any([job_role, docker_image, vcpus, memory, username, retries]):
                 raise ResourceExistsException(
                     'You provided input parameters for a job definition that '
                     'already exists. If you would like to create a new job '
@@ -95,30 +100,31 @@ class JobDefinition(ObjectWithUsernameAndMemory):
                 username=resource.username
             )
 
-            self._job_role = resource.job_role
+            self._job_role = None
+            self._job_role_arn = resource.job_role_arn
             self._docker_image = resource.docker_image
             self._vcpus = resource.vcpus
             self._retries = resource.retries
             self._arn = resource.arn
-
-            if resource.status == 'INACTIVE':
-                raise ResourceExistsException(
-                    'You retrieved an inactive job definition and cloudknot '
-                    'has no way to reactivate it. Instead of retrieving the '
-                    'job definition using an ARN, create a new one with your '
-                    'desired properties.',
-                    resource.arn
-                )
 
             # Add to config file
             cloudknot.config.add_resource(
                 'job-definitions', self.name, self.arn
             )
 
-            logging.info(
+            mod_logger.info(
                 'Retrieved pre-existing job definition {name:s}'.format(
                     name=self.name
                 )
+            )
+        elif (resource.exists and resource.status == 'INACTIVE'
+              and arn_or_name_only):
+            raise ResourceExistsException(
+                'You retrieved an inactive job definition and cloudknot '
+                'has no way to reactivate it. Instead of retrieving the '
+                'job definition using an ARN, create a new one with your '
+                'desired properties.',
+                resource.arn
             )
         else:
             # If user supplied only a name or only an arn, expecting to
@@ -141,10 +147,11 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             if not isinstance(job_role, IamRole):
                 raise ValueError('job_role must be an instance of IamRole')
             self._job_role = job_role
+            self._job_role_arn = job_role.arn
 
             # Validate docker_image input
             if not (isinstance(docker_image, DockerRepo)
-                    or isinstance(docker_image, str)):
+                    or isinstance(docker_image, six.string_types)):
                 raise ValueError(
                     'docker_image must be an instance of DockerRepo '
                     'or a string'
@@ -178,6 +185,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
     # Declare read-only parameters
     pre_existing = property(operator.attrgetter('_pre_existing'))
     job_role = property(operator.attrgetter('_job_role'))
+    job_role_arn = property(operator.attrgetter('_job_role_arn'))
     docker_image = property(operator.attrgetter('_docker_image'))
     vcpus = property(operator.attrgetter('_vcpus'))
     retries = property(operator.attrgetter('_retries'))
@@ -198,8 +206,8 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         # define a namedtuple for return value type
         ResourceExists = namedtuple(
             'ResourceExists',
-            ['exists', 'name', 'status', 'job_role', 'docker_image', 'vcpus',
-             'memory', 'username', 'retries', 'arn']
+            ['exists', 'name', 'status', 'job_role_arn', 'docker_image',
+             'vcpus', 'memory', 'username', 'retries', 'arn']
         )
         # make all but the first value default to None
         ResourceExists.__new__.__defaults__ = \
@@ -217,8 +225,16 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             )
 
         if response.get('jobDefinitions'):
+            # Get active job definitions
+            active_job_defs = [jd for jd in response.get('jobDefinitions')
+                               if jd['status'] == 'ACTIVE']
+            if active_job_defs:
+                job_def = sorted(active_job_defs, key=lambda j: j['revision'],
+                                 reverse=True)[0]
+            else:
+                job_def = response.get('jobDefinitions')[0]
+
             # Job def exists. Get job def details
-            job_def = response.get('jobDefinitions')[0]
             job_def_name = job_def['jobDefinitionName']
             job_def_status = job_def['status']
             job_def_arn = job_def['jobDefinitionArn']
@@ -231,13 +247,13 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             job_role_arn = container_properties['jobRoleArn']
             container_image = container_properties['image']
 
-            logging.info('Job definition {name:s} already exists.'.format(
+            mod_logger.info('Job definition {name:s} already exists.'.format(
                 name=job_def_name
             ))
 
             return ResourceExists(
                 exists=True, name=job_def_name, status=job_def_status,
-                job_role=job_role_arn, docker_image=container_image,
+                job_role_arn=job_role_arn, docker_image=container_image,
                 vcpus=vcpus, memory=memory, username=username,
                 retries=retries, arn=job_def_arn
             )
@@ -254,15 +270,16 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         """
         # If docker_image is a string, assume it contains the image URI
         # Else it's a DockerRepo instance, get the uri property
-        image = self.docker_image if isinstance(self.docker_image, str) \
-            else self.docker_image.uri
+        image = self.docker_image \
+            if isinstance(self.docker_image, six.string_types) \
+            else self.docker_image.repo_uri
 
         job_container_properties = {
             'image': image,
             'vcpus': self.vcpus,
             'memory': self.memory,
             'command': [],
-            'jobRoleArn': self.job_role.arn,
+            'jobRoleArn': self.job_role_arn,
             'user': self.username
         }
 
@@ -279,7 +296,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         # Add this job def to the list of job definitions in the config file
         cloudknot.config.add_resource('job-definitions', self.name, arn)
 
-        logging.info('Created AWS batch job definition {name:s}'.format(
+        mod_logger.info('Created AWS batch job definition {name:s}'.format(
             name=self.name
         ))
 
@@ -297,7 +314,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         # Remove this job def from the list of job defs in the config file
         cloudknot.config.remove_resource('job-definitions', self.name)
 
-        logging.info('Deregistered job definition {name:s}'.format(
+        mod_logger.info('Deregistered job definition {name:s}'.format(
             name=self.name
         ))
 
@@ -428,7 +445,7 @@ class ComputeEnvironment(ObjectWithArn):
             super(ComputeEnvironment, self).__init__(name=resource.name)
 
             self._batch_service_role = None
-            self._batch_service_arn = resource.batch_service_arn
+            self._batch_service_role_arn = resource.batch_service_role_arn
 
             self._instance_role = None
             self._instance_role_arn = resource.instance_role_arn
@@ -457,7 +474,7 @@ class ComputeEnvironment(ObjectWithArn):
                 'compute-environments', self.name, self.arn
             )
 
-            logging.info(
+            mod_logger.info(
                 'Retrieved pre-existing compute environment {name:s}'.format(
                     name=self.name
                 )
@@ -498,7 +515,7 @@ class ComputeEnvironment(ObjectWithArn):
                     'instance with service type "batch"'
                 )
             self._batch_service_role = batch_service_role
-            self._batch_service_arn = batch_service_role.arn
+            self._batch_service_role_arn = batch_service_role.arn
 
             # Validate instance_role is actually an instance role
             if not (isinstance(instance_role, IamRole)
@@ -541,10 +558,10 @@ class ComputeEnvironment(ObjectWithArn):
                 self._spot_fleet_role_arn = None
 
             # Default instance type is 'optimal'
-            instance_types = instance_types if instance_types else ('optimal',)
-            if isinstance(instance_types, str):
+            instance_types = instance_types if instance_types else ['optimal']
+            if isinstance(instance_types, six.string_types):
                 self._instance_types = [instance_types]
-            elif all(isinstance(x, str) for x in instance_types):
+            elif all(isinstance(x, six.string_types) for x in instance_types):
                 self._instance_types = list(instance_types)
             else:
                 raise ValueError(
@@ -568,8 +585,8 @@ class ComputeEnvironment(ObjectWithArn):
             }
             if not set(self._instance_types) < valid_instance_types:
                 raise ValueError(
-                    'instance_types must be a subset of {types:s}'.format(
-                        types=str(valid_instance_types)
+                    'instance_types must be a subset of {types!s}'.format(
+                        types=valid_instance_types
                     )
                 )
 
@@ -605,7 +622,7 @@ class ComputeEnvironment(ObjectWithArn):
 
             # Validate image_id input
             if image_id:
-                if not isinstance(image_id, str):
+                if not isinstance(image_id, six.string_types):
                     raise ValueError('if provided, image_id must be a string')
                 self._image_id = image_id
             else:
@@ -613,7 +630,7 @@ class ComputeEnvironment(ObjectWithArn):
 
             # Validate ec2_key_pair input
             if ec2_key_pair:
-                if not isinstance(ec2_key_pair, str):
+                if not isinstance(ec2_key_pair, six.string_types):
                     raise ValueError(
                         'if provided, ec2_key_pair must be a string'
                     )
@@ -628,7 +645,7 @@ class ComputeEnvironment(ObjectWithArn):
                         'if provided, tags must be an instance of dict'
                     )
                 elif self.resource_type == 'SPOT':
-                    logging.warning(
+                    mod_logger.warning(
                         'Tags are not supported for compute environment of '
                         'type "SPOT". Ignoring input tags'
                     )
@@ -655,7 +672,9 @@ class ComputeEnvironment(ObjectWithArn):
     # Declare read-only properties
     pre_existing = property(operator.attrgetter('_pre_existing'))
     batch_service_role = property(operator.attrgetter('_batch_service_role'))
-    batch_service_arn = property(operator.attrgetter('_batch_service_arn'))
+    batch_service_role_arn = property(
+        operator.attrgetter('_batch_service_role_arn')
+    )
 
     instance_role = property(operator.attrgetter('_instance_role'))
     instance_role_arn = property(operator.attrgetter('_instance_role_arn'))
@@ -690,7 +709,7 @@ class ComputeEnvironment(ObjectWithArn):
         -------
         namedtuple ResourceExists
             A namedtuple with fields
-            ['exists', 'name', 'batch_service_arn', 'instance_role_arn',
+            ['exists', 'name', 'batch_service_role_arn', 'instance_role_arn',
              'subnets', 'security_group_ids', 'spot_fleet_role_arn',
              'instance_types', 'resource_type', 'min_vcpus', 'max_vcpus',
              'desired_vcpus', 'image_id', 'ec2_key_pair', 'tags',
@@ -699,7 +718,7 @@ class ComputeEnvironment(ObjectWithArn):
         # define a namedtuple for return value type
         ResourceExists = namedtuple(
             'ResourceExists',
-            ['exists', 'name', 'batch_service_arn', 'instance_role_arn',
+            ['exists', 'name', 'batch_service_role_arn', 'instance_role_arn',
              'subnets', 'security_group_ids', 'spot_fleet_role_arn',
              'instance_types', 'resource_type', 'min_vcpus', 'max_vcpus',
              'desired_vcpus', 'image_id', 'ec2_key_pair', 'tags',
@@ -723,7 +742,7 @@ class ComputeEnvironment(ObjectWithArn):
         if response.get('computeEnvironments'):
             ce = response.get('computeEnvironments')[0]
             ce_name = ce['computeEnvironmentName']
-            batch_service_arn = ce['serviceRole']
+            batch_service_role_arn = ce['serviceRole']
             ce_arn = ce['computeEnvironmentArn']
 
             cr = ce['computeResources']
@@ -767,12 +786,15 @@ class ComputeEnvironment(ObjectWithArn):
             except KeyError:
                 spot_fleet_role_arn = None
 
-            logging.info('Compute environment {name:s} already exists.'.format(
-                name=ce_name
-            ))
+            mod_logger.info(
+                'Compute environment {name:s} already exists.'.format(
+                    name=ce_name
+                )
+            )
 
             return ResourceExists(
-                exists=True, name=ce_name, batch_service_arn=batch_service_arn,
+                exists=True, name=ce_name,
+                batch_service_role_arn=batch_service_role_arn,
                 instance_role_arn=instance_role_arn, subnets=subnets,
                 security_group_ids=security_group_ids,
                 spot_fleet_role_arn=spot_fleet_role_arn,
@@ -824,7 +846,7 @@ class ComputeEnvironment(ObjectWithArn):
             type='MANAGED',
             state='ENABLED',
             computeResources=compute_resources,
-            serviceRole=self.batch_service_arn
+            serviceRole=self.batch_service_role_arn
         )
 
         arn = response['computeEnvironmentArn']
@@ -832,7 +854,7 @@ class ComputeEnvironment(ObjectWithArn):
         # Add this compute env to the list of compute envs in the config file
         cloudknot.config.add_resource('compute-environments', self.name, arn)
 
-        logging.info('Created compute environment {name:s}'.format(
+        mod_logger.info('Created compute environment {name:s}'.format(
             name=self.name
         ))
 
@@ -860,6 +882,13 @@ class ComputeEnvironment(ObjectWithArn):
             state='DISABLED'
         )
 
+        # Now delete the associated ECS cluster
+        response = clients['batch'].describe_compute_environments(
+            computeEnvironments=[self.arn]
+        )
+        cluster_arn = response.get('computeEnvironments')[0]['ecsClusterArn']
+        clients['ecs'].delete_cluster(cluster=cluster_arn)
+
         # Wait for any associated job queues to finish updating
         response = clients['batch'].describe_job_queues()
         associated_queues = list(filter(
@@ -881,15 +910,13 @@ class ComputeEnvironment(ObjectWithArn):
             except clients['batch'].exceptions.ClientException as error:
                 error_message = error.response['Error']['Message']
                 if error_message == 'Cannot delete, found existing ' \
-                                    'JobQueue relationship':
+                                    'JobQueue relationship':  # pragma: nocover
                     raise CannotDeleteResourceException(
                         'Could not delete this compute environment '
                         'because it has job queue(s) associated with it. '
                         'If you want to delete this compute environment, '
                         'first delete the job queues with the following '
-                        'ARNS: {queues:s}'.format(
-                            queues=str(associated_queues)
-                        ),
+                        'ARNS: {queues!s}'.format(queues=associated_queues),
                         resource_id=associated_queues
                     )
 
@@ -897,7 +924,7 @@ class ComputeEnvironment(ObjectWithArn):
         # in config file
         cloudknot.config.remove_resource('compute-environments', self.name)
 
-        logging.info('Clobbered compute environment {name:s}'.format(
+        mod_logger.info('Clobbered compute environment {name:s}'.format(
             name=self.name
         ))
 
@@ -968,7 +995,7 @@ class JobQueue(ObjectWithArn):
 
             cloudknot.config.add_resource('job-queues', self.name, self.arn)
 
-            logging.info('Retrieved pre-existing job queue {name:s}'.format(
+            mod_logger.info('Retrieved pre-existing job queue {name:s}'.format(
                 name=self.name
             ))
         else:
@@ -1068,7 +1095,7 @@ class JobQueue(ObjectWithArn):
             compute_environment_arns = q[0]['computeEnvironmentOrder']
             priority = q[0]['priority']
 
-            logging.info('Job Queue {name:s} already exists.'.format(
+            mod_logger.info('Job Queue {name:s} already exists.'.format(
                 name=name
             ))
 
@@ -1114,7 +1141,7 @@ class JobQueue(ObjectWithArn):
         # Add this job queue to the list of job queues in the config file
         cloudknot.config.add_resource('job-queues', self.name, arn)
 
-        logging.info('Created job queue {name:s}'.format(name=self.name))
+        mod_logger.info('Created job queue {name:s}'.format(name=self.name))
 
         return arn
 
@@ -1185,7 +1212,7 @@ class JobQueue(ObjectWithArn):
                     reason='Terminated to force job queue deletion'
                 )
 
-                logging.info('Terminated job {id:s}'.format(id=job_id))
+                mod_logger.info('Terminated job {id:s}'.format(id=job_id))
 
         # Finally, delete the job queue
         retry.call(clients['batch'].delete_job_queue, jobQueue=self.arn)
@@ -1193,7 +1220,7 @@ class JobQueue(ObjectWithArn):
         # Remove this job queue from the list of job queues in config file
         cloudknot.config.remove_resource('job-queues', self.name)
 
-        logging.info('Clobbered job queue {name:s}'.format(name=self.name))
+        mod_logger.info('Clobbered job queue {name:s}'.format(name=self.name))
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -1259,9 +1286,9 @@ class BatchJob(NamedObject):
             self._environment_variables = job.environment_variables
             self._job_id = job.job_id
 
-            cloudknot.config.add_resource('jobs', self.job_id, self.name)
+            cloudknot.config.add_resource('batch-jobs', self.job_id, self.name)
 
-            logging.info('Retrieved pre-existing batch job {id:s}'.format(
+            mod_logger.info('Retrieved pre-existing batch job {id:s}'.format(
                 id=self.job_id
             ))
         else:
@@ -1278,9 +1305,9 @@ class BatchJob(NamedObject):
             self._job_definition_arn = job_definition.arn
 
             if commands:
-                if isinstance(commands, str):
+                if isinstance(commands, six.string_types):
                     self._commands = [commands]
-                elif all(isinstance(x, str) for x in commands):
+                elif all(isinstance(x, six.string_types) for x in commands):
                     self._commands = list(commands)
                 else:
                     raise ValueError('if provided, commands must be a string '
@@ -1344,7 +1371,7 @@ class BatchJob(NamedObject):
             commands = job['container']['command']
             environment_variables = job['container']['environment']
 
-            logging.info('Job {id:s} exists.'.format(id=job_id))
+            mod_logger.info('Job {id:s} exists.'.format(id=job_id))
 
             return JobExists(
                 exists=True, name=name, job_queue_arn=job_queue_arn,
@@ -1378,10 +1405,10 @@ class BatchJob(NamedObject):
 
         job_id = response['jobId']
 
-        # Add this job to the list of jobs in the config file
-        cloudknot.config.add_resource('jobs', job_id, self.name)
+        # Remove this job from the list of jobs in the config file
+        cloudknot.config.add_resource('batch-jobs', self.job_id, self.name)
 
-        logging.info(
+        mod_logger.info(
             'Submitted batch job {name:s} with jobID '
             '{job_id:s}'.format(name=self.name, job_id=job_id)
         )
@@ -1408,22 +1435,46 @@ class BatchJob(NamedObject):
         return status
 
     def terminate(self, reason):
-        """Terminate AWS batch job using instance parameter `self.job_id`
+        """Kill AWS batch job using instance parameter `self.job_id`
+
+        kill() combines the cancel and terminate AWS CLI commands. Jobs that
+        are in the SUBMITTED, PENDING, or RUNNABLE state must be cancelled,
+        while jobs that are in the STARTING or RUNNING state must be
+        terminated.
 
         Parameters
         ----------
         reason : string
             A message to attach to the job that explains the reason for
-            cancelling it. This message is returned by future DescribeJobs
-            operations on the job. This message is also recorded in the AWS
-            Batch activity logs.
+            cancelling/terminating it. This message is returned by future
+            DescribeJobs operations on the job. This message is also recorded
+            in the AWS Batch activity logs.
         """
         # Require the user to supply a reason for job termination
-        if not isinstance(reason, str):
+        if not isinstance(reason, six.string_types):
             raise ValueError('reason must be a string.')
 
-        clients['batch'].terminate_job(jobId=self.job_id, reason=reason)
+        state = self.status['status']
 
-        logging.info('Terminated job {name:s} with jobID {job_id:s}'.format(
-            name=self.name, job_id=self.job_id
-        ))
+        if state in ['SUBMITTED', 'PENDING', 'RUNNABLE']:
+            clients['batch'].cancel_job(jobId=self.job_id, reason=reason)
+            mod_logger.info(
+                'Cancelled job {name:s} with jobID {job_id:s}'.format(
+                    name=self.name, job_id=self.job_id
+                )
+            )
+        elif state in ['STARTING', 'RUNNING']:
+            clients['batch'].terminate_job(jobId=self.job_id, reason=reason)
+            mod_logger.info(
+                'Terminated job {name:s} with jobID {job_id:s}'.format(
+                    name=self.name, job_id=self.job_id
+                )
+            )
+
+    def clobber(self):
+        """Kill an batch job and remove it's info from config"""
+        self.terminate(reason='Cloudknot job killed after calling '
+                              'BatchJob.clobber()')
+
+        # Remove this job from the list of jobs in the config file
+        cloudknot.config.remove_resource('batch-jobs', self.job_id)

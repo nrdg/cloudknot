@@ -9,6 +9,8 @@ from .base_classes import NamedObject, clients
 
 __all__ = ["DockerRepo"]
 
+mod_logger = logging.getLogger(__name__)
+
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 class DockerRepo(NamedObject):
@@ -16,15 +18,14 @@ class DockerRepo(NamedObject):
     def __init__(self, name):
         """Initialize a Docker repo object.
 
-        Use may provide only `name` input, indicating that they would
-        like to retrieve a pre-existing repo/image from AWS ECR. Or
-        they may provide a name, tags, and build_path to build a Docker
-        image locally, tag it, and push it to an AWS ECR repository.
+        User may provide only `name` input, indicating that they would
+        like to retrieve a pre-existing repo/image from AWS ECR. Or, if
+        the repo does not exist, it will be created.
 
         Parameters
         ----------
-        name : string
-            Name of the image
+        name : str
+            Name of the remote repository
         """
         super(DockerRepo, self).__init__(name=name)
 
@@ -60,8 +61,8 @@ class DockerRepo(NamedObject):
             repo_uri = response['repositories'][0]['repositoryUri']
             repo_registry_id = response['repositories'][0]['registryId']
 
-            logging.info('Repository {name:s} already exists at '
-                         '{uri:s}'.format(name=self.name, uri=repo_uri))
+            mod_logger.info('Repository {name:s} already exists at '
+                            '{uri:s}'.format(name=self.name, uri=repo_uri))
         except clients['ecr'].exceptions.RepositoryNotFoundException:
             # If it doesn't exists already, then create it
             response = clients['ecr'].create_repository(
@@ -72,7 +73,7 @@ class DockerRepo(NamedObject):
             repo_uri = response['repository']['repositoryUri']
             repo_registry_id = response['repository']['registryId']
 
-            logging.info('Created repository {name:s} at {uri:s}'.format(
+            mod_logger.info('Created repository {name:s} at {uri:s}'.format(
                 name=self.name, uri=repo_uri
             ))
 
@@ -103,4 +104,6 @@ class DockerRepo(NamedObject):
         # Remove from the config file
         cloudknot.config.remove_resource('docker-repos', self.name)
 
-        logging.info('Clobbered docker image {name:s}'.format(name=self.name))
+        mod_logger.info(
+            'Clobbered docker image {name:s}'.format(name=self.name)
+        )

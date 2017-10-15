@@ -9,12 +9,14 @@ import sys
 import time
 from collections import namedtuple
 
-from ..config import CONFIG, get_config_file
+from ..config import get_config_file
 
 __all__ = ["ResourceDoesNotExistException",
            "ResourceExistsException", "CannotDeleteResourceException",
            "NamedObject", "ObjectWithArn", "ObjectWithUsernameAndMemory",
            "clients", "wait_for_compute_environment", "wait_for_job_queue"]
+
+mod_logger = logging.getLogger(__name__)
 
 
 def get_region():
@@ -31,11 +33,11 @@ def get_region():
         default AWS region
     """
     config_file = get_config_file()
-    CONFIG.clear()
-    CONFIG.read(config_file)
+    config = configparser.ConfigParser()
+    config.read(config_file)
 
-    if CONFIG.has_section('aws') and CONFIG.has_option('aws', 'region'):
-        return CONFIG.get('aws', 'region')
+    if config.has_section('aws') and config.has_option('aws', 'region'):
+        return config.get('aws', 'region')
     else:
         # Set `region`, the fallback region in case the cloudknot
         # config file has no region set
@@ -62,12 +64,12 @@ def get_region():
             else:
                 region = fallback_region
 
-        if not CONFIG.has_section('aws'):
-            CONFIG.add_section('aws')
+        if not config.has_section('aws'):
+            config.add_section('aws')
 
-        CONFIG.set('aws', 'region', region)
+        config.set('aws', 'region', region)
         with open(config_file, 'w') as f:
-            CONFIG.write(f)
+            config.write(f)
 
         return region
 
@@ -90,20 +92,20 @@ def set_region(region='us-east-1'):
     region_names = [d['RegionName'] for d in response.get('Regions')]
 
     if region not in region_names:
-        raise ValueError('`region` must be in {regions:s}'.format(
-            regions=str(region_names)
+        raise ValueError('`region` must be in {regions!s}'.format(
+            regions=region_names
         ))
 
     config_file = get_config_file()
-    CONFIG.clear()
-    CONFIG.read(config_file)
+    config = configparser.ConfigParser()
+    config.read(config_file)
 
-    if not CONFIG.has_section('aws'):
-        CONFIG.add_section('aws')
+    if not config.has_section('aws'):  # pragma: nocover
+        config.add_section('aws')
 
-    CONFIG.set('aws', 'region', region)
+    config.set('aws', 'region', region)
     with open(config_file, 'w') as f:
-        CONFIG.write(f)
+        config.write(f)
 
     # Update the boto3 clients so that the region change is reflected
     # throughout the package
@@ -118,6 +120,9 @@ def set_region(region='us-east-1'):
     )
     clients['ecr'] = boto3.Session(profile_name=get_profile()).client(
         'ecr', region_name=region
+    )
+    clients['ecs'] = boto3.Session(profile_name=get_profile()).client(
+        'ecs', region_name=region
     )
 
 
@@ -189,20 +194,20 @@ def get_profile():
         credentials file
     """
     config_file = get_config_file()
-    CONFIG.clear()
-    CONFIG.read(config_file)
+    config = configparser.ConfigParser()
+    config.read(config_file)
 
-    if CONFIG.has_section('aws') and CONFIG.has_option('aws', 'profile'):
-        return CONFIG.get('aws', 'profile')
+    if config.has_section('aws') and config.has_option('aws', 'profile'):
+        return config.get('aws', 'profile')
     else:
         if 'default' in list_profiles().profile_names:
             # Set profile in cloudknot config to 'default' and return 'default'
-            if not CONFIG.has_section('aws'):
-                CONFIG.add_section('aws')
+            if not config.has_section('aws'):
+                config.add_section('aws')
 
-            CONFIG.set('aws', 'profile', 'default')
+            config.set('aws', 'profile', 'default')
             with open(config_file, 'w') as f:
-                CONFIG.write(f)
+                config.write(f)
 
             return 'default'
         else:
@@ -237,15 +242,15 @@ def set_profile(profile_name):
         )
 
     config_file = get_config_file()
-    CONFIG.clear()
-    CONFIG.read(config_file)
+    config = configparser.ConfigParser()
+    config.read(config_file)
 
-    if not CONFIG.has_section('aws'):
-        CONFIG.add_section('aws')
+    if not config.has_section('aws'):  # pragma: nocover
+        config.add_section('aws')
 
-    CONFIG.set('aws', 'profile', profile_name)
+    config.set('aws', 'profile', profile_name)
     with open(config_file, 'w') as f:
-        CONFIG.write(f)
+        config.write(f)
 
     # Update the boto3 clients so that the profile change is reflected
     # throughout the package
@@ -261,6 +266,9 @@ def set_profile(profile_name):
     clients['ecr'] = boto3.Session(profile_name=profile_name).client(
         'ecr', region_name=get_region()
     )
+    clients['ecs'] = boto3.Session(profile_name=profile_name).client(
+        'ecs', region_name=get_region()
+    )
 
 
 clients = {
@@ -275,6 +283,9 @@ clients = {
     ),
     'ecr': boto3.Session(profile_name=get_profile()).client(
         'ecr', region_name=get_region()
+    ),
+    'ecs': boto3.Session(profile_name=get_profile()).client(
+        'ecs', region_name=get_region()
     )
 }
 
@@ -291,6 +302,9 @@ def refresh_clients():
     )
     clients['ecr'] = boto3.Session(profile_name=get_profile()).client(
         'ecr', region_name=get_region()
+    )
+    clients['ecs'] = boto3.Session(profile_name=get_profile()).client(
+        'ecs', region_name=get_region()
     )
 
 
@@ -452,7 +466,7 @@ def wait_for_compute_environment(arn, name, log=True, max_wait_time=60):
     while waiting:
         if log:
             # Log waiting info
-            logging.info(
+            mod_logger.info(
                 'Waiting for AWS to finish modifying compute environment '
                 '{name:s}.'.format(name=name)
             )
@@ -502,9 +516,9 @@ def wait_for_job_queue(name, log=True, max_wait_time=60):
     waiting = True
     num_waits = 0
     while waiting:
-        if log:
+        if log:  # pragma: nocover
             # Log waiting info
-            logging.info(
+            mod_logger.info(
                 'Waiting for AWS to finish modifying job queue '
                 '{name:s}.'.format(name=name)
             )

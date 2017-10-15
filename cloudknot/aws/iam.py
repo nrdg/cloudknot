@@ -4,6 +4,7 @@ import cloudknot.config
 import json
 import logging
 import operator
+import six
 import tenacity
 from collections import namedtuple
 
@@ -11,6 +12,8 @@ from .base_classes import ObjectWithArn, clients, \
     ResourceExistsException, ResourceDoesNotExistException
 
 __all__ = ["IamRole"]
+
+mod_logger = logging.getLogger(__name__)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -103,11 +106,11 @@ class IamRole(ObjectWithArn):
 
             # Check the user supplied policies against the available policies
             # Remove redundant entries
-            if isinstance(policies, str):
+            if isinstance(policies, six.string_types):
                 input_policies = {policies}
             else:
                 try:
-                    if all(isinstance(x, str) for x in policies):
+                    if all(isinstance(x, six.string_types) for x in policies):
                         input_policies = set(list(policies))
                     else:
                         raise ValueError('policies must be a string or a '
@@ -133,8 +136,8 @@ class IamRole(ObjectWithArn):
             if not (input_policies < set(aws_policies)):
                 bad_policies = input_policies - set(aws_policies)
                 raise ValueError(
-                    'Could not find the policies {bad_policies:s} on '
-                    'AWS.'.format(bad_policies=str(bad_policies))
+                    'Could not find the policies {bad_policies!s} on '
+                    'AWS.'.format(bad_policies=bad_policies)
                 )
 
             self._policies = tuple(input_policies)
@@ -201,7 +204,7 @@ class IamRole(ObjectWithArn):
             attached_policies = response.get('AttachedPolicies')
             policies = tuple([d['PolicyName'] for d in attached_policies])
 
-            logging.info('IAM role {name:s} already exists: {arn:s}'.format(
+            mod_logger.info('IAM role {name:s} already exists: {arn:s}'.format(
                 name=self.name, arn=arn
             ))
 
@@ -230,7 +233,7 @@ class IamRole(ObjectWithArn):
         )
         role_arn = response.get('Role')['Arn']
 
-        logging.info('Created role {name:s} with arn {arn:s}'.format(
+        mod_logger.info('Created role {name:s} with arn {arn:s}'.format(
             name=self.name, arn=role_arn
         ))
 
@@ -268,9 +271,11 @@ class IamRole(ObjectWithArn):
                 PolicyArn=policy_arn, RoleName=self.name
             )
 
-            logging.info('Attached policy {policy:s} to role {role:s}'.format(
-                policy=policy, role=self.name
-            ))
+            mod_logger.info(
+                'Attached policy {policy:s} to role {role:s}'.format(
+                    policy=policy, role=self.name
+                )
+            )
 
         if add_instance_profile:
             instance_profile_name = self.name + '-instance-profile'
@@ -302,7 +307,7 @@ class IamRole(ObjectWithArn):
                     RoleName=self.name
                 )
 
-            logging.info('Created instance profile {name:s}'.format(
+            mod_logger.info('Created instance profile {name:s}'.format(
                 name=instance_profile_name
             ))
 
@@ -391,4 +396,4 @@ class IamRole(ObjectWithArn):
         # Remove this role from the list of roles in the config file
         cloudknot.config.remove_resource('roles', self.name)
 
-        logging.info('Deleted role {name:s}'.format(name=self.name))
+        mod_logger.info('Deleted role {name:s}'.format(name=self.name))
