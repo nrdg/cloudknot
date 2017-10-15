@@ -396,4 +396,8 @@ class IamRole(ObjectWithArn):
         # Remove this role from the list of roles in the config file
         cloudknot.config.remove_resource('roles', self.name)
 
+        # Set the clobbered parameter to True,
+        # preventing subsequent method calls
+        self._clobbered = True
+
         mod_logger.info('Deleted role {name:s}'.format(name=self.name))

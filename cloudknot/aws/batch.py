@@ -314,6 +314,10 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         # Remove this job def from the list of job defs in the config file
         cloudknot.config.remove_resource('job-definitions', self.name)
 
+        # Set the clobbered parameter to True,
+        # preventing subsequent method calls
+        self._clobbered = True
+
         mod_logger.info('Deregistered job definition {name:s}'.format(
             name=self.name
         ))
@@ -924,6 +928,10 @@ class ComputeEnvironment(ObjectWithArn):
         # in config file
         cloudknot.config.remove_resource('compute-environments', self.name)
 
+        # Set the clobbered parameter to True,
+        # preventing subsequent method calls
+        self._clobbered = True
+
         mod_logger.info('Clobbered compute environment {name:s}'.format(
             name=self.name
         ))
@@ -1220,6 +1228,10 @@ class JobQueue(ObjectWithArn):
         # Remove this job queue from the list of job queues in config file
         cloudknot.config.remove_resource('job-queues', self.name)
 
+        # Set the clobbered parameter to True,
+        # preventing subsequent method calls
+        self._clobbered = True
+
         mod_logger.info('Clobbered job queue {name:s}'.format(name=self.name))
 
 
@@ -1475,6 +1487,10 @@ class BatchJob(NamedObject):
         """Kill an batch job and remove it's info from config"""
         self.terminate(reason='Cloudknot job killed after calling '
                               'BatchJob.clobber()')
+
+        # Set the clobbered parameter to True,
+        # preventing subsequent method calls
+        self._clobbered = True
 
         # Remove this job from the list of jobs in the config file
         cloudknot.config.remove_resource('batch-jobs', self.job_id)

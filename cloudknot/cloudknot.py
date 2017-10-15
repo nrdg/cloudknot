@@ -15,7 +15,7 @@ mod_logger = logging.getLogger(__name__)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-class Pars(object):
+class Pars(aws.NamedObject):
     """PARS stands for Persistent AWS Resource Set
 
     This object collects AWS resources that could, in theory, be created only
@@ -74,7 +74,7 @@ class Pars(object):
             raise ValueError('PARS name must be a string. You passed a '
                              '{t!s}'.format(t=type(name)))
 
-        self._name = name
+        super(Pars, self).__init__(name=name)
 
         # Validate vpc_name input
         if vpc_name:
@@ -600,11 +600,15 @@ class Pars(object):
         with open(get_config_file(), 'w') as f:
             config.write(f)
 
+        # Set the clobbered parameter to True,
+        # preventing subsequent method calls
+        self._clobbered = True
+
         mod_logger.info('Clobbered PARS {name:s}'.format(name=self.name))
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-class Knot(object):
+class Knot(aws.NamedObject):
     """A collection of resources and methods to submit jobs to AWS Batch
 
     This object collects AWS resources that should be created once for each
@@ -730,7 +734,7 @@ class Knot(object):
             raise ValueError('Knot name must be a string. You passed a '
                              '{t!s}'.format(t=type(name)))
 
-        self._name = name
+        super(Knot, self).__init__(name=name)
         self._knot_name = 'knot ' + name
 
         image_tags = kwargs.pop('image_tags', ['cloudknot'])
@@ -1271,5 +1275,9 @@ class Knot(object):
         config.remove_section(self._knot_name)
         with open(get_config_file(), 'w') as f:
             config.write(f)
+
+        # Set the clobbered parameter to True,
+        # preventing subsequent method calls
+        self._clobbered = True
 
         mod_logger.info('Clobbered Knot {name:s}'.format(name=self.name))

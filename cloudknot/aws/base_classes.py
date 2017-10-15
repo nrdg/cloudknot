@@ -371,8 +371,10 @@ class NamedObject(object):
             Name of the object
         """
         self._name = str(name)
+        self._clobbered = False
 
     name = property(operator.attrgetter('_name'))
+    clobbered = property(operator.attrgetter('_clobbered'))
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit

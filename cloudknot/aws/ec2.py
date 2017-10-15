@@ -381,6 +381,10 @@ class Vpc(NamedObject):
             # Remove this VPC from the list of VPCs in the config file
             cloudknot.config.remove_resource('vpc', self.vpc_id)
 
+            # Set the clobbered parameter to True,
+            # preventing subsequent method calls
+            self._clobbered = True
+
             mod_logger.info('Deleted VPC {name:s}'.format(name=self.name))
         except clients['ec2'].exceptions.ClientError as e:
             # Check for dependency violation and pass exception to user
@@ -693,6 +697,10 @@ class SecurityGroup(NamedObject):
         cloudknot.config.remove_resource(
             'security-groups', self.security_group_id
         )
+
+        # Set the clobbered parameter to True,
+        # preventing subsequent method calls
+        self._clobbered = True
 
         mod_logger.info('Clobbered security group {id:s}'.format(
             id=self.security_group_id
