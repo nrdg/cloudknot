@@ -432,6 +432,12 @@ class Pars(aws.NamedObject):
             -------
             None
             """
+            if self.clobbered:
+                raise aws.ResourceClobberedException(
+                    'This PARS has already been clobbered.',
+                    self.name
+                )
+
             # Verify input
             if not isinstance(new_role, aws.IamRole):
                 raise ValueError('new role must be an instance of IamRole')
@@ -497,6 +503,12 @@ class Pars(aws.NamedObject):
         -------
         None
         """
+        if self.clobbered:
+            raise aws.ResourceClobberedException(
+                'This PARS has already been clobbered.',
+                self.name
+            )
+
         if not isinstance(v, aws.Vpc):
             raise ValueError('new vpc must be an instance of Vpc')
 
@@ -552,6 +564,12 @@ class Pars(aws.NamedObject):
         -------
         None
         """
+        if self.clobbered:
+            raise aws.ResourceClobberedException(
+                'This PARS has already been clobbered.',
+                self.name
+            )
+
         if not isinstance(sg, aws.SecurityGroup):
             raise ValueError('new security group must be an instance of '
                              'SecurityGroup')
@@ -1165,6 +1183,12 @@ class Knot(aws.NamedObject):
     job_ids = property(fget=operator.attrgetter('_job_ids'))
 
     def submit(self, commands, env_vars):
+        if self.clobbered:
+            raise aws.ResourceClobberedException(
+                'This Knot has already been clobbered.',
+                self.name
+            )
+
         # commands should be a sequence of sequences of strings
         if not all(all(isinstance(s, six.string_types) for s in sublist)
                    for sublist in commands):
@@ -1214,6 +1238,12 @@ class Knot(aws.NamedObject):
             A list of dicts [{'job': BatchJob instance, 'name': BatchJob.name,
             'status': BatchJob.status, 'id': BatchJob.job_id},]
         """
+        if self.clobbered:
+            raise aws.ResourceClobberedException(
+                'This Knot has already been clobbered.',
+                self.name
+            )
+
         jobs_info = [
             {
                 'job': job,
@@ -1228,6 +1258,12 @@ class Knot(aws.NamedObject):
 
     def view_jobs(self):
         """Print the job_id, name, and status of all jobs in self.jobs"""
+        if self.clobbered:
+            raise aws.ResourceClobberedException(
+                'This Knot has already been clobbered.',
+                self.name
+            )
+
         order = {'SUBMITTED': 0, 'PENDING': 1, 'RUNNABLE': 2, 'STARTING': 3,
                  'RUNNING': 4, 'FAILED': 5, 'SUCCEEDED': 6}
         job_info = sorted(self.get_jobs(), key=lambda j: order[j['status']])

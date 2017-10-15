@@ -13,7 +13,8 @@ from pipreqs import pipreqs
 
 from . import aws
 from . import config as ckconfig
-from .aws.base_classes import get_region, ResourceDoesNotExistException
+from .aws.base_classes import get_region, \
+    ResourceDoesNotExistException, ResourceClobberedException
 from .config import get_config_file
 
 __all__ = ["DockerImage"]
@@ -22,7 +23,7 @@ mod_logger = logging.getLogger(__name__)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-class DockerImage(object):
+class DockerImage(aws.NamedObject):
     """Class for dockerizing a python script or function
 
     On `__init__`, if given a python function, DockerImage will create a CLI
@@ -133,7 +134,7 @@ class DockerImage(object):
                 raise ValueError('Docker image name must be a string. You '
                                  'passed a {t!s}'.format(t=type(name)))
 
-            self._name = name
+            super(DockerImage, self).__init__(name=name)
 
             section_name = 'docker-image ' + name
 
@@ -186,7 +187,9 @@ class DockerImage(object):
                                      'existing regular file.')
 
                 self._script_path = os.path.abspath(script_path)
-                self._name = os.path.basename(self.script_path)
+                super(DockerImage, self).__init__(
+                    name=os.path.basename(self.script_path)
+                )
 
                 # Set the parent directory
                 if dir_name:
@@ -197,7 +200,7 @@ class DockerImage(object):
                 # We will create the script, Dockerfile, and requirements.txt
                 # in a new directory
                 self._clobber_script = True
-                self._name = func.__name__
+                super(DockerImage, self).__init__(name=func.__name__)
 
                 if dir_name:
                     self._build_path = os.path.abspath(dir_name)
@@ -414,6 +417,12 @@ class DockerImage(object):
         -------
         None
         """
+        if self.clobbered:
+            raise ResourceClobberedException(
+                'This docker image has already been clobbered.',
+                self.name
+            )
+
         # Validate tags input
         if isinstance(tags, six.string_types):
             tags = [tags]
@@ -479,6 +488,12 @@ class DockerImage(object):
         -------
         None
         """
+        if self.clobbered:
+            raise ResourceClobberedException(
+                'This docker image has already been clobbered.',
+                self.name
+            )
+
         # User must supply either a repo object or the repo name and uri
         if not (repo or repo_uri):
             raise ValueError('You must supply either `repo=<DockerRepo '
@@ -591,9 +606,6 @@ class DockerImage(object):
                     noprune=False
                 )
 
-        mod_logger.info('Removed local docker images '
-                        '{images!s}'.format(images=self.images))
-
         # Remove from the config file
         config_file = get_config_file()
         config = configparser.ConfigParser()
@@ -601,3 +613,8 @@ class DockerImage(object):
         config.remove_section('docker-image ' + self.name)
         with open(config_file, 'w') as f:
             config.write(f)
+
+        self._clobbered = True
+
+        mod_logger.info('Removed local docker images '
+                        '{images!s}'.format(images=self.images))

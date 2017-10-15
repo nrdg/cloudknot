@@ -11,7 +11,7 @@ from collections import namedtuple
 
 from ..config import get_config_file
 
-__all__ = ["ResourceDoesNotExistException",
+__all__ = ["ResourceDoesNotExistException", "ResourceClobberedException",
            "ResourceExistsException", "CannotDeleteResourceException",
            "NamedObject", "ObjectWithArn", "ObjectWithUsernameAndMemory",
            "clients", "wait_for_compute_environment", "wait_for_job_queue"]
@@ -328,6 +328,24 @@ class ResourceExistsException(Exception):
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 class ResourceDoesNotExistException(Exception):
     """Exception indicating that the requested AWS resource does not exists"""
+    def __init__(self, message, resource_id):
+        """Initialize the Exception
+
+        Parameters
+        ----------
+        message : string
+            The error message to display to the user
+        resource_id : string
+            The resource ID (e.g. ARN, VPC-ID) of the requested resource
+        """
+        super(ResourceDoesNotExistException, self).__init__(message)
+        self.resource_id = resource_id
+
+
+# noinspection PyPropertyAccess,PyAttributeOutsideInit
+class ResourceClobberedException(Exception):
+    """Exception indicating that the requested AWS resource has
+    already been clobbered"""
     def __init__(self, message, resource_id):
         """Initialize the Exception
 
