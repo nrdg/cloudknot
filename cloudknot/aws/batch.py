@@ -8,10 +8,10 @@ import tenacity
 from collections import namedtuple
 
 from .base_classes import NamedObject, ObjectWithArn, \
-    ObjectWithUsernameAndMemory, clients, \
+    ObjectWithUsernameAndMemory, clients, RegionException, \
     ResourceExistsException, ResourceDoesNotExistException, \
     ResourceClobberedException, CannotDeleteResourceException, \
-    wait_for_job_queue
+    wait_for_job_queue, get_region
 from .ec2 import Vpc, SecurityGroup
 from .ecr import DockerRepo
 from .iam import IamRole
@@ -312,6 +312,9 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         -------
         None
         """
+        if self.region != get_region():
+            raise RegionException(resource_region=self.region)
+
         clients['batch'].deregister_job_definition(jobDefinition=self.arn)
 
         # Remove this job def from the list of job defs in the config file
@@ -876,6 +879,9 @@ class ComputeEnvironment(ObjectWithArn):
         -------
         None
         """
+        if self.region != get_region():
+            raise RegionException(resource_region=self.region)
+
         retry = tenacity.Retrying(
             wait=tenacity.wait_exponential(max=32),
             stop=tenacity.stop_after_delay(60),
@@ -1181,6 +1187,9 @@ class JobQueue(ObjectWithArn):
                 self.arn
             )
 
+        if self.region != get_region():
+            raise RegionException(resource_region=self.region)
+
         # Validate input
         allowed_statuses = ['ALL', 'SUBMITTED', 'PENDING', 'RUNNABLE',
                             'STARTING', 'RUNNING', 'SUCCEEDED', 'FAILED']
@@ -1206,6 +1215,9 @@ class JobQueue(ObjectWithArn):
         -------
         None
         """
+        if self.region != get_region():
+            raise RegionException(resource_region=self.region)
+
         # First, disable submissions to the queue
         retry = tenacity.Retrying(
             wait=tenacity.wait_exponential(max=32),
@@ -1463,6 +1475,9 @@ class BatchJob(NamedObject):
                 self.job_id
             )
 
+        if self.region != get_region():
+            raise RegionException(resource_region=self.region)
+
         # Query the job_id
         response = clients['batch'].describe_jobs(jobs=[self.job_id])
         job = response.get('jobs')[0]
@@ -1493,6 +1508,9 @@ class BatchJob(NamedObject):
                 'This batch job has already been clobbered.',
                 self.job_id
             )
+
+        if self.region != get_region():
+            raise RegionException(resource_region=self.region)
 
         # Require the user to supply a reason for job termination
         if not isinstance(reason, six.string_types):

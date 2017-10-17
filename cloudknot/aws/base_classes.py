@@ -13,8 +13,9 @@ from ..config import get_config_file
 
 __all__ = ["ResourceDoesNotExistException", "ResourceClobberedException",
            "ResourceExistsException", "CannotDeleteResourceException",
-           "NamedObject", "ObjectWithArn", "ObjectWithUsernameAndMemory",
-           "clients", "wait_for_compute_environment", "wait_for_job_queue"]
+           "RegionException", "NamedObject", "ObjectWithArn",
+           "ObjectWithUsernameAndMemory", "clients",
+           "wait_for_compute_environment", "wait_for_job_queue"]
 
 mod_logger = logging.getLogger(__name__)
 
@@ -378,6 +379,28 @@ class CannotDeleteResourceException(Exception):
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
+class RegionException(Exception):
+    """Exception indicating that an AWS resource's region does not match
+    the current region"""
+    def __init__(self, resource_region):
+        """Initialize the Exception
+
+        Parameters
+        ----------
+        resource_region : string
+            The resource region
+        """
+        super(CannotDeleteResourceException, self).__init__(
+            "This resource's region ({resource:s}) does not match the "
+            "current region ({current:s})".format(
+                resource=resource_region, current=get_region()
+            )
+        )
+        self.current_region = get_region()
+        self.resource_region = resource_region
+
+
+# noinspection PyPropertyAccess,PyAttributeOutsideInit
 class NamedObject(object):
     """Base class for building objects with name property"""
     def __init__(self, name):
@@ -414,9 +437,7 @@ class ObjectWithArn(NamedObject):
         super(ObjectWithArn, self).__init__(name=name)
         self._arn = None
 
-    @property
-    def arn(self):
-        return self._arn
+    arn = property(operator.attrgetter('_arn'))
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit

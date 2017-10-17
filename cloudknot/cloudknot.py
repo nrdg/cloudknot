@@ -1191,6 +1191,9 @@ class Knot(aws.NamedObject):
                 self.name
             )
 
+        if self.region != aws.get_region():
+            raise aws.RegionException(self.region)
+
         # commands should be a sequence of sequences of strings
         if not all(all(isinstance(s, six.string_types) for s in sublist)
                    for sublist in commands):
@@ -1246,6 +1249,9 @@ class Knot(aws.NamedObject):
                 self.name
             )
 
+        if self.region != aws.get_region():
+            raise aws.RegionException(self.region)
+
         jobs_info = [
             {
                 'job': job,
@@ -1265,6 +1271,9 @@ class Knot(aws.NamedObject):
                 'This Knot has already been clobbered.',
                 self.name
             )
+
+        if self.region != aws.get_region():
+            raise aws.RegionException(self.region)
 
         order = {'SUBMITTED': 0, 'PENDING': 1, 'RUNNABLE': 2, 'STARTING': 3,
                  'RUNNING': 4, 'FAILED': 5, 'SUCCEEDED': 6}
@@ -1291,6 +1300,9 @@ class Knot(aws.NamedObject):
         -------
         None
         """
+        if self.region != aws.get_region():
+            raise aws.RegionException(self.region)
+
         # Delete all associated AWS resources
         for job in self.jobs:
             job.clobber()
