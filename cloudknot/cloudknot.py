@@ -391,6 +391,7 @@ class Pars(aws.NamedObject):
             config = configparser.ConfigParser()
             config.read(get_config_file())
             config.add_section(self._pars_name)
+            config.set(self._pars_name, 'region', self.region)
             config.set(
                 self._pars_name,
                 'batch-service-role', self._batch_service_role.name
@@ -1151,6 +1152,7 @@ class Knot(aws.NamedObject):
             config = configparser.ConfigParser()
             config.read(get_config_file())
             config.add_section(self._knot_name)
+            config.set(self._knot_name, 'region', self.region)
             config.set(self._knot_name, 'pars', self.pars.name)
             config.set(self._knot_name, 'docker-image', self.docker_image.name)
             config.set(self._knot_name, 'docker-repo', self.docker_repo.name)

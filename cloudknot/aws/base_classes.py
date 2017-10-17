@@ -390,9 +390,11 @@ class NamedObject(object):
         """
         self._name = str(name)
         self._clobbered = False
+        self._region = get_region()
 
     name = property(operator.attrgetter('_name'))
     clobbered = property(operator.attrgetter('_clobbered'))
+    region = property(operator.attrgetter('_region'))
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -432,11 +434,11 @@ class ObjectWithUsernameAndMemory(ObjectWithArn):
             Name of the object
 
         memory : int
-            memory (MiB) to be used for this job definition
+            memory (MiB) to be used for this resource
             Default: 32000
 
         username : string
-            username for be used for this job definition
+            username for be used for this resource
             Default: cloudknot-user
         """
         super(ObjectWithUsernameAndMemory, self).__init__(name=name)

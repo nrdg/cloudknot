@@ -78,7 +78,10 @@ class Vpc(NamedObject):
             self._instance_tenancy = resource.instance_tenancy
             self._subnet_ids = resource.subnet_ids
 
-            cloudknot.config.add_resource('vpc', self.vpc_id, self.name)
+            self._section_name = 'vpc ' + self.region
+            cloudknot.config.add_resource(
+                self._section_name, self.vpc_id, self.name
+            )
 
             mod_logger.info('Retrieved pre-existing VPC {id:s}'.format(
                 id=self.vpc_id
@@ -284,7 +287,8 @@ class Vpc(NamedObject):
         )
 
         # Add this VPC to the list of VPCs in the config file
-        cloudknot.config.add_resource('vpc', vpc_id, self.name)
+        self._section_name = 'vpc ' + self.region
+        cloudknot.config.add_resource(self._section_name, vpc_id, self.name)
 
         return vpc_id
 
@@ -379,7 +383,7 @@ class Vpc(NamedObject):
             clients['ec2'].delete_vpc(VpcId=self.vpc_id)
 
             # Remove this VPC from the list of VPCs in the config file
-            cloudknot.config.remove_resource('vpc', self.vpc_id)
+            cloudknot.config.remove_resource(self._section_name, self.vpc_id)
 
             # Set the clobbered parameter to True,
             # preventing subsequent method calls
@@ -480,8 +484,9 @@ class SecurityGroup(NamedObject):
                     resource_id=self.security_group_id
                 )
 
+            self._section_name = 'security-groups ' + self.region
             cloudknot.config.add_resource(
-                'security-groups', self.security_group_id, self.name
+                self._section_name, self.security_group_id, self.name
             )
 
             mod_logger.info(
@@ -646,9 +651,9 @@ class SecurityGroup(NamedObject):
             ]
         )
 
-        # Add this security group to the list of security groups in the
-        # config file
-        cloudknot.config.add_resource('security-groups', group_id, self.name)
+        # Add this security group to the config file
+        self._section_name = 'security-groups ' + self.region
+        cloudknot.config.add_resource(self._section_name, group_id, self.name)
 
         return group_id
 
@@ -695,7 +700,7 @@ class SecurityGroup(NamedObject):
 
         # Remove this VPC from the list of VPCs in the config file
         cloudknot.config.remove_resource(
-            'security-groups', self.security_group_id
+            self._section_name, self.security_group_id
         )
 
         # Set the clobbered parameter to True,
