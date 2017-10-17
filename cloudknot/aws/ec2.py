@@ -620,8 +620,8 @@ class SecurityGroup(NamedObject):
         }]
 
         retry = tenacity.Retrying(
-            wait=tenacity.wait_exponential(max=32),
-            stop=tenacity.stop_after_delay(60),
+            wait=tenacity.wait_exponential(max=64),
+            stop=tenacity.stop_after_delay(120),
             retry=tenacity.retry_if_exception_type(
                 clients['ec2'].exceptions.ClientError
             )
