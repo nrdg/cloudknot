@@ -10,7 +10,7 @@ from collections import namedtuple
 
 from .base_classes import ObjectWithArn, clients, \
     ResourceExistsException, ResourceDoesNotExistException, \
-    ResourceClobberedException
+    ResourceClobberedException, CannotDeleteResourceException
 
 __all__ = ["IamRole"]
 
@@ -351,6 +351,57 @@ class IamRole(ObjectWithArn):
         -------
         None
         """
+        if self.service == 'batch.amazonaws.com':
+            # If this is a batch service role, wait for any dependent compute
+            # environments to finish deleting In order to prevent INVALID
+            # compute environment as described in
+            # docs.aws.amazon.com/batch/latest/userguide/troubleshooting.html
+            response = clients['batch'].describe_compute_environments()
+            dependent_ces = [c for c in response.get('computeEnvironments')
+                             if c['serviceRole'] == self.arn]
+
+            conflicting_ces = [c for c in dependent_ces
+                               if c['status'] not in ['DELETING', 'DELETED']]
+
+            if conflicting_ces:
+                raise CannotDeleteResourceException(
+                    'Could not delete this batch service role because it '
+                    'has compute environments associated with it that are '
+                    'not being deleted. If you want to delete this role, '
+                    'first delete the following compute environments: '
+                    '{ces!s}'.format(ces=conflicting_ces),
+                    resource_id=conflicting_ces
+                )
+
+            def is_deleting(res):
+                ce = res.get('computeEnvironments')
+                if ce:
+                    return ce[0]['status'] == 'DELETING'
+                else:
+                    return False
+
+            retry = tenacity.Retrying(
+                wait=tenacity.wait_exponential(max=64),
+                stop=tenacity.stop_after_delay(120),
+                retry=tenacity.retry_if_result(is_deleting)
+            )
+
+            for ce in dependent_ces:
+                try:
+                    response = retry.call(
+                        clients['batch'].describe_compute_environments,
+                        computeEnvironments=[ce['computeEnvironmentArn']]
+                    )
+                except tenacity.RetryError:
+                    raise CannotDeleteResourceException(
+                        'Could not delete this batch service role because it '
+                        'it is taking too long for a dependent compute '
+                        'environment to be deleted. If you want to delete '
+                        'this role, first delete the compute environment '
+                        '{arn:s}'.format(arn=ce['computeEnvironmentArn']),
+                        resource_id=ce['computeEnvironmentArn']
+                    )
+
         if self.instance_profile_arn:
             # Remove any instance profiles associated with this role
             response = clients['iam'].list_instance_profiles_for_role(
@@ -392,6 +443,7 @@ class IamRole(ObjectWithArn):
 
             policy_arn = policy_filter[0]['Arn']
 
+            # Detach the policy from this role
             clients['iam'].detach_role_policy(
                 RoleName=self.name,
                 PolicyArn=policy_arn
