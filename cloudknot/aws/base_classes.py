@@ -362,7 +362,7 @@ class ResourceClobberedException(Exception):
         resource_id : string
             The resource ID (e.g. ARN, VPC-ID) of the requested resource
         """
-        super(ResourceDoesNotExistException, self).__init__(message)
+        super(ResourceClobberedException, self).__init__(message)
         self.resource_id = resource_id
 
 
@@ -395,7 +395,7 @@ class RegionException(Exception):
         resource_region : string
             The resource region
         """
-        super(CannotDeleteResourceException, self).__init__(
+        super(RegionException, self).__init__(
             "This resource's region ({resource:s}) does not match the "
             "current region ({current:s})".format(
                 resource=resource_region, current=get_region()
