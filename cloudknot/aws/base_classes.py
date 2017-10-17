@@ -11,11 +11,16 @@ from collections import namedtuple
 
 from ..config import get_config_file
 
-__all__ = ["ResourceDoesNotExistException", "ResourceClobberedException",
-           "ResourceExistsException", "CannotDeleteResourceException",
-           "RegionException", "NamedObject", "ObjectWithArn",
-           "ObjectWithUsernameAndMemory", "clients",
-           "wait_for_compute_environment", "wait_for_job_queue"]
+__all__ = [
+    "ResourceDoesNotExistException", "ResourceClobberedException",
+    "ResourceExistsException", "CannotDeleteResourceException",
+    "RegionException",
+    "NamedObject", "ObjectWithArn", "ObjectWithUsernameAndMemory",
+    "clients", "refresh_clients",
+    "wait_for_compute_environment", "wait_for_job_queue",
+    "get_region", "set_region",
+    "get_profile", "set_profile", "list_profiles",
+]
 
 mod_logger = logging.getLogger(__name__)
 

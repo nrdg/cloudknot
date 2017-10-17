@@ -413,9 +413,10 @@ def test_DockerImage():
                 config.remove_section(name)
 
         try:
-            for option in config.options('docker-repos'):
+            section_name = 'docker-repos' + ck.aws.get_region()
+            for option in config.options(section_name):
                 if UNIT_TEST_PREFIX in option:
-                    config.remove_option('docker-repos', option)
+                    config.remove_option(section_name, option)
         except configparser.NoSectionError:
             pass
 
