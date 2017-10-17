@@ -347,9 +347,9 @@ def cleanup():
     # Clean up config file
     config = configparser.ConfigParser()
     config.read(config_file)
-    for role_name in config.options('roles ' + ck.aws.get_region()):
+    for role_name in config.options('roles'):
         if UNIT_TEST_PREFIX in role_name:
-            config.remove_option('roles ' + ck.aws.get_region(), role_name)
+            config.remove_option('roles', role_name)
     with open(config_file, 'w') as f:
         config.write(f)
 

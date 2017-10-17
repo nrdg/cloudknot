@@ -510,7 +510,7 @@ def test_IamRole():
         # Confirm that the role is in the config file
         config = configparser.ConfigParser()
         config.read(config_file)
-        assert name in config.options('roles ' + ck.aws.get_region())
+        assert name in config.options('roles')
 
         # Clobber the role
         role.clobber()
@@ -525,7 +525,7 @@ def test_IamRole():
         # config and then re-read the file
         config = configparser.ConfigParser()
         config.read(config_file)
-        assert name not in config.options('roles ' + ck.aws.get_region())
+        assert name not in config.options('roles')
 
         # Try to retrieve a role that does not exist
         name = get_testing_name()
@@ -563,7 +563,7 @@ def test_IamRole():
             # Confirm that they exist in the config file
             config = configparser.ConfigParser()
             config.read(config_file)
-            assert n in config.options('roles ' + ck.aws.get_region())
+            assert n in config.options('roles')
 
             # Clobber roles and use boto3 to confirm that they don't exist
             role.clobber()
@@ -577,7 +577,7 @@ def test_IamRole():
             # config and then re-read the file
             config = configparser.ConfigParser()
             config.read(config_file)
-            assert n not in config.options('roles ' + ck.aws.get_region())
+            assert n not in config.options('roles')
 
         # Test for correct handling of incorrect input
         with pytest.raises(ValueError) as e:
@@ -643,9 +643,9 @@ def test_IamRole():
         # Clean up config file
         config = configparser.ConfigParser()
         config.read(config_file)
-        for role_name in config.options('roles ' + ck.aws.get_region()):
+        for role_name in config.options('roles'):
             if UNIT_TEST_PREFIX in role_name:
-                config.remove_option('roles ' + ck.aws.get_region(), role_name)
+                config.remove_option('roles', role_name)
         with open(config_file, 'w') as f:
             config.write(f)
 
@@ -830,9 +830,17 @@ def test_Vpc():
         # Clobber the VPC
         vpc.clobber()
 
+        retry = tenacity.Retrying(
+            wait=tenacity.wait_exponential(max=64),
+            stop=tenacity.stop_after_delay(120),
+            retry=tenacity.retry_unless_exception_type(
+                ec2.exceptions.ClientError
+            )
+        )
+
         # Assert that it was removed from AWS
         with pytest.raises(ec2.exceptions.ClientError) as e:
-            ec2.describe_vpcs(VpcIds=[vpc_id])
+            retry.call(ec2.describe_vpcs, VpcIds=[vpc_id])
 
         assert e.value.response.get('Error')['Code'] == 'InvalidVpcID.NotFound'
 
@@ -874,17 +882,10 @@ def test_Vpc():
             config.read(config_file)
             assert vpc.vpc_id in config.options('vpc ' + ck.aws.get_region())
 
-            # Clobber security group
+            # Clobber the VPC
             vpc.clobber()
 
-            # Assert that it was removed from AWS
-            with pytest.raises(ec2.exceptions.ClientError) as e:
-                ec2.describe_vpcs(VpcIds=[vpc.vpc_id])
-
-            error_code = e.value.response.get('Error')['Code']
-            assert error_code == 'InvalidVpcID.NotFound'
-
-            # Assert that they were removed from the config file
+            # Assert that it was removed from the config file
             # If we just re-read the config file, config will keep the union
             # of the in memory values and the file values, updating the
             # intersection of the two with the file values. So we must clear
@@ -894,6 +895,21 @@ def test_Vpc():
             assert vpc.vpc_id not in config.options(
                 'vpc ' + ck.aws.get_region()
             )
+
+            retry = tenacity.Retrying(
+                wait=tenacity.wait_exponential(max=64),
+                stop=tenacity.stop_after_delay(120),
+                retry=tenacity.retry_unless_exception_type(
+                    ec2.exceptions.ClientError
+                )
+            )
+
+            # Assert that it was removed from AWS
+            with pytest.raises(ec2.exceptions.ClientError) as e:
+                retry.call(ec2.describe_vpcs, VpcIds=[vpc.vpc_id])
+
+            error_code = e.value.response.get('Error')['Code']
+            assert error_code == 'InvalidVpcID.NotFound'
 
         # Create another vpc without a Name tag
         response = ec2.create_vpc(
@@ -1069,12 +1085,6 @@ def test_SecurityGroup():
         # Clobber the role
         sg.clobber()
 
-        # Assert that it was removed from AWS
-        with pytest.raises(ec2.exceptions.ClientError) as e:
-            ec2.describe_security_groups(GroupIds=[group_id])
-
-        assert e.value.response.get('Error')['Code'] == 'InvalidGroup.NotFound'
-
         # Assert that it was removed from the config file
         # If we just re-read the config file, config will keep the union
         # of the in memory values and the file values, updating the
@@ -1085,6 +1095,20 @@ def test_SecurityGroup():
         assert group_id not in config.options(
             'security-groups ' + ck.aws.get_region()
         )
+
+        retry = tenacity.Retrying(
+            wait=tenacity.wait_exponential(max=64),
+            stop=tenacity.stop_after_delay(120),
+            retry=tenacity.retry_unless_exception_type(
+                ec2.exceptions.ClientError
+            )
+        )
+
+        # Assert that it was removed from AWS
+        with pytest.raises(ec2.exceptions.ClientError) as e:
+            retry.call(ec2.describe_security_groups, GroupIds=[group_id])
+
+        assert e.value.response.get('Error')['Code'] == 'InvalidGroup.NotFound'
 
         # Try to retrieve a security group that does not exist
         group_id = get_testing_name()
@@ -1124,9 +1148,18 @@ def test_SecurityGroup():
             # Clobber security group
             sg.clobber()
 
+            retry = tenacity.Retrying(
+                wait=tenacity.wait_exponential(max=64),
+                stop=tenacity.stop_after_delay(120),
+                retry=tenacity.retry_unless_exception_type(
+                    ec2.exceptions.ClientError
+                )
+            )
+
             # Assert that it was removed from AWS
             with pytest.raises(ec2.exceptions.ClientError) as e:
-                ec2.describe_security_groups(GroupIds=[sg.security_group_id])
+                retry.call(ec2.describe_security_groups,
+                           GroupIds=[sg.security_group_id])
 
             error_code = e.value.response.get('Error')['Code']
             assert error_code == 'InvalidGroup.NotFound'
