@@ -665,7 +665,15 @@ class Knot(aws.NamedObject):
     and job queue. It also contains methods to submit batch jobs for a range
     of arguments.
     """
-    def __init__(self, name='default', **kwargs):
+    def __init__(self, name='default', pars=None, docker_image_name=None,
+                 func=None, image_script_path=None, image_work_dir=None,
+                 username=None, repo_name=None, image_tags=None,
+                 job_definition_name=None, job_def_vcpus=None, memory=None,
+                 retries=None, compute_environment_name=None,
+                 instance_types=None, resource_type=None, min_vcpus=None,
+                 max_vcpus=None, desired_vcpus=None, image_id=None,
+                 ec2_key_pair=None, ce_tags=None, bid_percentage=None,
+                 job_queue_name=None, priority=None):
         """Initialize a Knot instance
 
         Parameters
@@ -784,13 +792,20 @@ class Knot(aws.NamedObject):
         super(Knot, self).__init__(name=name)
         self._knot_name = 'knot ' + name
 
-        image_tags = kwargs.pop('image_tags', ['cloudknot'])
+        image_tags = image_tags if image_tags else ['cloudknot']
 
         # Check for existence of this pars in the config file
         config = configparser.ConfigParser()
         config.read(get_config_file())
         if self._knot_name in config.sections():
-            if kwargs:
+            if any([
+                pars, docker_image_name, func, image_script_path,
+                image_work_dir, username, repo_name, job_definition_name,
+                job_def_vcpus, memory, retries, compute_environment_name,
+                instance_types, resource_type, min_vcpus, max_vcpus,
+                desired_vcpus, image_id, ec2_key_pair, ce_tags, bid_percentage,
+                job_queue_name, priority
+            ]):
                 raise ValueError('You specified configuration arguments for '
                                  'a knot that already exists. To create a '
                                  'new knot, please choose a new name or '
@@ -827,68 +842,32 @@ class Knot(aws.NamedObject):
                     ''.format(name=self.name, dr=self.docker_image.name)
                 )
 
-            job_def_name = config.get(self._knot_name, 'job-definition')
-            self._job_definition = aws.JobDefinition(name=job_def_name)
+            jd_name = config.get(self._knot_name, 'job-definition')
+            self._job_definition = aws.JobDefinition(name=jd_name)
             mod_logger.info('Knot {name:s} adopted job definition '
-                            '{jd:s}'.format(name=self.name, jd=job_def_name))
+                            '{jd:s}'.format(name=self.name, jd=jd_name))
 
-            ce = config.get(self._knot_name, 'compute-environment')
-            self._compute_environment = aws.ComputeEnvironment(name=ce)
+            ce_name = config.get(self._knot_name, 'compute-environment')
+            self._compute_environment = aws.ComputeEnvironment(name=ce_name)
             mod_logger.info('Knot {name:s} adopted compute environment '
-                            '{ce:s}'.format(name=self.name, ce=ce))
+                            '{ce:s}'.format(name=self.name, ce=ce_name))
 
-            job_queue_name = config.get(self._knot_name, 'job-queue')
-            self._job_queue = aws.JobQueue(name=job_queue_name)
+            jq_name = config.get(self._knot_name, 'job-queue')
+            self._job_queue = aws.JobQueue(name=jq_name)
             mod_logger.info('Knot {name:s} adopted job queue {q:s}'.format(
-                name=self.name, q=job_queue_name
+                name=self.name, q=jq_name
             ))
 
             self._job_ids = config.get(self._knot_name, 'jobs').split()
             self._jobs = [aws.BatchJob(job_id=jid) for jid in self.job_ids]
         else:
-            # Get input from kwargs. All defaults that are set to None, rely
-            # on the lower-level objects to set their own defaults.
-            pars = kwargs.pop('pars', None)
-
-            # DockerImage and DockerRepo input
-            docker_image_name = kwargs.pop('docker_image_name', None)
-            func = kwargs.pop('func', None)
-            image_script_path = kwargs.pop('image_script_path', None)
-            image_work_dir = kwargs.pop('image_work_dir', None)
-            username = kwargs.pop('username', None)
-            repo_name = kwargs.pop('repo_name', None)
-
-            # JobDefinition input
-            job_definition_name = kwargs.pop(
-                'job_definition_name', name + '-cloudknot-job-definition'
-            )
-            job_def_vcpus = kwargs.pop('job_def_vcpus', None)
-            memory = kwargs.pop('memory', None)
-            retries = kwargs.pop('retries', None)
-
-            # ComputeEnvironment input
-            compute_environment_name = kwargs.pop(
-                'compute_environment_name',
-                name + '-cloudknot-compute-environment'
-            )
-            instance_types = kwargs.pop('instance_types', None)
-            resource_type = kwargs.pop('resource_type', None)
-            min_vcpus = kwargs.pop('min_vcpus', None)
-            max_vcpus = kwargs.pop('max_vcpus', None)
-            desired_vcpus = kwargs.pop('desired_vcpus', None)
-            image_id = kwargs.pop('image_id', None)
-            ec2_key_pair = kwargs.pop('ec2_key_pair', None)
-            ce_tags = kwargs.pop('ce_tags', None)
-            bid_percentage = kwargs.pop('bid_percentage', None)
-
-            # JobQueue input
-            job_queue_name = kwargs.pop('job_queue_name',
-                                        name + '-cloudknot-job-queue')
-            priority = kwargs.pop('priority', None)
-
-            # If any other kwargs are left, raise TypeError
-            if kwargs:
-                raise TypeError('Unexpected **kwargs: {0!r}'.format(kwargs))
+            job_definition_name = job_definition_name if job_definition_name \
+                else name + '-cloudknot-job-definition'
+            compute_environment_name = compute_environment_name \
+                if compute_environment_name \
+                else name + '-cloudknot-compute-environment'
+            job_queue_name = job_queue_name if job_queue_name \
+                else name + '-cloudknot-job-queue'
 
             # Validate and set the PARS
             if pars:
@@ -1199,7 +1178,6 @@ class Knot(aws.NamedObject):
                 config.write(f)
 
     # Declare read-only properties
-    name = property(fget=operator.attrgetter('_name'))
     knot_name = property(fget=operator.attrgetter('_knot_name'))
     pars = property(fget=operator.attrgetter('_pars'))
     docker_image = property(fget=operator.attrgetter('_docker_image'))

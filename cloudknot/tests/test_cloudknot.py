@@ -779,10 +779,6 @@ def test_Knot(cleanup):
     with pytest.raises(ValueError):
         ck.Knot(name=42)
 
-    # Assert TypeError on invalid kwarg
-    with pytest.raises(TypeError):
-        ck.Knot(func=knot_testing_func, other_kwarg=42)
-
     # Assert ValueError on invalid pars input
     with pytest.raises(ValueError):
         ck.Knot(func=knot_testing_func, pars=42)
