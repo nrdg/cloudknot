@@ -374,6 +374,17 @@ def test_DockerImage():
 
         di.clobber()
 
+        # Assert error on build after clobber
+        with pytest.raises(ck.aws.ResourceClobberedException):
+            di.build(tags=['testing'])
+
+        # Assert ValueError on push with invalid repo_uri
+        with pytest.raises(ck.aws.ResourceClobberedException):
+            if idx %2:
+                di.push(repo_uri=str(repo_uri))
+            else:
+                di.push(repo=repo)
+
         repo.clobber()
     except Exception as e:
         response = ecr.describe_repositories()
