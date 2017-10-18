@@ -15,4 +15,4 @@ test:
 devtest:
     # Unit testing with the -x option, aborts testing after first failure
     # Useful for development when tests are long
-	py.test -x --pyargs cloudknot --cov-report term-missing --cov=cloudknot --fulltrace
+	py.test -x --pyargs cloudknot --cov-report term-missing --cov=cloudknot

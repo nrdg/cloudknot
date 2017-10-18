@@ -514,6 +514,7 @@ def test_IamRole():
 
         # Clobber the role
         role.clobber()
+
         # Assert that it was removed from AWS
         with pytest.raises(iam.exceptions.NoSuchEntityException):
             iam.get_role(RoleName=name)
@@ -526,6 +527,10 @@ def test_IamRole():
         config = configparser.ConfigParser()
         config.read(config_file)
         assert name not in config.options('roles')
+
+        # Assert that reading the instance_profile_arn property raises error
+        with pytest.raises(ck.aws.ResourceClobberedException):
+            instance_profile_arn = role.instance_profile_arn  # noqa: F841
 
         # Try to retrieve a role that does not exist
         name = get_testing_name()
@@ -1310,6 +1315,18 @@ def test_JobDefinition(pars):
         config.read(config_file)
         assert name in config.options('job-definitions ' + ck.aws.get_region())
 
+        # Assert that clobber raises RegionException if we change the region
+        old_region = ck.get_region()
+        if old_region != 'us-east-2':
+            ck.set_region(region='us-east-2')
+        else:
+            ck.set_region(region='us-east-1')
+
+        with pytest.raises(ck.aws.RegionException):
+            jd.clobber()
+
+        ck.set_region(region=old_region)
+
         # Clobber the role
         jd.clobber()
 
@@ -1594,6 +1611,23 @@ def test_ComputeEnvironment(pars):
             ce.clobber()
 
         assert e.value.resource_id[0]['jobQueueName'] == jq.name
+
+        # Assert that IamRole raises exception if we try to delete the
+        # batch service role on which this compute environment is based
+        with pytest.raises(ck.aws.CannotDeleteResourceException):
+            pars.batch_service_role.clobber()
+
+        # Assert that clobber raises RegionException if we change the region
+        old_region = ck.get_region()
+        if old_region != 'us-east-2':
+            ck.set_region(region='us-east-2')
+        else:
+            ck.set_region(region='us-east-1')
+
+        with pytest.raises(ck.aws.RegionException):
+            ce.clobber()
+
+        ck.set_region(region=old_region)
 
         jq.clobber()
         ce.clobber()
@@ -2096,8 +2130,27 @@ def test_JobQueue(pars):
         assert jq.get_jobs() == []
         assert jq.get_jobs(status='STARTING') == []
 
+        # Assert that clobber raises RegionException if we change the region
+        old_region = ck.get_region()
+        if old_region != 'us-east-2':
+            ck.set_region(region='us-east-2')
+        else:
+            ck.set_region(region='us-east-1')
+
+        with pytest.raises(ck.aws.RegionException):
+            jq.clobber()
+
+        with pytest.raises(ck.aws.RegionException):
+            jobs = jq.get_jobs()  # noqa: F841
+
+        ck.set_region(region=old_region)
+
         # Clobber the job queue
         jq.clobber()
+
+        # Assert that we can no longer get jobs after clobbering
+        with pytest.raises(ck.aws.ResourceClobberedException):
+            jobs = jq.get_jobs()  # noqa: F841
 
         # Assert that it was removed from AWS
         response = batch.describe_job_queues(jobQueues=[arn])

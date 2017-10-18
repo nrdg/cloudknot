@@ -392,7 +392,7 @@ class IamRole(ObjectWithArn):
                         clients['batch'].describe_compute_environments,
                         computeEnvironments=[ce['computeEnvironmentArn']]
                     )
-                except tenacity.RetryError:
+                except tenacity.RetryError:  # pragma: nocover
                     raise CannotDeleteResourceException(
                         'Could not delete this batch service role because it '
                         'it is taking too long for a dependent compute '
