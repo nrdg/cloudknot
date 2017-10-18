@@ -8,10 +8,10 @@ import tenacity
 from collections import namedtuple
 
 from .base_classes import NamedObject, ObjectWithArn, \
-    ObjectWithUsernameAndMemory, clients, \
+    ObjectWithUsernameAndMemory, clients, RegionException, \
     ResourceExistsException, ResourceDoesNotExistException, \
     ResourceClobberedException, CannotDeleteResourceException, \
-    wait_for_job_queue
+    wait_for_job_queue, get_region
 from .ec2 import Vpc, SecurityGroup
 from .ecr import DockerRepo
 from .iam import IamRole
@@ -109,8 +109,9 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             self._arn = resource.arn
 
             # Add to config file
+            self._section_name = 'job-definitions ' + self.region
             cloudknot.config.add_resource(
-                'job-definitions', self.name, self.arn
+                self._section_name, self.name, self.arn
             )
 
             mod_logger.info(
@@ -295,7 +296,8 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         arn = response['jobDefinitionArn']
 
         # Add this job def to the list of job definitions in the config file
-        cloudknot.config.add_resource('job-definitions', self.name, arn)
+        self._section_name = 'job-definitions ' + self.region
+        cloudknot.config.add_resource(self._section_name, self.name, arn)
 
         mod_logger.info('Created AWS batch job definition {name:s}'.format(
             name=self.name
@@ -310,10 +312,13 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         -------
         None
         """
+        if self.region != get_region():
+            raise RegionException(resource_region=self.region)
+
         clients['batch'].deregister_job_definition(jobDefinition=self.arn)
 
         # Remove this job def from the list of job defs in the config file
-        cloudknot.config.remove_resource('job-definitions', self.name)
+        cloudknot.config.remove_resource(self._section_name, self.name)
 
         # Set the clobbered parameter to True,
         # preventing subsequent method calls
@@ -475,8 +480,9 @@ class ComputeEnvironment(ObjectWithArn):
             self._bid_percentage = resource.bid_percentage
             self._arn = resource.arn
 
+            self._section_name = 'compute-environments ' + self.region
             cloudknot.config.add_resource(
-                'compute-environments', self.name, self.arn
+                self._section_name, self.name, self.arn
             )
 
             mod_logger.info(
@@ -857,7 +863,8 @@ class ComputeEnvironment(ObjectWithArn):
         arn = response['computeEnvironmentArn']
 
         # Add this compute env to the list of compute envs in the config file
-        cloudknot.config.add_resource('compute-environments', self.name, arn)
+        self._section_name = 'compute-environments ' + self.region
+        cloudknot.config.add_resource(self._section_name, self.name, arn)
 
         mod_logger.info('Created compute environment {name:s}'.format(
             name=self.name
@@ -872,6 +879,9 @@ class ComputeEnvironment(ObjectWithArn):
         -------
         None
         """
+        if self.region != get_region():
+            raise RegionException(resource_region=self.region)
+
         retry = tenacity.Retrying(
             wait=tenacity.wait_exponential(max=32),
             stop=tenacity.stop_after_delay(60),
@@ -925,9 +935,8 @@ class ComputeEnvironment(ObjectWithArn):
                         resource_id=associated_queues
                     )
 
-        # Remove this compute env from the list of compute envs
-        # in config file
-        cloudknot.config.remove_resource('compute-environments', self.name)
+        # Remove this compute env from the list of compute envs in config file
+        cloudknot.config.remove_resource(self._section_name, self.name)
 
         # Set the clobbered parameter to True,
         # preventing subsequent method calls
@@ -1002,7 +1011,10 @@ class JobQueue(ObjectWithArn):
             self._priority = resource.priority
             self._arn = resource.arn
 
-            cloudknot.config.add_resource('job-queues', self.name, self.arn)
+            self._section_name = 'job-queues ' + self.region
+            cloudknot.config.add_resource(
+                self._section_name, self.name, self.arn
+            )
 
             mod_logger.info('Retrieved pre-existing job queue {name:s}'.format(
                 name=self.name
@@ -1148,7 +1160,8 @@ class JobQueue(ObjectWithArn):
         wait_for_job_queue(name=self.name, max_wait_time=180)
 
         # Add this job queue to the list of job queues in the config file
-        cloudknot.config.add_resource('job-queues', self.name, arn)
+        self._section_name = 'job-queues ' + self.region
+        cloudknot.config.add_resource(self._section_name, self.name, arn)
 
         mod_logger.info('Created job queue {name:s}'.format(name=self.name))
 
@@ -1173,6 +1186,9 @@ class JobQueue(ObjectWithArn):
                 'This job queue has already been clobbered.',
                 self.arn
             )
+
+        if self.region != get_region():
+            raise RegionException(resource_region=self.region)
 
         # Validate input
         allowed_statuses = ['ALL', 'SUBMITTED', 'PENDING', 'RUNNABLE',
@@ -1199,6 +1215,9 @@ class JobQueue(ObjectWithArn):
         -------
         None
         """
+        if self.region != get_region():
+            raise RegionException(resource_region=self.region)
+
         # First, disable submissions to the queue
         retry = tenacity.Retrying(
             wait=tenacity.wait_exponential(max=32),
@@ -1233,7 +1252,7 @@ class JobQueue(ObjectWithArn):
         retry.call(clients['batch'].delete_job_queue, jobQueue=self.arn)
 
         # Remove this job queue from the list of job queues in config file
-        cloudknot.config.remove_resource('job-queues', self.name)
+        cloudknot.config.remove_resource(self._section_name, self.name)
 
         # Set the clobbered parameter to True,
         # preventing subsequent method calls
@@ -1305,7 +1324,10 @@ class BatchJob(NamedObject):
             self._environment_variables = job.environment_variables
             self._job_id = job.job_id
 
-            cloudknot.config.add_resource('batch-jobs', self.job_id, self.name)
+            self._section_name = 'batch-jobs ' + self.region
+            cloudknot.config.add_resource(
+                self._section_name, self.job_id, self.name
+            )
 
             mod_logger.info('Retrieved pre-existing batch job {id:s}'.format(
                 id=self.job_id
@@ -1425,7 +1447,10 @@ class BatchJob(NamedObject):
         job_id = response['jobId']
 
         # Remove this job from the list of jobs in the config file
-        cloudknot.config.add_resource('batch-jobs', self.job_id, self.name)
+        self._section_name = 'batch-jobs ' + self.region
+        cloudknot.config.add_resource(
+            self._section_name, self.job_id, self.name
+        )
 
         mod_logger.info(
             'Submitted batch job {name:s} with jobID '
@@ -1449,6 +1474,9 @@ class BatchJob(NamedObject):
                 'This batch job has already been clobbered.',
                 self.job_id
             )
+
+        if self.region != get_region():
+            raise RegionException(resource_region=self.region)
 
         # Query the job_id
         response = clients['batch'].describe_jobs(jobs=[self.job_id])
@@ -1481,6 +1509,9 @@ class BatchJob(NamedObject):
                 self.job_id
             )
 
+        if self.region != get_region():
+            raise RegionException(resource_region=self.region)
+
         # Require the user to supply a reason for job termination
         if not isinstance(reason, six.string_types):
             raise ValueError('reason must be a string.')
@@ -1512,4 +1543,4 @@ class BatchJob(NamedObject):
         self._clobbered = True
 
         # Remove this job from the list of jobs in the config file
-        cloudknot.config.remove_resource('batch-jobs', self.job_id)
+        cloudknot.config.remove_resource(self._section_name, self.job_id)

@@ -374,6 +374,14 @@ def test_DockerImage():
 
         di.clobber()
 
+        # Assert error on build after clobber
+        with pytest.raises(ck.aws.ResourceClobberedException):
+            di.build(tags=['testing'])
+
+        # Assert ValueError on push with invalid repo_uri
+        with pytest.raises(ck.aws.ResourceClobberedException):
+            di.push(repo=repo)
+
         repo.clobber()
     except Exception as e:
         response = ecr.describe_repositories()
@@ -413,9 +421,10 @@ def test_DockerImage():
                 config.remove_section(name)
 
         try:
-            for option in config.options('docker-repos'):
+            section_name = 'docker-repos' + ck.aws.get_region()
+            for option in config.options(section_name):
                 if UNIT_TEST_PREFIX in option:
-                    config.remove_option('docker-repos', option)
+                    config.remove_option(section_name, option)
         except configparser.NoSectionError:
             pass
 

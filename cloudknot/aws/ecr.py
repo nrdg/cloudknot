@@ -35,8 +35,9 @@ class DockerRepo(NamedObject):
         self._repo_registry_id = repo_info.registry_id
 
         # Add to config file
+        self._section_name = 'docker-repos ' + self.region
         cloudknot.config.add_resource(
-            'docker-repos', self.name, self.repo_uri
+            self._section_name, self.name, self.repo_uri
         )
 
     # Declare read only properties
@@ -102,7 +103,7 @@ class DockerRepo(NamedObject):
             pass
 
         # Remove from the config file
-        cloudknot.config.remove_resource('docker-repos', self.name)
+        cloudknot.config.remove_resource(self._section_name, self.name)
 
         # Set the clobbered parameter to True,
         # preventing subsequent method calls

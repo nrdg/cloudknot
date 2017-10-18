@@ -99,7 +99,7 @@ def cleanup():
 
             # Clean up config file
             try:
-                config.remove_option('job-queues', name)
+                config.remove_option('job-queues ' + ck.aws.get_region(), name)
             except configparser.NoSectionError:
                 pass
 
@@ -118,7 +118,8 @@ def cleanup():
 
         # Clean up config file
         try:
-            config.remove_option('compute-environments', ce['name'])
+            config.remove_option('compute-environments ' + ck.aws.get_region(),
+                                 ce['name'])
         except configparser.NoSectionError:
             pass
 
@@ -181,7 +182,8 @@ def cleanup():
 
         # Clean up config file
         try:
-            config.remove_option('job-queues', jq['name'])
+            config.remove_option('job-queues ' + ck.aws.get_region(),
+                                 jq['name'])
         except configparser.NoSectionError:
             pass
 
@@ -225,7 +227,8 @@ def cleanup():
 
         # Clean up config file
         try:
-            config.remove_option('job-definitions', jd['name'])
+            config.remove_option('job-definitions ' + ck.aws.get_region(),
+                                 jd['name'])
         except configparser.NoSectionError:
             pass
 
@@ -254,7 +257,8 @@ def cleanup():
 
         # Clean up config file
         try:
-            config.remove_option('security-groups', sg['id'])
+            config.remove_option('security-groups ' + ck.aws.get_region(),
+                                 sg['id'])
         except configparser.NoSectionError:
             pass
 
@@ -299,7 +303,8 @@ def cleanup():
 
             # Clean up config file
             try:
-                config.remove_option('vpc', vpc['VpcId'])
+                config.remove_option('vpc ' + ck.aws.get_region(),
+                                     vpc['VpcId'])
             except configparser.NoSectionError:
                 pass
 

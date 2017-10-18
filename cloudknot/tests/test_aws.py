@@ -514,6 +514,7 @@ def test_IamRole():
 
         # Clobber the role
         role.clobber()
+
         # Assert that it was removed from AWS
         with pytest.raises(iam.exceptions.NoSuchEntityException):
             iam.get_role(RoleName=name)
@@ -526,6 +527,10 @@ def test_IamRole():
         config = configparser.ConfigParser()
         config.read(config_file)
         assert name not in config.options('roles')
+
+        # Assert that reading the instance_profile_arn property raises error
+        with pytest.raises(ck.aws.ResourceClobberedException):
+            instance_profile_arn = role.instance_profile_arn  # noqa: F841
 
         # Try to retrieve a role that does not exist
         name = get_testing_name()
@@ -678,7 +683,7 @@ def test_DockerRepo():
         # Confirm that the docker repo is in the config file
         config = configparser.ConfigParser()
         config.read(config_file)
-        assert name in config.options('docker-repos')
+        assert name in config.options('docker-repos ' + ck.aws.get_region())
 
         # Clobber the docker repo
         dr.clobber()
@@ -694,7 +699,9 @@ def test_DockerRepo():
         # config and then re-read the file
         config = configparser.ConfigParser()
         config.read(config_file)
-        assert name not in config.options('docker-repos')
+        assert name not in config.options(
+            'docker-repos ' + ck.aws.get_region()
+        )
 
         # Now create a new repo using only cloudknot
         name = get_testing_name()
@@ -714,7 +721,7 @@ def test_DockerRepo():
         # Confirm that the docker repo is in the config file
         config = configparser.ConfigParser()
         config.read(config_file)
-        assert name in config.options('docker-repos')
+        assert name in config.options('docker-repos ' + ck.aws.get_region())
 
         # Delete the repo from AWS before clobbering
         ecr.delete_repository(
@@ -735,7 +742,9 @@ def test_DockerRepo():
         # config and then re-read the file
         config = configparser.ConfigParser()
         config.read(config_file)
-        assert name not in config.options('docker-repos')
+        assert name not in config.options(
+            'docker-repos ' + ck.aws.get_region()
+        )
     except Exception as e:
         response = ecr.describe_repositories()
 
@@ -754,9 +763,10 @@ def test_DockerRepo():
         # Clean up config file
         config = configparser.ConfigParser()
         config.read(config_file)
-        for name in config.options('docker-repos'):
+        for name in config.options('docker-repos ' + ck.aws.get_region()):
             if UNIT_TEST_PREFIX in name:
-                config.remove_option('docker-repos', name)
+                config.remove_option('docker-repos ' + ck.aws.get_region(),
+                                     name)
         with open(config_file, 'w') as f:
             config.write(f)
 
@@ -820,14 +830,22 @@ def test_Vpc():
         # Confirm that the VPC is in the config file
         config = configparser.ConfigParser()
         config.read(config_file)
-        assert vpc_id in config.options('vpc')
+        assert vpc_id in config.options('vpc ' + ck.aws.get_region())
 
         # Clobber the VPC
         vpc.clobber()
 
+        retry = tenacity.Retrying(
+            wait=tenacity.wait_exponential(max=64),
+            stop=tenacity.stop_after_delay(120),
+            retry=tenacity.retry_unless_exception_type(
+                ec2.exceptions.ClientError
+            )
+        )
+
         # Assert that it was removed from AWS
         with pytest.raises(ec2.exceptions.ClientError) as e:
-            ec2.describe_vpcs(VpcIds=[vpc_id])
+            retry.call(ec2.describe_vpcs, VpcIds=[vpc_id])
 
         assert e.value.response.get('Error')['Code'] == 'InvalidVpcID.NotFound'
 
@@ -838,7 +856,7 @@ def test_Vpc():
         # config to None and then re-read the file
         config = configparser.ConfigParser()
         config.read(config_file)
-        assert vpc_id not in config.options('vpc')
+        assert vpc_id not in config.options('vpc ' + ck.aws.get_region())
 
         # Try to retrieve a VPC that does not exist
         vpc_id = get_testing_name()
@@ -867,26 +885,36 @@ def test_Vpc():
             # Confirm that they exist in the config file
             config = configparser.ConfigParser()
             config.read(config_file)
-            assert vpc.vpc_id in config.options('vpc')
+            assert vpc.vpc_id in config.options('vpc ' + ck.aws.get_region())
 
-            # Clobber security group
+            # Clobber the VPC
             vpc.clobber()
 
-            # Assert that it was removed from AWS
-            with pytest.raises(ec2.exceptions.ClientError) as e:
-                ec2.describe_vpcs(VpcIds=[vpc.vpc_id])
-
-            error_code = e.value.response.get('Error')['Code']
-            assert error_code == 'InvalidVpcID.NotFound'
-
-            # Assert that they were removed from the config file
+            # Assert that it was removed from the config file
             # If we just re-read the config file, config will keep the union
             # of the in memory values and the file values, updating the
             # intersection of the two with the file values. So we must clear
             # config and then re-read the file
             config = configparser.ConfigParser()
             config.read(config_file)
-            assert vpc.vpc_id not in config.options('vpc')
+            assert vpc.vpc_id not in config.options(
+                'vpc ' + ck.aws.get_region()
+            )
+
+            retry = tenacity.Retrying(
+                wait=tenacity.wait_exponential(max=64),
+                stop=tenacity.stop_after_delay(120),
+                retry=tenacity.retry_unless_exception_type(
+                    ec2.exceptions.ClientError
+                )
+            )
+
+            # Assert that it was removed from AWS
+            with pytest.raises(ec2.exceptions.ClientError) as e:
+                retry.call(ec2.describe_vpcs, VpcIds=[vpc.vpc_id])
+
+            error_code = e.value.response.get('Error')['Code']
+            assert error_code == 'InvalidVpcID.NotFound'
 
         # Create another vpc without a Name tag
         response = ec2.create_vpc(
@@ -979,7 +1007,8 @@ def test_Vpc():
 
                 # Clean up config file
                 try:
-                    config.remove_option('vpc', vpc['VpcId'])
+                    config.remove_option('vpc ' + ck.aws.get_region(),
+                                         vpc['VpcId'])
                 except configparser.NoSectionError:
                     pass
 
@@ -1054,16 +1083,12 @@ def test_SecurityGroup():
         # Confirm that the role is in the config file
         config = configparser.ConfigParser()
         config.read(config_file)
-        assert group_id in config.options('security-groups')
+        assert group_id in config.options(
+            'security-groups ' + ck.aws.get_region()
+        )
 
         # Clobber the role
         sg.clobber()
-
-        # Assert that it was removed from AWS
-        with pytest.raises(ec2.exceptions.ClientError) as e:
-            ec2.describe_security_groups(GroupIds=[group_id])
-
-        assert e.value.response.get('Error')['Code'] == 'InvalidGroup.NotFound'
 
         # Assert that it was removed from the config file
         # If we just re-read the config file, config will keep the union
@@ -1072,7 +1097,23 @@ def test_SecurityGroup():
         # config and then re-read the file
         config = configparser.ConfigParser()
         config.read(config_file)
-        assert group_id not in config.options('security-groups')
+        assert group_id not in config.options(
+            'security-groups ' + ck.aws.get_region()
+        )
+
+        retry = tenacity.Retrying(
+            wait=tenacity.wait_exponential(max=64),
+            stop=tenacity.stop_after_delay(120),
+            retry=tenacity.retry_unless_exception_type(
+                ec2.exceptions.ClientError
+            )
+        )
+
+        # Assert that it was removed from AWS
+        with pytest.raises(ec2.exceptions.ClientError) as e:
+            retry.call(ec2.describe_security_groups, GroupIds=[group_id])
+
+        assert e.value.response.get('Error')['Code'] == 'InvalidGroup.NotFound'
 
         # Try to retrieve a security group that does not exist
         group_id = get_testing_name()
@@ -1105,14 +1146,25 @@ def test_SecurityGroup():
             # Confirm that they exist in the config file
             config = configparser.ConfigParser()
             config.read(config_file)
-            assert sg.security_group_id in config.options('security-groups')
+            assert sg.security_group_id in config.options(
+                'security-groups ' + ck.aws.get_region()
+            )
 
             # Clobber security group
             sg.clobber()
 
+            retry = tenacity.Retrying(
+                wait=tenacity.wait_exponential(max=64),
+                stop=tenacity.stop_after_delay(120),
+                retry=tenacity.retry_unless_exception_type(
+                    ec2.exceptions.ClientError
+                )
+            )
+
             # Assert that it was removed from AWS
             with pytest.raises(ec2.exceptions.ClientError) as e:
-                ec2.describe_security_groups(GroupIds=[sg.security_group_id])
+                retry.call(ec2.describe_security_groups,
+                           GroupIds=[sg.security_group_id])
 
             error_code = e.value.response.get('Error')['Code']
             assert error_code == 'InvalidGroup.NotFound'
@@ -1125,7 +1177,7 @@ def test_SecurityGroup():
             config = configparser.ConfigParser()
             config.read(config_file)
             assert sg.security_group_id not in config.options(
-                'security-groups'
+                'security-groups ' + ck.aws.get_region()
             )
 
         # Test for correct handling of incorrect input
@@ -1169,7 +1221,8 @@ def test_SecurityGroup():
 
             # Clean up config file
             try:
-                config.remove_option('security-groups', sg['id'])
+                config.remove_option('security-groups ' + ck.aws.get_region(),
+                                     sg['id'])
             except configparser.NoSectionError:
                 pass
 
@@ -1186,7 +1239,8 @@ def test_SecurityGroup():
 
             # Clean up config file
             try:
-                config.remove_option('vpc', vpc['VpcId'])
+                config.remove_option('vpc ' + ck.aws.get_region(),
+                                     vpc['VpcId'])
             except configparser.NoSectionError:
                 pass
 
@@ -1259,7 +1313,19 @@ def test_JobDefinition(pars):
         # Confirm that the role is in the config file
         config = configparser.ConfigParser()
         config.read(config_file)
-        assert name in config.options('job-definitions')
+        assert name in config.options('job-definitions ' + ck.aws.get_region())
+
+        # Assert that clobber raises RegionException if we change the region
+        old_region = ck.get_region()
+        if old_region != 'us-east-2':
+            ck.set_region(region='us-east-2')
+        else:
+            ck.set_region(region='us-east-1')
+
+        with pytest.raises(ck.aws.RegionException):
+            jd.clobber()
+
+        ck.set_region(region=old_region)
 
         # Clobber the role
         jd.clobber()
@@ -1276,7 +1342,9 @@ def test_JobDefinition(pars):
         # config and then re-read the file
         config = configparser.ConfigParser()
         config.read(config_file)
-        assert name not in config.options('job-definitions')
+        assert name not in config.options(
+            'job-definitions ' + ck.aws.get_region()
+        )
 
         # The previous job def should be INACTIVE, so try to retrieve it
         # and assert that we get a ResourceExistsException
@@ -1333,7 +1401,9 @@ def test_JobDefinition(pars):
             # Confirm that they exist in the config file
             config = configparser.ConfigParser()
             config.read(config_file)
-            assert jd.name in config.options('job-definitions')
+            assert jd.name in config.options(
+                'job-definitions ' + ck.aws.get_region()
+            )
 
             # Clobber the job definition
             jd.clobber()
@@ -1350,7 +1420,9 @@ def test_JobDefinition(pars):
             # config and then re-read the file
             config = configparser.ConfigParser()
             config.read(config_file)
-            assert jd.name not in config.options('job-definitions')
+            assert jd.name not in config.options(
+                'job-definitions ' + ck.aws.get_region()
+            )
 
         # Test for correct handling of incorrect input
         with pytest.raises(ValueError) as e:
@@ -1429,7 +1501,8 @@ def test_JobDefinition(pars):
 
             # Clean up config file
             try:
-                config.remove_option('job-definitions', jd['name'])
+                config.remove_option('job-definitions ' + ck.aws.get_region(),
+                                     jd['name'])
             except configparser.NoSectionError:
                 pass
 
@@ -1520,7 +1593,9 @@ def test_ComputeEnvironment(pars):
         # Confirm that the role is in the config file
         config = configparser.ConfigParser()
         config.read(config_file)
-        assert name in config.options('compute-environments')
+        assert name in config.options(
+            'compute-environments ' + ck.aws.get_region()
+        )
 
         # Before clobbering, associate this compute environment with a
         # job queue in order to test the job queue disassociation statements
@@ -1536,6 +1611,23 @@ def test_ComputeEnvironment(pars):
             ce.clobber()
 
         assert e.value.resource_id[0]['jobQueueName'] == jq.name
+
+        # Assert that IamRole raises exception if we try to delete the
+        # batch service role on which this compute environment is based
+        with pytest.raises(ck.aws.CannotDeleteResourceException):
+            pars.batch_service_role.clobber()
+
+        # Assert that clobber raises RegionException if we change the region
+        old_region = ck.get_region()
+        if old_region != 'us-east-2':
+            ck.set_region(region='us-east-2')
+        else:
+            ck.set_region(region='us-east-1')
+
+        with pytest.raises(ck.aws.RegionException):
+            ce.clobber()
+
+        ck.set_region(region=old_region)
 
         jq.clobber()
         ce.clobber()
@@ -1554,7 +1646,9 @@ def test_ComputeEnvironment(pars):
         # config and then re-read the file
         config = configparser.ConfigParser()
         config.read(config_file)
-        assert name not in config.options('compute-environments')
+        assert name not in config.options(
+            'compute-environments ' + ck.aws.get_region()
+        )
 
         # Try to retrieve a compute environment that does not exist
         nonexistent_arn = arn.replace(
@@ -1639,7 +1733,9 @@ def test_ComputeEnvironment(pars):
             # Confirm that they exist in the config file
             config = configparser.ConfigParser()
             config.read(config_file)
-            assert ce.name in config.options('compute-environments')
+            assert ce.name in config.options(
+                'compute-environments ' + ck.aws.get_region()
+            )
 
             # Clobber compute environment
             ce.clobber()
@@ -1658,7 +1754,9 @@ def test_ComputeEnvironment(pars):
             # config and then re-read the file
             config = configparser.ConfigParser()
             config.read(config_file)
-            assert ce.name not in config.options('compute-environments')
+            assert ce.name not in config.options(
+                'compute-environments ' + ck.aws.get_region()
+            )
 
         # Test for correct handling of incorrect input
         # ValueError for neither arn or name
@@ -1918,7 +2016,8 @@ def test_ComputeEnvironment(pars):
 
                 # Clean up config file
                 try:
-                    config.remove_option('job-queues', name)
+                    config.remove_option('job-queues ' + ck.aws.get_region(),
+                                         name)
                 except configparser.NoSectionError:
                     pass
 
@@ -1937,7 +2036,9 @@ def test_ComputeEnvironment(pars):
 
             # Clean up config file
             try:
-                config.remove_option('compute-environments', ce['name'])
+                config.remove_option(
+                    'compute-environments ' + ck.aws.get_region(), ce['name']
+                )
             except configparser.NoSectionError:
                 pass
 
@@ -2020,7 +2121,7 @@ def test_JobQueue(pars):
         # Confirm that the role is in the config file
         config = configparser.ConfigParser()
         config.read(config_file)
-        assert name in config.options('job-queues')
+        assert name in config.options('job-queues ' + ck.aws.get_region())
 
         # Assert ValueError on invalid status in get_jobs() method
         with pytest.raises(ValueError):
@@ -2029,8 +2130,27 @@ def test_JobQueue(pars):
         assert jq.get_jobs() == []
         assert jq.get_jobs(status='STARTING') == []
 
+        # Assert that clobber raises RegionException if we change the region
+        old_region = ck.get_region()
+        if old_region != 'us-east-2':
+            ck.set_region(region='us-east-2')
+        else:
+            ck.set_region(region='us-east-1')
+
+        with pytest.raises(ck.aws.RegionException):
+            jq.clobber()
+
+        with pytest.raises(ck.aws.RegionException):
+            jobs = jq.get_jobs()  # noqa: F841
+
+        ck.set_region(region=old_region)
+
         # Clobber the job queue
         jq.clobber()
+
+        # Assert that we can no longer get jobs after clobbering
+        with pytest.raises(ck.aws.ResourceClobberedException):
+            jobs = jq.get_jobs()  # noqa: F841
 
         # Assert that it was removed from AWS
         response = batch.describe_job_queues(jobQueues=[arn])
@@ -2044,7 +2164,7 @@ def test_JobQueue(pars):
         # config and then re-read the file
         config = configparser.ConfigParser()
         config.read(config_file)
-        assert name not in config.options('job-queues')
+        assert name not in config.options('job-queues ' + ck.aws.get_region())
 
         # Try to retrieve a job queue that does not exist
         nonexistent_arn = arn.replace(
@@ -2084,7 +2204,9 @@ def test_JobQueue(pars):
             # Confirm that they exist in the config file
             config = configparser.ConfigParser()
             config.read(config_file)
-            assert jq.name in config.options('job-queues')
+            assert jq.name in config.options(
+                'job-queues ' + ck.aws.get_region()
+            )
 
             # Clobber job queue
             jq.clobber()
@@ -2103,7 +2225,9 @@ def test_JobQueue(pars):
             # config and then re-read the file
             config = configparser.ConfigParser()
             config.read(config_file)
-            assert jq.name not in config.options('job-queues')
+            assert jq.name not in config.options(
+                'job-queues ' + ck.aws.get_region()
+            )
 
         ce.clobber()
         ce2.clobber()
@@ -2210,7 +2334,8 @@ def test_JobQueue(pars):
 
                 # Clean up config file
                 try:
-                    config.remove_option('job-queues', name)
+                    config.remove_option('job-queues ' + ck.aws.get_region(),
+                                         name)
                 except configparser.NoSectionError:
                     pass
 
@@ -2229,7 +2354,9 @@ def test_JobQueue(pars):
 
             # Clean up config file
             try:
-                config.remove_option('compute-environments', ce['name'])
+                config.remove_option(
+                    'compute-environments ' + ck.aws.get_region(), ce['name']
+                )
             except configparser.NoSectionError:
                 pass
 
@@ -2290,7 +2417,8 @@ def test_JobQueue(pars):
 
             # Clean up config file
             try:
-                config.remove_option('job-queues', jq['name'])
+                config.remove_option('job-queues ' + ck.aws.get_region(),
+                                     jq['name'])
             except configparser.NoSectionError:
                 pass
 

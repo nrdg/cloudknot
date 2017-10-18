@@ -94,7 +94,7 @@ class Pars(aws.NamedObject):
         # Check for existence of this pars in the config file
         config = configparser.ConfigParser()
         config.read(get_config_file())
-        self._pars_name = 'pars ' + name
+        self._pars_name = 'pars ' + self.name
         if self._pars_name in config.sections():
             # Pars exists, check that user did not provide any resource names
             if any([batch_service_role_name, ecs_instance_role_name,
@@ -169,10 +169,10 @@ class Pars(aws.NamedObject):
 
             try:
                 # Use config values to adopt VPC if it exists already
-                id = config.get(self._pars_name, 'vpc')
-                self._vpc = aws.Vpc(vpc_id=id)
-                mod_logger.info('PARS {name:s} adopted VPC {id:s}'.format(
-                    name=name, id=id
+                vpcid = config.get(self._pars_name, 'vpc')
+                self._vpc = aws.Vpc(vpc_id=vpcid)
+                mod_logger.info('PARS {name:s} adopted VPC {vpcid:s}'.format(
+                    name=name, vpcid=vpcid
                 ))
             except aws.ResourceDoesNotExistException:
                 # Otherwise create the new VPC
@@ -182,19 +182,19 @@ class Pars(aws.NamedObject):
                 config.set(self._pars_name, 'vpc', self.vpc.vpc_id)
                 with open(get_config_file(), 'w') as f:
                     config.write(f)
-                mod_logger.info('PARS {name:s} created VPC {id:s}'.format(
-                    name=name, id=self.vpc.vpc_id
+                mod_logger.info('PARS {name:s} created VPC {vpcid:s}'.format(
+                    name=name, vpcid=self.vpc.vpc_id
                 ))
 
             try:
                 # Use config values to adopt security group if it exists
-                id = config.get(self._pars_name, 'security-group')
+                sgid = config.get(self._pars_name, 'security-group')
                 self._security_group = aws.SecurityGroup(
-                    security_group_id=id
+                    security_group_id=sgid
                 )
                 mod_logger.info(
-                    'PARS {name:s} adopted security group {id:s}'.format(
-                        name=name, id=id
+                    'PARS {name:s} adopted security group {sgid:s}'.format(
+                        name=name, sgid=sgid
                     )
                 )
             except aws.ResourceDoesNotExistException:
@@ -212,14 +212,22 @@ class Pars(aws.NamedObject):
                 with open(get_config_file(), 'w') as f:
                     config.write(f)
                 mod_logger.info(
-                    'PARS {name:s} created security group {id:s}'.format(
-                        name=name, id=self.security_group.security_group_id
+                    'PARS {name:s} created security group {sgid:s}'.format(
+                        name=name, sgid=self.security_group.security_group_id
                     )
                 )
 
-            # Save config to file
+            # Verify that the VPC and security group regions match
+            if not (self.vpc.region == self.security_group.region):
+                raise aws.RegionException(self.vpc.region)
+
+            # Set the PARS region to match the VPC and security group
+            self._region = self.vpc.region
             config = configparser.ConfigParser()
             config.read(get_config_file())
+            config.set(self._pars_name, 'region', self.region)
+
+            # Save config to file
             with open(get_config_file(), 'w') as f:
                 config.write(f)
         else:
@@ -326,22 +334,26 @@ class Pars(aws.NamedObject):
 
                 # Adopt the VPC
                 self._vpc = aws.Vpc(vpc_id=vpc_id)
-                mod_logger.info('PARS {name:s} adopted VPC {id:s}'.format(
-                    name=name, id=vpc_id
+                mod_logger.info('PARS {name:s} adopted VPC {vpcid:s}'.format(
+                    name=name, vpcid=vpc_id
                 ))
             else:
                 try:
                     # Create new VPC
                     self._vpc = aws.Vpc(name=vpc_name)
-                    mod_logger.info('PARS {name:s} created VPC {id:s}'.format(
-                        name=name, id=self.vpc.vpc_id
-                    ))
+                    mod_logger.info(
+                        'PARS {name:s} created VPC {vpcid:s}'.format(
+                            name=name, vpcid=self.vpc.vpc_id
+                        )
+                    )
                 except aws.ResourceExistsException as e:
                     # If it already exists, simply adopt it
                     self._vpc = aws.Vpc(vpc_id=e.resource_id)
-                    mod_logger.info('PARS {name:s} adopted VPC {id:s}'.format(
-                        name=name, id=e.resource_id
-                    ))
+                    mod_logger.info(
+                        'PARS {name:s} adopted VPC {vpcid:s}'.format(
+                            name=name, vpcid=e.resource_id
+                        )
+                    )
 
             if security_group_id:
                 # Validate security_group_id input
@@ -359,8 +371,8 @@ class Pars(aws.NamedObject):
                     security_group_id=security_group_id
                 )
                 mod_logger.info(
-                    'PARS {name:s} adopted security group {id:s}'.format(
-                        name=name, id=security_group_id
+                    'PARS {name:s} adopted security group {sgid:s}'.format(
+                        name=name, sgid=security_group_id
                     )
                 )
             else:
@@ -371,8 +383,9 @@ class Pars(aws.NamedObject):
                         vpc=self.vpc
                     )
                     mod_logger.info(
-                        'PARS {name:s} created security group {id:s}'.format(
-                            name=name, id=self.security_group.security_group_id
+                        'PARS {name:s} created security group {sgid:s}'.format(
+                            name=name,
+                            sgid=self.security_group.security_group_id
                         )
                     )
                 except aws.ResourceExistsException as e:
@@ -381,16 +394,24 @@ class Pars(aws.NamedObject):
                         security_group_id=e.resource_id
                     )
                     mod_logger.info(
-                        'PARS {name:s} adopted security group {id:s}'.format(
-                            name=name, id=e.resource_id
+                        'PARS {name:s} adopted security group {sgid:s}'.format(
+                            name=name, sgid=e.resource_id
                         )
                     )
+
+            # Verify that the VPC and security group regions match
+            if not (self.vpc.region == self.security_group.region):
+                raise aws.RegionException(self.vpc.region)
+
+            # Set the PARS region to match the VPC and security group
+            self._region = self.vpc.region
 
             # Save the new pars resources in config object
             # Use config.set() for python 2.7 compatibility
             config = configparser.ConfigParser()
             config.read(get_config_file())
             config.add_section(self._pars_name)
+            config.set(self._pars_name, 'region', self.region)
             config.set(
                 self._pars_name,
                 'batch-service-role', self._batch_service_role.name
@@ -412,7 +433,6 @@ class Pars(aws.NamedObject):
             with open(get_config_file(), 'w') as f:
                 config.write(f)
 
-    name = property(fget=operator.attrgetter('_name'))
     pars_name = property(fget=operator.attrgetter('_pars_name'))
 
     @staticmethod
@@ -512,6 +532,9 @@ class Pars(aws.NamedObject):
         if not isinstance(v, aws.Vpc):
             raise ValueError('new vpc must be an instance of Vpc')
 
+        if v.region != self._vpc.region:
+            raise aws.RegionException(v.region)
+
         mod_logger.warning(
             'You are setting a new VPC for PARS {name:s}. The old '
             'VPC {vpc_id:s} will be clobbered.'.format(
@@ -542,8 +565,8 @@ class Pars(aws.NamedObject):
             config.write(f)
 
         mod_logger.info(
-            'PARS {name:s} adopted new VPC {id:s}'.format(
-                name=self.name, id=self.vpc.vpc_id
+            'PARS {name:s} adopted new VPC {vpcid:s}'.format(
+                name=self.name, vpcid=self.vpc.vpc_id
             )
         )
 
@@ -574,6 +597,9 @@ class Pars(aws.NamedObject):
             raise ValueError('new security group must be an instance of '
                              'SecurityGroup')
 
+        if sg.region != self._security_group.region:
+            raise aws.RegionException(sg.region)
+
         mod_logger.warning(
             'You are setting a new security group for PARS {name:s}. The old '
             'security group {sg_id:s} will be clobbered.'.format(
@@ -592,8 +618,8 @@ class Pars(aws.NamedObject):
             config.write(f)
 
         mod_logger.info(
-            'PARS {name:s} adopted new security group {id:s}'.format(
-                name=self.name, id=sg.security_group_id
+            'PARS {name:s} adopted new security group {sgid:s}'.format(
+                name=self.name, sgid=sg.security_group_id
             )
         )
 
@@ -604,6 +630,9 @@ class Pars(aws.NamedObject):
         -------
         None
         """
+        if self.region != aws.get_region():
+            raise aws.RegionException(self.region)
+
         # Delete all associated AWS resources
         self._security_group.clobber()
         self._vpc.clobber()
@@ -772,7 +801,7 @@ class Knot(aws.NamedObject):
             pars_name = config.get(self._knot_name, 'pars')
             self._pars = Pars(name=pars_name)
             mod_logger.info('Knot {name:s} adopted PARS '
-                            '{id:s}'.format(name=self.name, id=self.pars.name))
+                            '{p:s}'.format(name=self.name, p=self.pars.name))
 
             image_name = config.get(self._knot_name, 'docker-image')
             self._docker_image = dockerimage.DockerImage(name=image_name)
@@ -866,13 +895,13 @@ class Knot(aws.NamedObject):
                 if not isinstance(pars, Pars):
                     raise ValueError('pars must be a Pars instance.')
                 self._pars = pars
-                mod_logger.info('knot {name:s} adopted PARS {id:s}'.format(
-                    name=self.name, id=self.pars.name
+                mod_logger.info('knot {name:s} adopted PARS {p:s}'.format(
+                    name=self.name, p=self.pars.name
                 ))
             else:
                 self._pars = Pars()
-                mod_logger.info('knot {name:s} created PARS {id:s}'.format(
-                    name=self.name, id=self.pars.name
+                mod_logger.info('knot {name:s} created PARS {p:s}'.format(
+                    name=self.name, p=self.pars.name
                 ))
 
             # Create and build the docker image
@@ -886,8 +915,8 @@ class Knot(aws.NamedObject):
 
             self.docker_image.build(tags=image_tags)
 
-            mod_logger.info('knot {name:s} built docker image {id!s}'.format(
-                name=self.name, id=self.docker_image.images
+            mod_logger.info('knot {name:s} built docker image {i!s}'.format(
+                name=self.name, i=self.docker_image.images
             ))
 
             # Create the remote repo
@@ -910,7 +939,7 @@ class Knot(aws.NamedObject):
 
             mod_logger.info(
                 'knot {name:s} created/adopted docker repo '
-                '{id:s}'.format(name=self.name, id=self.docker_repo.name)
+                '{r:s}'.format(name=self.name, r=self.docker_repo.name)
             )
 
             # Push to remote repo
@@ -918,7 +947,7 @@ class Knot(aws.NamedObject):
 
             mod_logger.info(
                 "knot {name:s} pushed it's docker image to the repo "
-                "{id:s}".format(name=self.name, id=self.docker_repo.name)
+                "{r:s}".format(name=self.name, r=self.docker_repo.name)
             )
 
             try:
@@ -934,8 +963,8 @@ class Knot(aws.NamedObject):
                 )
 
                 mod_logger.info(
-                    'knot {name:s} created job definition {id:s}'.format(
-                        name=self.name, id=self.job_definition.name
+                    'knot {name:s} created job definition {jd:s}'.format(
+                        name=self.name, jd=self.job_definition.name
                     )
                 )
 
@@ -984,8 +1013,8 @@ class Knot(aws.NamedObject):
                 jd_cleanup = False
 
                 mod_logger.info(
-                    'knot {name:s} adopted job definition {id:s}'.format(
-                        name=self.name, id=self.job_definition.name
+                    'knot {name:s} adopted job definition {jd:s}'.format(
+                        name=self.name, jd=self.job_definition.name
                     )
                 )
 
@@ -1015,8 +1044,8 @@ class Knot(aws.NamedObject):
                 )
 
                 mod_logger.info(
-                    'knot {name:s} created compute environment {id:s}'.format(
-                        name=self.name, id=self.compute_environment.name
+                    'knot {name:s} created compute environment {ce:s}'.format(
+                        name=self.name, ce=self.compute_environment.name
                     )
                 )
 
@@ -1088,8 +1117,8 @@ class Knot(aws.NamedObject):
                 # ce_cleanup logic same as for jd_cleanup
                 ce_cleanup = False
                 mod_logger.info(
-                    'knot {name:s} adopted compute environment {id:s}'.format(
-                        name=self.name, id=self.compute_environment.name
+                    'knot {name:s} adopted compute environment {ce:s}'.format(
+                        name=self.name, ce=self.compute_environment.name
                     )
                 )
 
@@ -1103,7 +1132,7 @@ class Knot(aws.NamedObject):
 
                 mod_logger.info(
                     'knot {name:s} created job queue '
-                    '{id:s}'.format(name=self.name, id=self.job_queue.name)
+                    '{jq:s}'.format(name=self.name, jq=self.job_queue.name)
                 )
             except aws.ResourceExistsException as e:
                 # Job queue already exists, retrieve it
@@ -1140,7 +1169,7 @@ class Knot(aws.NamedObject):
                 self._job_queue = jq
                 mod_logger.info(
                     'knot {name:s} adopted job queue '
-                    '{id:s}'.format(name=self.name, id=self.job_queue.name)
+                    '{jq:s}'.format(name=self.name, jq=self.job_queue.name)
                 )
 
             self._jobs = []
@@ -1151,6 +1180,7 @@ class Knot(aws.NamedObject):
             config = configparser.ConfigParser()
             config.read(get_config_file())
             config.add_section(self._knot_name)
+            config.set(self._knot_name, 'region', self.region)
             config.set(self._knot_name, 'pars', self.pars.name)
             config.set(self._knot_name, 'docker-image', self.docker_image.name)
             config.set(self._knot_name, 'docker-repo', self.docker_repo.name)
@@ -1188,6 +1218,9 @@ class Knot(aws.NamedObject):
                 'This Knot has already been clobbered.',
                 self.name
             )
+
+        if self.region != aws.get_region():
+            raise aws.RegionException(self.region)
 
         # commands should be a sequence of sequences of strings
         if not all(all(isinstance(s, six.string_types) for s in sublist)
@@ -1244,6 +1277,9 @@ class Knot(aws.NamedObject):
                 self.name
             )
 
+        if self.region != aws.get_region():
+            raise aws.RegionException(self.region)
+
         jobs_info = [
             {
                 'job': job,
@@ -1263,6 +1299,9 @@ class Knot(aws.NamedObject):
                 'This Knot has already been clobbered.',
                 self.name
             )
+
+        if self.region != aws.get_region():
+            raise aws.RegionException(self.region)
 
         order = {'SUBMITTED': 0, 'PENDING': 1, 'RUNNABLE': 2, 'STARTING': 3,
                  'RUNNING': 4, 'FAILED': 5, 'SUCCEEDED': 6}
@@ -1289,6 +1328,9 @@ class Knot(aws.NamedObject):
         -------
         None
         """
+        if self.region != aws.get_region():
+            raise aws.RegionException(self.region)
+
         # Delete all associated AWS resources
         for job in self.jobs:
             job.clobber()

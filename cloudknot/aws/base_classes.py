@@ -11,10 +11,16 @@ from collections import namedtuple
 
 from ..config import get_config_file
 
-__all__ = ["ResourceDoesNotExistException", "ResourceClobberedException",
-           "ResourceExistsException", "CannotDeleteResourceException",
-           "NamedObject", "ObjectWithArn", "ObjectWithUsernameAndMemory",
-           "clients", "wait_for_compute_environment", "wait_for_job_queue"]
+__all__ = [
+    "ResourceDoesNotExistException", "ResourceClobberedException",
+    "ResourceExistsException", "CannotDeleteResourceException",
+    "RegionException",
+    "NamedObject", "ObjectWithArn", "ObjectWithUsernameAndMemory",
+    "clients", "refresh_clients",
+    "wait_for_compute_environment", "wait_for_job_queue",
+    "get_region", "set_region",
+    "get_profile", "set_profile", "list_profiles",
+]
 
 mod_logger = logging.getLogger(__name__)
 
@@ -356,7 +362,7 @@ class ResourceClobberedException(Exception):
         resource_id : string
             The resource ID (e.g. ARN, VPC-ID) of the requested resource
         """
-        super(ResourceDoesNotExistException, self).__init__(message)
+        super(ResourceClobberedException, self).__init__(message)
         self.resource_id = resource_id
 
 
@@ -378,6 +384,28 @@ class CannotDeleteResourceException(Exception):
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
+class RegionException(Exception):
+    """Exception indicating that an AWS resource's region does not match
+    the current region"""
+    def __init__(self, resource_region):
+        """Initialize the Exception
+
+        Parameters
+        ----------
+        resource_region : string
+            The resource region
+        """
+        super(RegionException, self).__init__(
+            "This resource's region ({resource:s}) does not match the "
+            "current region ({current:s})".format(
+                resource=resource_region, current=get_region()
+            )
+        )
+        self.current_region = get_region()
+        self.resource_region = resource_region
+
+
+# noinspection PyPropertyAccess,PyAttributeOutsideInit
 class NamedObject(object):
     """Base class for building objects with name property"""
     def __init__(self, name):
@@ -390,9 +418,11 @@ class NamedObject(object):
         """
         self._name = str(name)
         self._clobbered = False
+        self._region = get_region()
 
     name = property(operator.attrgetter('_name'))
     clobbered = property(operator.attrgetter('_clobbered'))
+    region = property(operator.attrgetter('_region'))
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -412,9 +442,7 @@ class ObjectWithArn(NamedObject):
         super(ObjectWithArn, self).__init__(name=name)
         self._arn = None
 
-    @property
-    def arn(self):
-        return self._arn
+    arn = property(operator.attrgetter('_arn'))
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -432,11 +460,11 @@ class ObjectWithUsernameAndMemory(ObjectWithArn):
             Name of the object
 
         memory : int
-            memory (MiB) to be used for this job definition
+            memory (MiB) to be used for this resource
             Default: 32000
 
         username : string
-            username for be used for this job definition
+            username for be used for this resource
             Default: cloudknot-user
         """
         super(ObjectWithUsernameAndMemory, self).__init__(name=name)

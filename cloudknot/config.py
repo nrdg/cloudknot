@@ -116,13 +116,14 @@ def verify_sections():
     config.read(config_file)
     approved_sections = [
         'aws', 'roles', 'vpc', 'security-groups', 'docker-repos',
-        'job-definitions', 'compute-environments', 'job-queues', 'batch-jobs'
+        'job-definitions', 'compute-environments', 'job-queues', 'batch-jobs',
+        'pars', 'knot', 'docker-image'
     ]
 
     def section_approved(sec):
         return any([
             sec in approved_sections,
-            sec.split(' ', 1)[0] in ['pars', 'knot', 'docker-image']
+            sec.split(' ', 1)[0] in approved_sections
         ])
 
     for section in config.sections():
@@ -137,6 +138,9 @@ def prune():
     -------
     None
     """
+    raise NotImplementedError('prune is not yet implemented.')
+    # prune needs to be updated to use the region info in config
+
     verify_sections()
 
     config_file = get_config_file()
@@ -197,4 +201,4 @@ def prune():
             config.remove_option('jobs', job_id)
 
     # Prune pars
-    # Prune jars
+    # Prune knots
