@@ -88,11 +88,8 @@ def set_region(region='us-east-1'):
     Parameters
     ----------
     region : string
-        An AWS region
-
-    Returns
-    -------
-    None
+        An AWS region.
+        Default: 'us-east-1'
     """
     response = clients['ec2'].describe_regions()
     region_names = [d['RegionName'] for d in response.get('Regions')]
@@ -230,10 +227,6 @@ def set_profile(profile_name):
     profile_name : string
         An AWS profile listed in the aws config file or aws shared
         credentials file
-
-    Returns
-    -------
-    None
     """
     raise NotImplementedError(
         'set_profile is not currently implemented. If you really need to '
@@ -299,9 +292,16 @@ clients = {
         'ecs', region_name=get_region()
     )
 }
+"""dict: module-level dictionary of boto3 clients
+
+`clients` has boto3 clients for iam, ec2, batch, ecr, and ecs.
+Storing the boto3 clients in a module-level dictionary allows us to change
+the region and profile and have those changes reflected globally.
+"""
 
 
 def refresh_clients():
+    """Refresh the boto3 clients dictionary"""
     clients['iam'] = boto3.Session(profile_name=get_profile()).client(
         'iam', region_name=get_region()
     )
@@ -329,6 +329,7 @@ class ResourceExistsException(Exception):
         ----------
         message : string
             The error message to display to the user
+
         resource_id : string
             The resource ID (e.g. ARN, VPC-ID) of the requested resource
         """
@@ -346,6 +347,7 @@ class ResourceDoesNotExistException(Exception):
         ----------
         message : string
             The error message to display to the user
+
         resource_id : string
             The resource ID (e.g. ARN, VPC-ID) of the requested resource
         """
@@ -355,8 +357,7 @@ class ResourceDoesNotExistException(Exception):
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 class ResourceClobberedException(Exception):
-    """Exception indicating that the requested AWS resource has
-    already been clobbered"""
+    """Exception indicating that this AWS resource has been clobbered"""
     def __init__(self, message, resource_id):
         """Initialize the Exception
 
@@ -364,6 +365,7 @@ class ResourceClobberedException(Exception):
         ----------
         message : string
             The error message to display to the user
+
         resource_id : string
             The resource ID (e.g. ARN, VPC-ID) of the requested resource
         """
@@ -381,8 +383,9 @@ class CannotDeleteResourceException(Exception):
         ----------
         message : string
             The error message to display to the user
+
         resource_id : string
-            The resource ID (e.g. ARN, VPC-ID) of the requested resource
+            The resource ID (e.g. ARN, VPC-ID) of the dependent resources
         """
         super(CannotDeleteResourceException, self).__init__(message)
         self.resource_id = resource_id
@@ -390,8 +393,7 @@ class CannotDeleteResourceException(Exception):
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 class RegionException(Exception):
-    """Exception indicating that an AWS resource's region does not match
-    the current region"""
+    """Exception indicating the current region is not this resource's region"""
     def __init__(self, resource_region):
         """Initialize the Exception
 
@@ -425,9 +427,20 @@ class NamedObject(object):
         self._clobbered = False
         self._region = get_region()
 
-    name = property(operator.attrgetter('_name'))
-    clobbered = property(operator.attrgetter('_clobbered'))
-    region = property(operator.attrgetter('_region'))
+    @property
+    def name(self):
+        """The name of this AWS resource"""
+        return self._name
+
+    @property
+    def clobbered(self):
+        """Has this instance been previously clobbered"""
+        return self._clobbered
+
+    @property
+    def region(self):
+        """The AWS region in which this resource was created"""
+        return self._region
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -447,7 +460,10 @@ class ObjectWithArn(NamedObject):
         super(ObjectWithArn, self).__init__(name=name)
         self._arn = None
 
-    arn = property(operator.attrgetter('_arn'))
+    @property
+    def arn(self):
+        """Amazon resource number (ARN) of this resource"""
+        return self._arn
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -485,8 +501,15 @@ class ObjectWithUsernameAndMemory(ObjectWithArn):
 
         self._username = str(username)
 
-    memory = property(operator.attrgetter('_memory'))
-    username = property(operator.attrgetter('_username'))
+    @property
+    def memory(self):
+        """Memory to be used for this resource"""
+        return self._memory
+
+    @property
+    def username(self):
+        """Username for this resource"""
+        return self._username
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -508,10 +531,6 @@ def wait_for_compute_environment(arn, name, log=True, max_wait_time=60):
     max_wait_time : int
         Maximum time to wait (in seconds)
         Default: 60
-
-    Returns
-    -------
-    None
     """
     # Initialize waiting and num_waits for the while loop
     waiting = True
@@ -560,10 +579,6 @@ def wait_for_job_queue(name, log=True, max_wait_time=60):
     max_wait_time : int
         Maximum time to wait (in seconds)
         Default: 60
-
-    Returns
-    -------
-    None
     """
     # Initialize waiting and num_waits for the while loop
     waiting = True

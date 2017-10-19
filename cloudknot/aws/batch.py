@@ -185,12 +185,43 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             self._arn = self._create()
 
     # Declare read-only parameters
-    pre_existing = property(operator.attrgetter('_pre_existing'))
-    job_role = property(operator.attrgetter('_job_role'))
-    job_role_arn = property(operator.attrgetter('_job_role_arn'))
-    docker_image = property(operator.attrgetter('_docker_image'))
-    vcpus = property(operator.attrgetter('_vcpus'))
-    retries = property(operator.attrgetter('_retries'))
+    @property
+    def pre_existing(self):
+        """Boolean flag to indicate whether this resource was pre-existing
+
+        True if resource was retrieved from AWS,
+        False if it was created on __init__.
+        """
+        return self._pre_existing
+
+    @property
+    def job_role(self):
+        """IAM job role for this job definition."""
+        return self._job_role
+
+    @property
+    def job_role_arn(self):
+        """The ARN for this job definition's IAM job role."""
+        return self._job_role_arn
+
+    @property
+    def docker_image(self):
+        """DockerRepo instance for the container to be used in this job
+        definition or string containing location of docker image on Docker
+        Hub or other repository
+        """
+        return self._docker_image
+
+    @property
+    def vcpus(self):
+        """The number of vCPUS for this job definition."""
+        return self._vcpus
+
+    @property
+    def retries(self):
+        """The number of times a job can be moved to 'RUNNABLE' status."""
+        return self._retries
+
 
     def _exists_already(self, arn, name):
         """Check if an AWS Job Definition exists already
@@ -306,12 +337,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         return arn
 
     def clobber(self):
-        """Deregister this AWS batch job definition
-
-        Returns
-        -------
-        None
-        """
+        """Deregister this AWS batch job definition"""
         if self.region != get_region():
             raise RegionException(resource_region=self.region)
 
@@ -681,33 +707,109 @@ class ComputeEnvironment(ObjectWithArn):
             self._arn = self._create()
 
     # Declare read-only properties
-    pre_existing = property(operator.attrgetter('_pre_existing'))
-    batch_service_role = property(operator.attrgetter('_batch_service_role'))
-    batch_service_role_arn = property(
-        operator.attrgetter('_batch_service_role_arn')
-    )
+    @property
+    def pre_existing(self):
+        """Boolean flag to indicate whether this resource was pre-existing
 
-    instance_role = property(operator.attrgetter('_instance_role'))
-    instance_role_arn = property(operator.attrgetter('_instance_role_arn'))
+        True if resource was retrieved from AWS,
+        False if it was created on __init__.
+        """
+        return self._pre_existing
 
-    vpc = property(operator.attrgetter('_vpc'))
-    subnets = property(operator.attrgetter('_subnets'))
+    @property
+    def batch_service_role(self):
+        """IamRole instance for the AWS IAM batch service role"""
+        return self._batch_service_role
 
-    security_group = property(operator.attrgetter('_security_group'))
-    security_group_ids = property(operator.attrgetter('_security_group_ids'))
+    @property
+    def batch_service_role_arn(self):
+        """ARN for this compute environment's IAM batch service role"""
+        return self._batch_service_role_arn
 
-    spot_fleet_role = property(operator.attrgetter('_spot_fleet_role'))
-    spot_fleet_role_arn = property(operator.attrgetter('_spot_fleet_role_arn'))
+    @property
+    def instance_role(self):
+        """IamRole instance for the AWS IAM instance role"""
+        return self._instance_role
 
-    instance_types = property(operator.attrgetter('_instance_types'))
-    resource_type = property(operator.attrgetter('_resource_type'))
-    min_vcpus = property(operator.attrgetter('_min_vcpus'))
-    max_vcpus = property(operator.attrgetter('_max_vcpus'))
-    desired_vcpus = property(operator.attrgetter('_desired_vcpus'))
-    image_id = property(operator.attrgetter('_image_id'))
-    ec2_key_pair = property(operator.attrgetter('_ec2_key_pair'))
-    tags = property(operator.attrgetter('_tags'))
-    bid_percentage = property(operator.attrgetter('_bid_percentage'))
+    @property
+    def instance_role_arn(self):
+        """ARN for this compute environment's IAM instance role"""
+        return self._instance_role_arn
+
+    @property
+    def vpc(self):
+        """Vpc instance that this compute environment will use"""
+        return self._vpc
+
+    @property
+    def subnets(self):
+        """VPC subnets that this compute environment will use"""
+        return self._subnets
+
+    @property
+    def security_group(self):
+        """SecurityGroup instance that this compute environment will use"""
+        return self._security_group
+
+    @property
+    def security_group_ids(self):
+        """Security group IDs for this compute environment"""
+        return self._security_group_ids
+
+    @property
+    def spot_fleet_role(self):
+        """optional IamRole instance for the AWS IAM spot fleet role"""
+        return self._spot_fleet_role
+
+    @property
+    def spot_fleet_role_arn(self):
+        """ARN for this compute environment's IAM spot fleet role"""
+        return self._spot_fleet_role_arn
+
+    @property
+    def instance_types(self):
+        """Instance types that may be launched in this compute environment"""
+        return self._instance_types
+
+    @property
+    def resource_type(self):
+        """Resource type, either 'EC2' or 'SPOT'"""
+        return self._resource_type
+
+    @property
+    def min_vcpus(self):
+        """Minimum number of vCPUs for instances in this compute environment"""
+        return self._min_vcpus
+
+    @property
+    def max_vcpus(self):
+        """Maximum number of vCPUs for instances in this compute environment"""
+        return self._max_vcpus
+
+    @property
+    def desired_vcpus(self):
+        """Desired number of vCPUs for instances in this compute environment"""
+        return self._desired_vcpus
+
+    @property
+    def image_id(self):
+        """Optional AMI id used for instances in this compute environment"""
+        return self._image_id
+
+    @property
+    def ec2_key_pair(self):
+        """Optional EC2 key pair for instances in this compute environment"""
+        return self._ec2_key_pair
+
+    @property
+    def tags(self):
+        """Optional tags to apply to resources in this compute environment"""
+        return self._tags
+
+    @property
+    def bid_percentage(self):
+        """Bid percentage if using spot instances"""
+        return self._bid_percentage
 
     def _exists_already(self, arn, name):
         """Check if a compute environment exists already
@@ -873,12 +975,7 @@ class ComputeEnvironment(ObjectWithArn):
         return arn
 
     def clobber(self):
-        """Delete this compute environment
-
-        Returns
-        -------
-        None
-        """
+        """Delete this compute environment"""
         if self.region != get_region():
             raise RegionException(resource_region=self.region)
 
@@ -1067,14 +1164,29 @@ class JobQueue(ObjectWithArn):
             self._arn = self._create()
 
     # Declare properties
-    pre_existing = property(operator.attrgetter('_pre_existing'))
-    compute_environments = property(
-        operator.attrgetter('_compute_environments')
-    )
-    compute_environment_arns = property(
-        operator.attrgetter('_compute_environment_arns')
-    )
-    priority = property(operator.attrgetter('_priority'))
+    @property
+    def pre_existing(self):
+        """Boolean flag to indicate whether this resource was pre-existing
+
+        True if resource was retrieved from AWS,
+        False if it was created on __init__.
+        """
+        return self._pre_existing
+
+    @property
+    def compute_environments(self):
+        """ComputeEnvironment instances for this job queue to use"""
+        return self._compute_environments
+
+    @property
+    def compute_environment_arns(self):
+        """Dictionary of this queue's compute environments and priorities"""
+        return self._compute_environment_arns
+
+    @property
+    def priority(self):
+        """Priority for jobs in this queue"""
+        return self._priority
 
     def _exists_already(self, arn, name):
         """Check if an AWS job queue exists already
@@ -1366,17 +1478,43 @@ class BatchJob(NamedObject):
 
             self._job_id = self._create()
 
-    job_queue = property(operator.attrgetter('_job_queue'))
-    job_queue_arn = property(operator.attrgetter('_job_queue_arn'))
+    @property
+    def job_queue(self):
+        """JobQueue instance to which this job will be submitted"""
+        return self._job_queue
 
-    job_definition = property(operator.attrgetter('_job_definition_arn'))
-    job_definition_arn = property(operator.attrgetter('_job_definition'))
+    @property
+    def job_queue_arn(self):
+        """ARN for the job queue to which this job will be submitted"""
+        return self._job_queue_arn
 
-    commands = property(operator.attrgetter('_commands'))
-    environment_variables = property(
-        operator.attrgetter('_environment_variables')
-    )
-    job_id = property(operator.attrgetter('_job_id'))
+    @property
+    def job_definition(self):
+        """JobDefinition instance on which to base this job"""
+        return self._job_definition_arn
+
+    @property
+    def job_definition_arn(self):
+        """The ARN for the job definition on which to base this job"""
+        return self._job_definition
+
+    @property
+    def commands(self):
+        """command sent to the container for this job.
+
+        Multi-word commands are split on spaces.
+        e.g. `echo hello` becomes ['echo', 'hello']"""
+        return self._commands
+
+    @property
+    def environment_variables(self):
+        """Key/value pairs for environment variables sent to the container"""
+        return self._environment_variables
+
+    @property
+    def job_id(self):
+        """This job's AWS jobID"""
+        return self._job_id
 
     def _exists_already(self, job_id):
         """Check if an AWS batch job exists already

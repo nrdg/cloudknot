@@ -151,13 +151,38 @@ class IamRole(ObjectWithArn):
     _allowed_services = ['batch', 'ec2', 'ecs-tasks', 'lambda', 'spotfleet']
 
     # Declare read-only properties
-    pre_existing = property(operator.attrgetter('_pre_existing'))
-    description = property(operator.attrgetter('_description'))
-    service = property(operator.attrgetter('_service'))
-    policies = property(operator.attrgetter('_policies'))
-    role_policy_document = property(
-        operator.attrgetter('_role_policy_document')
-    )
+    @property
+    def pre_existing(self):
+        """Boolean flag to indicate whether this resource was pre-existing
+
+        True if resource was retrieved from AWS,
+        False if it was created on __init__.
+        """
+        return self._pre_existing
+
+    @property
+    def description(self):
+        """Description of this IAM role"""
+        return self._description
+
+    @property
+    def service(self):
+        """Service role on which this AWS IAM role is based.
+
+        `service` will be one of
+        ['ecs-tasks', 'batch', 'ec2', 'lambda', 'spotfleet']
+        """
+        return self._service
+
+    @property
+    def policies(self):
+        """Tuple of names of AWS policies attached to this role"""
+        return self._policies
+
+    @property
+    def role_policy_document(self):
+        """Role policy document for this IAM role"""
+        return self._role_policy_document
 
     def _exists_already(self):
         """Check if an IAM Role exists already
@@ -319,7 +344,7 @@ class IamRole(ObjectWithArn):
 
     @property
     def instance_profile_arn(self):
-        """Return ARN for attached instance profile if any
+        """Return ARN for attached instance profile if applicable
 
         Returns
         -------
@@ -345,12 +370,7 @@ class IamRole(ObjectWithArn):
             return None
 
     def clobber(self):
-        """Delete this AWS IAM role and remove from config file
-
-        Returns
-        -------
-        None
-        """
+        """Delete this AWS IAM role and remove from config file"""
         if self.service == 'batch.amazonaws.com':
             # If this is a batch service role, wait for any dependent compute
             # environments to finish deleting In order to prevent INVALID

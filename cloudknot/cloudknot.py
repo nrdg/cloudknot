@@ -433,7 +433,10 @@ class Pars(aws.NamedObject):
             with open(get_config_file(), 'w') as f:
                 config.write(f)
 
-    pars_name = property(fget=operator.attrgetter('_pars_name'))
+    @property
+    def pars_name(self):
+        """The section name for this PARS in the cloudknot config file"""
+        return self._pars_name
 
     @staticmethod
     def _role_setter(attr):
@@ -506,7 +509,10 @@ class Pars(aws.NamedObject):
         fset=_role_setter.__func__('_spot_fleet_role')
     )
 
-    vpc = property(fget=operator.attrgetter('_vpc'))
+    @property
+    def vpc(self):
+        """The Vpc instance attached to this PARS"""
+        return self._vpc
 
     @vpc.setter
     def vpc(self, v):
@@ -570,7 +576,10 @@ class Pars(aws.NamedObject):
             )
         )
 
-    security_group = property(operator.attrgetter('_security_group'))
+    @property
+    def security_group(self):
+        """The SecurityGroup instance attached to this PARS"""
+        return self._security_group
 
     @security_group.setter
     def security_group(self, sg):
@@ -624,12 +633,7 @@ class Pars(aws.NamedObject):
         )
 
     def clobber(self):
-        """Delete associated AWS resources and remove section from config
-
-        Returns
-        -------
-        None
-        """
+        """Delete associated AWS resources and remove section from config"""
         if self.region != aws.get_region():
             raise aws.RegionException(self.region)
 
@@ -699,8 +703,8 @@ class Knot(aws.NamedObject):
             Directory to store Dockerfile, requirements.txt, and python
             script with CLI
             Default: parent directory of script if `script_path` is provided
-                     else DockerImage creates a new directory, accessible by
-                     the `docker_image.build_path` property.
+            else DockerImage creates a new directory, accessible by the
+            `docker_image.build_path` property.
 
         username : string
             default username created in Dockerfile and in batch job definition
@@ -1178,19 +1182,64 @@ class Knot(aws.NamedObject):
                 config.write(f)
 
     # Declare read-only properties
-    knot_name = property(fget=operator.attrgetter('_knot_name'))
-    pars = property(fget=operator.attrgetter('_pars'))
-    docker_image = property(fget=operator.attrgetter('_docker_image'))
-    docker_repo = property(fget=operator.attrgetter('_docker_repo'))
-    job_definition = property(fget=operator.attrgetter('_job_definition'))
-    job_queue = property(fget=operator.attrgetter('_job_queue'))
-    compute_environment = property(
-        fget=operator.attrgetter('_compute_environment')
-    )
-    jobs = property(fget=operator.attrgetter('_jobs'))
-    job_ids = property(fget=operator.attrgetter('_job_ids'))
+    @property
+    def knot_name(self):
+        """The section name for this knot in the cloudknot config file"""
+        return self._knot_name
+
+    @property
+    def pars(self):
+        """The Pars instance attached to this knot"""
+        return self._pars
+
+    @property
+    def docker_image(self):
+        """The DockerImage instance attached to this knot"""
+        return self._docker_image
+
+    @property
+    def docker_repo(self):
+        """The DockerRepo instance attached to this knot"""
+        return self._docker_repo
+
+    @property
+    def job_definition(self):
+        """The JobDefinition instance attached to this knot"""
+        return self._job_definition
+
+    @property
+    def job_queue(self):
+        """The JobQueue instance attached to this knot"""
+        return self._job_queue
+
+    @property
+    def compute_environment(self):
+        """The ComputeEnvironment instance attached to this knot"""
+        return self._compute_environment
+
+    @property
+    def jobs(self):
+        """List of BatchJob instances that this knot has launched"""
+        return self._jobs
+
+    @property
+    def job_ids(self):
+        """List of batch job IDs that this knot has launched"""
+        return self._job_ids
 
     def submit(self, commands, env_vars):
+        """Submit batch jobs for a range of commands and environment vars
+
+        Parameters
+        ----------
+        commands : sequence of sequence of strings
+            Sequence of commands. This method will submit one batch job for
+            each command in the sequence
+
+        env_vars : sequence of sequence of strings
+            Sequence of environment variables. This method will submit one
+            batch job for each environment variable set in the sequence
+        """
         if self.clobbered:
             raise aws.ResourceClobberedException(
                 'This Knot has already been clobbered.',
@@ -1301,10 +1350,6 @@ class Knot(aws.NamedObject):
         clobber_pars : boolean
             If true, clobber the associated Pars instance
             Default: False
-
-        Returns
-        -------
-        None
         """
         if self.region != aws.get_region():
             raise aws.RegionException(self.region)

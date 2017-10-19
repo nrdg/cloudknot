@@ -124,11 +124,34 @@ class Vpc(NamedObject):
             self._subnet_ids = self._add_subnets()
 
     # Declare read-only properties
-    pre_existing = property(operator.attrgetter('_pre_existing'))
-    ipv4_cidr = property(operator.attrgetter('_ipv4_cidr'))
-    instance_tenancy = property(operator.attrgetter('_instance_tenancy'))
-    vpc_id = property(operator.attrgetter('_vpc_id'))
-    subnet_ids = property(operator.attrgetter('_subnet_ids'))
+    @property
+    def pre_existing(self):
+        """Boolean flag to indicate whether this resource was pre-existing
+
+        True if resource was retrieved from AWS,
+        False if it was created on __init__.
+        """
+        return self._pre_existing
+
+    @property
+    def ipv4_cidr(self):
+        """IPv4 CIDR block assigned to this VPC"""
+        return self._ipv4_cidr
+
+    @property
+    def instance_tenancy(self):
+        """Instance tenancy for this VPC, one of ['default', 'dedicated']"""
+        return self._instance_tenancy
+
+    @property
+    def vpc_id(self):
+        """The ID for this Amazon virtual private cloud"""
+        return self._vpc_id
+
+    @property
+    def subnet_ids(self):
+        """List of subnet IDs for this subnets in this VPC"""
+        return self._subnet_ids
 
     def _exists_already(self, vpc_id, name):
         """Check if an AWS VPC exists already
@@ -293,12 +316,7 @@ class Vpc(NamedObject):
         return vpc_id
 
     def _add_subnets(self):
-        """Add one subnet to this VPC for each availability zone
-
-        Returns
-        -------
-        None
-        """
+        """Add one subnet to this VPC for each availability zone"""
         # Add a subnet for each availability zone
         response = clients['ec2'].describe_availability_zones()
         zones = response.get('AvailabilityZones')
@@ -367,12 +385,7 @@ class Vpc(NamedObject):
         return subnet_ids
 
     def clobber(self):
-        """Delete this AWS virtual private cloud (VPC)
-
-        Returns
-        -------
-        None
-        """
+        """Delete this AWS virtual private cloud (VPC)"""
         try:
             # Delete the subnets
             for subnet_id in self.subnet_ids:
@@ -510,11 +523,34 @@ class SecurityGroup(NamedObject):
             self._security_group_id = self._create()
 
     # Declare read-only properties
-    pre_existing = property(operator.attrgetter('_pre_existing'))
-    vpc = property(operator.attrgetter('_vpc'))
-    vpc_id = property(operator.attrgetter('_vpc_id'))
-    description = property(operator.attrgetter('_description'))
-    security_group_id = property(operator.attrgetter('_security_group_id'))
+    @property
+    def pre_existing(self):
+        """Boolean flag to indicate whether this resource was pre-existing
+
+        True if resource was retrieved from AWS,
+        False if it was created on __init__.
+        """
+        return self._pre_existing
+
+    @property
+    def vpc(self):
+        """Amazon virtual private cloud in which this security group resides"""
+        return self._vpc
+
+    @property
+    def vpc_id(self):
+        """ID for the VPC in which this security group resides"""
+        return self._vpc_id
+
+    @property
+    def description(self):
+        """The description for this security group"""
+        return self._description
+
+    @property
+    def security_group_id(self):
+        """The AWS ID for this security group"""
+        return self._security_group_id
 
     def _exists_already(self, security_group_id, name, vpc_id):
         """Check if an AWS security group exists already
@@ -658,12 +694,7 @@ class SecurityGroup(NamedObject):
         return group_id
 
     def clobber(self):
-        """Delete this AWS security group and associated resources
-
-        Returns
-        -------
-        None
-        """
+        """Delete this AWS security group and associated resources"""
         # Get dependent EC2 instances
         response = clients['ec2'].describe_instances(Filters=[{
             'Name': 'vpc-id',
