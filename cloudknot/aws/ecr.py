@@ -2,7 +2,6 @@ from __future__ import absolute_import, division, print_function
 
 import cloudknot.config
 import logging
-import operator
 from collections import namedtuple
 
 from .base_classes import NamedObject, clients

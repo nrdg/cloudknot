@@ -4,7 +4,6 @@ import configparser
 import docker
 import inspect
 import logging
-import operator
 import os
 import six
 import subprocess

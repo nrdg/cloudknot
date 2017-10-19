@@ -3,7 +3,6 @@ from __future__ import absolute_import, division, print_function
 import cloudknot.config
 import json
 import logging
-import operator
 import six
 import tenacity
 from collections import namedtuple

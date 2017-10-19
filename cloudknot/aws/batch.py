@@ -2,7 +2,6 @@ from __future__ import absolute_import, division, print_function
 
 import cloudknot.config
 import logging
-import operator
 import six
 import tenacity
 from collections import namedtuple
@@ -221,7 +220,6 @@ class JobDefinition(ObjectWithUsernameAndMemory):
     def retries(self):
         """The number of times a job can be moved to 'RUNNABLE' status."""
         return self._retries
-
 
     def _exists_already(self, arn, name):
         """Check if an AWS Job Definition exists already

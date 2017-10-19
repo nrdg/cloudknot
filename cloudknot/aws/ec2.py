@@ -4,7 +4,6 @@ import botocore
 import cloudknot.config
 import ipaddress
 import logging
-import operator
 import six
 import tenacity
 from collections import namedtuple
