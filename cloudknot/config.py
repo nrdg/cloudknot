@@ -1,3 +1,13 @@
+"""The config module contains functions to maintain the cloudknot config file
+
+This module contains function that other cloudknot objects use to maintain the
+cloudknot config file, including adding resources, removing resources, and
+verifying the section headers.
+
+Ideally, the cloudknot user should never have to use these functions to
+interact with the cloudknot config file. Each cloudknot object maintains
+references to its state in the config file.
+"""
 from __future__ import absolute_import, division, print_function
 
 import cloudknot.aws
