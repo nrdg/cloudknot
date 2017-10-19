@@ -235,6 +235,11 @@ def set_profile(profile_name):
     -------
     None
     """
+    raise NotImplementedError(
+        'set_profile is not currently implemented. If you really need to '
+        'change your AWS profile, you can restart this cloudknot session '
+        'and change you profile in ~/.aws/credentials.'
+    )
     profile_info = list_profiles()
 
     if profile_name not in profile_info.profile_names:
