@@ -387,11 +387,11 @@ class ComputeEnvironment(ObjectWithArn):
             compute environment will use
 
         spot_fleet_role : IamRole
-            optional IamRole instance for the AWS IAM spot fleet role
+            optional IamRole instance for the AWS IAM spot fleet role.
             Default: None
 
         instance_types : string or sequence of strings
-            instance types that may be launched in this compute environment
+            instance types that may be launched in this compute environment.
             Default: ('optimal',)
 
         resource_type : string
@@ -399,36 +399,37 @@ class ComputeEnvironment(ObjectWithArn):
 
         min_vcpus : int
             minimum number of virtual cpus for instances launched in this
-            compute environment
+            compute environment.
             Default: 0
 
         max_vcpus : int
             maximum number of virtual cpus for instances launched in this
-            compute environment
+            compute environment.
             Default: 256
 
         desired_vcpus : int
             desired number of virtual cpus for instances launched in this
-            compute environment
+            compute environment.
             Default: 8
 
         image_id : string
             optional AMI id used for instances launched in this compute
-            environment
-            Default: None
+            environment.
+            Default: The amzn-ami-2017.03.g-amazon-ecs-optimized image
+            for current region
 
         ec2_key_pair : string
             optional EC2 key pair used for instances launched in this compute
-            environment
+            environment.
             Default: None
 
         tags : dictionary
             optional key-value pair tags to be applied to resources in this
-            compute environment
+            compute environment.
             Default: None
 
         bid_percentage : int
-            bid percentage if using spot instances
+            bid percentage if using spot instances.
             Default: 50
         """
         # Validate for minimum input
@@ -661,7 +662,11 @@ class ComputeEnvironment(ObjectWithArn):
                     raise ValueError('if provided, image_id must be a string')
                 self._image_id = image_id
             else:
-                self._image_id = None
+                response = clients['ec2'].describe_images(Filters=[{
+                    'Name': 'name',
+                    'Values': ['amzn-ami-2017.03.g-amazon-ecs-optimized']
+                }])
+                self._image_id = response.get('Images')[0]['ImageId']
 
             # Validate ec2_key_pair input
             if ec2_key_pair:
@@ -1349,14 +1354,15 @@ class JobQueue(ObjectWithArn):
             # No unit test coverage here since it costs money to submit,
             # and then terminate, batch jobs
             jobs = self.get_jobs(status=status)
-            for job_id in jobs:
+            for job in jobs:
+                jid = job['jobId']
                 retry.call(
                     clients['batch'].terminate_job,
-                    jobId=job_id,
+                    jobId=jid,
                     reason='Terminated to force job queue deletion'
                 )
 
-                mod_logger.info('Terminated job {id:s}'.format(id=job_id))
+                mod_logger.info('Terminated job {jid:s}'.format(jid=jid))
 
         # Finally, delete the job queue
         retry.call(clients['batch'].delete_job_queue, jobQueue=self.arn)
