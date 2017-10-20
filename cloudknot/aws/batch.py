@@ -1489,12 +1489,12 @@ class BatchJob(NamedObject):
     @property
     def job_definition(self):
         """JobDefinition instance on which to base this job"""
-        return self._job_definition_arn
+        return self._job_definition
 
     @property
     def job_definition_arn(self):
         """The ARN for the job definition on which to base this job"""
-        return self._job_definition
+        return self._job_definition_arn
 
     @property
     def commands(self):
@@ -1525,14 +1525,14 @@ class BatchJob(NamedObject):
         -------
         namedtuple JobExists
             A namedtuple with fields
-            ['exists', 'name', 'job_queue_arn', 'job_definition_arn',
-            'commands', 'environment_variables']
+            ['exists', 'name', 'job_id', 'job_queue_arn',
+             'job_definition_arn', 'commands', 'environment_variables']
         """
         # define a namedtuple for return value type
         JobExists = namedtuple(
             'JobExists',
-            ['exists', 'name', 'job_queue_arn', 'job_definition_arn',
-             'commands', 'environment_variables']
+            ['exists', 'name', 'job_id', 'job_queue_arn',
+             'job_definition_arn', 'commands', 'environment_variables']
         )
         # make all but the first value default to None
         JobExists.__new__.__defaults__ = \
@@ -1551,7 +1551,8 @@ class BatchJob(NamedObject):
             mod_logger.info('Job {id:s} exists.'.format(id=job_id))
 
             return JobExists(
-                exists=True, name=name, job_queue_arn=job_queue_arn,
+                exists=True, name=name, job_id=job_id,
+                job_queue_arn=job_queue_arn,
                 job_definition_arn=job_definition_arn,
                 commands=commands, environment_variables=environment_variables
             )
@@ -1568,10 +1569,21 @@ class BatchJob(NamedObject):
         """
         # no coverage since actually submitting a batch job for
         # unit testing would be expensive
-        container_overrides = {
-            'environment': self.environment_variables,
-            'command': self.commands
-        }
+        if self.environment_variables and self.commands:
+            container_overrides = {
+                'environment': self.environment_variables,
+                'command': self.commands
+            }
+        elif self.commands:
+            container_overrides = {
+                'command': self.commands
+            }
+        elif self.environment_variables:
+            container_overrides = {
+                'environment': self.environment_variables,
+            }
+        else:
+            container_overrides = {}
 
         response = clients['batch'].submit_job(
             jobName=self.name,
@@ -1582,10 +1594,10 @@ class BatchJob(NamedObject):
 
         job_id = response['jobId']
 
-        # Remove this job from the list of jobs in the config file
+        # Add this job to the list of jobs in the config file
         self._section_name = 'batch-jobs ' + self.region
         cloudknot.config.add_resource(
-            self._section_name, self.job_id, self.name
+            self._section_name, job_id, self.name
         )
 
         mod_logger.info(
@@ -1619,7 +1631,8 @@ class BatchJob(NamedObject):
         job = response.get('jobs')[0]
 
         # Return only a subset of the job dictionary
-        status = {k: job[k] for k in ('status', 'statusReason', 'attempts')}
+        status = {k: job.get(k)
+                  for k in ('status', 'statusReason', 'attempts')}
 
         return status
 
