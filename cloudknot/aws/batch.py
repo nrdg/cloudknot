@@ -31,6 +31,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         ----------
         arn : string
             ARN of the job definition to retrieve
+
         name : string
             Name of the job definition to retrieve or create
 
@@ -50,7 +51,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
 
         memory : int
             memory (MiB) to be used for this job definition
-            Default: 32000
+            Default: 8000
 
         username : string
             username for be used for this job definition
@@ -138,7 +139,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
 
             # Otherwise, validate input and set parameters
             username = username if username else 'cloudknot-user'
-            memory = memory if memory else 32000
+            memory = memory if memory else 8000
 
             super(JobDefinition, self).__init__(
                 name=name, memory=memory, username=username
@@ -415,8 +416,7 @@ class ComputeEnvironment(ObjectWithArn):
         image_id : string
             optional AMI id used for instances launched in this compute
             environment.
-            Default: The amzn-ami-2017.03.g-amazon-ecs-optimized image
-            for current region
+            Default: None
 
         ec2_key_pair : string
             optional EC2 key pair used for instances launched in this compute
@@ -662,11 +662,12 @@ class ComputeEnvironment(ObjectWithArn):
                     raise ValueError('if provided, image_id must be a string')
                 self._image_id = image_id
             else:
-                response = clients['ec2'].describe_images(Filters=[{
-                    'Name': 'name',
-                    'Values': ['amzn-ami-2017.03.g-amazon-ecs-optimized']
-                }])
-                self._image_id = response.get('Images')[0]['ImageId']
+                # response = clients['ec2'].describe_images(Filters=[{
+                #     'Name': 'name',
+                #     'Values': ['amzn-ami-2017.03.g-amazon-ecs-optimized']
+                # }])
+                # self._image_id = response.get('Images')[0]['ImageId']
+                self._image_id = None
 
             # Validate ec2_key_pair input
             if ec2_key_pair:
@@ -983,8 +984,8 @@ class ComputeEnvironment(ObjectWithArn):
             raise RegionException(resource_region=self.region)
 
         retry = tenacity.Retrying(
-            wait=tenacity.wait_exponential(max=32),
-            stop=tenacity.stop_after_delay(60),
+            wait=tenacity.wait_exponential(max=64),
+            stop=tenacity.stop_after_delay(120),
             retry=tenacity.retry_if_exception_type(
                 clients['batch'].exceptions.ClientException
             )
