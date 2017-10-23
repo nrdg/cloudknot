@@ -11,7 +11,7 @@ from math import ceil
 
 from .base_classes import clients, NamedObject, \
     ResourceExistsException, ResourceDoesNotExistException, \
-    CannotDeleteResourceException
+    CannotCreateResourceException, CannotDeleteResourceException
 
 try:
     from math import log2
@@ -27,8 +27,8 @@ mod_logger = logging.getLogger(__name__)
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 class Vpc(NamedObject):
     """Class for defining an Amazon Virtual Private Cloud (VPC)"""
-    def __init__(self, vpc_id=None, name=None, ipv4_cidr=None,
-                 instance_tenancy=None):
+    def __init__(self, vpc_id=None, name=None, use_default_vpc=False,
+                 ipv4_cidr=None, instance_tenancy=None):
         """Initialize a Vpc instance
 
         Parameters
@@ -39,6 +39,10 @@ class Vpc(NamedObject):
         name : string
             Name of the VPC to be retrieved or created
 
+        use_default_vpc : bool
+            if True, create or retrieve the default VPC
+            if False, use other input args to create a non-default VPC
+
         ipv4_cidr : string
             IPv4 CIDR block to be used for creation of a new VPC
 
@@ -46,8 +50,8 @@ class Vpc(NamedObject):
             Instance tenancy for this VPC, one of ['default', 'dedicated']
             Default: 'default'
         """
-        # If user supplies vpc_id, then no other input is allowed
-        if not (vpc_id or name):
+        # User must supply vpc_id or name, or specify use_default_vpc
+        if not (vpc_id or name or use_default_vpc):
             raise ValueError('name or vpc_id is required.')
 
         # If user supplies vpc_id, then no other input is allowed
@@ -56,6 +60,39 @@ class Vpc(NamedObject):
                 'You must specify either a VPC id for an existing VPC or '
                 'input parameters for a new VPC. You cannot do both.'
             )
+
+        if use_default_vpc and any([
+            vpc_id, name, ipv4_cidr, instance_tenancy
+        ]):
+            raise ValueError('You may not specify any other input if'
+                             'requesting the default VPC')
+
+        if use_default_vpc:
+            try:
+                response = clients['ec2'].create_default_vpc()
+                vpc_id = response.get('Vpc').get('VpcId')
+            except clients['ec2'].exceptions.ClientError as e:
+                error_code = e.response.get('Error').get('Code')
+                if error_code == 'DefaultVpcAlreadyExists':
+                    response = clients['ec2'].describe_vpcs(Filters=[{
+                        'Name': 'isDefault',
+                        'Values': ['true']
+                    }])
+                    vpc_id = response.get('Vpcs')[0].get('VpcId')
+                elif error_code == 'UnauthorizedOperation':
+                    raise CannotCreateResourceException(
+                        'Cannot create a default VPC because this is an '
+                        'unauthorized operation. You may not have the proper '
+                        'permissions to create a default VPC.'
+                    )
+                elif error_code == 'OperationNotPermitted':
+                    raise CannotCreateResourceException(
+                        'Cannot create a default VPC because this is an '
+                        'unauthorized operation. You might have resources in '
+                        'EC2-Classic in the current region.'
+                    )
+                else:
+                    raise e
 
         # Check for pre-existence based on vpc_id or name
         resource = self._exists_already(vpc_id, name)
@@ -76,6 +113,7 @@ class Vpc(NamedObject):
             self._ipv4_cidr = resource.ipv4_cidr
             self._instance_tenancy = resource.instance_tenancy
             self._subnet_ids = resource.subnet_ids
+            self._is_default = resource.is_default
 
             self._section_name = 'vpc ' + self.region
             cloudknot.config.add_resource(
@@ -121,6 +159,7 @@ class Vpc(NamedObject):
 
             self._vpc_id = self._create()
             self._subnet_ids = self._add_subnets()
+            self._is_default = False
 
     # Declare read-only properties
     @property
@@ -131,6 +170,11 @@ class Vpc(NamedObject):
         False if it was created on __init__.
         """
         return self._pre_existing
+
+    @property
+    def is_default(self):
+        """True if this is the default VPC, False otherwise"""
+        return self._is_default
 
     @property
     def ipv4_cidr(self):
@@ -163,13 +207,13 @@ class Vpc(NamedObject):
         -------
         namedtuple RoleExists
             A namedtuple with fields ['exists', 'name', 'ipv4_cidr',
-            'instance_tenancy', 'vpc_id', 'subnet_ids']
+            'instance_tenancy', 'vpc_id', 'subnet_ids', 'is_default']
         """
         # define a namedtuple for return value type
         ResourceExists = namedtuple(
             'ResourceExists',
             ['exists', 'name', 'ipv4_cidr', 'instance_tenancy',
-             'vpc_id', 'subnet_ids']
+             'vpc_id', 'subnet_ids', 'is_default']
         )
         # make all but the first value default to None
         ResourceExists.__new__.__defaults__ = \
@@ -227,6 +271,7 @@ class Vpc(NamedObject):
             ipv4_cidr = vpc['CidrBlock']
             vpc_id = vpc['VpcId']
             instance_tenancy = vpc['InstanceTenancy']
+            is_default = vpc['IsDefault']
 
             # Find the name tag
             try:
@@ -266,7 +311,7 @@ class Vpc(NamedObject):
             return ResourceExists(
                 exists=True, name=name, ipv4_cidr=ipv4_cidr,
                 instance_tenancy=instance_tenancy, vpc_id=vpc_id,
-                subnet_ids=subnet_ids
+                subnet_ids=subnet_ids, is_default=is_default
             )
         else:
             return ResourceExists(exists=False)
@@ -353,6 +398,11 @@ class Vpc(NamedObject):
             )
 
             subnet_id = response.get('Subnet')['SubnetId']
+            clients['ec2'].modify_subnet_attribute(
+                MapPublicIpOnLaunch={'Value': True},
+                SubnetId=subnet_id
+            )
+
             subnet_ids.append(subnet_id)
 
             mod_logger.info('Created subnet {id:s}.'.format(id=subnet_id))
@@ -386,13 +436,16 @@ class Vpc(NamedObject):
     def clobber(self):
         """Delete this AWS virtual private cloud (VPC)"""
         try:
-            # Delete the subnets
-            for subnet_id in self.subnet_ids:
-                clients['ec2'].delete_subnet(SubnetId=subnet_id)
-                mod_logger.info('Deleted subnet {id:s}'.format(id=subnet_id))
+            # Only try to delete non-default VPCs
+            if not self.is_default:
+                # Delete the subnets
+                for subnet_id in self.subnet_ids:
+                    clients['ec2'].delete_subnet(SubnetId=subnet_id)
+                    mod_logger.info('Deleted subnet {id:s}'
+                                    ''.format(id=subnet_id))
 
-            # Delete the VPC
-            clients['ec2'].delete_vpc(VpcId=self.vpc_id)
+                # Delete the VPC
+                clients['ec2'].delete_vpc(VpcId=self.vpc_id)
 
             # Remove this VPC from the list of VPCs in the config file
             cloudknot.config.remove_resource(self._section_name, self.vpc_id)
