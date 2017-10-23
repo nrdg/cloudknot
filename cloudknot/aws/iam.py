@@ -91,10 +91,9 @@ class IamRole(ObjectWithArn):
                 msg = 'service must be in ' + str(self._allowed_services)
                 raise ValueError(msg)
 
+            # "Version": "2012-10-17",
             role_policy = {
-                "Version": "2012-10-17",
                 "Statement": [{
-                    "Sid": "",
                     "Effect": "Allow",
                     "Principal": {
                         "Service": self._service
@@ -303,12 +302,10 @@ class IamRole(ObjectWithArn):
             )
 
         if add_instance_profile:
-            instance_profile_name = self.name + '-instance-profile'
-
             try:
                 # Create the instance profile
                 clients['iam'].create_instance_profile(
-                    InstanceProfileName=instance_profile_name
+                    InstanceProfileName=self.name
                 )
 
                 # Wait for it to show up
@@ -317,23 +314,23 @@ class IamRole(ObjectWithArn):
                 )
 
                 wait_for_instance_profile.wait(
-                    InstanceProfileName=instance_profile_name
+                    InstanceProfileName=self.name
                 )
 
                 # Add to role
                 clients['iam'].add_role_to_instance_profile(
-                    InstanceProfileName=instance_profile_name,
+                    InstanceProfileName=self.name,
                     RoleName=self.name
                 )
             except clients['iam'].exceptions.EntityAlreadyExistsException:
                 # Instance profile already exists, just add to role
                 clients['iam'].add_role_to_instance_profile(
-                    InstanceProfileName=instance_profile_name,
+                    InstanceProfileName=self.name,
                     RoleName=self.name
                 )
 
             mod_logger.info('Created instance profile {name:s}'.format(
-                name=instance_profile_name
+                name=self.name
             ))
 
         # Add this role to the list of roles in the config file
