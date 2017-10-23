@@ -7,17 +7,10 @@ import logging
 import six
 import tenacity
 from collections import namedtuple
-from math import ceil
 
 from .base_classes import clients, NamedObject, \
     ResourceExistsException, ResourceDoesNotExistException, \
     CannotCreateResourceException, CannotDeleteResourceException
-
-try:
-    from math import log2
-except ImportError:  # pragma: nocover
-    # python 2.7 compatibility
-    from math import log
 
 __all__ = ["Vpc", "SecurityGroup"]
 
@@ -144,8 +137,7 @@ class Vpc(NamedObject):
                         'range.'
                     )
             else:
-                self._ipv4_cidr = str(ipaddress.IPv4Network(u'10.0.0.0/16'))
-
+                self._ipv4_cidr = str(ipaddress.IPv4Network(u'172.31.0.0/16'))
             if instance_tenancy:
                 if instance_tenancy in ('default', 'dedicated'):
                     self._instance_tenancy = instance_tenancy
@@ -353,6 +345,28 @@ class Vpc(NamedObject):
             ]
         )
 
+        # Create and attach an internet gateway to this VPC
+        response = clients['ec2'].create_internet_gateway()
+        gateway_id = response.get('InternetGateway').get('InternetGatewayId')
+
+        clients['ec2'].attach_internet_gateway(
+            InternetGatewayId=gateway_id,
+            VpcId=vpc_id
+        )
+
+        # Create a route table and add a route for all internet traffic
+        response = clients['ec2'].create_route_table(VpcId=vpc_id)
+        self._route_table_id = response.get('RouteTable').get('RouteTableId')
+
+        clients['ec2'].create_route(
+            DestinationCidrBlock='0.0.0.0/0',
+            GatewayId=gateway_id,
+            RouteTableId=self._route_table_id,
+        )
+
+        # Create a network access control list for this VPC
+        clients['ec2'].create_network_acl(VpcId=vpc_id)
+
         # Add this VPC to the list of VPCs in the config file
         self._section_name = 'vpc ' + self.region
         cloudknot.config.add_resource(self._section_name, vpc_id, self.name)
@@ -368,24 +382,15 @@ class Vpc(NamedObject):
         # Get an IPv4Network instance representing the VPC CIDR block
         cidr = ipaddress.IPv4Network(six.text_type(self.ipv4_cidr))
 
+        # Get list of subnet CIDR blocks truncating list to len(zones)
+        subnet_ipv4_cidrs = list(cidr.subnets(new_prefix=20))
+
         # Ensure that the CIDR block has enough addresses to cover each zone
-        if cidr.num_addresses < len(zones):  # pragma: nocover
+        if len(subnet_ipv4_cidrs) < len(zones):  # pragma: nocover
             raise ValueError('IPv4 CIDR block does not have enough addresses '
                              'for each availability zone')
 
-        # Each increment of prefixlen_diff will give us another power of 2
-        # of subnets. So prefixlen_diff should be the log2 of the number of
-        # subnets we want (i.e. the number of zones)
-        try:
-            prefixlen_diff = ceil(log2(len(zones)))
-        except NameError:  # pragma: nocover
-            # python 2.7 compatibility
-            prefixlen_diff = int(ceil(log(len(zones), 2)))
-
-        # Get list of subnet CIDR blocks truncating list to len(zones)
-        subnet_ipv4_cidrs = list(cidr.subnets(
-            prefixlen_diff=prefixlen_diff
-        ))[:len(zones)]
+        subnet_ipv4_cidrs = subnet_ipv4_cidrs[:len(zones)]
 
         subnet_ids = []
 
@@ -400,6 +405,11 @@ class Vpc(NamedObject):
             subnet_id = response.get('Subnet')['SubnetId']
             clients['ec2'].modify_subnet_attribute(
                 MapPublicIpOnLaunch={'Value': True},
+                SubnetId=subnet_id
+            )
+
+            clients['ec2'].associate_route_table(
+                RouteTableId=self._route_table_id,
                 SubnetId=subnet_id
             )
 
