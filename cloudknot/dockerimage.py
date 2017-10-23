@@ -534,6 +534,8 @@ class DockerImage(aws.NamedObject):
             ):
                 mod_logger.debug(l)
 
+        self._repo_uri = self._repo_uri + ':' + self.images[-1]['tag']
+
         section_name = 'docker-image ' + self.name
         ckconfig.add_resource(section_name, 'repo-uri', self.repo_uri)
 
@@ -584,12 +586,11 @@ class DockerImage(aws.NamedObject):
                                 for im in sublist]
 
         if self.repo_uri:
-            for tag in set([d['tag'] for d in self.images]):
-                cli.remove(
-                    image=self.repo_uri + ':' + tag,
-                    force=True,
-                    noprune=False
-                )
+            cli.remove(
+                image=self.repo_uri,
+                force=True,
+                noprune=False
+            )
 
         # Remove from the config file
         config_file = get_config_file()
