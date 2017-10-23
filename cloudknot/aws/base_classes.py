@@ -13,7 +13,7 @@ from ..config import get_config_file
 __all__ = [
     "ResourceDoesNotExistException", "ResourceClobberedException",
     "ResourceExistsException", "CannotDeleteResourceException",
-    "RegionException",
+    "CannotCreateResourceException", "RegionException",
     "NamedObject", "ObjectWithArn", "ObjectWithUsernameAndMemory",
     "clients", "refresh_clients",
     "wait_for_compute_environment", "wait_for_job_queue",
@@ -388,6 +388,20 @@ class CannotDeleteResourceException(Exception):
         """
         super(CannotDeleteResourceException, self).__init__(message)
         self.resource_id = resource_id
+
+
+# noinspection PyPropertyAccess,PyAttributeOutsideInit
+class CannotCreateResourceException(Exception):
+    """Exception indicating that an AWS resource cannot be created"""
+    def __init__(self, message):
+        """Initialize the Exception
+
+        Parameters
+        ----------
+        message : string
+            The error message to display to the user
+        """
+        super(CannotCreateResourceException, self).__init__(message)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
