@@ -1342,6 +1342,7 @@ class JobQueue(ObjectWithArn):
                 clients['batch'].exceptions.ClientException
             )
         )
+
         retry.call(
             clients['batch'].update_job_queue,
             jobQueue=self.arn,
