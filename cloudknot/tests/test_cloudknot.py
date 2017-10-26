@@ -4,6 +4,7 @@ import cloudknot as ck
 import configparser
 import os.path as op
 import pytest
+import tenacity
 import uuid
 
 UNIT_TEST_PREFIX = 'cloudknot-unit-test'
@@ -18,7 +19,72 @@ def cleanup():
     iam = ck.aws.clients['iam']
     ec2 = ck.aws.clients['ec2']
     batch = ck.aws.clients['batch']
+    ecs = ck.aws.clients['ecs']
     config_file = ck.config.get_config_file()
+
+    # Clean up job queues from AWS
+    # ----------------------------
+    # Find all unit testing job queues
+    response = batch.describe_job_queues()
+
+    job_queues = [
+        {
+            'name': d['jobQueueName'],
+            'arn': d['jobQueueArn'],
+            'state': d['state'],
+            'status': d['status']
+        } for d in response.get('jobQueues')
+    ]
+
+    while response.get('nextToken'):
+        response = batch.describe_job_queues(
+            nextToken=response.get('nextToken')
+        )
+
+        job_queues = job_queues + [
+            {
+                'name': d['jobQueueName'],
+                'arn': d['jobQueueArn'],
+                'state': d['state'],
+                'status': d['status']
+            } for d in response.get('jobQueues')
+        ]
+
+    unit_test_JQs = list(filter(
+        lambda d: UNIT_TEST_PREFIX in d['name'], job_queues
+    ))
+
+    enabled = list(filter(
+        lambda d: d['state'] == 'ENABLED', unit_test_JQs
+    ))
+
+    for jq in enabled:
+        ck.aws.wait_for_job_queue(name=jq['name'], max_wait_time=180)
+        batch.update_job_queue(jobQueue=jq['arn'], state='DISABLED')
+
+    config = configparser.ConfigParser()
+    config.read(config_file)
+
+    requires_deletion = list(filter(
+        lambda d: d['status'] not in ['DELETED', 'DELETING'],
+        unit_test_JQs
+    ))
+
+    for jq in requires_deletion:
+        ck.aws.wait_for_job_queue(name=jq['name'], max_wait_time=180)
+
+        # Finally, delete the job queue
+        batch.delete_job_queue(jobQueue=jq['arn'])
+
+        # Clean up config file
+        try:
+            config.remove_option('job-queues ' + ck.aws.get_region(),
+                                 jq['name'])
+        except configparser.NoSectionError:
+            pass
+
+    with open(config_file, 'w') as f:
+        config.write(f)
 
     # Clean up compute environments from AWS
     # --------------------------------------
@@ -109,81 +175,56 @@ def cleanup():
     ))
 
     for ce in requires_deletion:
+        # Now get the associated ECS cluster
+        response = batch.describe_compute_environments(
+            computeEnvironments=[ce['arn']]
+        )
+        cluster_arn = response.get('computeEnvironments')[0]['ecsClusterArn']
+
+        # Get container instances
+        response = ecs.list_container_instances(
+            cluster=cluster_arn,
+        )
+        instances = response.get('containerInstanceArns')
+
+        for i in instances:
+            ecs.deregister_container_instance(
+                cluster=cluster_arn,
+                containerInstance=i,
+                force=True
+            )
+
+        retry_if_exception = tenacity.Retrying(
+            wait=tenacity.wait_exponential(max=64),
+            stop=tenacity.stop_after_delay(120),
+            retry=tenacity.retry_if_exception_type()
+        )
+        retry_if_exception.call(
+            ecs.delete_cluster,
+            cluster=cluster_arn
+        )
+
         ck.aws.wait_for_compute_environment(
             arn=ce['arn'], name=ce['name'], log=False
         )
 
-        # Delete the compute environment
-        batch.delete_compute_environment(computeEnvironment=ce['arn'])
+        retry = tenacity.Retrying(
+            wait=tenacity.wait_exponential(max=64),
+            stop=tenacity.stop_after_delay(120),
+            retry=tenacity.retry_if_exception_type(
+                batch.exceptions.ClientException
+            )
+        )
+
+        retry.call(
+            batch.delete_compute_environment,
+            computeEnvironment=ce['arn']
+        )
 
         # Clean up config file
         try:
             config.remove_option('compute-environments ' + ck.aws.get_region(),
                                  ce['name'])
-        except configparser.NoSectionError:
-            pass
-
-    with open(config_file, 'w') as f:
-        config.write(f)
-
-    # Clean up job queues from AWS
-    # ----------------------------
-    # Find all unit testing job queues
-    response = batch.describe_job_queues()
-
-    job_queues = [
-        {
-            'name': d['jobQueueName'],
-            'arn': d['jobQueueArn'],
-            'state': d['state'],
-            'status': d['status']
-        } for d in response.get('jobQueues')
-    ]
-
-    while response.get('nextToken'):
-        response = batch.describe_job_queues(
-            nextToken=response.get('nextToken')
-        )
-
-        job_queues = job_queues + [
-            {
-                'name': d['jobQueueName'],
-                'arn': d['jobQueueArn'],
-                'state': d['state'],
-                'status': d['status']
-            } for d in response.get('jobQueues')
-        ]
-
-    unit_test_JQs = list(filter(
-        lambda d: UNIT_TEST_PREFIX in d['name'], job_queues
-    ))
-
-    enabled = list(filter(
-        lambda d: d['state'] == 'ENABLED', unit_test_JQs
-    ))
-
-    for jq in enabled:
-        ck.aws.wait_for_job_queue(name=jq['name'], max_wait_time=180)
-        batch.update_job_queue(jobQueue=jq['arn'], state='DISABLED')
-
-    config = configparser.ConfigParser()
-    config.read(config_file)
-
-    requires_deletion = list(filter(
-        lambda d: d['status'] not in ['DELETED', 'DELETING'],
-        unit_test_JQs
-    ))
-
-    for jq in requires_deletion:
-        ck.aws.wait_for_job_queue(name=jq['name'], max_wait_time=180)
-
-        # Finally, delete the job queue
-        batch.delete_job_queue(jobQueue=jq['arn'])
-
-        # Clean up config file
-        try:
-            config.remove_option('job-queues ' + ck.aws.get_region(),
-                                 jq['name'])
         except configparser.NoSectionError:
             pass
 
