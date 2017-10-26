@@ -998,12 +998,34 @@ class ComputeEnvironment(ObjectWithArn):
             state='DISABLED'
         )
 
-        # Now delete the associated ECS cluster
+        # Now get the associated ECS cluster
         response = clients['batch'].describe_compute_environments(
             computeEnvironments=[self.arn]
         )
         cluster_arn = response.get('computeEnvironments')[0]['ecsClusterArn']
-        clients['ecs'].delete_cluster(cluster=cluster_arn)
+
+        # Get container instances
+        response = clients['ecs'].list_container_instances(
+            cluster=cluster_arn,
+        )
+        instances = response.get('containerInstanceArns')
+
+        for i in instances:
+            clients['ecs'].deregister_container_instance(
+                cluster=cluster_arn,
+                containerInstance=i,
+                force=True
+            )
+
+        retry_if_exception = tenacity.Retrying(
+            wait=tenacity.wait_exponential(max=64),
+            stop=tenacity.stop_after_delay(120),
+            retry=tenacity.retry_if_exception_type()
+        )
+        retry_if_exception.call(
+            clients['ecs'].delete_cluster,
+            cluster=cluster_arn
+        )
 
         # Wait for any associated job queues to finish updating
         response = clients['batch'].describe_job_queues()
