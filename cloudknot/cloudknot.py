@@ -213,7 +213,10 @@ class Pars(aws.NamedObject):
             except aws.ResourceDoesNotExistException:
                 # Otherwise create the new VPC
                 if use_default_vpc:
-                    self._vpc = aws.Vpc(use_default_vpc=True)
+                    try:
+                        self._vpc = aws.Vpc(use_default_vpc=True)
+                    except aws.CannotCreateResourceException:
+                        self._vpc = aws.Vpc(name=vpc_name)
                 else:
                     self._vpc = aws.Vpc(name=vpc_name)
                 config = configparser.ConfigParser()
@@ -412,9 +415,11 @@ class Pars(aws.NamedObject):
                 ))
             else:
                 try:
-                    # Create new VPC
                     if use_default_vpc:
-                        self._vpc = aws.Vpc(use_default_vpc=True)
+                        try:
+                            self._vpc = aws.Vpc(use_default_vpc=True)
+                        except aws.CannotCreateResourceException:
+                            self._vpc = aws.Vpc(name=vpc_name)
                     else:
                         self._vpc = aws.Vpc(name=vpc_name)
 
