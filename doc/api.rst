@@ -2,25 +2,40 @@ API
 ===
 
 
+Modules
+-------
+
+.. currentmodule:: cloudknot
+
+.. autosummary::
+    :template: autosummary/module.rst
+    :toctree: _autosummary
+
+    aws
+
+
 Classes
 -------
 
 .. currentmodule:: cloudknot
 
 .. autosummary::
-   :template: class.rst
-   :toctree: gen_api
+    :template: autosummary/class.rst
+    :toctree: _autosummary
 
-   Model
+    Knot
+    Pars
 
 
 Functions
 ---------
 
 .. autosummary::
-   :template: function.rst
-   :toctree: gen_api
+    :template: autosummary/function.rst
+    :toctree: _autosummary
 
-   transform_data
-   cumgauss
-   opt_err_func
+    get_region
+    set_region
+    get_profile
+    set_profile
+    list_profiles
