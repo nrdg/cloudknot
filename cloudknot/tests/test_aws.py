@@ -42,7 +42,11 @@ data_path = op.join(ck.__path__[0], 'data')
 
 @pytest.fixture(scope='module')
 def pars():
-    p = ck.Pars(name='unit-test')
+    p = None
+    try:
+        p = ck.Pars(name='unit-test')
+    except ck.aws.CannotCreateResourceException:
+        p = ck.Pars(name='unit-test', use_default_vpc=False)
     yield p
     p.clobber()
 
@@ -603,7 +607,7 @@ def test_IamRole():
 
         name = get_testing_name()
         response = iam.create_instance_profile(
-            InstanceProfileName=name + '-instance-profile'
+            InstanceProfileName=name
         )
 
         arn = response.get('InstanceProfile')['Arn']
@@ -783,7 +787,7 @@ def test_Vpc():
     try:
         # Use boto3 to create a VPC
         name = get_testing_name()
-        ipv4_cidr = '10.0.0.0/16'
+        ipv4_cidr = '172.31.0.0/16'
         instance_tenancy = 'default'
 
         response = ec2.create_vpc(
@@ -878,7 +882,7 @@ def test_Vpc():
             # Use boto3 to confirm their existence and properties
             assert not vpc.pre_existing
             assert vpc.name == n
-            ip = ip if ip else '10.0.0.0/16'
+            ip = ip if ip else '172.31.0.0/16'
             assert vpc.ipv4_cidr == ip
             it = it if it else 'default'
             assert vpc.instance_tenancy == it
@@ -1032,7 +1036,7 @@ def test_SecurityGroup():
         description = 'Security group for cloudknot unit testing'
 
         # Create a VPC to attach the security group to
-        response = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+        response = ec2.create_vpc(CidrBlock='172.31.0.0/16')
         vpc_id = response.get('Vpc')['VpcId']
 
         response = ec2.create_security_group(
@@ -1395,7 +1399,7 @@ def test_JobDefinition(pars):
             assert jd.vcpus == v
             r = r if r else 3
             assert jd.retries == r
-            m = m if m else 32000
+            m = m if m else 8000
             assert jd.memory == m
 
             # assert arn

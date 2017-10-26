@@ -367,7 +367,10 @@ def test_Pars(cleanup):
 
     try:
         name = get_testing_name()
-        p = ck.Pars(name=name)
+        try:
+            p = ck.Pars(name=name)
+        except ck.aws.CannotCreateResourceException:
+            p = ck.Pars(name=name, use_default_vpc=False)
 
         # Re-instantiate the PARS so that it retrieves from config
         # with resources that already exist
@@ -384,6 +387,7 @@ def test_Pars(cleanup):
         # in order to leave the config file untouched
         p.batch_service_role.clobber()
         p.ecs_instance_role.clobber()
+        p.ecs_task_role.clobber()
         p.spot_fleet_role.clobber()
         p.security_group.clobber()
         p.vpc.clobber()
@@ -411,7 +415,8 @@ def test_Pars(cleanup):
             ecs_instance_role_name=p.ecs_instance_role.name,
             spot_fleet_role_name=p.spot_fleet_role.name,
             vpc_id=p.vpc.vpc_id,
-            security_group_id=p.security_group.security_group_id
+            security_group_id=p.security_group.security_group_id,
+            use_default_vpc=False
         )
 
         assert p.batch_service_role.name == pre + 'batch-service-role'
@@ -436,7 +441,8 @@ def test_Pars(cleanup):
             ecs_instance_role_name=p.ecs_instance_role.name,
             spot_fleet_role_name=p.spot_fleet_role.name,
             vpc_name=p.vpc.name,
-            security_group_name=p.security_group.name
+            security_group_name=p.security_group.name,
+            use_default_vpc=False
         )
 
         assert p.batch_service_role.name == pre + 'batch-service-role'
@@ -618,7 +624,10 @@ def test_Knot(cleanup):
     knot, knot2 = None, None
 
     try:
-        pars = ck.Pars(name=get_testing_name())
+        try:
+            pars = ck.Pars(name=get_testing_name())
+        except ck.aws.CannotCreateResourceException:
+            pars = ck.Pars(name=get_testing_name(), use_default_vpc=False)
 
         name = get_testing_name()
         knot = ck.Knot(name=name, pars=pars, func=knot_testing_func)
@@ -707,7 +716,10 @@ def test_Knot(cleanup):
     clobber_pars = 'pars default' not in config.sections()
 
     try:
-        pars = ck.Pars()
+        try:
+            pars = ck.Pars()
+        except ck.aws.CannotCreateResourceException:
+            pars = ck.Pars(use_default_vpc=False)
 
         # Make a job definition for input testing
         jd = ck.aws.JobDefinition(

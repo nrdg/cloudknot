@@ -362,7 +362,7 @@ def test_DockerImage():
             else:
                 di.push(repo=repo)
 
-            assert di.repo_uri == repo_uri
+            assert repo_uri in di.repo_uri
 
         # Assert ValueError on push with invalid repo
         with pytest.raises(ValueError):
