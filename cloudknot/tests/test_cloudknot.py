@@ -195,7 +195,7 @@ def cleanup():
             )
 
         retry_if_exception = tenacity.Retrying(
-            wait=tenacity.wait_exponential(max=64),
+            wait=tenacity.wait_exponential(max=16),
             stop=tenacity.stop_after_delay(120),
             retry=tenacity.retry_if_exception_type()
         )
@@ -209,7 +209,7 @@ def cleanup():
         )
 
         retry = tenacity.Retrying(
-            wait=tenacity.wait_exponential(max=64),
+            wait=tenacity.wait_exponential(max=16),
             stop=tenacity.stop_after_delay(120),
             retry=tenacity.retry_if_exception_type(
                 batch.exceptions.ClientException

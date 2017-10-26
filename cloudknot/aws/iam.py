@@ -397,7 +397,7 @@ class IamRole(ObjectWithArn):
                     return False
 
             retry = tenacity.Retrying(
-                wait=tenacity.wait_exponential(max=64),
+                wait=tenacity.wait_exponential(max=16),
                 stop=tenacity.stop_after_delay(120),
                 retry=tenacity.retry_if_result(is_deleting)
             )

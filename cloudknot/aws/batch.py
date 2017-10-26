@@ -984,7 +984,7 @@ class ComputeEnvironment(ObjectWithArn):
             raise RegionException(resource_region=self.region)
 
         retry = tenacity.Retrying(
-            wait=tenacity.wait_exponential(max=64),
+            wait=tenacity.wait_exponential(max=16),
             stop=tenacity.stop_after_delay(120),
             retry=tenacity.retry_if_exception_type(
                 clients['batch'].exceptions.ClientException
@@ -1018,7 +1018,7 @@ class ComputeEnvironment(ObjectWithArn):
             )
 
         retry_if_exception = tenacity.Retrying(
-            wait=tenacity.wait_exponential(max=64),
+            wait=tenacity.wait_exponential(max=16),
             stop=tenacity.stop_after_delay(120),
             retry=tenacity.retry_if_exception_type()
         )
@@ -1277,7 +1277,7 @@ class JobQueue(ObjectWithArn):
         # updating or in the process of creation. Use tenacity.Retrying to
         # overcome this latency
         retry = tenacity.Retrying(
-            wait=tenacity.wait_exponential(max=32),
+            wait=tenacity.wait_exponential(max=16),
             stop=tenacity.stop_after_delay(60),
             retry=tenacity.retry_if_exception_type(
                 clients['batch'].exceptions.ClientException
@@ -1358,7 +1358,7 @@ class JobQueue(ObjectWithArn):
 
         # First, disable submissions to the queue
         retry = tenacity.Retrying(
-            wait=tenacity.wait_exponential(max=32),
+            wait=tenacity.wait_exponential(max=16),
             stop=tenacity.stop_after_delay(60),
             retry=tenacity.retry_if_exception_type(
                 clients['batch'].exceptions.ClientException

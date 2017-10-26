@@ -842,7 +842,7 @@ def test_Vpc():
         vpc.clobber()
 
         retry = tenacity.Retrying(
-            wait=tenacity.wait_exponential(max=64),
+            wait=tenacity.wait_exponential(max=16),
             stop=tenacity.stop_after_delay(120),
             retry=tenacity.retry_unless_exception_type(
                 ec2.exceptions.ClientError
@@ -908,7 +908,7 @@ def test_Vpc():
             )
 
             retry = tenacity.Retrying(
-                wait=tenacity.wait_exponential(max=64),
+                wait=tenacity.wait_exponential(max=16),
                 stop=tenacity.stop_after_delay(120),
                 retry=tenacity.retry_unless_exception_type(
                     ec2.exceptions.ClientError
@@ -1108,7 +1108,7 @@ def test_SecurityGroup():
         )
 
         retry = tenacity.Retrying(
-            wait=tenacity.wait_exponential(max=64),
+            wait=tenacity.wait_exponential(max=16),
             stop=tenacity.stop_after_delay(120),
             retry=tenacity.retry_unless_exception_type(
                 ec2.exceptions.ClientError
@@ -1160,7 +1160,7 @@ def test_SecurityGroup():
             sg.clobber()
 
             retry = tenacity.Retrying(
-                wait=tenacity.wait_exponential(max=64),
+                wait=tenacity.wait_exponential(max=16),
                 stop=tenacity.stop_after_delay(120),
                 retry=tenacity.retry_unless_exception_type(
                     ec2.exceptions.ClientError
@@ -2004,7 +2004,7 @@ def test_ComputeEnvironment(pars):
                     name=name, log=True, max_wait_time=180
                 )
                 retry = tenacity.Retrying(
-                    wait=tenacity.wait_exponential(max=64),
+                    wait=tenacity.wait_exponential(max=16),
                     stop=tenacity.stop_after_delay(120),
                     retry=tenacity.retry_if_exception_type(
                         batch.exceptions.ClientException
