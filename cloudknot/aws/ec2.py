@@ -113,6 +113,10 @@ class Vpc(NamedObject):
                 self._section_name, self.vpc_id, self.name
             )
 
+            self._gateway_id = resource.internet_gateway_id
+            self._network_acl_ids = resource.net_acl_ids
+            self._route_table_ids = resource.route_table_ids
+
             mod_logger.info('Retrieved pre-existing VPC {id:s}'.format(
                 id=self.vpc_id
             ))
@@ -199,13 +203,15 @@ class Vpc(NamedObject):
         -------
         namedtuple RoleExists
             A namedtuple with fields ['exists', 'name', 'ipv4_cidr',
-            'instance_tenancy', 'vpc_id', 'subnet_ids', 'is_default']
+            'instance_tenancy', 'vpc_id', 'subnet_ids', 'is_default',
+            'internet_gateway_id', 'net_acl_ids', 'route_table_ids']
         """
         # define a namedtuple for return value type
         ResourceExists = namedtuple(
             'ResourceExists',
             ['exists', 'name', 'ipv4_cidr', 'instance_tenancy',
-             'vpc_id', 'subnet_ids', 'is_default']
+             'vpc_id', 'subnet_ids', 'is_default', 'internet_gateway_id',
+             'net_acl_ids', 'route_table_ids']
         )
         # make all but the first value default to None
         ResourceExists.__new__.__defaults__ = \
@@ -285,16 +291,37 @@ class Vpc(NamedObject):
                     ]
                 )
 
-            response = clients['ec2'].describe_subnets(
-                Filters=[
-                    {
-                        'Name': 'vpc-id',
-                        'Values': [vpc_id]
-                    }
-                ]
-            )
+            response = clients['ec2'].describe_subnets(Filters=[{
+                'Name': 'vpc-id',
+                'Values': [vpc_id]
+            }])
 
             subnet_ids = [d['SubnetId'] for d in response.get('Subnets')]
+
+            response = clients['ec2'].describe_internet_gateways(Filters=[{
+                'Name': 'attachment.vpc-id',
+                'Values': [vpc_id]
+            }])
+
+            gateways = response.get('InternetGateways')
+            internet_gateway_id = gateways[0].get('InternetGatewayId') \
+                if gateways else None
+
+            response = clients['ec2'].describe_network_acls(Filters=[
+                {'Name': 'vpc-id', 'Values': [vpc_id]},
+                {'Name': 'default', 'Values': ['false']}
+            ])
+
+            net_acl_ids = [n['NetworkAclId']
+                           for n in response.get('NetworkAcls')]
+
+            response = clients['ec2'].describe_route_tables(Filters=[
+                {'Name': 'vpc-id', 'Values': [vpc_id]},
+                {'Name': 'association.main', 'Values': ['false']}
+            ])
+
+            route_table_ids = [rt['RouteTableId']
+                               for rt in response.get('RouteTables')]
 
             mod_logger.info(
                 'VPC {vpcid:s} already exists.'.format(vpcid=vpc_id)
@@ -303,7 +330,9 @@ class Vpc(NamedObject):
             return ResourceExists(
                 exists=True, name=name, ipv4_cidr=ipv4_cidr,
                 instance_tenancy=instance_tenancy, vpc_id=vpc_id,
-                subnet_ids=subnet_ids, is_default=is_default
+                subnet_ids=subnet_ids, is_default=is_default,
+                internet_gateway_id=internet_gateway_id,
+                net_acl_ids=net_acl_ids, route_table_ids=route_table_ids
             )
         else:
             return ResourceExists(exists=False)
@@ -347,25 +376,32 @@ class Vpc(NamedObject):
 
         # Create and attach an internet gateway to this VPC
         response = clients['ec2'].create_internet_gateway()
-        gateway_id = response.get('InternetGateway').get('InternetGatewayId')
+        self._gateway_id = response.get('InternetGateway').get(
+            'InternetGatewayId'
+        )
 
         clients['ec2'].attach_internet_gateway(
-            InternetGatewayId=gateway_id,
+            InternetGatewayId=self._gateway_id,
             VpcId=vpc_id
         )
 
         # Create a route table and add a route for all internet traffic
         response = clients['ec2'].create_route_table(VpcId=vpc_id)
-        self._route_table_id = response.get('RouteTable').get('RouteTableId')
+        self._route_table_ids = [
+            response.get('RouteTable').get('RouteTableId')
+        ]
 
         clients['ec2'].create_route(
             DestinationCidrBlock='0.0.0.0/0',
-            GatewayId=gateway_id,
-            RouteTableId=self._route_table_id,
+            GatewayId=self._gateway_id,
+            RouteTableId=self._route_table_ids[0],
         )
 
         # Create a network access control list for this VPC
-        clients['ec2'].create_network_acl(VpcId=vpc_id)
+        response = clients['ec2'].create_network_acl(VpcId=vpc_id)
+        self._network_acl_ids = [
+            response.get('NetworkAcl').get('NetworkAclId')
+        ]
 
         # Add this VPC to the list of VPCs in the config file
         self._section_name = 'vpc ' + self.region
@@ -409,7 +445,7 @@ class Vpc(NamedObject):
             )
 
             clients['ec2'].associate_route_table(
-                RouteTableId=self._route_table_id,
+                RouteTableId=self._route_table_ids[0],
                 SubnetId=subnet_id
             )
 
@@ -448,14 +484,41 @@ class Vpc(NamedObject):
         try:
             # Only try to delete non-default VPCs
             if not self.is_default:
+                retry = tenacity.Retrying(
+                    wait=tenacity.wait_exponential(max=16),
+                    stop=tenacity.stop_after_delay(60),
+                    retry=tenacity.retry_if_exception_type(
+                        clients['ec2'].exceptions.ClientError
+                    )
+                )
+
                 # Delete the subnets
                 for subnet_id in self.subnet_ids:
-                    clients['ec2'].delete_subnet(SubnetId=subnet_id)
+                    retry.call(clients['ec2'].delete_subnet,
+                               SubnetId=subnet_id)
                     mod_logger.info('Deleted subnet {id:s}'
                                     ''.format(id=subnet_id))
 
+                # Delete the network ACL
+                for net_id in self._network_acl_ids:
+                    retry.call(clients['ec2'].delete_network_acl,
+                               NetworkAclId=net_id)
+
+                # Delete the route table
+                for rt_id in self._route_table_ids:
+                    retry.call(clients['ec2'].delete_route_table,
+                               RouteTableId=rt_id)
+
+                # Detach and delete the internet gateway
+                if self._gateway_id:
+                    retry.call(clients['ec2'].detach_internet_gateway,
+                               InternetGatewayId=self._gateway_id,
+                               VpcId=self.vpc_id)
+                    retry.call(clients['ec2'].delete_internet_gateway,
+                               InternetGatewayId=self._gateway_id)
+
                 # Delete the VPC
-                clients['ec2'].delete_vpc(VpcId=self.vpc_id)
+                retry.call(clients['ec2'].delete_vpc, VpcId=self.vpc_id)
 
             # Remove this VPC from the list of VPCs in the config file
             cloudknot.config.remove_resource(self._section_name, self.vpc_id)
@@ -465,29 +528,34 @@ class Vpc(NamedObject):
             self._clobbered = True
 
             mod_logger.info('Deleted VPC {name:s}'.format(name=self.name))
-        except clients['ec2'].exceptions.ClientError as e:
-            # Check for dependency violation and pass exception to user
-            error_code = e.response['Error']['Code']
-            if error_code == 'DependencyViolation':
-                response = clients['ec2'].describe_security_groups(
-                    Filters=[{
-                        'Name': 'vpc-id',
-                        'Values': [self.vpc_id]
-                    }]
-                )
+        except tenacity.RetryError as error:
+            try:
+                error.reraise()
+            except clients['ec2'].exceptions.ClientError as e:
+                # Check for dependency violation and pass exception to user
+                error_code = e.response['Error']['Code']
+                if error_code == 'DependencyViolation':
+                    response = clients['ec2'].describe_security_groups(
+                        Filters=[{
+                            'Name': 'vpc-id',
+                            'Values': [self.vpc_id]
+                        }]
+                    )
 
-                ids = [sg['GroupId'] for sg in response.get('SecurityGroups')]
-                raise CannotDeleteResourceException(
-                    'Could not delete this VPC because it has dependencies. '
-                    'It may have security groups associated with it. If you '
-                    'still want to delete this VPC, you should first delete '
-                    'the security groups with the following IDs '
-                    '{sg_ids!s}'.format(sg_ids=ids),
-                    resource_id=ids
-                )
-            else:  # pragma: nocover
-                # I can't think of a test case to make this happen
-                raise e
+                    ids = [sg['GroupId']
+                           for sg in response.get('SecurityGroups')]
+
+                    raise CannotDeleteResourceException(
+                        'Could not delete this VPC because it has '
+                        'dependencies. It may have security groups associated '
+                        'with it. If you still want to delete this VPC, you '
+                        'should first delete the security groups with the '
+                        'following IDs {sg_ids!s}'.format(sg_ids=ids),
+                        resource_id=ids
+                    )
+                else:  # pragma: nocover
+                    # I can't think of a test case to make this happen
+                    raise e
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
