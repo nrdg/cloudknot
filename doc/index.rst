@@ -5,12 +5,6 @@ A knot is a collective noun for a group of snakes. `Cloudknot` is a python
 library designed to run your existing python code on
 `AWS Batch <https://aws.amazon.com/batch>`_.
 
-Features
---------
-
-- Be awesome
-- Make batch submission easier
-
 Installation and getting started
 --------------------------------
 
