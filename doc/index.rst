@@ -57,3 +57,6 @@ The project is licensed under the `MIT license
 
    getting started <getting_started>
    documentation <documentation>
+   examples <https://github.com/richford/cloudknot/tree/master/examples>
+   code <https://github.com/richford/cloudknot>
+   bugs <https://github.com/richford/cloudknot/issues>
