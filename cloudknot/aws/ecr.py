@@ -92,6 +92,9 @@ class DockerRepo(NamedObject):
 
     def clobber(self):
         """Delete this remote repository"""
+        if self.clobbered:
+            return
+
         try:
             # Remove the remote docker image
             clients['ecr'].delete_repository(

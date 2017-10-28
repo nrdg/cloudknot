@@ -548,6 +548,9 @@ class DockerImage(aws.NamedObject):
 
         Also delete the local docker image
         """
+        if self.clobbered:
+            return
+
         if self._clobber_script:
             os.remove(self.script_path)
             mod_logger.info('Removed {path:s}'.format(path=self.script_path))

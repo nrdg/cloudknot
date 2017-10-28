@@ -367,6 +367,9 @@ class IamRole(ObjectWithArn):
 
     def clobber(self):
         """Delete this AWS IAM role and remove from config file"""
+        if self.clobbered:
+            return
+
         if self.service == 'batch.amazonaws.com':
             # If this is a batch service role, wait for any dependent compute
             # environments to finish deleting In order to prevent INVALID
