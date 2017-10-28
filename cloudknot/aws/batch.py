@@ -400,7 +400,10 @@ class ComputeEnvironment(ObjectWithArn):
 
         min_vcpus : int
             minimum number of virtual cpus for instances launched in this
-            compute environment.
+            compute environment. CAREFUL HERE: If you specify min_vcpus
+            greater than 0, your ECS cluster will keep instances spinning
+            even when there is no work to do. We strongly recommend
+            keeping min_vpucs set at 0.
             Default: 0
 
         max_vcpus : int
@@ -639,6 +642,15 @@ class ComputeEnvironment(ObjectWithArn):
                 raise ValueError('min_vcpus must be non-negative')
             else:
                 self._min_vcpus = cpus
+
+            if self._min_vcpus > 0:
+                mod_logger.warning(
+                    'min_vcpus is greater than zero. This means that your '
+                    'compute environment will maintain some EC2 vCPUs, '
+                    'regardless of job demand, potentially resulting in '
+                    'unnecessary AWS charges. We strongly recommend using '
+                    'a compute environment with min_vcpus set to zero.'
+                )
 
             # Validate max_vcpus, default to 256
             max_vcpus = max_vcpus if max_vcpus else 256
