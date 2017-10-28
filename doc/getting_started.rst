@@ -49,10 +49,12 @@ for a cloudknot user should be contained in the following policy summary:
 
    .. container:: header
 
-      **Show/Hide policy summary**
+      **policy summary**
 
-   .. literalinclude:: minimal_permissions.txt
-      :language: none
+   .. container:: content
+
+      .. literalinclude:: minimal_permissions.txt
+         :language: none
 
 
 Using multiple AWS profiles
@@ -69,10 +71,23 @@ or in the AWS config file, e.g.:
 .. literalinclude:: example_config.txt
    :language: none
 
-Then you can use the cloudknot functions ck.aws.set_profile(),
-ck.aws.get_profile(), and ck.aws.list_profiles() to interact with your various
-AWS profiles.
+Then you can use the cloudknot functions :func:`cloudknot.aws.set_profile`,
+:func:`cloudknot.aws.get_profile`, and :func:`cloudknot.aws.list_profiles`
+to interact with your various AWS profiles.
 
+
+Region shopping
+---------------
+
+You may want to shop the AWS regions for the cheapest spot instance pricing
+(see `this page
+<http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-spot-instances-history.html>`_
+for details). You can view and change the region in which your cloudknot
+resources reside and in which you will launch your AWS Batch jobs by using the
+:func:`cloudknot.aws.get_region` and :func:`cloudknot.aws.set_region` functions.
+
+
+.. _eg-label:
 
 Examples
 --------
@@ -97,13 +112,14 @@ cases, these limits should not be a problem. However, if you are using
 cloudknot along with other users in the same organization, you might bump up
 against these limitations. To avoid the VPC limit, try always to use the
 default VPC or to agree with your coworkers on using an organization-wide
-PARS name. To avoid the batch limits, clobber old knots that you are no longer
-using. If none of those approaches work for you, you can request increases to
-some service limits as outlined `here
+PARS name. To avoid the batch limits, :ref:`clobber <clobber-label>` old knots
+that you are no longer using. If none of those approaches work for you, you can
+`request increases to some service limits
 <https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html>`_.
 
-If the terms "knot," "PARS," and "clobber" in the preceding paragraph confound
-you, take a look at the cloudknot API.
+If the terms ":ref:`knot <knot-label>`," ":ref:`PARS <pars-label>`," and
+":ref:`clobber <clobber-label>`" in the preceding paragraph confound
+you, take a look at the :ref:`cloudknot documentation <doc-label>`.
 
 
 Debugging and logging

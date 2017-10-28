@@ -15,8 +15,8 @@ Documentation and API
 ---------------------
 
 Most cloudknot users will only need to interact with the Knot and Pars classes
-(perhaps the DockerImage class). For details on those objects, see
-:ref:`doc-label`. For even more detail, see the :ref:`api-label` page.
+(perhaps the DockerImage class). For details on those objects and links to the
+lower-level API, see :ref:`doc-label`.
 
 Bugs and issues
 ---------------
@@ -49,11 +49,11 @@ then welcome to cloudknot.
 License
 -------
 
-The project is licensed under the MIT license.
+The project is licensed under the `MIT license
+<https://github.com/richford/cloudknot/blob/master/LICENSE>`_.
 
 .. toctree::
    :hidden:
 
-   getting_started
-   documentation
-   api
+   getting started <getting_started>
+   documentation <documentation>
