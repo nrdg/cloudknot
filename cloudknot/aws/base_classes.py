@@ -274,6 +274,7 @@ def set_profile(profile_name):
     )
 
 
+#: module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, and ECS.
 clients = {
     'iam': boto3.Session(profile_name=get_profile()).client(
         'iam', region_name=get_region()
@@ -291,11 +292,14 @@ clients = {
         'ecs', region_name=get_region()
     )
 }
-"""dict: module-level dictionary of boto3 clients
+"""module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, and ECS.
 
-`clients` has boto3 clients for iam, ec2, batch, ecr, and ecs.
 Storing the boto3 clients in a module-level dictionary allows us to change
 the region and profile and have those changes reflected globally.
+
+Advanced users: if you want to use cloudknot and boto3 at the same time,
+you should use these clients to ensure that you have the right profile
+and region.
 """
 
 
