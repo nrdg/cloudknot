@@ -1329,9 +1329,9 @@ class Knot(aws.NamedObject):
         commands : sequence of sequence of strings
             Sequence of commands. This method will submit one batch job for
             each command in the sequence. Each individual command must be a
-            sequence of strings since the commands eventaully become arguments
+            sequence of strings since the command eventaully becomes arguments
             to the `docker run` command. For example, if you wanted to pass
-            three commands `echo 1`, `echo 2`, `echo 3`, then then you would use
+            the commands `echo 1`, `echo 2`, `echo 3`, then then you would use
             `submit(commands=[["echo", "1"], ["echo", "2"], ["echo", "3"]])`
 
         env_vars : sequence of sequence of strings
