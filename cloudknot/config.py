@@ -1,3 +1,13 @@
+"""The config module contains functions to maintain the cloudknot config file
+
+This module contains function that other cloudknot objects use to maintain the
+cloudknot config file, including adding resources, removing resources, and
+verifying the section headers.
+
+Ideally, the cloudknot user should never have to use these functions to
+interact with the cloudknot config file. Each cloudknot object maintains
+references to its state in the config file.
+"""
 from __future__ import absolute_import, division, print_function
 
 import cloudknot.aws
@@ -63,10 +73,6 @@ def add_resource(section, option, value):
 
     value : string
         Config value to add (i.e. second item in key:value pair)
-
-    Returns
-    -------
-    None
     """
     config_file = get_config_file()
     config = configparser.ConfigParser()
@@ -88,10 +94,6 @@ def remove_resource(section, option):
 
     option : string
         Config option to remove (i.e. the key in the key:value pair)
-
-    Returns
-    -------
-    None
     """
     config_file = get_config_file()
     config = configparser.ConfigParser()
@@ -105,12 +107,7 @@ def remove_resource(section, option):
 
 
 def verify_sections():
-    """Verify config sections, remove ones that don't belong
-
-    Returns
-    -------
-    None
-    """
+    """Verify config sections, remove ones that don't belong"""
     config_file = get_config_file()
     config = configparser.ConfigParser()
     config.read(config_file)
@@ -132,12 +129,7 @@ def verify_sections():
 
 
 def prune():
-    """Remove config items for non-existent AWS resources
-
-    Returns
-    -------
-    None
-    """
+    """Remove config items for non-existent AWS resources"""
     raise NotImplementedError('prune is not yet implemented.')
     # prune needs to be updated to use the region info in config
 

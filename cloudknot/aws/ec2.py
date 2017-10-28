@@ -4,21 +4,13 @@ import botocore
 import cloudknot.config
 import ipaddress
 import logging
-import operator
 import six
 import tenacity
 from collections import namedtuple
-from math import ceil
 
 from .base_classes import clients, NamedObject, \
     ResourceExistsException, ResourceDoesNotExistException, \
-    CannotDeleteResourceException
-
-try:
-    from math import log2
-except ImportError:  # pragma: nocover
-    # python 2.7 compatibility
-    from math import log
+    CannotCreateResourceException, CannotDeleteResourceException
 
 __all__ = ["Vpc", "SecurityGroup"]
 
@@ -28,8 +20,8 @@ mod_logger = logging.getLogger(__name__)
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 class Vpc(NamedObject):
     """Class for defining an Amazon Virtual Private Cloud (VPC)"""
-    def __init__(self, vpc_id=None, name=None, ipv4_cidr=None,
-                 instance_tenancy=None):
+    def __init__(self, vpc_id=None, name=None, use_default_vpc=False,
+                 ipv4_cidr=None, instance_tenancy=None):
         """Initialize a Vpc instance
 
         Parameters
@@ -40,6 +32,10 @@ class Vpc(NamedObject):
         name : string
             Name of the VPC to be retrieved or created
 
+        use_default_vpc : bool
+            if True, create or retrieve the default VPC
+            if False, use other input args to create a non-default VPC
+
         ipv4_cidr : string
             IPv4 CIDR block to be used for creation of a new VPC
 
@@ -47,8 +43,8 @@ class Vpc(NamedObject):
             Instance tenancy for this VPC, one of ['default', 'dedicated']
             Default: 'default'
         """
-        # If user supplies vpc_id, then no other input is allowed
-        if not (vpc_id or name):
+        # User must supply vpc_id or name, or specify use_default_vpc
+        if not (vpc_id or name or use_default_vpc):
             raise ValueError('name or vpc_id is required.')
 
         # If user supplies vpc_id, then no other input is allowed
@@ -57,6 +53,39 @@ class Vpc(NamedObject):
                 'You must specify either a VPC id for an existing VPC or '
                 'input parameters for a new VPC. You cannot do both.'
             )
+
+        if use_default_vpc and any([
+            vpc_id, name, ipv4_cidr, instance_tenancy
+        ]):
+            raise ValueError('You may not specify any other input if'
+                             'requesting the default VPC')
+
+        if use_default_vpc:
+            try:
+                response = clients['ec2'].create_default_vpc()
+                vpc_id = response.get('Vpc').get('VpcId')
+            except clients['ec2'].exceptions.ClientError as e:
+                error_code = e.response.get('Error').get('Code')
+                if error_code == 'DefaultVpcAlreadyExists':
+                    response = clients['ec2'].describe_vpcs(Filters=[{
+                        'Name': 'isDefault',
+                        'Values': ['true']
+                    }])
+                    vpc_id = response.get('Vpcs')[0].get('VpcId')
+                elif error_code == 'UnauthorizedOperation':
+                    raise CannotCreateResourceException(
+                        'Cannot create a default VPC because this is an '
+                        'unauthorized operation. You may not have the proper '
+                        'permissions to create a default VPC.'
+                    )
+                elif error_code == 'OperationNotPermitted':
+                    raise CannotCreateResourceException(
+                        'Cannot create a default VPC because this is an '
+                        'unauthorized operation. You might have resources in '
+                        'EC2-Classic in the current region.'
+                    )
+                else:
+                    raise e
 
         # Check for pre-existence based on vpc_id or name
         resource = self._exists_already(vpc_id, name)
@@ -77,11 +106,16 @@ class Vpc(NamedObject):
             self._ipv4_cidr = resource.ipv4_cidr
             self._instance_tenancy = resource.instance_tenancy
             self._subnet_ids = resource.subnet_ids
+            self._is_default = resource.is_default
 
             self._section_name = 'vpc ' + self.region
             cloudknot.config.add_resource(
                 self._section_name, self.vpc_id, self.name
             )
+
+            self._gateway_id = resource.internet_gateway_id
+            self._network_acl_ids = resource.net_acl_ids
+            self._route_table_ids = resource.route_table_ids
 
             mod_logger.info('Retrieved pre-existing VPC {id:s}'.format(
                 id=self.vpc_id
@@ -107,8 +141,7 @@ class Vpc(NamedObject):
                         'range.'
                     )
             else:
-                self._ipv4_cidr = str(ipaddress.IPv4Network(u'10.0.0.0/16'))
-
+                self._ipv4_cidr = str(ipaddress.IPv4Network(u'172.31.0.0/16'))
             if instance_tenancy:
                 if instance_tenancy in ('default', 'dedicated'):
                     self._instance_tenancy = instance_tenancy
@@ -122,13 +155,42 @@ class Vpc(NamedObject):
 
             self._vpc_id = self._create()
             self._subnet_ids = self._add_subnets()
+            self._is_default = False
 
     # Declare read-only properties
-    pre_existing = property(operator.attrgetter('_pre_existing'))
-    ipv4_cidr = property(operator.attrgetter('_ipv4_cidr'))
-    instance_tenancy = property(operator.attrgetter('_instance_tenancy'))
-    vpc_id = property(operator.attrgetter('_vpc_id'))
-    subnet_ids = property(operator.attrgetter('_subnet_ids'))
+    @property
+    def pre_existing(self):
+        """Boolean flag to indicate whether this resource was pre-existing
+
+        True if resource was retrieved from AWS,
+        False if it was created on __init__.
+        """
+        return self._pre_existing
+
+    @property
+    def is_default(self):
+        """True if this is the default VPC, False otherwise"""
+        return self._is_default
+
+    @property
+    def ipv4_cidr(self):
+        """IPv4 CIDR block assigned to this VPC"""
+        return self._ipv4_cidr
+
+    @property
+    def instance_tenancy(self):
+        """Instance tenancy for this VPC, one of ['default', 'dedicated']"""
+        return self._instance_tenancy
+
+    @property
+    def vpc_id(self):
+        """The ID for this Amazon virtual private cloud"""
+        return self._vpc_id
+
+    @property
+    def subnet_ids(self):
+        """List of subnet IDs for this subnets in this VPC"""
+        return self._subnet_ids
 
     def _exists_already(self, vpc_id, name):
         """Check if an AWS VPC exists already
@@ -141,13 +203,15 @@ class Vpc(NamedObject):
         -------
         namedtuple RoleExists
             A namedtuple with fields ['exists', 'name', 'ipv4_cidr',
-            'instance_tenancy', 'vpc_id', 'subnet_ids']
+            'instance_tenancy', 'vpc_id', 'subnet_ids', 'is_default',
+            'internet_gateway_id', 'net_acl_ids', 'route_table_ids']
         """
         # define a namedtuple for return value type
         ResourceExists = namedtuple(
             'ResourceExists',
             ['exists', 'name', 'ipv4_cidr', 'instance_tenancy',
-             'vpc_id', 'subnet_ids']
+             'vpc_id', 'subnet_ids', 'is_default', 'internet_gateway_id',
+             'net_acl_ids', 'route_table_ids']
         )
         # make all but the first value default to None
         ResourceExists.__new__.__defaults__ = \
@@ -205,6 +269,7 @@ class Vpc(NamedObject):
             ipv4_cidr = vpc['CidrBlock']
             vpc_id = vpc['VpcId']
             instance_tenancy = vpc['InstanceTenancy']
+            is_default = vpc['IsDefault']
 
             # Find the name tag
             try:
@@ -226,16 +291,37 @@ class Vpc(NamedObject):
                     ]
                 )
 
-            response = clients['ec2'].describe_subnets(
-                Filters=[
-                    {
-                        'Name': 'vpc-id',
-                        'Values': [vpc_id]
-                    }
-                ]
-            )
+            response = clients['ec2'].describe_subnets(Filters=[{
+                'Name': 'vpc-id',
+                'Values': [vpc_id]
+            }])
 
             subnet_ids = [d['SubnetId'] for d in response.get('Subnets')]
+
+            response = clients['ec2'].describe_internet_gateways(Filters=[{
+                'Name': 'attachment.vpc-id',
+                'Values': [vpc_id]
+            }])
+
+            gateways = response.get('InternetGateways')
+            internet_gateway_id = gateways[0].get('InternetGatewayId') \
+                if gateways else None
+
+            response = clients['ec2'].describe_network_acls(Filters=[
+                {'Name': 'vpc-id', 'Values': [vpc_id]},
+                {'Name': 'default', 'Values': ['false']}
+            ])
+
+            net_acl_ids = [n['NetworkAclId']
+                           for n in response.get('NetworkAcls')]
+
+            response = clients['ec2'].describe_route_tables(Filters=[
+                {'Name': 'vpc-id', 'Values': [vpc_id]},
+                {'Name': 'association.main', 'Values': ['false']}
+            ])
+
+            route_table_ids = [rt['RouteTableId']
+                               for rt in response.get('RouteTables')]
 
             mod_logger.info(
                 'VPC {vpcid:s} already exists.'.format(vpcid=vpc_id)
@@ -244,7 +330,9 @@ class Vpc(NamedObject):
             return ResourceExists(
                 exists=True, name=name, ipv4_cidr=ipv4_cidr,
                 instance_tenancy=instance_tenancy, vpc_id=vpc_id,
-                subnet_ids=subnet_ids
+                subnet_ids=subnet_ids, is_default=is_default,
+                internet_gateway_id=internet_gateway_id,
+                net_acl_ids=net_acl_ids, route_table_ids=route_table_ids
             )
         else:
             return ResourceExists(exists=False)
@@ -286,6 +374,35 @@ class Vpc(NamedObject):
             ]
         )
 
+        # Create and attach an internet gateway to this VPC
+        response = clients['ec2'].create_internet_gateway()
+        self._gateway_id = response.get('InternetGateway').get(
+            'InternetGatewayId'
+        )
+
+        clients['ec2'].attach_internet_gateway(
+            InternetGatewayId=self._gateway_id,
+            VpcId=vpc_id
+        )
+
+        # Create a route table and add a route for all internet traffic
+        response = clients['ec2'].create_route_table(VpcId=vpc_id)
+        self._route_table_ids = [
+            response.get('RouteTable').get('RouteTableId')
+        ]
+
+        clients['ec2'].create_route(
+            DestinationCidrBlock='0.0.0.0/0',
+            GatewayId=self._gateway_id,
+            RouteTableId=self._route_table_ids[0],
+        )
+
+        # Create a network access control list for this VPC
+        response = clients['ec2'].create_network_acl(VpcId=vpc_id)
+        self._network_acl_ids = [
+            response.get('NetworkAcl').get('NetworkAclId')
+        ]
+
         # Add this VPC to the list of VPCs in the config file
         self._section_name = 'vpc ' + self.region
         cloudknot.config.add_resource(self._section_name, vpc_id, self.name)
@@ -293,12 +410,7 @@ class Vpc(NamedObject):
         return vpc_id
 
     def _add_subnets(self):
-        """Add one subnet to this VPC for each availability zone
-
-        Returns
-        -------
-        None
-        """
+        """Add one subnet to this VPC for each availability zone"""
         # Add a subnet for each availability zone
         response = clients['ec2'].describe_availability_zones()
         zones = response.get('AvailabilityZones')
@@ -306,24 +418,15 @@ class Vpc(NamedObject):
         # Get an IPv4Network instance representing the VPC CIDR block
         cidr = ipaddress.IPv4Network(six.text_type(self.ipv4_cidr))
 
+        # Get list of subnet CIDR blocks truncating list to len(zones)
+        subnet_ipv4_cidrs = list(cidr.subnets(new_prefix=20))
+
         # Ensure that the CIDR block has enough addresses to cover each zone
-        if cidr.num_addresses < len(zones):  # pragma: nocover
+        if len(subnet_ipv4_cidrs) < len(zones):  # pragma: nocover
             raise ValueError('IPv4 CIDR block does not have enough addresses '
                              'for each availability zone')
 
-        # Each increment of prefixlen_diff will give us another power of 2
-        # of subnets. So prefixlen_diff should be the log2 of the number of
-        # subnets we want (i.e. the number of zones)
-        try:
-            prefixlen_diff = ceil(log2(len(zones)))
-        except NameError:  # pragma: nocover
-            # python 2.7 compatibility
-            prefixlen_diff = int(ceil(log(len(zones), 2)))
-
-        # Get list of subnet CIDR blocks truncating list to len(zones)
-        subnet_ipv4_cidrs = list(cidr.subnets(
-            prefixlen_diff=prefixlen_diff
-        ))[:len(zones)]
+        subnet_ipv4_cidrs = subnet_ipv4_cidrs[:len(zones)]
 
         subnet_ids = []
 
@@ -336,6 +439,16 @@ class Vpc(NamedObject):
             )
 
             subnet_id = response.get('Subnet')['SubnetId']
+            clients['ec2'].modify_subnet_attribute(
+                MapPublicIpOnLaunch={'Value': True},
+                SubnetId=subnet_id
+            )
+
+            clients['ec2'].associate_route_table(
+                RouteTableId=self._route_table_ids[0],
+                SubnetId=subnet_id
+            )
+
             subnet_ids.append(subnet_id)
 
             mod_logger.info('Created subnet {id:s}.'.format(id=subnet_id))
@@ -343,7 +456,7 @@ class Vpc(NamedObject):
         # Tag all subnets with name and owner
         wait_for_subnet = clients['ec2'].get_waiter('subnet_available')
         retry = tenacity.Retrying(
-            wait=tenacity.wait_exponential(max=32),
+            wait=tenacity.wait_exponential(max=16),
             stop=tenacity.stop_after_delay(60),
             retry=tenacity.retry_if_exception_type(
                 botocore.exceptions.WaiterError
@@ -367,20 +480,45 @@ class Vpc(NamedObject):
         return subnet_ids
 
     def clobber(self):
-        """Delete this AWS virtual private cloud (VPC)
-
-        Returns
-        -------
-        None
-        """
+        """Delete this AWS virtual private cloud (VPC)"""
         try:
-            # Delete the subnets
-            for subnet_id in self.subnet_ids:
-                clients['ec2'].delete_subnet(SubnetId=subnet_id)
-                mod_logger.info('Deleted subnet {id:s}'.format(id=subnet_id))
+            # Only try to delete non-default VPCs
+            if not self.is_default:
+                retry = tenacity.Retrying(
+                    wait=tenacity.wait_exponential(max=16),
+                    stop=tenacity.stop_after_delay(60),
+                    retry=tenacity.retry_if_exception_type(
+                        clients['ec2'].exceptions.ClientError
+                    )
+                )
 
-            # Delete the VPC
-            clients['ec2'].delete_vpc(VpcId=self.vpc_id)
+                # Delete the subnets
+                for subnet_id in self.subnet_ids:
+                    retry.call(clients['ec2'].delete_subnet,
+                               SubnetId=subnet_id)
+                    mod_logger.info('Deleted subnet {id:s}'
+                                    ''.format(id=subnet_id))
+
+                # Delete the network ACL
+                for net_id in self._network_acl_ids:
+                    retry.call(clients['ec2'].delete_network_acl,
+                               NetworkAclId=net_id)
+
+                # Delete the route table
+                for rt_id in self._route_table_ids:
+                    retry.call(clients['ec2'].delete_route_table,
+                               RouteTableId=rt_id)
+
+                # Detach and delete the internet gateway
+                if self._gateway_id:
+                    retry.call(clients['ec2'].detach_internet_gateway,
+                               InternetGatewayId=self._gateway_id,
+                               VpcId=self.vpc_id)
+                    retry.call(clients['ec2'].delete_internet_gateway,
+                               InternetGatewayId=self._gateway_id)
+
+                # Delete the VPC
+                retry.call(clients['ec2'].delete_vpc, VpcId=self.vpc_id)
 
             # Remove this VPC from the list of VPCs in the config file
             cloudknot.config.remove_resource(self._section_name, self.vpc_id)
@@ -390,29 +528,34 @@ class Vpc(NamedObject):
             self._clobbered = True
 
             mod_logger.info('Deleted VPC {name:s}'.format(name=self.name))
-        except clients['ec2'].exceptions.ClientError as e:
-            # Check for dependency violation and pass exception to user
-            error_code = e.response['Error']['Code']
-            if error_code == 'DependencyViolation':
-                response = clients['ec2'].describe_security_groups(
-                    Filters=[{
-                        'Name': 'vpc-id',
-                        'Values': [self.vpc_id]
-                    }]
-                )
+        except tenacity.RetryError as error:
+            try:
+                error.reraise()
+            except clients['ec2'].exceptions.ClientError as e:
+                # Check for dependency violation and pass exception to user
+                error_code = e.response['Error']['Code']
+                if error_code == 'DependencyViolation':
+                    response = clients['ec2'].describe_security_groups(
+                        Filters=[{
+                            'Name': 'vpc-id',
+                            'Values': [self.vpc_id]
+                        }]
+                    )
 
-                ids = [sg['GroupId'] for sg in response.get('SecurityGroups')]
-                raise CannotDeleteResourceException(
-                    'Could not delete this VPC because it has dependencies. '
-                    'It may have security groups associated with it. If you '
-                    'still want to delete this VPC, you should first delete '
-                    'the security groups with the following IDs '
-                    '{sg_ids!s}'.format(sg_ids=ids),
-                    resource_id=ids
-                )
-            else:  # pragma: nocover
-                # I can't think of a test case to make this happen
-                raise e
+                    ids = [sg['GroupId']
+                           for sg in response.get('SecurityGroups')]
+
+                    raise CannotDeleteResourceException(
+                        'Could not delete this VPC because it has '
+                        'dependencies. It may have security groups associated '
+                        'with it. If you still want to delete this VPC, you '
+                        'should first delete the security groups with the '
+                        'following IDs {sg_ids!s}'.format(sg_ids=ids),
+                        resource_id=ids
+                    )
+                else:  # pragma: nocover
+                    # I can't think of a test case to make this happen
+                    raise e
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -510,11 +653,34 @@ class SecurityGroup(NamedObject):
             self._security_group_id = self._create()
 
     # Declare read-only properties
-    pre_existing = property(operator.attrgetter('_pre_existing'))
-    vpc = property(operator.attrgetter('_vpc'))
-    vpc_id = property(operator.attrgetter('_vpc_id'))
-    description = property(operator.attrgetter('_description'))
-    security_group_id = property(operator.attrgetter('_security_group_id'))
+    @property
+    def pre_existing(self):
+        """Boolean flag to indicate whether this resource was pre-existing
+
+        True if resource was retrieved from AWS,
+        False if it was created on __init__.
+        """
+        return self._pre_existing
+
+    @property
+    def vpc(self):
+        """Amazon virtual private cloud in which this security group resides"""
+        return self._vpc
+
+    @property
+    def vpc_id(self):
+        """ID for the VPC in which this security group resides"""
+        return self._vpc_id
+
+    @property
+    def description(self):
+        """The description for this security group"""
+        return self._description
+
+    @property
+    def security_group_id(self):
+        """The AWS ID for this security group"""
+        return self._security_group_id
 
     def _exists_already(self, security_group_id, name, vpc_id):
         """Check if an AWS security group exists already
@@ -625,7 +791,7 @@ class SecurityGroup(NamedObject):
         }]
 
         retry = tenacity.Retrying(
-            wait=tenacity.wait_exponential(max=64),
+            wait=tenacity.wait_exponential(max=16),
             stop=tenacity.stop_after_delay(120),
             retry=tenacity.retry_if_exception_type(
                 clients['ec2'].exceptions.ClientError
@@ -658,12 +824,7 @@ class SecurityGroup(NamedObject):
         return group_id
 
     def clobber(self):
-        """Delete this AWS security group and associated resources
-
-        Returns
-        -------
-        None
-        """
+        """Delete this AWS security group and associated resources"""
         # Get dependent EC2 instances
         response = clients['ec2'].describe_instances(Filters=[{
             'Name': 'vpc-id',
@@ -687,7 +848,7 @@ class SecurityGroup(NamedObject):
 
         # Delete the security group
         retry = tenacity.Retrying(
-            wait=tenacity.wait_exponential(max=64),
+            wait=tenacity.wait_exponential(max=16),
             stop=tenacity.stop_after_delay(300),
             retry=tenacity.retry_if_exception_type(
                 botocore.exceptions.ClientError

@@ -2,7 +2,6 @@ from __future__ import absolute_import, division, print_function
 
 import cloudknot.config
 import logging
-import operator
 import six
 import tenacity
 from collections import namedtuple
@@ -32,6 +31,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         ----------
         arn : string
             ARN of the job definition to retrieve
+
         name : string
             Name of the job definition to retrieve or create
 
@@ -51,7 +51,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
 
         memory : int
             memory (MiB) to be used for this job definition
-            Default: 32000
+            Default: 8000
 
         username : string
             username for be used for this job definition
@@ -139,7 +139,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
 
             # Otherwise, validate input and set parameters
             username = username if username else 'cloudknot-user'
-            memory = memory if memory else 32000
+            memory = memory if memory else 8000
 
             super(JobDefinition, self).__init__(
                 name=name, memory=memory, username=username
@@ -185,12 +185,42 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             self._arn = self._create()
 
     # Declare read-only parameters
-    pre_existing = property(operator.attrgetter('_pre_existing'))
-    job_role = property(operator.attrgetter('_job_role'))
-    job_role_arn = property(operator.attrgetter('_job_role_arn'))
-    docker_image = property(operator.attrgetter('_docker_image'))
-    vcpus = property(operator.attrgetter('_vcpus'))
-    retries = property(operator.attrgetter('_retries'))
+    @property
+    def pre_existing(self):
+        """Boolean flag to indicate whether this resource was pre-existing
+
+        True if resource was retrieved from AWS,
+        False if it was created on __init__.
+        """
+        return self._pre_existing
+
+    @property
+    def job_role(self):
+        """IAM job role for this job definition."""
+        return self._job_role
+
+    @property
+    def job_role_arn(self):
+        """The ARN for this job definition's IAM job role."""
+        return self._job_role_arn
+
+    @property
+    def docker_image(self):
+        """DockerRepo instance for the container to be used in this job
+        definition or string containing location of docker image on Docker
+        Hub or other repository
+        """
+        return self._docker_image
+
+    @property
+    def vcpus(self):
+        """The number of vCPUS for this job definition."""
+        return self._vcpus
+
+    @property
+    def retries(self):
+        """The number of times a job can be moved to 'RUNNABLE' status."""
+        return self._retries
 
     def _exists_already(self, arn, name):
         """Check if an AWS Job Definition exists already
@@ -306,12 +336,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         return arn
 
     def clobber(self):
-        """Deregister this AWS batch job definition
-
-        Returns
-        -------
-        None
-        """
+        """Deregister this AWS batch job definition"""
         if self.region != get_region():
             raise RegionException(resource_region=self.region)
 
@@ -363,11 +388,11 @@ class ComputeEnvironment(ObjectWithArn):
             compute environment will use
 
         spot_fleet_role : IamRole
-            optional IamRole instance for the AWS IAM spot fleet role
+            optional IamRole instance for the AWS IAM spot fleet role.
             Default: None
 
         instance_types : string or sequence of strings
-            instance types that may be launched in this compute environment
+            instance types that may be launched in this compute environment.
             Default: ('optimal',)
 
         resource_type : string
@@ -375,36 +400,39 @@ class ComputeEnvironment(ObjectWithArn):
 
         min_vcpus : int
             minimum number of virtual cpus for instances launched in this
-            compute environment
+            compute environment. CAREFUL HERE: If you specify min_vcpus
+            greater than 0, your ECS cluster will keep instances spinning
+            even when there is no work to do. We strongly recommend
+            keeping min_vpucs set at 0.
             Default: 0
 
         max_vcpus : int
             maximum number of virtual cpus for instances launched in this
-            compute environment
+            compute environment.
             Default: 256
 
         desired_vcpus : int
             desired number of virtual cpus for instances launched in this
-            compute environment
+            compute environment.
             Default: 8
 
         image_id : string
             optional AMI id used for instances launched in this compute
-            environment
+            environment.
             Default: None
 
         ec2_key_pair : string
             optional EC2 key pair used for instances launched in this compute
-            environment
+            environment.
             Default: None
 
         tags : dictionary
             optional key-value pair tags to be applied to resources in this
-            compute environment
+            compute environment.
             Default: None
 
         bid_percentage : int
-            bid percentage if using spot instances
+            bid percentage if using spot instances.
             Default: 50
         """
         # Validate for minimum input
@@ -615,6 +643,15 @@ class ComputeEnvironment(ObjectWithArn):
             else:
                 self._min_vcpus = cpus
 
+            if self._min_vcpus > 0:
+                mod_logger.warning(
+                    'min_vcpus is greater than zero. This means that your '
+                    'compute environment will maintain some EC2 vCPUs, '
+                    'regardless of job demand, potentially resulting in '
+                    'unnecessary AWS charges. We strongly recommend using '
+                    'a compute environment with min_vcpus set to zero.'
+                )
+
             # Validate max_vcpus, default to 256
             max_vcpus = max_vcpus if max_vcpus else 256
             cpus = int(max_vcpus)
@@ -637,6 +674,11 @@ class ComputeEnvironment(ObjectWithArn):
                     raise ValueError('if provided, image_id must be a string')
                 self._image_id = image_id
             else:
+                # response = clients['ec2'].describe_images(Filters=[{
+                #     'Name': 'name',
+                #     'Values': ['amzn-ami-2017.03.g-amazon-ecs-optimized']
+                # }])
+                # self._image_id = response.get('Images')[0]['ImageId']
                 self._image_id = None
 
             # Validate ec2_key_pair input
@@ -681,33 +723,109 @@ class ComputeEnvironment(ObjectWithArn):
             self._arn = self._create()
 
     # Declare read-only properties
-    pre_existing = property(operator.attrgetter('_pre_existing'))
-    batch_service_role = property(operator.attrgetter('_batch_service_role'))
-    batch_service_role_arn = property(
-        operator.attrgetter('_batch_service_role_arn')
-    )
+    @property
+    def pre_existing(self):
+        """Boolean flag to indicate whether this resource was pre-existing
 
-    instance_role = property(operator.attrgetter('_instance_role'))
-    instance_role_arn = property(operator.attrgetter('_instance_role_arn'))
+        True if resource was retrieved from AWS,
+        False if it was created on __init__.
+        """
+        return self._pre_existing
 
-    vpc = property(operator.attrgetter('_vpc'))
-    subnets = property(operator.attrgetter('_subnets'))
+    @property
+    def batch_service_role(self):
+        """IamRole instance for the AWS IAM batch service role"""
+        return self._batch_service_role
 
-    security_group = property(operator.attrgetter('_security_group'))
-    security_group_ids = property(operator.attrgetter('_security_group_ids'))
+    @property
+    def batch_service_role_arn(self):
+        """ARN for this compute environment's IAM batch service role"""
+        return self._batch_service_role_arn
 
-    spot_fleet_role = property(operator.attrgetter('_spot_fleet_role'))
-    spot_fleet_role_arn = property(operator.attrgetter('_spot_fleet_role_arn'))
+    @property
+    def instance_role(self):
+        """IamRole instance for the AWS IAM instance role"""
+        return self._instance_role
 
-    instance_types = property(operator.attrgetter('_instance_types'))
-    resource_type = property(operator.attrgetter('_resource_type'))
-    min_vcpus = property(operator.attrgetter('_min_vcpus'))
-    max_vcpus = property(operator.attrgetter('_max_vcpus'))
-    desired_vcpus = property(operator.attrgetter('_desired_vcpus'))
-    image_id = property(operator.attrgetter('_image_id'))
-    ec2_key_pair = property(operator.attrgetter('_ec2_key_pair'))
-    tags = property(operator.attrgetter('_tags'))
-    bid_percentage = property(operator.attrgetter('_bid_percentage'))
+    @property
+    def instance_role_arn(self):
+        """ARN for this compute environment's IAM instance role"""
+        return self._instance_role_arn
+
+    @property
+    def vpc(self):
+        """Vpc instance that this compute environment will use"""
+        return self._vpc
+
+    @property
+    def subnets(self):
+        """VPC subnets that this compute environment will use"""
+        return self._subnets
+
+    @property
+    def security_group(self):
+        """SecurityGroup instance that this compute environment will use"""
+        return self._security_group
+
+    @property
+    def security_group_ids(self):
+        """Security group IDs for this compute environment"""
+        return self._security_group_ids
+
+    @property
+    def spot_fleet_role(self):
+        """optional IamRole instance for the AWS IAM spot fleet role"""
+        return self._spot_fleet_role
+
+    @property
+    def spot_fleet_role_arn(self):
+        """ARN for this compute environment's IAM spot fleet role"""
+        return self._spot_fleet_role_arn
+
+    @property
+    def instance_types(self):
+        """Instance types that may be launched in this compute environment"""
+        return self._instance_types
+
+    @property
+    def resource_type(self):
+        """Resource type, either 'EC2' or 'SPOT'"""
+        return self._resource_type
+
+    @property
+    def min_vcpus(self):
+        """Minimum number of vCPUs for instances in this compute environment"""
+        return self._min_vcpus
+
+    @property
+    def max_vcpus(self):
+        """Maximum number of vCPUs for instances in this compute environment"""
+        return self._max_vcpus
+
+    @property
+    def desired_vcpus(self):
+        """Desired number of vCPUs for instances in this compute environment"""
+        return self._desired_vcpus
+
+    @property
+    def image_id(self):
+        """Optional AMI id used for instances in this compute environment"""
+        return self._image_id
+
+    @property
+    def ec2_key_pair(self):
+        """Optional EC2 key pair for instances in this compute environment"""
+        return self._ec2_key_pair
+
+    @property
+    def tags(self):
+        """Optional tags to apply to resources in this compute environment"""
+        return self._tags
+
+    @property
+    def bid_percentage(self):
+        """Bid percentage if using spot instances"""
+        return self._bid_percentage
 
     def _exists_already(self, arn, name):
         """Check if a compute environment exists already
@@ -873,18 +991,13 @@ class ComputeEnvironment(ObjectWithArn):
         return arn
 
     def clobber(self):
-        """Delete this compute environment
-
-        Returns
-        -------
-        None
-        """
+        """Delete this compute environment"""
         if self.region != get_region():
             raise RegionException(resource_region=self.region)
 
         retry = tenacity.Retrying(
-            wait=tenacity.wait_exponential(max=32),
-            stop=tenacity.stop_after_delay(60),
+            wait=tenacity.wait_exponential(max=16),
+            stop=tenacity.stop_after_delay(120),
             retry=tenacity.retry_if_exception_type(
                 clients['batch'].exceptions.ClientException
             )
@@ -897,12 +1010,34 @@ class ComputeEnvironment(ObjectWithArn):
             state='DISABLED'
         )
 
-        # Now delete the associated ECS cluster
+        # Now get the associated ECS cluster
         response = clients['batch'].describe_compute_environments(
             computeEnvironments=[self.arn]
         )
         cluster_arn = response.get('computeEnvironments')[0]['ecsClusterArn']
-        clients['ecs'].delete_cluster(cluster=cluster_arn)
+
+        # Get container instances
+        response = clients['ecs'].list_container_instances(
+            cluster=cluster_arn,
+        )
+        instances = response.get('containerInstanceArns')
+
+        for i in instances:
+            clients['ecs'].deregister_container_instance(
+                cluster=cluster_arn,
+                containerInstance=i,
+                force=True
+            )
+
+        retry_if_exception = tenacity.Retrying(
+            wait=tenacity.wait_exponential(max=16),
+            stop=tenacity.stop_after_delay(120),
+            retry=tenacity.retry_if_exception_type()
+        )
+        retry_if_exception.call(
+            clients['ecs'].delete_cluster,
+            cluster=cluster_arn
+        )
 
         # Wait for any associated job queues to finish updating
         response = clients['batch'].describe_job_queues()
@@ -1067,14 +1202,29 @@ class JobQueue(ObjectWithArn):
             self._arn = self._create()
 
     # Declare properties
-    pre_existing = property(operator.attrgetter('_pre_existing'))
-    compute_environments = property(
-        operator.attrgetter('_compute_environments')
-    )
-    compute_environment_arns = property(
-        operator.attrgetter('_compute_environment_arns')
-    )
-    priority = property(operator.attrgetter('_priority'))
+    @property
+    def pre_existing(self):
+        """Boolean flag to indicate whether this resource was pre-existing
+
+        True if resource was retrieved from AWS,
+        False if it was created on __init__.
+        """
+        return self._pre_existing
+
+    @property
+    def compute_environments(self):
+        """ComputeEnvironment instances for this job queue to use"""
+        return self._compute_environments
+
+    @property
+    def compute_environment_arns(self):
+        """Dictionary of this queue's compute environments and priorities"""
+        return self._compute_environment_arns
+
+    @property
+    def priority(self):
+        """Priority for jobs in this queue"""
+        return self._priority
 
     def _exists_already(self, arn, name):
         """Check if an AWS job queue exists already
@@ -1139,7 +1289,7 @@ class JobQueue(ObjectWithArn):
         # updating or in the process of creation. Use tenacity.Retrying to
         # overcome this latency
         retry = tenacity.Retrying(
-            wait=tenacity.wait_exponential(max=32),
+            wait=tenacity.wait_exponential(max=16),
             stop=tenacity.stop_after_delay(60),
             retry=tenacity.retry_if_exception_type(
                 clients['batch'].exceptions.ClientException
@@ -1220,12 +1370,13 @@ class JobQueue(ObjectWithArn):
 
         # First, disable submissions to the queue
         retry = tenacity.Retrying(
-            wait=tenacity.wait_exponential(max=32),
+            wait=tenacity.wait_exponential(max=16),
             stop=tenacity.stop_after_delay(60),
             retry=tenacity.retry_if_exception_type(
                 clients['batch'].exceptions.ClientException
             )
         )
+
         retry.call(
             clients['batch'].update_job_queue,
             jobQueue=self.arn,
@@ -1239,14 +1390,15 @@ class JobQueue(ObjectWithArn):
             # No unit test coverage here since it costs money to submit,
             # and then terminate, batch jobs
             jobs = self.get_jobs(status=status)
-            for job_id in jobs:
+            for job in jobs:
+                jid = job['jobId']
                 retry.call(
                     clients['batch'].terminate_job,
-                    jobId=job_id,
+                    jobId=jid,
                     reason='Terminated to force job queue deletion'
                 )
 
-                mod_logger.info('Terminated job {id:s}'.format(id=job_id))
+                mod_logger.info('Terminated job {jid:s}'.format(jid=jid))
 
         # Finally, delete the job queue
         retry.call(clients['batch'].delete_job_queue, jobQueue=self.arn)
@@ -1366,17 +1518,43 @@ class BatchJob(NamedObject):
 
             self._job_id = self._create()
 
-    job_queue = property(operator.attrgetter('_job_queue'))
-    job_queue_arn = property(operator.attrgetter('_job_queue_arn'))
+    @property
+    def job_queue(self):
+        """JobQueue instance to which this job will be submitted"""
+        return self._job_queue
 
-    job_definition = property(operator.attrgetter('_job_definition_arn'))
-    job_definition_arn = property(operator.attrgetter('_job_definition'))
+    @property
+    def job_queue_arn(self):
+        """ARN for the job queue to which this job will be submitted"""
+        return self._job_queue_arn
 
-    commands = property(operator.attrgetter('_commands'))
-    environment_variables = property(
-        operator.attrgetter('_environment_variables')
-    )
-    job_id = property(operator.attrgetter('_job_id'))
+    @property
+    def job_definition(self):
+        """JobDefinition instance on which to base this job"""
+        return self._job_definition
+
+    @property
+    def job_definition_arn(self):
+        """The ARN for the job definition on which to base this job"""
+        return self._job_definition_arn
+
+    @property
+    def commands(self):
+        """command sent to the container for this job.
+
+        Multi-word commands are split on spaces.
+        e.g. `echo hello` becomes ['echo', 'hello']"""
+        return self._commands
+
+    @property
+    def environment_variables(self):
+        """Key/value pairs for environment variables sent to the container"""
+        return self._environment_variables
+
+    @property
+    def job_id(self):
+        """This job's AWS jobID"""
+        return self._job_id
 
     def _exists_already(self, job_id):
         """Check if an AWS batch job exists already
@@ -1389,14 +1567,14 @@ class BatchJob(NamedObject):
         -------
         namedtuple JobExists
             A namedtuple with fields
-            ['exists', 'name', 'job_queue_arn', 'job_definition_arn',
-            'commands', 'environment_variables']
+            ['exists', 'name', 'job_id', 'job_queue_arn',
+             'job_definition_arn', 'commands', 'environment_variables']
         """
         # define a namedtuple for return value type
         JobExists = namedtuple(
             'JobExists',
-            ['exists', 'name', 'job_queue_arn', 'job_definition_arn',
-             'commands', 'environment_variables']
+            ['exists', 'name', 'job_id', 'job_queue_arn',
+             'job_definition_arn', 'commands', 'environment_variables']
         )
         # make all but the first value default to None
         JobExists.__new__.__defaults__ = \
@@ -1415,7 +1593,8 @@ class BatchJob(NamedObject):
             mod_logger.info('Job {id:s} exists.'.format(id=job_id))
 
             return JobExists(
-                exists=True, name=name, job_queue_arn=job_queue_arn,
+                exists=True, name=name, job_id=job_id,
+                job_queue_arn=job_queue_arn,
                 job_definition_arn=job_definition_arn,
                 commands=commands, environment_variables=environment_variables
             )
@@ -1432,10 +1611,21 @@ class BatchJob(NamedObject):
         """
         # no coverage since actually submitting a batch job for
         # unit testing would be expensive
-        container_overrides = {
-            'environment': self.environment_variables,
-            'command': self.commands
-        }
+        if self.environment_variables and self.commands:
+            container_overrides = {
+                'environment': self.environment_variables,
+                'command': self.commands
+            }
+        elif self.commands:
+            container_overrides = {
+                'command': self.commands
+            }
+        elif self.environment_variables:
+            container_overrides = {
+                'environment': self.environment_variables,
+            }
+        else:
+            container_overrides = {}
 
         response = clients['batch'].submit_job(
             jobName=self.name,
@@ -1446,10 +1636,10 @@ class BatchJob(NamedObject):
 
         job_id = response['jobId']
 
-        # Remove this job from the list of jobs in the config file
+        # Add this job to the list of jobs in the config file
         self._section_name = 'batch-jobs ' + self.region
         cloudknot.config.add_resource(
-            self._section_name, self.job_id, self.name
+            self._section_name, job_id, self.name
         )
 
         mod_logger.info(
@@ -1483,7 +1673,8 @@ class BatchJob(NamedObject):
         job = response.get('jobs')[0]
 
         # Return only a subset of the job dictionary
-        status = {k: job[k] for k in ('status', 'statusReason', 'attempts')}
+        status = {k: job.get(k)
+                  for k in ('status', 'statusReason', 'attempts')}
 
         return status
 

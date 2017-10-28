@@ -1,23 +1,62 @@
-.. cloudknot documentation master file, created by sphinx-quickstart on Tue Apr 14 10:29:06 2015. You can adapt this file completely to your liking, but it should at least contain the root `toctree` directive.
+Welcome to cloudknot
+====================
 
-Welcome to cloudknot's documentation!
-====================================
+A knot is a collective noun for a group of snakes. `Cloudknot` is a python
+library designed to run your existing python code on
+`AWS Batch <https://aws.amazon.com/batch>`_.
 
-`Cloudknot` is a template for a small scientific Python project. 
+Installation and getting started
+--------------------------------
 
-To see how to use it, please refer to the `README file 
-<https://github.com/richford/cloudknot/blob/master/README.md>`_ in the Github repository.
+To install cloudknot and take your first few slithers,
+visit :ref:`getting-started-label`
 
-This is an example of documentation of the software, using sphinx_. 
+Documentation and API
+---------------------
 
-.. _sphinx: http://sphinx-doc.org/
+Most cloudknot users will only need to interact with the Knot and Pars classes
+(perhaps the DockerImage class). For details on those objects and links to the
+lower-level API, see :ref:`doc-label`.
 
+Bugs and issues
+---------------
 
-Contents:
+If you are having issues, please let us know by `opening up a new issue
+<https://github.com/richford/cloudknot/issues>`_.
+You will probably want to tag your issue with the "bug" or "question" label.
+
+Contribute
+----------
+
+We invite you to contribute to cloudknot. Take a look at the `source code
+<https://github.com/richford/cloudknot>`_. Or tackle one of the `open issues
+<https://github.com/richford/cloudknot/issues>`_. Issues labeled "help wanted"
+or "good first issue" are particularly appropriate for beginners.
+
+AWS Batch vs AWS Lambda
+-----------------------
+
+`AWS Lambda <https://aws.amazon.com/lambda>`_ is a service that runs your code
+in response to certain events (e.g. file uploads). It starts executing very
+quickly after the triggering event but it has `some limitations
+<https://docs.aws.amazon.com/lambda/latest/dg/limits.html>`_ (e.g. on the
+amount of memory or the size of your deployment package). If your existing
+code falls within the AWS Lambda limitations, you should probably be using
+AWS Lambda instead of AWS Batch. In that case, check out the excellent
+`pywren <http://pywren.io/>`_. If your code exceeds the AWS Lambda limitations,
+then welcome to cloudknot.
+
+License
+-------
+
+The project is licensed under the `MIT license
+<https://github.com/richford/cloudknot/blob/master/LICENSE>`_.
 
 .. toctree::
-   :maxdepth: 2
+   :hidden:
 
-   theory
-   auto_examples/index
-   api
+   getting started <getting_started>
+   documentation <documentation>
+   examples <https://github.com/richford/cloudknot/tree/master/examples>
+   code <https://github.com/richford/cloudknot>
+   bugs <https://github.com/richford/cloudknot/issues>

@@ -3,7 +3,6 @@ from __future__ import absolute_import, division, print_function
 import cloudknot.config
 import json
 import logging
-import operator
 import six
 import tenacity
 from collections import namedtuple
@@ -92,10 +91,9 @@ class IamRole(ObjectWithArn):
                 msg = 'service must be in ' + str(self._allowed_services)
                 raise ValueError(msg)
 
+            # "Version": "2012-10-17",
             role_policy = {
-                "Version": "2012-10-17",
                 "Statement": [{
-                    "Sid": "",
                     "Effect": "Allow",
                     "Principal": {
                         "Service": self._service
@@ -151,13 +149,38 @@ class IamRole(ObjectWithArn):
     _allowed_services = ['batch', 'ec2', 'ecs-tasks', 'lambda', 'spotfleet']
 
     # Declare read-only properties
-    pre_existing = property(operator.attrgetter('_pre_existing'))
-    description = property(operator.attrgetter('_description'))
-    service = property(operator.attrgetter('_service'))
-    policies = property(operator.attrgetter('_policies'))
-    role_policy_document = property(
-        operator.attrgetter('_role_policy_document')
-    )
+    @property
+    def pre_existing(self):
+        """Boolean flag to indicate whether this resource was pre-existing
+
+        True if resource was retrieved from AWS,
+        False if it was created on __init__.
+        """
+        return self._pre_existing
+
+    @property
+    def description(self):
+        """Description of this IAM role"""
+        return self._description
+
+    @property
+    def service(self):
+        """Service role on which this AWS IAM role is based.
+
+        `service` will be one of
+        ['ecs-tasks', 'batch', 'ec2', 'lambda', 'spotfleet']
+        """
+        return self._service
+
+    @property
+    def policies(self):
+        """Tuple of names of AWS policies attached to this role"""
+        return self._policies
+
+    @property
+    def role_policy_document(self):
+        """Role policy document for this IAM role"""
+        return self._role_policy_document
 
     def _exists_already(self):
         """Check if an IAM Role exists already
@@ -279,12 +302,10 @@ class IamRole(ObjectWithArn):
             )
 
         if add_instance_profile:
-            instance_profile_name = self.name + '-instance-profile'
-
             try:
                 # Create the instance profile
                 clients['iam'].create_instance_profile(
-                    InstanceProfileName=instance_profile_name
+                    InstanceProfileName=self.name
                 )
 
                 # Wait for it to show up
@@ -293,23 +314,23 @@ class IamRole(ObjectWithArn):
                 )
 
                 wait_for_instance_profile.wait(
-                    InstanceProfileName=instance_profile_name
+                    InstanceProfileName=self.name
                 )
 
                 # Add to role
                 clients['iam'].add_role_to_instance_profile(
-                    InstanceProfileName=instance_profile_name,
+                    InstanceProfileName=self.name,
                     RoleName=self.name
                 )
             except clients['iam'].exceptions.EntityAlreadyExistsException:
                 # Instance profile already exists, just add to role
                 clients['iam'].add_role_to_instance_profile(
-                    InstanceProfileName=instance_profile_name,
+                    InstanceProfileName=self.name,
                     RoleName=self.name
                 )
 
             mod_logger.info('Created instance profile {name:s}'.format(
-                name=instance_profile_name
+                name=self.name
             ))
 
         # Add this role to the list of roles in the config file
@@ -319,7 +340,7 @@ class IamRole(ObjectWithArn):
 
     @property
     def instance_profile_arn(self):
-        """Return ARN for attached instance profile if any
+        """Return ARN for attached instance profile if applicable
 
         Returns
         -------
@@ -345,12 +366,7 @@ class IamRole(ObjectWithArn):
             return None
 
     def clobber(self):
-        """Delete this AWS IAM role and remove from config file
-
-        Returns
-        -------
-        None
-        """
+        """Delete this AWS IAM role and remove from config file"""
         if self.service == 'batch.amazonaws.com':
             # If this is a batch service role, wait for any dependent compute
             # environments to finish deleting In order to prevent INVALID
@@ -381,7 +397,7 @@ class IamRole(ObjectWithArn):
                     return False
 
             retry = tenacity.Retrying(
-                wait=tenacity.wait_exponential(max=64),
+                wait=tenacity.wait_exponential(max=16),
                 stop=tenacity.stop_after_delay(120),
                 retry=tenacity.retry_if_result(is_deleting)
             )

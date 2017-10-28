@@ -2,7 +2,6 @@ from __future__ import absolute_import, division, print_function
 
 import cloudknot.config
 import logging
-import operator
 from collections import namedtuple
 
 from .base_classes import NamedObject, clients
@@ -41,8 +40,15 @@ class DockerRepo(NamedObject):
         )
 
     # Declare read only properties
-    repo_uri = property(operator.attrgetter('_repo_uri'))
-    repo_registry_id = property(operator.attrgetter('_repo_registry_id'))
+    @property
+    def repo_uri(self):
+        """URI for this AWS ECR repository"""
+        return self._repo_uri
+
+    @property
+    def repo_registry_id(self):
+        """Registry ID for this AWS ECR repository"""
+        return self._repo_registry_id
 
     def _create_repo(self):
         """Create or retrieve an AWS ECR repository
@@ -85,12 +91,7 @@ class DockerRepo(NamedObject):
         )
 
     def clobber(self):
-        """Delete this remote repository
-
-        Returns
-        -------
-        None
-        """
+        """Delete this remote repository"""
         try:
             # Remove the remote docker image
             clients['ecr'].delete_repository(

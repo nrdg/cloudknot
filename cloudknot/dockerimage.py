@@ -4,7 +4,6 @@ import configparser
 import docker
 import inspect
 import logging
-import operator
 import os
 import six
 import subprocess
@@ -38,48 +37,6 @@ class DockerImage(aws.NamedObject):
     packages will not be included in requirements.txt, DockerImage will throw
     a warning, and the user must install those packages by hand in the
     Dockerfile.
-
-    Attributes
-    ----------
-    name : string
-        name of this docker image, set to the basename of the script path or
-        the function name
-
-    func : function
-        python function that will be dockerized
-
-    build_path : string
-        the build path for the docker image
-
-    script_path : string
-        path to the CLI version of the python function
-
-    docker_path : string
-        path to the Dockerfile
-
-    req_path : string
-        path to the requirements.txt file
-
-    pip_imports : list
-        list of packages in the requirements.txt file
-
-    username : string
-        default username created in Dockerfile
-
-    missing_imports : list
-        list of imports required by the python script that are unavailable
-        through pip install. The user must edit the Dockerfile by hand to
-        install these packages before using the build or push methods.
-
-    image_name : string
-        the name of the docker image created with the build method
-
-    tags : list
-        list of tags for this docker image
-
-    repo_uri : string
-        location of remote repository to which the image was pushed with the
-        push method
     """
     def __init__(self, name=None, func=None, script_path=None,
                  dir_name=None, username=None):
@@ -101,8 +58,8 @@ class DockerImage(aws.NamedObject):
             Directory to store Dockerfile, requirements.txt, and python
             script with CLI
             Default: parent directory of script if `script_path` is provided
-                     else DockerImage creates a new directory, accessible by
-                     the `build_path` property.
+            else DockerImage creates a new directory, accessible by the
+            `build_path` property.
 
         username : string
             Default user created in the Dockerfile
@@ -283,26 +240,64 @@ class DockerImage(aws.NamedObject):
             )
 
     # Declare read-only properties
-    name = property(operator.attrgetter('_name'))
-    func = property(operator.attrgetter('_func'))
-    build_path = property(operator.attrgetter('_build_path'))
-    script_path = property(operator.attrgetter('_script_path'))
-    docker_path = property(operator.attrgetter('_docker_path'))
-    req_path = property(operator.attrgetter('_req_path'))
-    pip_imports = property(operator.attrgetter('_pip_imports'))
-    username = property(operator.attrgetter('_username'))
-    missing_imports = property(operator.attrgetter('_missing_imports'))
-    images = property(operator.attrgetter('_images'))
-    repo_uri = property(operator.attrgetter('_repo_uri'))
+    @property
+    def func(self):
+        """Python function that was dockerized"""
+        return self._func
+
+    @property
+    def build_path(self):
+        """The build path for the docker image"""
+        return self._build_path
+
+    @property
+    def script_path(self):
+        """Path to the CLI version of the python function"""
+        return self._script_path
+
+    @property
+    def docker_path(self):
+        """Path to the generated Dockerfile"""
+        return self._docker_path
+
+    @property
+    def req_path(self):
+        """Path to the generated requirements.txt file"""
+        return self._req_path
+
+    @property
+    def pip_imports(self):
+        """List of packages in the requirements.txt file"""
+        return self._pip_imports
+
+    @property
+    def username(self):
+        """Default username created in Dockerfile"""
+        return self._username
+
+    @property
+    def missing_imports(self):
+        """List of required imports that are unavailable through pip install.
+
+        The user must edit the Dockerfile by hand to install these packages
+        before using the build or push methods.
+        """
+        return self._missing_imports
+
+    @property
+    def images(self):
+        """List of name, tag dicts for docker images built by this instance"""
+        return self._images
+
+    @property
+    def repo_uri(self):
+        """Location of remote repository to which the image was pushed"""
+        return self._repo_uri
 
     def _write_script(self):
         """Write this instance's function to a script with a CLI.
 
         Use clize.run to create CLI
-
-        Returns
-        -------
-        None
         """
         with open(self.script_path, 'w') as f:
             f.write('from clize import run\n\n\n')
@@ -319,12 +314,7 @@ class DockerImage(aws.NamedObject):
         )
 
     def _write_dockerfile(self):
-        """Write Dockerfile to containerize this instance's python function
-
-        Returns
-        -------
-        None
-        """
+        """Write Dockerfile to containerize this instance's python function"""
         with open(self.docker_path, 'w') as f:
             py_version_str = '3' if six.PY3 else '2'
             home_dir = '/home/{username:s}'.format(username=self.username)
@@ -375,8 +365,7 @@ class DockerImage(aws.NamedObject):
         )
 
     def _set_imports(self):
-        """Set the imports required for the python script at self.script_path
-        """
+        """Set required imports for the python script at self.script_path"""
         # Get the names of packages imported in the script
         import_names = pipreqs.get_all_imports(os.path.dirname(
             self.script_path
@@ -412,10 +401,6 @@ class DockerImage(aws.NamedObject):
         image_name : str
             Name of Docker image to be built
             Default: 'cloudknot/' + self.name
-
-        Returns
-        -------
-        None
         """
         if self.clobbered:
             raise ResourceClobberedException(
@@ -484,9 +469,13 @@ class DockerImage(aws.NamedObject):
     def push(self, repo=None, repo_uri=None):
         """Tag and push a DockerContainer image to a repository
 
-        Returns
-        -------
-        None
+        Parameters
+        ----------
+        repo : DockerRepo, optional
+            DockerRepo instance to which to push this image
+
+        repo_uri : string, optional
+            URI for the docker repository to which to push this instance
         """
         if self.clobbered:
             raise ResourceClobberedException(
@@ -545,6 +534,8 @@ class DockerImage(aws.NamedObject):
             ):
                 mod_logger.debug(l)
 
+        self._repo_uri = self._repo_uri + ':' + self.images[-1]['tag']
+
         section_name = 'docker-image ' + self.name
         ckconfig.add_resource(section_name, 'repo-uri', self.repo_uri)
 
@@ -556,10 +547,6 @@ class DockerImage(aws.NamedObject):
         directory if it is empty.
 
         Also delete the local docker image
-
-        Returns
-        -------
-        None
         """
         if self._clobber_script:
             os.remove(self.script_path)
@@ -599,12 +586,11 @@ class DockerImage(aws.NamedObject):
                                 for im in sublist]
 
         if self.repo_uri:
-            for tag in set([d['tag'] for d in self.images]):
-                cli.remove(
-                    image=self.repo_uri + ':' + tag,
-                    force=True,
-                    noprune=False
-                )
+            cli.remove(
+                image=self.repo_uri,
+                force=True,
+                noprune=False
+            )
 
         # Remove from the config file
         config_file = get_config_file()

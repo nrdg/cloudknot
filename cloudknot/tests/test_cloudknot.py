@@ -4,6 +4,7 @@ import cloudknot as ck
 import configparser
 import os.path as op
 import pytest
+import tenacity
 import uuid
 
 UNIT_TEST_PREFIX = 'cloudknot-unit-test'
@@ -18,7 +19,72 @@ def cleanup():
     iam = ck.aws.clients['iam']
     ec2 = ck.aws.clients['ec2']
     batch = ck.aws.clients['batch']
+    ecs = ck.aws.clients['ecs']
     config_file = ck.config.get_config_file()
+
+    # Clean up job queues from AWS
+    # ----------------------------
+    # Find all unit testing job queues
+    response = batch.describe_job_queues()
+
+    job_queues = [
+        {
+            'name': d['jobQueueName'],
+            'arn': d['jobQueueArn'],
+            'state': d['state'],
+            'status': d['status']
+        } for d in response.get('jobQueues')
+    ]
+
+    while response.get('nextToken'):
+        response = batch.describe_job_queues(
+            nextToken=response.get('nextToken')
+        )
+
+        job_queues = job_queues + [
+            {
+                'name': d['jobQueueName'],
+                'arn': d['jobQueueArn'],
+                'state': d['state'],
+                'status': d['status']
+            } for d in response.get('jobQueues')
+        ]
+
+    unit_test_JQs = list(filter(
+        lambda d: UNIT_TEST_PREFIX in d['name'], job_queues
+    ))
+
+    enabled = list(filter(
+        lambda d: d['state'] == 'ENABLED', unit_test_JQs
+    ))
+
+    for jq in enabled:
+        ck.aws.wait_for_job_queue(name=jq['name'], max_wait_time=180)
+        batch.update_job_queue(jobQueue=jq['arn'], state='DISABLED')
+
+    config = configparser.ConfigParser()
+    config.read(config_file)
+
+    requires_deletion = list(filter(
+        lambda d: d['status'] not in ['DELETED', 'DELETING'],
+        unit_test_JQs
+    ))
+
+    for jq in requires_deletion:
+        ck.aws.wait_for_job_queue(name=jq['name'], max_wait_time=180)
+
+        # Finally, delete the job queue
+        batch.delete_job_queue(jobQueue=jq['arn'])
+
+        # Clean up config file
+        try:
+            config.remove_option('job-queues ' + ck.aws.get_region(),
+                                 jq['name'])
+        except configparser.NoSectionError:
+            pass
+
+    with open(config_file, 'w') as f:
+        config.write(f)
 
     # Clean up compute environments from AWS
     # --------------------------------------
@@ -109,81 +175,56 @@ def cleanup():
     ))
 
     for ce in requires_deletion:
+        # Now get the associated ECS cluster
+        response = batch.describe_compute_environments(
+            computeEnvironments=[ce['arn']]
+        )
+        cluster_arn = response.get('computeEnvironments')[0]['ecsClusterArn']
+
+        # Get container instances
+        response = ecs.list_container_instances(
+            cluster=cluster_arn,
+        )
+        instances = response.get('containerInstanceArns')
+
+        for i in instances:
+            ecs.deregister_container_instance(
+                cluster=cluster_arn,
+                containerInstance=i,
+                force=True
+            )
+
+        retry_if_exception = tenacity.Retrying(
+            wait=tenacity.wait_exponential(max=16),
+            stop=tenacity.stop_after_delay(120),
+            retry=tenacity.retry_if_exception_type()
+        )
+        retry_if_exception.call(
+            ecs.delete_cluster,
+            cluster=cluster_arn
+        )
+
         ck.aws.wait_for_compute_environment(
             arn=ce['arn'], name=ce['name'], log=False
         )
 
-        # Delete the compute environment
-        batch.delete_compute_environment(computeEnvironment=ce['arn'])
+        retry = tenacity.Retrying(
+            wait=tenacity.wait_exponential(max=16),
+            stop=tenacity.stop_after_delay(120),
+            retry=tenacity.retry_if_exception_type(
+                batch.exceptions.ClientException
+            )
+        )
+
+        retry.call(
+            batch.delete_compute_environment,
+            computeEnvironment=ce['arn']
+        )
 
         # Clean up config file
         try:
             config.remove_option('compute-environments ' + ck.aws.get_region(),
                                  ce['name'])
-        except configparser.NoSectionError:
-            pass
-
-    with open(config_file, 'w') as f:
-        config.write(f)
-
-    # Clean up job queues from AWS
-    # ----------------------------
-    # Find all unit testing job queues
-    response = batch.describe_job_queues()
-
-    job_queues = [
-        {
-            'name': d['jobQueueName'],
-            'arn': d['jobQueueArn'],
-            'state': d['state'],
-            'status': d['status']
-        } for d in response.get('jobQueues')
-    ]
-
-    while response.get('nextToken'):
-        response = batch.describe_job_queues(
-            nextToken=response.get('nextToken')
-        )
-
-        job_queues = job_queues + [
-            {
-                'name': d['jobQueueName'],
-                'arn': d['jobQueueArn'],
-                'state': d['state'],
-                'status': d['status']
-            } for d in response.get('jobQueues')
-        ]
-
-    unit_test_JQs = list(filter(
-        lambda d: UNIT_TEST_PREFIX in d['name'], job_queues
-    ))
-
-    enabled = list(filter(
-        lambda d: d['state'] == 'ENABLED', unit_test_JQs
-    ))
-
-    for jq in enabled:
-        ck.aws.wait_for_job_queue(name=jq['name'], max_wait_time=180)
-        batch.update_job_queue(jobQueue=jq['arn'], state='DISABLED')
-
-    config = configparser.ConfigParser()
-    config.read(config_file)
-
-    requires_deletion = list(filter(
-        lambda d: d['status'] not in ['DELETED', 'DELETING'],
-        unit_test_JQs
-    ))
-
-    for jq in requires_deletion:
-        ck.aws.wait_for_job_queue(name=jq['name'], max_wait_time=180)
-
-        # Finally, delete the job queue
-        batch.delete_job_queue(jobQueue=jq['arn'])
-
-        # Clean up config file
-        try:
-            config.remove_option('job-queues ' + ck.aws.get_region(),
-                                 jq['name'])
         except configparser.NoSectionError:
             pass
 
@@ -367,7 +408,10 @@ def test_Pars(cleanup):
 
     try:
         name = get_testing_name()
-        p = ck.Pars(name=name)
+        try:
+            p = ck.Pars(name=name)
+        except ck.aws.CannotCreateResourceException:
+            p = ck.Pars(name=name, use_default_vpc=False)
 
         # Re-instantiate the PARS so that it retrieves from config
         # with resources that already exist
@@ -384,6 +428,7 @@ def test_Pars(cleanup):
         # in order to leave the config file untouched
         p.batch_service_role.clobber()
         p.ecs_instance_role.clobber()
+        p.ecs_task_role.clobber()
         p.spot_fleet_role.clobber()
         p.security_group.clobber()
         p.vpc.clobber()
@@ -411,7 +456,8 @@ def test_Pars(cleanup):
             ecs_instance_role_name=p.ecs_instance_role.name,
             spot_fleet_role_name=p.spot_fleet_role.name,
             vpc_id=p.vpc.vpc_id,
-            security_group_id=p.security_group.security_group_id
+            security_group_id=p.security_group.security_group_id,
+            use_default_vpc=False
         )
 
         assert p.batch_service_role.name == pre + 'batch-service-role'
@@ -436,7 +482,8 @@ def test_Pars(cleanup):
             ecs_instance_role_name=p.ecs_instance_role.name,
             spot_fleet_role_name=p.spot_fleet_role.name,
             vpc_name=p.vpc.name,
-            security_group_name=p.security_group.name
+            security_group_name=p.security_group.name,
+            use_default_vpc=False
         )
 
         assert p.batch_service_role.name == pre + 'batch-service-role'
@@ -618,7 +665,10 @@ def test_Knot(cleanup):
     knot, knot2 = None, None
 
     try:
-        pars = ck.Pars(name=get_testing_name())
+        try:
+            pars = ck.Pars(name=get_testing_name())
+        except ck.aws.CannotCreateResourceException:
+            pars = ck.Pars(name=get_testing_name(), use_default_vpc=False)
 
         name = get_testing_name()
         knot = ck.Knot(name=name, pars=pars, func=knot_testing_func)
@@ -707,7 +757,10 @@ def test_Knot(cleanup):
     clobber_pars = 'pars default' not in config.sections()
 
     try:
-        pars = ck.Pars()
+        try:
+            pars = ck.Pars()
+        except ck.aws.CannotCreateResourceException:
+            pars = ck.Pars(use_default_vpc=False)
 
         # Make a job definition for input testing
         jd = ck.aws.JobDefinition(
