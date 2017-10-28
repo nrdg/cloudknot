@@ -1,53 +1,65 @@
-.. cloudknot documentation master file, created by sphinx-quickstart on Tue Apr 14 10:29:06 2015. You can adapt this file completely to your liking, but it should at least contain the root `toctree` directive.
+Welcome to cloudknot
+====================
 
-Welcome to cloudknot's documentation!
-====================================
-
-`Cloudknot` is a python library designed to run your existing python code on AWS Batch.
-
-To see how to use it, please refer to the `README file 
-<https://github.com/richford/cloudknot/blob/master/README.md>`_ in the Github repository.
-
-Look how easy it is to use:
-
-    import project
-    # Get your stuff done
-    project.do_stuff()
+A knot is a collective noun for a group of snakes. `Cloudknot` is a python
+library designed to run your existing python code on
+`AWS Batch <https://aws.amazon.com/batch>`_.
 
 Features
 --------
 
 - Be awesome
-- Make things faster
+- Make batch submission easier
 
-Installation
-------------
+Installation and getting started
+--------------------------------
 
-Install $project by running:
+To install cloudknot and take your first few slithers,
+visit :ref:`getting-started-label`
 
-    install project
+Documentation and API
+---------------------
+
+Most cloudknot users will only need to interact with the Knot and Pars classes
+(perhaps the DockerImage class). For details on those objects, see
+:ref:`doc-label`. For even more detail, see the :ref:`api-label` page.
+
+Bugs and issues
+---------------
+
+If you are having issues, please let us know by `opening up a new issue
+<https://github.com/richford/cloudknot/issues>`_.
+You will probably want to tag your issue with the "bug" or "question" label.
 
 Contribute
 ----------
 
-- Issue Tracker: github.com/$project/$project/issues
-- Source Code: github.com/$project/$project
+We invite you to contribute to cloudknot. Take a look at the `source code
+<https://github.com/richford/cloudknot>`_. Or tackle one of the `open issues
+<https://github.com/richford/cloudknot/issues>`_. Issues labeled "help wanted"
+or "good first issue" are particularly appropriate for beginners.
 
-Support
--------
+AWS Batch vs AWS Lambda
+-----------------------
 
-If you are having issues, please let us know.
-We have a mailing list located at: project@google-groups.com
+`AWS Lambda <https://aws.amazon.com/lambda>`_ is a service that runs your code
+in response to certain events (e.g. file uploads). It starts executing very
+quickly after the triggering event but it has `some limitations
+<https://docs.aws.amazon.com/lambda/latest/dg/limits.html>`_ (e.g. on the
+amount of memory or the size of your deployment package). If your existing
+code falls within the AWS Lambda limitations, you should probably be using
+AWS Lambda instead of AWS Batch. In that case, check out the excellent
+`pywren <http://pywren.io/>`_. If your code exceeds the AWS Lambda limitations,
+then welcome to cloudknot.
 
 License
 -------
 
-The project is licensed under the BSD license.
-
-Contents:
+The project is licensed under the MIT license.
 
 .. toctree::
-   :maxdepth: 2
+   :hidden:
 
-   theory
+   getting_started
+   documentation
    api
