@@ -58,8 +58,8 @@ class DockerImage(aws.NamedObject):
             Directory to store Dockerfile, requirements.txt, and python
             script with CLI
             Default: parent directory of script if `script_path` is provided
-                     else DockerImage creates a new directory, accessible by
-                     the `build_path` property.
+            else DockerImage creates a new directory, accessible by the
+            `build_path` property.
 
         username : string
             Default user created in the Dockerfile
