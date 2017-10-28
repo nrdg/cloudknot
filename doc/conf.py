@@ -53,6 +53,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.autosummary',
               'sphinx.ext.mathjax',
               'sphinx.ext.napoleon',
+              'sphinx.ext.viewcode',
               'github']
 
 # Add any paths that contain templates here, relative to this directory.

@@ -1,0 +1,111 @@
+.. _getting-started-label:
+
+Getting started with cloudknot
+==============================
+
+To get started with cloudknot you will need an AWS account with the proper
+permisssions and you will need to install cloudknot.
+
+
+Obtaining an AWS account
+------------------------
+
+If you haven't already done so, create an `Amazon Web Services (AWS)
+<https://aws.amazon.com>`_ account.
+
+
+Installation and configuration
+------------------------------
+
+You can install cloudknot from PyPI (recommended)::
+
+   pip install cloudknot
+
+or from the `github repository <https://github.com/richford/cloudknot>`_.
+This will install cloudknot and its dependencies, including the AWS command
+line utilities. If you haven't already done so, we recommend that you follow
+the `awscli configuration instructions
+<http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html>`_.
+
+If you have a "default" profile listed in either the AWS credentials file or
+the AWS CLI configuration file, then cloudknot should work out of the box.
+If you don't knot what either of those files are, read about
+`AWS configuration files
+<https://docs.aws.amazon.com/cli/latest/userguide/cli-config-files.html>`_.
+
+
+Permissions
+-----------
+
+To use cloudknot, you must have the same permissions required to use AWS
+Batch. You can attach a managed policy, such as `AWSBatchFullAccess
+<https://docs.aws.amazon.com/batch/latest/userguide/batch_managed_policies.html>`_
+or `AWSBatchUserPolicy
+<https://docs.aws.amazon.com/batch/latest/userguide/batch_IAM_user_policies.html>`_.
+If you prefer to write your own policies, the minimal permissions required
+for a cloudknot user should be contained in the following policy summary:
+
+.. container:: toggle
+
+   .. container:: header
+
+      **Show/Hide policy summary**
+
+   .. literalinclude:: minimal_permissions.txt
+      :language: none
+
+
+Using multiple AWS profiles
+---------------------------
+
+If you want to use cloudknot with multiple AWS profiles, make sure that you
+have the profiles configured in the AWS credentials file, e.g.:
+
+.. literalinclude:: example_credentials.txt
+   :language: none
+
+or in the AWS config file, e.g.:
+
+.. literalinclude:: example_config.txt
+   :language: none
+
+Then you can use the cloudknot functions ck.aws.set_profile(),
+ck.aws.get_profile(), and ck.aws.list_profiles() to interact with your various
+AWS profiles.
+
+
+Examples
+--------
+
+See the `examples directory
+<https://github.com/richford/cloudknot/tree/master/examples>`_ on github for
+(you guessed it) examples of how to use cloudknot.
+
+
+AWS resource limitations
+------------------------
+
+AWS places `some limits
+<https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html>`_
+on the number of services in each region for an AWS account. The most relevant
+limits for cloudknot users are the `AWS Virtual Private Cloud (VPC) limits
+<https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_vpc>`_,
+which limit the number of VPCs per region to five, and the `AWS Batch limits
+<https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_batch>`_,
+which limit the number of compute environments and job queues. For most use
+cases, these limits should not be a problem. However, if you are using
+cloudknot along with other users in the same organization, you might bump up
+against these limitations. To avoid the VPC limit, try always to use the
+default VPC or to agree with your coworkers on using an organization-wide
+PARS name. To avoid the batch limits, clobber old knots that you are no longer
+using. If none of those approaches work for you, you can request increases to
+some service limits as outlined `here
+<https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html>`_.
+
+If the terms "knot," "PARS," and "clobber" in the preceding paragraph confound
+you, take a look at the cloudknot API.
+
+
+Debugging and logging
+---------------------
+
