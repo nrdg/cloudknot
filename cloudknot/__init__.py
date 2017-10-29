@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division, print_function
 
+import errno
 import logging
 import os
 
@@ -23,6 +24,18 @@ else:
 
 # create a file handler
 logpath = os.path.join(os.path.expanduser('~'), '.cloudknot', 'cloudknot.log')
+
+# Create the config directory if it doesn't exist
+logdir = os.path.dirname(logpath)
+try:
+    os.makedirs(logdir)
+except OSError as e:
+    pre_existing = (e.errno == errno.EEXIST and op.isdir(logdir))
+    if pre_existing:
+        pass
+    else:
+        raise e
+
 handler = logging.FileHandler(logpath, mode='w')
 handler.setLevel(logging.DEBUG)
 
