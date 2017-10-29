@@ -30,7 +30,7 @@ logdir = os.path.dirname(logpath)
 try:
     os.makedirs(logdir)
 except OSError as e:
-    pre_existing = (e.errno == errno.EEXIST and op.isdir(logdir))
+    pre_existing = (e.errno == errno.EEXIST and os.path.isdir(logdir))
     if pre_existing:
         pass
     else:
