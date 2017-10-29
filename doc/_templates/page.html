@@ -3,14 +3,15 @@
 {% set css_files = css_files + ["_static/collapsible.css"] %}
 
 {% block footer %}
- <script type="text/javascript">
-    $(document).ready(function() {
-        $(".toggle > *").hide();
-        $(".toggle .header").show();
-        $(".toggle .header").click(function() {
-            $(this).parent().children().not(".header").toggle(400);
-            $(this).parent().children(".header").toggleClass("open");
-        })
-    });
-</script>
+    {{ super() }}
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $(".toggle > *").hide();
+            $(".toggle .header").show();
+            $(".toggle .header").click(function() {
+                $(this).parent().children().not(".header").toggle(400);
+                $(this).parent().children(".header").toggleClass("open");
+            })
+        });
+    </script>
 {% endblock %}
