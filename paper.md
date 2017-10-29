@@ -23,5 +23,8 @@ bibliography: paper.bib
 # Summary
 
 This is a really awesome summary of cloudknot.
+Something about AWS Batch [@AWSBatch]
+Something about pywren [@pywren]
+Something about cloudknot [@cloudknot]
 
 # References
