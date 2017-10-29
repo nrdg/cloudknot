@@ -23,8 +23,8 @@ else:
 
 # create a file handler
 logpath = os.path.join(os.path.expanduser('~'), '.cloudknot', 'cloudknot.log')
-handler = logging.FileHandler(logpath)
-handler.setLevel(logging.INFO)
+handler = logging.FileHandler(logpath, mode='w')
+handler.setLevel(logging.DEBUG)
 
 # create a logging format
 formatter = logging.Formatter(
