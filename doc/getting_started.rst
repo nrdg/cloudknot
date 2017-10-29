@@ -125,3 +125,15 @@ you, take a look at the :ref:`cloudknot documentation <doc-label>`.
 Debugging and logging
 ---------------------
 
+Cloudknot will print logging info to the console by setting the
+`CLOUDKNOT_LOGLEVEL` environment variable::
+
+    CLOUDKNOT_LOGLEVEL=INFO
+
+Cloudknot also writes a much more verbose log for the current session in the
+user's home directory in the path returned by
+
+.. code-block:: python
+
+    import os.path as op
+    op.join(op.expanduser('~'), '.cloudknot', 'cloudknot.log')
