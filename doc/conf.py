@@ -158,6 +158,7 @@ html_show_copyright = True
 html_theme_options = {
     'github_user': 'richford',
     'github_repo': 'cloudknot',
+    'github_type': 'star',
     'show_powered_by': True,
     'fixed_sidebar': True
 }
