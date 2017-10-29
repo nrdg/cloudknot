@@ -36,6 +36,7 @@ after_success:
 - coveralls
 - |
     if [[ $TRAVIS_PYTHON_VERSION == 3.6 ]]; then
+      pip install sphinx sphinx-gallery
       set -e;
       cd doc;
       make html;
