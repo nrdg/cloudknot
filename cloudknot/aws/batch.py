@@ -337,6 +337,9 @@ class JobDefinition(ObjectWithUsernameAndMemory):
 
     def clobber(self):
         """Deregister this AWS batch job definition"""
+        if self.clobbered:
+            return
+
         if self.region != get_region():
             raise RegionException(resource_region=self.region)
 
@@ -992,6 +995,9 @@ class ComputeEnvironment(ObjectWithArn):
 
     def clobber(self):
         """Delete this compute environment"""
+        if self.clobbered:
+            return
+
         if self.region != get_region():
             raise RegionException(resource_region=self.region)
 
@@ -1359,12 +1365,10 @@ class JobQueue(ObjectWithArn):
         return response.get('jobSummaryList')
 
     def clobber(self):
-        """Delete this batch job queue
+        """Delete this batch job queue"""
+        if self.clobbered:
+            return
 
-        Returns
-        -------
-        None
-        """
         if self.region != get_region():
             raise RegionException(resource_region=self.region)
 
@@ -1726,6 +1730,9 @@ class BatchJob(NamedObject):
 
     def clobber(self):
         """Kill an batch job and remove it's info from config"""
+        if self.clobbered:
+            return
+
         self.terminate(reason='Cloudknot job killed after calling '
                               'BatchJob.clobber()')
 

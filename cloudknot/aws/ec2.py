@@ -481,6 +481,9 @@ class Vpc(NamedObject):
 
     def clobber(self):
         """Delete this AWS virtual private cloud (VPC)"""
+        if self.clobbered:
+            return
+
         try:
             # Only try to delete non-default VPCs
             if not self.is_default:
@@ -825,6 +828,9 @@ class SecurityGroup(NamedObject):
 
     def clobber(self):
         """Delete this AWS security group and associated resources"""
+        if self.clobbered:
+            return
+
         # Get dependent EC2 instances
         response = clients['ec2'].describe_instances(Filters=[{
             'Name': 'vpc-id',

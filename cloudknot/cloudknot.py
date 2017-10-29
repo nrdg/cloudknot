@@ -727,6 +727,9 @@ class Pars(aws.NamedObject):
 
     def clobber(self):
         """Delete associated AWS resources and remove section from config"""
+        if self.clobbered:
+            return
+
         if self.region != aws.get_region():
             raise aws.RegionException(self.region)
 
@@ -1462,6 +1465,9 @@ class Knot(aws.NamedObject):
             If true, clobber the associated Pars instance
             Default: False
         """
+        if self.clobbered:
+            return
+
         if self.region != aws.get_region():
             raise aws.RegionException(self.region)
 
