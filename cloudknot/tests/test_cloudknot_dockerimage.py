@@ -399,7 +399,7 @@ def cleanup():
              if ('unit_testing_func' in r['repositoryName']
                  or 'test_func_input' in r['repositoryName'])]
 
-    Delete the AWS ECR repo
+    # Delete the AWS ECR repo
     for r in repos:
         ecr.delete_repository(
             registryId=r['registryId'],
@@ -687,7 +687,7 @@ def unit_testing_func(name=None, no_capitalize=False):
     return 'Hello world!'
 
 
-def test_DockerImage():
+def test_DockerImage(cleanup):
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
     ecr = ck.aws.clients['ecr']
@@ -1014,8 +1014,6 @@ def test_DockerImage():
         # Assert ValueError on push with invalid repo_uri
         with pytest.raises(ck.aws.ResourceClobberedException):
             di.push(repo=repo)
-
-        # repo.clobber()
     except Exception as e:
         # Get all local images with unit test prefix in any of the repo tags
         c = docker.from_env().api

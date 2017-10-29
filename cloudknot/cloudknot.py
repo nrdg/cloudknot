@@ -1456,7 +1456,7 @@ class Knot(aws.NamedObject):
         for job in job_info:
             print(fmt.format(**job))
 
-    def clobber(self, clobber_pars=False):
+    def clobber(self, clobber_pars=False, clobber_repo=False):
         """Delete associated AWS resources and remove section from config
 
         Parameters
@@ -1482,7 +1482,9 @@ class Knot(aws.NamedObject):
         self.compute_environment.clobber()
         self.job_definition.clobber()
         self.docker_repo.clobber()
-        self.docker_image.clobber()
+
+        if clobber_repo:
+            self.docker_image.clobber()
 
         if clobber_pars:
             self.pars.clobber()
