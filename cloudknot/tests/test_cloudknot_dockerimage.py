@@ -397,7 +397,8 @@ def cleanup():
     response = ecr.describe_repositories()
     repos = [r for r in response.get('repositories')
              if ('unit_testing_func' in r['repositoryName']
-                 or 'test_func_input' in r['repositoryName'])]
+                 or 'test_func_input' in r['repositoryName']
+                 or UNIT_TEST_PREFIX in r['repositoryName'])]
 
     # Delete the AWS ECR repo
     for r in repos:
