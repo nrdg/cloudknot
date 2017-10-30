@@ -484,6 +484,8 @@ class Vpc(NamedObject):
         if self.clobbered:
             return
 
+        self.scheck_profile_and_region()
+
         try:
             # Only try to delete non-default VPCs
             if not self.is_default:
@@ -830,6 +832,8 @@ class SecurityGroup(NamedObject):
         """Delete this AWS security group and associated resources"""
         if self.clobbered:
             return
+
+        self.scheck_profile_and_region()
 
         # Get dependent EC2 instances
         response = clients['ec2'].describe_instances(Filters=[{

@@ -13,7 +13,7 @@ from ..config import get_config_file
 __all__ = [
     "ResourceDoesNotExistException", "ResourceClobberedException",
     "ResourceExistsException", "CannotDeleteResourceException",
-    "CannotCreateResourceException", "RegionException",
+    "CannotCreateResourceException", "RegionException", "ProfileException",
     "NamedObject", "ObjectWithArn", "ObjectWithUsernameAndMemory",
     "clients", "refresh_clients",
     "wait_for_compute_environment", "wait_for_job_queue",
@@ -430,6 +430,27 @@ class RegionException(Exception):
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
+class ProfileException(Exception):
+    """Exception indicating the current profile isn't the resource's profile"""
+    def __init__(self, resource_profile):
+        """Initialize the Exception
+
+        Parameters
+        ----------
+        resource_profile : string
+            The resource profile
+        """
+        super(ProfileException, self).__init__(
+            "This resource's profile ({resource:s}) does not match the "
+            "current profile ({current:s})".format(
+                resource=resource_profile, current=get_profile()
+            )
+        )
+        self.current_profile = get_profile()
+        self.resource_profile = resource_profile
+
+
+# noinspection PyPropertyAccess,PyAttributeOutsideInit
 class NamedObject(object):
     """Base class for building objects with name property"""
     def __init__(self, name):
@@ -443,6 +464,7 @@ class NamedObject(object):
         self._name = str(name)
         self._clobbered = False
         self._region = get_region()
+        self._profile = get_profile()
 
     @property
     def name(self):
@@ -458,6 +480,19 @@ class NamedObject(object):
     def region(self):
         """The AWS region in which this resource was created"""
         return self._region
+
+    @property
+    def profile(self):
+        """The AWS profile in which this resource was created"""
+        return self._profile
+
+    def check_profile_and_region(self):
+        """Remove the AWS resource associated with this object"""
+        if self.region != get_region():
+            raise RegionException(resource_region=self.region)
+
+        if self.profile != get_profile():
+            raise ProfileException(resource_profile=self.profile)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit

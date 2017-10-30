@@ -263,6 +263,10 @@ class Pars(aws.NamedObject):
             if not (self.vpc.region == self.security_group.region):
                 raise aws.RegionException(self.vpc.region)
 
+            # Verify that the VPC and security group profiles match
+            if not (self.vpc.profile == self.security_group.profile):
+                raise aws.ProfileException(self.vpc.profile)
+
             # Set the PARS region to match the VPC and security group
             self._region = self.vpc.region
             config = configparser.ConfigParser()
@@ -486,6 +490,10 @@ class Pars(aws.NamedObject):
             if not (self.vpc.region == self.security_group.region):
                 raise aws.RegionException(self.vpc.region)
 
+            # Verify that the VPC and security group profiles match
+            if not (self.vpc.profile == self.security_group.profile):
+                raise aws.ProfileException(self.vpc.profile)
+
             # Set the PARS region to match the VPC and security group
             self._region = self.vpc.region
 
@@ -632,6 +640,9 @@ class Pars(aws.NamedObject):
         if v.region != self._vpc.region:
             raise aws.RegionException(v.region)
 
+        if v.profile != self._vpc.profile:
+            raise aws.ProfileException(v.profile)
+
         mod_logger.warning(
             'You are setting a new VPC for PARS {name:s}. The old '
             'VPC {vpc_id:s} will be clobbered.'.format(
@@ -702,6 +713,9 @@ class Pars(aws.NamedObject):
         if sg.region != self._security_group.region:
             raise aws.RegionException(sg.region)
 
+        if sg.profile != self._security_group.profile:
+            raise aws.ProfileException(sg.profile)
+
         mod_logger.warning(
             'You are setting a new security group for PARS {name:s}. The old '
             'security group {sg_id:s} will be clobbered.'.format(
@@ -730,8 +744,7 @@ class Pars(aws.NamedObject):
         if self.clobbered:
             return
 
-        if self.region != aws.get_region():
-            raise aws.RegionException(self.region)
+        self.check_profile_and_region()
 
         # Delete all associated AWS resources
         self._security_group.clobber()
@@ -1347,8 +1360,7 @@ class Knot(aws.NamedObject):
                 self.name
             )
 
-        if self.region != aws.get_region():
-            raise aws.RegionException(self.region)
+        self.check_profile_and_region()
 
         # User must supply either commands or env_vars
         if not (commands or env_vars):
@@ -1416,8 +1428,7 @@ class Knot(aws.NamedObject):
                 self.name
             )
 
-        if self.region != aws.get_region():
-            raise aws.RegionException(self.region)
+        self.check_profile_and_region()
 
         jobs_info = [
             {
@@ -1441,8 +1452,7 @@ class Knot(aws.NamedObject):
                 self.name
             )
 
-        if self.region != aws.get_region():
-            raise aws.RegionException(self.region)
+        self.check_profile_and_region()
 
         order = {'SUBMITTED': 0, 'PENDING': 1, 'RUNNABLE': 2, 'STARTING': 3,
                  'RUNNING': 4, 'FAILED': 5, 'SUCCEEDED': 6}
@@ -1468,8 +1478,7 @@ class Knot(aws.NamedObject):
         if self.clobbered:
             return
 
-        if self.region != aws.get_region():
-            raise aws.RegionException(self.region)
+        self.check_profile_and_region()
 
         # Delete all associated AWS resources
         # Iterate over copy of self.jobs since we are removing from

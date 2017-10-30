@@ -7,7 +7,7 @@ import tenacity
 from collections import namedtuple
 
 from .base_classes import NamedObject, ObjectWithArn, \
-    ObjectWithUsernameAndMemory, clients, RegionException, \
+    ObjectWithUsernameAndMemory, clients, \
     ResourceExistsException, ResourceDoesNotExistException, \
     ResourceClobberedException, CannotDeleteResourceException, \
     wait_for_job_queue, get_region
@@ -340,8 +340,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         if self.clobbered:
             return
 
-        if self.region != get_region():
-            raise RegionException(resource_region=self.region)
+        self.check_profile_and_region()
 
         clients['batch'].deregister_job_definition(jobDefinition=self.arn)
 
@@ -998,8 +997,7 @@ class ComputeEnvironment(ObjectWithArn):
         if self.clobbered:
             return
 
-        if self.region != get_region():
-            raise RegionException(resource_region=self.region)
+        self.check_profile_and_region()
 
         retry = tenacity.Retrying(
             wait=tenacity.wait_exponential(max=16),
@@ -1343,8 +1341,7 @@ class JobQueue(ObjectWithArn):
                 self.arn
             )
 
-        if self.region != get_region():
-            raise RegionException(resource_region=self.region)
+        self.check_profile_and_region()
 
         # Validate input
         allowed_statuses = ['ALL', 'SUBMITTED', 'PENDING', 'RUNNABLE',
@@ -1369,8 +1366,7 @@ class JobQueue(ObjectWithArn):
         if self.clobbered:
             return
 
-        if self.region != get_region():
-            raise RegionException(resource_region=self.region)
+        self.check_profile_and_region()
 
         # First, disable submissions to the queue
         retry = tenacity.Retrying(
@@ -1669,8 +1665,7 @@ class BatchJob(NamedObject):
                 self.job_id
             )
 
-        if self.region != get_region():
-            raise RegionException(resource_region=self.region)
+        self.check_profile_and_region()
 
         # Query the job_id
         response = clients['batch'].describe_jobs(jobs=[self.job_id])
@@ -1704,8 +1699,7 @@ class BatchJob(NamedObject):
                 self.job_id
             )
 
-        if self.region != get_region():
-            raise RegionException(resource_region=self.region)
+        self.check_profile_and_region()
 
         # Require the user to supply a reason for job termination
         if not isinstance(reason, six.string_types):
@@ -1732,6 +1726,8 @@ class BatchJob(NamedObject):
         """Kill an batch job and remove it's info from config"""
         if self.clobbered:
             return
+
+        self.check_profile_and_region()
 
         self.terminate(reason='Cloudknot job killed after calling '
                               'BatchJob.clobber()')

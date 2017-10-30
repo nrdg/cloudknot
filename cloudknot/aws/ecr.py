@@ -95,6 +95,8 @@ class DockerRepo(NamedObject):
         if self.clobbered:
             return
 
+        self.check_profile_and_region()
+
         try:
             # Remove the remote docker image
             clients['ecr'].delete_repository(

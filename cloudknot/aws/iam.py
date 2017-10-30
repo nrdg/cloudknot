@@ -370,6 +370,8 @@ class IamRole(ObjectWithArn):
         if self.clobbered:
             return
 
+        self.check_profile_and_region()
+
         if self.service == 'batch.amazonaws.com':
             # If this is a batch service role, wait for any dependent compute
             # environments to finish deleting In order to prevent INVALID
