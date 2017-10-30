@@ -1,5 +1,5 @@
 ---
-title: 'Cloudknot: a python library to run your existing code easily on AWS batch'
+title: 'Cloudknot: run your existing python code on AWS batch'
 tags:
   - AWS
   - python
