@@ -915,8 +915,8 @@ class Knot(aws.NamedObject):
 
             mod_logger.info('Found knot {name:s} in config'.format(name=name))
 
-            self._region = config.get(self._pars_name, 'region')
-            self._profile = config.get(self._pars_name, 'profile')
+            self._region = config.get(self._knot_name, 'region')
+            self._profile = config.get(self._knot_name, 'profile')
             self.check_profile_and_region()
 
             pars_name = config.get(self._knot_name, 'pars')

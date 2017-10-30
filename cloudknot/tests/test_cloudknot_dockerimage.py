@@ -27,7 +27,7 @@ def cleanup():
     batch = ck.aws.clients['batch']
     ecs = ck.aws.clients['ecs']
     config_file = ck.config.get_config_file()
-    section_suffix = ck._get_profile() + ' ' + ck.get_region()
+    section_suffix = ck.get_profile() + ' ' + ck.get_region()
     jq_section_name = 'job-queues ' + section_suffix
     ce_section_name = 'compute-environments ' + section_suffix
     jd_section_name = 'job-definitions ' + section_suffix
