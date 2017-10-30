@@ -227,11 +227,6 @@ def set_profile(profile_name):
         An AWS profile listed in the aws config file or aws shared
         credentials file
     """
-    raise NotImplementedError(
-        'set_profile is not currently implemented. If you really need to '
-        'change your AWS profile, you can restart this cloudknot session '
-        'and change you profile in ~/.aws/credentials.'
-    )
     profile_info = list_profiles()
 
     if profile_name not in profile_info.profile_names:
@@ -486,13 +481,24 @@ class NamedObject(object):
         """The AWS profile in which this resource was created"""
         return self._profile
 
+    def _get_section_name(self, resource_type):
+        """Return the config section name
+
+        Append profile and region to the resource type name
+        """
+        return ' '.join([resource_type, self.profile, self.region])
+
+    def check_profile(self):
+        """Check for profile exception"""
+        if self.profile != get_profile():
+            raise ProfileException(resource_profile=self.profile)
+
     def check_profile_and_region(self):
-        """Remove the AWS resource associated with this object"""
+        """Check for region and profile exceptions"""
         if self.region != get_region():
             raise RegionException(resource_region=self.region)
 
-        if self.profile != get_profile():
-            raise ProfileException(resource_profile=self.profile)
+        self.check_profile()
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit

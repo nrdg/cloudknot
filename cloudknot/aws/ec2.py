@@ -108,7 +108,7 @@ class Vpc(NamedObject):
             self._subnet_ids = resource.subnet_ids
             self._is_default = resource.is_default
 
-            self._section_name = 'vpc ' + self.region
+            self._section_name = self._get_section_name('vpc')
             cloudknot.config.add_resource(
                 self._section_name, self.vpc_id, self.name
             )
@@ -404,7 +404,7 @@ class Vpc(NamedObject):
         ]
 
         # Add this VPC to the list of VPCs in the config file
-        self._section_name = 'vpc ' + self.region
+        self._section_name = self._get_section_name('vpc')
         cloudknot.config.add_resource(self._section_name, vpc_id, self.name)
 
         return vpc_id
@@ -484,7 +484,7 @@ class Vpc(NamedObject):
         if self.clobbered:
             return
 
-        self.scheck_profile_and_region()
+        self.check_profile_and_region()
 
         try:
             # Only try to delete non-default VPCs
@@ -632,7 +632,7 @@ class SecurityGroup(NamedObject):
                     resource_id=self.security_group_id
                 )
 
-            self._section_name = 'security-groups ' + self.region
+            self._section_name = self._get_section_name('security-groups')
             cloudknot.config.add_resource(
                 self._section_name, self.security_group_id, self.name
             )
@@ -823,7 +823,7 @@ class SecurityGroup(NamedObject):
         )
 
         # Add this security group to the config file
-        self._section_name = 'security-groups ' + self.region
+        self._section_name = self._get_section_name('security-groups')
         cloudknot.config.add_resource(self._section_name, group_id, self.name)
 
         return group_id
@@ -833,7 +833,7 @@ class SecurityGroup(NamedObject):
         if self.clobbered:
             return
 
-        self.scheck_profile_and_region()
+        self.check_profile_and_region()
 
         # Get dependent EC2 instances
         response = clients['ec2'].describe_instances(Filters=[{

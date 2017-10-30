@@ -47,6 +47,7 @@ class IamRole(ObjectWithArn):
             Default: False
         """
         super(IamRole, self).__init__(name=name)
+        self._region = 'global'
 
         role = self._exists_already()
         self._pre_existing = role.exists
@@ -68,7 +69,9 @@ class IamRole(ObjectWithArn):
             self._service = rpd_statement['Principal']['Service']
             self._policies = role.policies
             self._arn = role.arn
-            cloudknot.config.add_resource('roles', self.name, self.arn)
+            self._section_name = self._get_section_name('roles')
+            cloudknot.config.add_resource(self._section_name,
+                                          self.name, self.arn)
         else:
             if not any([description, service, policies]):
                 raise ResourceDoesNotExistException(
@@ -334,7 +337,8 @@ class IamRole(ObjectWithArn):
             ))
 
         # Add this role to the list of roles in the config file
-        cloudknot.config.add_resource('roles', self.name, role_arn)
+        self._section_name = self._get_section_name('roles')
+        cloudknot.config.add_resource(self._section_name, self.name, role_arn)
 
         return role_arn
 
@@ -353,6 +357,8 @@ class IamRole(ObjectWithArn):
                 self.arn
             )
 
+        self.check_profile()
+
         response = clients['iam'].list_instance_profiles_for_role(
             RoleName=self.name
         )
@@ -370,7 +376,7 @@ class IamRole(ObjectWithArn):
         if self.clobbered:
             return
 
-        self.check_profile_and_region()
+        self.check_profile()
 
         if self.service == 'batch.amazonaws.com':
             # If this is a batch service role, wait for any dependent compute
@@ -474,7 +480,7 @@ class IamRole(ObjectWithArn):
         clients['iam'].delete_role(RoleName=self.name)
 
         # Remove this role from the list of roles in the config file
-        cloudknot.config.remove_resource('roles', self.name)
+        cloudknot.config.remove_resource(self._section_name, self.name)
 
         # Set the clobbered parameter to True,
         # preventing subsequent method calls

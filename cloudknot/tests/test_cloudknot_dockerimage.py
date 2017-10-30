@@ -27,6 +27,13 @@ def cleanup():
     batch = ck.aws.clients['batch']
     ecs = ck.aws.clients['ecs']
     config_file = ck.config.get_config_file()
+    section_suffix = ck._get_profile() + ' ' + ck.get_region()
+    jq_section_name = 'job-queues ' + section_suffix
+    ce_section_name = 'compute-environments ' + section_suffix
+    jd_section_name = 'job-definitions ' + section_suffix
+    roles_section_name = 'roles ' + ck.get_profile() + ' global'
+    vpc_section_name = 'vpc ' + section_suffix
+    sg_section_name = 'security-groups ' + section_suffix
 
     # Clean up job queues from AWS
     # ----------------------------
@@ -84,8 +91,7 @@ def cleanup():
 
         # Clean up config file
         try:
-            config.remove_option('job-queues ' + ck.aws.get_region(),
-                                 jq['name'])
+            config.remove_option(jq_section_name, jq['name'])
         except configparser.NoSectionError:
             pass
 
@@ -171,7 +177,7 @@ def cleanup():
 
             # Clean up config file
             try:
-                config.remove_option('job-queues ' + ck.aws.get_region(), name)
+                config.remove_option(jq_section_name, name)
             except configparser.NoSectionError:
                 pass
 
@@ -229,8 +235,7 @@ def cleanup():
 
         # Clean up config file
         try:
-            config.remove_option('compute-environments ' + ck.aws.get_region(),
-                                 ce['name'])
+            config.remove_option(ce_section_name, ce['name'])
         except configparser.NoSectionError:
             pass
 
@@ -274,8 +279,7 @@ def cleanup():
 
         # Clean up config file
         try:
-            config.remove_option('job-definitions ' + ck.aws.get_region(),
-                                 jd['name'])
+            config.remove_option(jd_section_name, jd['name'])
         except configparser.NoSectionError:
             pass
 
@@ -304,8 +308,7 @@ def cleanup():
 
         # Clean up config file
         try:
-            config.remove_option('security-groups ' + ck.aws.get_region(),
-                                 sg['id'])
+            config.remove_option(sg_section_name, sg['id'])
         except configparser.NoSectionError:
             pass
 
@@ -350,8 +353,7 @@ def cleanup():
 
             # Clean up config file
             try:
-                config.remove_option('vpc ' + ck.aws.get_region(),
-                                     vpc['VpcId'])
+                config.remove_option(vpc_section_name, vpc['VpcId'])
             except configparser.NoSectionError:
                 pass
 
@@ -411,9 +413,9 @@ def cleanup():
     # Clean up config file
     config = configparser.ConfigParser()
     config.read(config_file)
-    for role_name in config.options('roles'):
+    for role_name in config.options(roles_section_name):
         if UNIT_TEST_PREFIX in role_name:
-            config.remove_option('roles', role_name)
+            config.remove_option(roles_section_name, role_name)
     with open(config_file, 'w') as f:
         config.write(f)
 

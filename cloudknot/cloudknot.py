@@ -110,6 +110,10 @@ class Pars(aws.NamedObject):
         config.read(get_config_file())
         self._pars_name = 'pars ' + self.name
         if self._pars_name in config.sections():
+            self._region = config.get(self._pars_name, 'region')
+            self._profile = config.get(self._pars_name, 'profile')
+            self.check_profile_and_region()
+
             # Pars exists, check that user did not provide any resource names
             if any([batch_service_role_name, ecs_instance_role_name,
                     spot_fleet_role_name, vpc_id, security_group_id]):
@@ -259,19 +263,10 @@ class Pars(aws.NamedObject):
                     )
                 )
 
-            # Verify that the VPC and security group regions match
-            if not (self.vpc.region == self.security_group.region):
-                raise aws.RegionException(self.vpc.region)
-
-            # Verify that the VPC and security group profiles match
-            if not (self.vpc.profile == self.security_group.profile):
-                raise aws.ProfileException(self.vpc.profile)
-
-            # Set the PARS region to match the VPC and security group
-            self._region = self.vpc.region
             config = configparser.ConfigParser()
             config.read(get_config_file())
             config.set(self._pars_name, 'region', self.region)
+            config.set(self._pars_name, 'profile', self.profile)
 
             # Save config to file
             with open(get_config_file(), 'w') as f:
@@ -486,23 +481,13 @@ class Pars(aws.NamedObject):
                         )
                     )
 
-            # Verify that the VPC and security group regions match
-            if not (self.vpc.region == self.security_group.region):
-                raise aws.RegionException(self.vpc.region)
-
-            # Verify that the VPC and security group profiles match
-            if not (self.vpc.profile == self.security_group.profile):
-                raise aws.ProfileException(self.vpc.profile)
-
-            # Set the PARS region to match the VPC and security group
-            self._region = self.vpc.region
-
             # Save the new pars resources in config object
             # Use config.set() for python 2.7 compatibility
             config = configparser.ConfigParser()
             config.read(get_config_file())
             config.add_section(self._pars_name)
             config.set(self._pars_name, 'region', self.region)
+            config.set(self._pars_name, 'profile', self.profile)
             config.set(
                 self._pars_name,
                 'batch-service-role', self._batch_service_role.name
@@ -561,6 +546,9 @@ class Pars(aws.NamedObject):
                 raise ValueError('new role must be an instance of IamRole')
 
             old_role = getattr(self, attr)
+
+            if old_role.profile != new_role.profile:
+                raise aws.ProfileException(new_role.profile)
 
             mod_logger.warning(
                 'You are setting a new role for PARS {name:s}. The old '
@@ -927,6 +915,10 @@ class Knot(aws.NamedObject):
 
             mod_logger.info('Found knot {name:s} in config'.format(name=name))
 
+            self._region = config.get(self._pars_name, 'region')
+            self._profile = config.get(self._pars_name, 'profile')
+            self.check_profile_and_region()
+
             pars_name = config.get(self._knot_name, 'pars')
             self._pars = Pars(name=pars_name)
             mod_logger.info('Knot {name:s} adopted PARS '
@@ -1274,6 +1266,7 @@ class Knot(aws.NamedObject):
             config.read(get_config_file())
             config.add_section(self._knot_name)
             config.set(self._knot_name, 'region', self.region)
+            config.set(self._knot_name, 'profile', self.profile)
             config.set(self._knot_name, 'pars', self.pars.name)
             config.set(self._knot_name, 'docker-image', self.docker_image.name)
             config.set(self._knot_name, 'docker-repo', self.docker_repo.name)
