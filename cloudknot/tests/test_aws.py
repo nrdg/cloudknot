@@ -346,7 +346,7 @@ def test_get_profile():
         os.environ['AWS_SHARED_CREDENTIALS_FILE'] = cred_file
 
         assert ck.get_profile(fallback=None) is None
-        assert ck.get_profile(fallback=None) == 'from-env'
+        assert ck.get_profile() == 'from-env'
 
         cred_file = op.join(ref_dir, 'credentials_with_default')
         os.environ['AWS_SHARED_CREDENTIALS_FILE'] = cred_file
