@@ -1,0 +1,10 @@
+cloudknot\.aws\.JobDefinition
+=============================
+
+.. currentmodule:: cloudknot.aws
+
+.. autoclass:: JobDefinition
+
+.. raw:: html
+
+    <div style='clear:both'></div>

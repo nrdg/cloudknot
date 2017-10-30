@@ -1,0 +1,10 @@
+cloudknot\.aws\.Vpc
+===================
+
+.. currentmodule:: cloudknot.aws
+
+.. autoclass:: Vpc
+
+.. raw:: html
+
+    <div style='clear:both'></div>

@@ -1,0 +1,10 @@
+cloudknot\.aws\.IamRole
+=======================
+
+.. currentmodule:: cloudknot.aws
+
+.. autoclass:: IamRole
+
+.. raw:: html
+
+    <div style='clear:both'></div>

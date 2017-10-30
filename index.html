@@ -1,0 +1,161 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Welcome to cloudknot &#8212; cloudknot 0.1 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/collapsible.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Getting started with cloudknot" href="getting_started.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="#">cloudknot</a></h1>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=richford&repo=cloudknot&type=star&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="documentation.html">documentation</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/tree/master/examples">examples</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot">code</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/issues">bugs</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="welcome-to-cloudknot">
+<h1>Welcome to cloudknot<a class="headerlink" href="#welcome-to-cloudknot" title="Permalink to this headline">¶</a></h1>
+<p>A knot is a collective noun for a group of snakes. <cite>Cloudknot</cite> is a python
+library designed to run your existing python code on
+<a class="reference external" href="https://aws.amazon.com/batch">AWS Batch</a>.</p>
+<div class="section" id="installation-and-getting-started">
+<h2>Installation and getting started<a class="headerlink" href="#installation-and-getting-started" title="Permalink to this headline">¶</a></h2>
+<p>To install cloudknot and take your first few slithers,
+visit <a class="reference internal" href="getting_started.html#getting-started-label"><span class="std std-ref">Getting started with cloudknot</span></a></p>
+</div>
+<div class="section" id="documentation-and-api">
+<h2>Documentation and API<a class="headerlink" href="#documentation-and-api" title="Permalink to this headline">¶</a></h2>
+<p>Most cloudknot users will only need to interact with the Knot and Pars classes
+(perhaps the DockerImage class). For details on those objects and links to the
+lower-level API, see <a class="reference internal" href="documentation.html#doc-label"><span class="std std-ref">Documentation</span></a>.</p>
+</div>
+<div class="section" id="bugs-and-issues">
+<h2>Bugs and issues<a class="headerlink" href="#bugs-and-issues" title="Permalink to this headline">¶</a></h2>
+<p>If you are having issues, please let us know by <a class="reference external" href="https://github.com/richford/cloudknot/issues">opening up a new issue</a>.
+You will probably want to tag your issue with the “bug” or “question” label.</p>
+</div>
+<div class="section" id="contribute">
+<h2>Contribute<a class="headerlink" href="#contribute" title="Permalink to this headline">¶</a></h2>
+<p>We invite you to contribute to cloudknot. Take a look at the <a class="reference external" href="https://github.com/richford/cloudknot">source code</a>. Or tackle one of the <a class="reference external" href="https://github.com/richford/cloudknot/issues">open issues</a>. Issues labeled “help wanted”
+or “good first issue” are particularly appropriate for beginners.</p>
+</div>
+<div class="section" id="aws-batch-vs-aws-lambda">
+<h2>AWS Batch vs AWS Lambda<a class="headerlink" href="#aws-batch-vs-aws-lambda" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference external" href="https://aws.amazon.com/lambda">AWS Lambda</a> is a service that runs your code
+in response to certain events (e.g. file uploads). It starts executing very
+quickly after the triggering event but it has <a class="reference external" href="https://docs.aws.amazon.com/lambda/latest/dg/limits.html">some limitations</a> (e.g. on the
+amount of memory or the size of your deployment package). If your existing
+code falls within the AWS Lambda limitations, you should probably be using
+AWS Lambda instead of AWS Batch. In that case, check out the excellent
+<a class="reference external" href="http://pywren.io/">pywren</a>. If your code exceeds the AWS Lambda limitations,
+then welcome to cloudknot.</p>
+</div>
+<div class="section" id="license">
+<h2>License<a class="headerlink" href="#license" title="Permalink to this headline">¶</a></h2>
+<p>The project is licensed under the <a class="reference external" href="https://github.com/richford/cloudknot/blob/master/LICENSE">MIT license</a>.</p>
+<div class="toctree-wrapper compound">
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    
+    <div class="footer">
+      &copy;2017, Adam Richie-Halford.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $(".toggle > *").hide();
+            $(".toggle .header").show();
+            $(".toggle .header").click(function() {
+                $(this).parent().children().not(".header").toggle(400);
+                $(this).parent().children(".header").toggleClass("open");
+            })
+        });
+    </script>
+
+  </body>
+</html>

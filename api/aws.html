@@ -1,0 +1,289 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>aws Module &#8212; cloudknot 0.1 documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/collapsible.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="cloudknot.aws.IamRole" href="_autosummary/cloudknot.aws.IamRole.html" />
+    <link rel="prev" title="Documentation" href="../documentation.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">cloudknot</a></h1>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=richford&repo=cloudknot&type=star&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../documentation.html">documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../documentation.html#knot">Knot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../documentation.html#pars">Pars</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../documentation.html#dockerimage">DockerImage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../documentation.html#clobbering-and-aws-resource-persistence">Clobbering and AWS resource persistence</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../documentation.html#api">API</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">aws Module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/cloudknot.aws.IamRole.html">cloudknot.aws.IamRole</a></li>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/cloudknot.aws.Vpc.html">cloudknot.aws.Vpc</a></li>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/cloudknot.aws.SecurityGroup.html">cloudknot.aws.SecurityGroup</a></li>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/cloudknot.aws.DockerRepo.html">cloudknot.aws.DockerRepo</a></li>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/cloudknot.aws.JobDefinition.html">cloudknot.aws.JobDefinition</a></li>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/cloudknot.aws.ComputeEnvironment.html">cloudknot.aws.ComputeEnvironment</a></li>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/cloudknot.aws.JobQueue.html">cloudknot.aws.JobQueue</a></li>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/cloudknot.aws.BatchJob.html">cloudknot.aws.BatchJob</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#functions">Functions</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/cloudknot.aws.get_region.html">cloudknot.aws.get_region</a></li>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/cloudknot.aws.set_region.html">cloudknot.aws.set_region</a></li>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/cloudknot.aws.get_profile.html">cloudknot.aws.get_profile</a></li>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/cloudknot.aws.set_profile.html">cloudknot.aws.set_profile</a></li>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/cloudknot.aws.list_profiles.html">cloudknot.aws.list_profiles</a></li>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/cloudknot.aws.refresh_clients.html">cloudknot.aws.refresh_clients</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#clients">Clients</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#exceptions">Exceptions</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/cloudknot.aws.ResourceDoesNotExistException.html">cloudknot.aws.ResourceDoesNotExistException</a></li>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/cloudknot.aws.ResourceClobberedException.html">cloudknot.aws.ResourceClobberedException</a></li>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/cloudknot.aws.ResourceExistsException.html">cloudknot.aws.ResourceExistsException</a></li>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/cloudknot.aws.CannotDeleteResourceException.html">cloudknot.aws.CannotDeleteResourceException</a></li>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/cloudknot.aws.CannotCreateResourceException.html">cloudknot.aws.CannotCreateResourceException</a></li>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/cloudknot.aws.RegionException.html">cloudknot.aws.RegionException</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="config.html">config Module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/tree/master/examples">examples</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot">code</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/issues">bugs</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-cloudknot.aws">
+<span id="aws-module"></span><h1>aws Module<a class="headerlink" href="#module-cloudknot.aws" title="Permalink to this headline">¶</a></h1>
+<p>The aws submodule contains classes representing AWS resources</p>
+<dl class="docutils">
+<dt>This module contains classes representing AWS resources:</dt>
+<dd><ul class="first last simple">
+<li>IamRole : AWS IAM role</li>
+<li>Vpc : Amazon virtual private cloud</li>
+<li>SecurityGroup : AWS security group</li>
+<li>DockerRepo : AWS ECR repository</li>
+<li>JobDefinition : AWS Batch job definition</li>
+<li>ComputeEnvironment : AWS Batch compute environment</li>
+<li>JobQueue : AWS Batch job queue</li>
+<li>BatchJob : AWS Batch job</li>
+</ul>
+</dd>
+</dl>
+<p>For each class, you may specify an identifier for an existing AWS resource
+or specify parameters to create a new resource on AWS. Higher level resources
+(e.g. ComputeEnvironment) take subordinate resources (e.g. IamRole) as input.</p>
+<div class="section" id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="_autosummary/cloudknot.aws.IamRole.html#cloudknot.aws.IamRole" title="cloudknot.aws.IamRole"><code class="xref py py-obj docutils literal"><span class="pre">cloudknot.aws.IamRole</span></code></a>(name[,&nbsp;description,&nbsp;…])</td>
+<td>Class for defining AWS IAM Roles</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="_autosummary/cloudknot.aws.Vpc.html#cloudknot.aws.Vpc" title="cloudknot.aws.Vpc"><code class="xref py py-obj docutils literal"><span class="pre">cloudknot.aws.Vpc</span></code></a>([vpc_id,&nbsp;name,&nbsp;…])</td>
+<td>Class for defining an Amazon Virtual Private Cloud (VPC)</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="_autosummary/cloudknot.aws.SecurityGroup.html#cloudknot.aws.SecurityGroup" title="cloudknot.aws.SecurityGroup"><code class="xref py py-obj docutils literal"><span class="pre">cloudknot.aws.SecurityGroup</span></code></a>([…])</td>
+<td>Class for defining an AWS Security Group</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="_autosummary/cloudknot.aws.DockerRepo.html#cloudknot.aws.DockerRepo" title="cloudknot.aws.DockerRepo"><code class="xref py py-obj docutils literal"><span class="pre">cloudknot.aws.DockerRepo</span></code></a>(name)</td>
+<td>Class for creating and managing remote docker repositories</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="_autosummary/cloudknot.aws.JobDefinition.html#cloudknot.aws.JobDefinition" title="cloudknot.aws.JobDefinition"><code class="xref py py-obj docutils literal"><span class="pre">cloudknot.aws.JobDefinition</span></code></a>([arn,&nbsp;name,&nbsp;…])</td>
+<td>Class for defining AWS Batch Job Definitions</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="_autosummary/cloudknot.aws.ComputeEnvironment.html#cloudknot.aws.ComputeEnvironment" title="cloudknot.aws.ComputeEnvironment"><code class="xref py py-obj docutils literal"><span class="pre">cloudknot.aws.ComputeEnvironment</span></code></a>([arn,&nbsp;…])</td>
+<td>Class for defining AWS Compute Environments</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="_autosummary/cloudknot.aws.JobQueue.html#cloudknot.aws.JobQueue" title="cloudknot.aws.JobQueue"><code class="xref py py-obj docutils literal"><span class="pre">cloudknot.aws.JobQueue</span></code></a>([arn,&nbsp;name,&nbsp;…])</td>
+<td>Class for defining AWS Batch Job Queues</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="_autosummary/cloudknot.aws.BatchJob.html#cloudknot.aws.BatchJob" title="cloudknot.aws.BatchJob"><code class="xref py py-obj docutils literal"><span class="pre">cloudknot.aws.BatchJob</span></code></a>([job_id,&nbsp;name,&nbsp;…])</td>
+<td>Class for defining AWS Batch Job</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="_autosummary/cloudknot.aws.get_region.html#cloudknot.aws.get_region" title="cloudknot.aws.get_region"><code class="xref py py-obj docutils literal"><span class="pre">cloudknot.aws.get_region</span></code></a>()</td>
+<td>Get the default AWS region</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="_autosummary/cloudknot.aws.set_region.html#cloudknot.aws.set_region" title="cloudknot.aws.set_region"><code class="xref py py-obj docutils literal"><span class="pre">cloudknot.aws.set_region</span></code></a>([region])</td>
+<td>Set the AWS region that cloudknot will use</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="_autosummary/cloudknot.aws.get_profile.html#cloudknot.aws.get_profile" title="cloudknot.aws.get_profile"><code class="xref py py-obj docutils literal"><span class="pre">cloudknot.aws.get_profile</span></code></a>()</td>
+<td>Get the AWS profile to use</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="_autosummary/cloudknot.aws.set_profile.html#cloudknot.aws.set_profile" title="cloudknot.aws.set_profile"><code class="xref py py-obj docutils literal"><span class="pre">cloudknot.aws.set_profile</span></code></a>(profile_name)</td>
+<td>Set the AWS profile that cloudknot will use</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="_autosummary/cloudknot.aws.list_profiles.html#cloudknot.aws.list_profiles" title="cloudknot.aws.list_profiles"><code class="xref py py-obj docutils literal"><span class="pre">cloudknot.aws.list_profiles</span></code></a>()</td>
+<td>Return a list of available AWS profile names</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="_autosummary/cloudknot.aws.refresh_clients.html#cloudknot.aws.refresh_clients" title="cloudknot.aws.refresh_clients"><code class="xref py py-obj docutils literal"><span class="pre">cloudknot.aws.refresh_clients</span></code></a>()</td>
+<td>Refresh the boto3 clients dictionary</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="clients">
+<h2>Clients<a class="headerlink" href="#clients" title="Permalink to this headline">¶</a></h2>
+<dl class="attribute">
+<dt id="cloudknot.aws.clients">
+<code class="descclassname">aws.</code><code class="descname">clients</code><em class="property"> = {'iam': &lt;botocore.client.IAM object&gt;, 'ec2': &lt;botocore.client.EC2 object&gt;, 'batch': &lt;botocore.client.Batch object&gt;, 'ecr': &lt;botocore.client.ECR object&gt;, 'ecs': &lt;botocore.client.ECS object&gt;}</em><a class="headerlink" href="#cloudknot.aws.clients" title="Permalink to this definition">¶</a></dt>
+<dd><p>Module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, and ECS.</p>
+<p>Storing the boto3 clients in a module-level dictionary allows us to change
+the region and profile and have those changes reflected globally.</p>
+<p>Advanced users: if you want to use cloudknot and boto3 at the same time,
+you should use these clients to ensure that you have the right profile
+and region.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="exceptions">
+<h2>Exceptions<a class="headerlink" href="#exceptions" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="_autosummary/cloudknot.aws.ResourceDoesNotExistException.html#cloudknot.aws.ResourceDoesNotExistException" title="cloudknot.aws.ResourceDoesNotExistException"><code class="xref py py-obj docutils literal"><span class="pre">cloudknot.aws.ResourceDoesNotExistException</span></code></a>(…)</td>
+<td>Exception indicating that the requested AWS resource does not exists</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="_autosummary/cloudknot.aws.ResourceClobberedException.html#cloudknot.aws.ResourceClobberedException" title="cloudknot.aws.ResourceClobberedException"><code class="xref py py-obj docutils literal"><span class="pre">cloudknot.aws.ResourceClobberedException</span></code></a>(…)</td>
+<td>Exception indicating that this AWS resource has been clobbered</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="_autosummary/cloudknot.aws.ResourceExistsException.html#cloudknot.aws.ResourceExistsException" title="cloudknot.aws.ResourceExistsException"><code class="xref py py-obj docutils literal"><span class="pre">cloudknot.aws.ResourceExistsException</span></code></a>(…)</td>
+<td>Exception indicating that the requested AWS resource already exists</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="_autosummary/cloudknot.aws.CannotDeleteResourceException.html#cloudknot.aws.CannotDeleteResourceException" title="cloudknot.aws.CannotDeleteResourceException"><code class="xref py py-obj docutils literal"><span class="pre">cloudknot.aws.CannotDeleteResourceException</span></code></a>(…)</td>
+<td>Exception indicating that an AWS resource cannot be deleted</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="_autosummary/cloudknot.aws.CannotCreateResourceException.html#cloudknot.aws.CannotCreateResourceException" title="cloudknot.aws.CannotCreateResourceException"><code class="xref py py-obj docutils literal"><span class="pre">cloudknot.aws.CannotCreateResourceException</span></code></a>(message)</td>
+<td>Exception indicating that an AWS resource cannot be created</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="_autosummary/cloudknot.aws.RegionException.html#cloudknot.aws.RegionException" title="cloudknot.aws.RegionException"><code class="xref py py-obj docutils literal"><span class="pre">cloudknot.aws.RegionException</span></code></a>(resource_region)</td>
+<td>Exception indicating the current region is not this resource’s region</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    
+    <div class="footer">
+      &copy;2017, Adam Richie-Halford.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="../_sources/api/aws.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $(".toggle > *").hide();
+            $(".toggle .header").show();
+            $(".toggle .header").click(function() {
+                $(this).parent().children().not(".header").toggle(400);
+                $(this).parent().children(".header").toggleClass("open");
+            })
+        });
+    </script>
+
+  </body>
+</html>

@@ -1,0 +1,283 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>cloudknot.aws.BatchJob &#8212; cloudknot 0.1 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/collapsible.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="cloudknot.aws.get_region" href="cloudknot.aws.get_region.html" />
+    <link rel="prev" title="cloudknot.aws.JobQueue" href="cloudknot.aws.JobQueue.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">cloudknot</a></h1>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=richford&repo=cloudknot&type=star&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../documentation.html">documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../documentation.html#knot">Knot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../documentation.html#pars">Pars</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../documentation.html#dockerimage">DockerImage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../documentation.html#clobbering-and-aws-resource-persistence">Clobbering and AWS resource persistence</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../../documentation.html#api">API</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../aws.html">aws Module</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="../aws.html#classes">Classes</a><ul class="current">
+<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.IamRole.html">cloudknot.aws.IamRole</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.Vpc.html">cloudknot.aws.Vpc</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.SecurityGroup.html">cloudknot.aws.SecurityGroup</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.DockerRepo.html">cloudknot.aws.DockerRepo</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.JobDefinition.html">cloudknot.aws.JobDefinition</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.ComputeEnvironment.html">cloudknot.aws.ComputeEnvironment</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.JobQueue.html">cloudknot.aws.JobQueue</a></li>
+<li class="toctree-l5 current"><a class="current reference internal" href="#">cloudknot.aws.BatchJob</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../aws.html#functions">Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aws.html#clients">Clients</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aws.html#exceptions">Exceptions</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../config.html">config Module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/tree/master/examples">examples</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot">code</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/issues">bugs</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="cloudknot-aws-batchjob">
+<h1>cloudknot.aws.BatchJob<a class="headerlink" href="#cloudknot-aws-batchjob" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="cloudknot.aws.BatchJob">
+<em class="property">class </em><code class="descclassname">cloudknot.aws.</code><code class="descname">BatchJob</code><span class="sig-paren">(</span><em>job_id=None</em>, <em>name=None</em>, <em>job_queue=None</em>, <em>job_definition=None</em>, <em>commands=None</em>, <em>environment_variables=None</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cloudknot/aws/batch.html#BatchJob"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.aws.BatchJob" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class for defining AWS Batch Job</p>
+<p>Initialize an AWS Batch Job object.</p>
+<p>If requesting information on a pre-existing job, <cite>job_id</cite> is required.
+Otherwise, <cite>name</cite>, <cite>job_queue</cite>, and <cite>job_definition</cite> are required to
+submit a new job.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>job_id</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) – The AWS jobID, if requesting a job that already exists</li>
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) – Name of the job</li>
+<li><strong>job_queue</strong> (<a class="reference internal" href="cloudknot.aws.JobQueue.html#cloudknot.aws.JobQueue" title="cloudknot.aws.JobQueue"><em>JobQueue</em></a>) – JobQueue instance specifying the job queue to which this job
+will be submitted</li>
+<li><strong>job_definition</strong> (<a class="reference internal" href="cloudknot.aws.JobDefinition.html#cloudknot.aws.JobDefinition" title="cloudknot.aws.JobDefinition"><em>JobDefinition</em></a>) – JobDefinition instance specifying the job definition on which
+to base this job</li>
+<li><strong>commands</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a><em> or </em><em>sequence of strings</em>) – command sent to the container for this job.
+Split multi-word commands on spaces.
+e.g. <cite>echo hello</cite> becomes [‘echo’, ‘hello’]</li>
+<li><strong>environment_variables</strong> (<em>list of dict</em>) – list of key/value pairs representing environment variables
+sent to the container</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="cloudknot.aws.BatchJob.clobber">
+<code class="descname">clobber</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cloudknot/aws/batch.html#BatchJob.clobber"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.aws.BatchJob.clobber" title="Permalink to this definition">¶</a></dt>
+<dd><p>Kill an batch job and remove it’s info from config</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.BatchJob.clobbered">
+<code class="descname">clobbered</code><a class="headerlink" href="#cloudknot.aws.BatchJob.clobbered" title="Permalink to this definition">¶</a></dt>
+<dd><p>Has this instance been previously clobbered</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.BatchJob.commands">
+<code class="descname">commands</code><a class="headerlink" href="#cloudknot.aws.BatchJob.commands" title="Permalink to this definition">¶</a></dt>
+<dd><p>command sent to the container for this job.</p>
+<p>Multi-word commands are split on spaces.
+e.g. <cite>echo hello</cite> becomes [‘echo’, ‘hello’]</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.BatchJob.environment_variables">
+<code class="descname">environment_variables</code><a class="headerlink" href="#cloudknot.aws.BatchJob.environment_variables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Key/value pairs for environment variables sent to the container</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.BatchJob.job_definition">
+<code class="descname">job_definition</code><a class="headerlink" href="#cloudknot.aws.BatchJob.job_definition" title="Permalink to this definition">¶</a></dt>
+<dd><p>JobDefinition instance on which to base this job</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.BatchJob.job_definition_arn">
+<code class="descname">job_definition_arn</code><a class="headerlink" href="#cloudknot.aws.BatchJob.job_definition_arn" title="Permalink to this definition">¶</a></dt>
+<dd><p>The ARN for the job definition on which to base this job</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.BatchJob.job_id">
+<code class="descname">job_id</code><a class="headerlink" href="#cloudknot.aws.BatchJob.job_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>This job’s AWS jobID</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.BatchJob.job_queue">
+<code class="descname">job_queue</code><a class="headerlink" href="#cloudknot.aws.BatchJob.job_queue" title="Permalink to this definition">¶</a></dt>
+<dd><p>JobQueue instance to which this job will be submitted</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.BatchJob.job_queue_arn">
+<code class="descname">job_queue_arn</code><a class="headerlink" href="#cloudknot.aws.BatchJob.job_queue_arn" title="Permalink to this definition">¶</a></dt>
+<dd><p>ARN for the job queue to which this job will be submitted</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.BatchJob.name">
+<code class="descname">name</code><a class="headerlink" href="#cloudknot.aws.BatchJob.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The name of this AWS resource</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.BatchJob.region">
+<code class="descname">region</code><a class="headerlink" href="#cloudknot.aws.BatchJob.region" title="Permalink to this definition">¶</a></dt>
+<dd><p>The AWS region in which this resource was created</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.BatchJob.status">
+<code class="descname">status</code><a class="headerlink" href="#cloudknot.aws.BatchJob.status" title="Permalink to this definition">¶</a></dt>
+<dd><p>Query AWS batch job status using instance parameter <cite>self.job_id</cite></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><strong>status</strong> (<em>dict</em>) – dictionary with keys: {status, statusReason, attempts}
+for this AWS batch job</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudknot.aws.BatchJob.terminate">
+<code class="descname">terminate</code><span class="sig-paren">(</span><em>reason</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cloudknot/aws/batch.html#BatchJob.terminate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.aws.BatchJob.terminate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Kill AWS batch job using instance parameter <cite>self.job_id</cite></p>
+<p>kill() combines the cancel and terminate AWS CLI commands. Jobs that
+are in the SUBMITTED, PENDING, or RUNNABLE state must be cancelled,
+while jobs that are in the STARTING or RUNNING state must be
+terminated.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>reason</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) – A message to attach to the job that explains the reason for
+cancelling/terminating it. This message is returned by future
+DescribeJobs operations on the job. This message is also recorded
+in the AWS Batch activity logs.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<div style='clear:both'></div></div>
+
+
+          </div>
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    
+    <div class="footer">
+      &copy;2017, Adam Richie-Halford.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="../../_sources/api/_autosummary/cloudknot.aws.BatchJob.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $(".toggle > *").hide();
+            $(".toggle .header").show();
+            $(".toggle .header").click(function() {
+                $(this).parent().children().not(".header").toggle(400);
+                $(this).parent().children(".header").toggleClass("open");
+            })
+        });
+    </script>
+
+  </body>
+</html>

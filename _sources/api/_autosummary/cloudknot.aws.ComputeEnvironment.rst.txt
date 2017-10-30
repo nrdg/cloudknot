@@ -1,0 +1,10 @@
+cloudknot\.aws\.ComputeEnvironment
+==================================
+
+.. currentmodule:: cloudknot.aws
+
+.. autoclass:: ComputeEnvironment
+
+.. raw:: html
+
+    <div style='clear:both'></div>

@@ -1,0 +1,220 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Getting started with cloudknot &#8212; cloudknot 0.1 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/collapsible.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Documentation" href="documentation.html" />
+    <link rel="prev" title="Welcome to cloudknot" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">cloudknot</a></h1>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=richford&repo=cloudknot&type=star&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">getting started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#obtaining-an-aws-account">Obtaining an AWS account</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#installation-and-configuration">Installation and configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#permissions">Permissions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#using-multiple-aws-profiles">Using multiple AWS profiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#region-shopping">Region shopping</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#examples">Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#aws-resource-limitations">AWS resource limitations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#debugging-and-logging">Debugging and logging</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="documentation.html">documentation</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/tree/master/examples">examples</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot">code</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/issues">bugs</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="getting-started-with-cloudknot">
+<span id="getting-started-label"></span><h1>Getting started with cloudknot<a class="headerlink" href="#getting-started-with-cloudknot" title="Permalink to this headline">¶</a></h1>
+<p>To get started with cloudknot you will need an AWS account with the proper
+permisssions and you will need to install cloudknot.</p>
+<div class="section" id="obtaining-an-aws-account">
+<h2>Obtaining an AWS account<a class="headerlink" href="#obtaining-an-aws-account" title="Permalink to this headline">¶</a></h2>
+<p>If you haven’t already done so, create an <a class="reference external" href="https://aws.amazon.com">Amazon Web Services (AWS)</a> account.</p>
+</div>
+<div class="section" id="installation-and-configuration">
+<h2>Installation and configuration<a class="headerlink" href="#installation-and-configuration" title="Permalink to this headline">¶</a></h2>
+<p>You can install cloudknot from PyPI (recommended):</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">cloudknot</span>
+</pre></div>
+</div>
+<p>or from the <a class="reference external" href="https://github.com/richford/cloudknot">github repository</a>.
+This will install cloudknot and its dependencies, including the AWS command
+line utilities. If you haven’t already done so, we recommend that you follow
+the <a class="reference external" href="http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html">awscli configuration instructions</a>.</p>
+<p>If you have a “default” profile listed in either the AWS credentials file or
+the AWS CLI configuration file, then cloudknot should work out of the box.
+If you don’t knot what either of those files are, read about
+<a class="reference external" href="https://docs.aws.amazon.com/cli/latest/userguide/cli-config-files.html">AWS configuration files</a>.</p>
+</div>
+<div class="section" id="permissions">
+<h2>Permissions<a class="headerlink" href="#permissions" title="Permalink to this headline">¶</a></h2>
+<p>To use cloudknot, you must have the same permissions required to use AWS
+Batch. You can attach a managed policy, such as <a class="reference external" href="https://docs.aws.amazon.com/batch/latest/userguide/batch_managed_policies.html">AWSBatchFullAccess</a>
+or <a class="reference external" href="https://docs.aws.amazon.com/batch/latest/userguide/batch_IAM_user_policies.html">AWSBatchUserPolicy</a>.
+If you prefer to write your own policies, the minimal permissions required
+for a cloudknot user should be contained in the following policy summary:</p>
+<div class="toggle docutils container">
+<div class="header docutils container">
+<strong>policy summary</strong></div>
+<div class="content docutils container">
+</div>
+</div>
+</div>
+<div class="section" id="using-multiple-aws-profiles">
+<h2>Using multiple AWS profiles<a class="headerlink" href="#using-multiple-aws-profiles" title="Permalink to this headline">¶</a></h2>
+<p>If you want to use cloudknot with multiple AWS profiles, make sure that you
+have the profiles configured in the AWS credentials file, e.g.:</p>
+<p>or in the AWS config file, e.g.:</p>
+<p>Then you can use the cloudknot functions <a class="reference internal" href="api/_autosummary/cloudknot.aws.set_profile.html#cloudknot.aws.set_profile" title="cloudknot.aws.set_profile"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.aws.set_profile()</span></code></a>,
+<a class="reference internal" href="api/_autosummary/cloudknot.aws.get_profile.html#cloudknot.aws.get_profile" title="cloudknot.aws.get_profile"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.aws.get_profile()</span></code></a>, and <a class="reference internal" href="api/_autosummary/cloudknot.aws.list_profiles.html#cloudknot.aws.list_profiles" title="cloudknot.aws.list_profiles"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.aws.list_profiles()</span></code></a>
+to interact with your various AWS profiles.</p>
+</div>
+<div class="section" id="region-shopping">
+<h2>Region shopping<a class="headerlink" href="#region-shopping" title="Permalink to this headline">¶</a></h2>
+<p>You may want to shop the AWS regions for the cheapest spot instance pricing
+(see <a class="reference external" href="http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-spot-instances-history.html">this page</a>
+for details). You can view and change the region in which your cloudknot
+resources reside and in which you will launch your AWS Batch jobs by using the
+<a class="reference internal" href="api/_autosummary/cloudknot.aws.get_region.html#cloudknot.aws.get_region" title="cloudknot.aws.get_region"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.aws.get_region()</span></code></a> and <a class="reference internal" href="api/_autosummary/cloudknot.aws.set_region.html#cloudknot.aws.set_region" title="cloudknot.aws.set_region"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.aws.set_region()</span></code></a> functions.</p>
+</div>
+<div class="section" id="examples">
+<span id="eg-label"></span><h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h2>
+<p>See the <a class="reference external" href="https://github.com/richford/cloudknot/tree/master/examples">examples directory</a> on github for
+(you guessed it) examples of how to use cloudknot.</p>
+</div>
+<div class="section" id="aws-resource-limitations">
+<h2>AWS resource limitations<a class="headerlink" href="#aws-resource-limitations" title="Permalink to this headline">¶</a></h2>
+<p>AWS places <a class="reference external" href="https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html">some limits</a>
+on the number of services in each region for an AWS account. The most relevant
+limits for cloudknot users are the <a class="reference external" href="https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_vpc">AWS Virtual Private Cloud (VPC) limits</a>,
+which limit the number of VPCs per region to five, and the <a class="reference external" href="https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_batch">AWS Batch limits</a>,
+which limit the number of compute environments and job queues. For most use
+cases, these limits should not be a problem. However, if you are using
+cloudknot along with other users in the same organization, you might bump up
+against these limitations. To avoid the VPC limit, try always to use the
+default VPC or to agree with your coworkers on using an organization-wide
+PARS name. To avoid the batch limits, <a class="reference internal" href="documentation.html#clobber-label"><span class="std std-ref">clobber</span></a> old knots
+that you are no longer using. If none of those approaches work for you, you can
+<a class="reference external" href="https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html">request increases to some service limits</a>.</p>
+<p>If the terms “<a class="reference internal" href="documentation.html#knot-label"><span class="std std-ref">knot</span></a>,” “<a class="reference internal" href="documentation.html#pars-label"><span class="std std-ref">PARS</span></a>,” and
+“<a class="reference internal" href="documentation.html#clobber-label"><span class="std std-ref">clobber</span></a>” in the preceding paragraph confound
+you, take a look at the <a class="reference internal" href="documentation.html#doc-label"><span class="std std-ref">cloudknot documentation</span></a>.</p>
+</div>
+<div class="section" id="debugging-and-logging">
+<h2>Debugging and logging<a class="headerlink" href="#debugging-and-logging" title="Permalink to this headline">¶</a></h2>
+<p>Cloudknot will print logging info to the console by setting the
+<cite>CLOUDKNOT_LOGLEVEL</cite> environment variable:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">CLOUDKNOT_LOGLEVEL</span><span class="o">=</span><span class="n">INFO</span>
+</pre></div>
+</div>
+<p>Cloudknot also writes a much more verbose log for the current session in the
+user’s home directory in the path returned by</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os.path</span> <span class="kn">as</span> <span class="nn">op</span>
+<span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s1">&#39;~&#39;</span><span class="p">),</span> <span class="s1">&#39;.cloudknot&#39;</span><span class="p">,</span> <span class="s1">&#39;cloudknot.log&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    
+    <div class="footer">
+      &copy;2017, Adam Richie-Halford.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/getting_started.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $(".toggle > *").hide();
+            $(".toggle .header").show();
+            $(".toggle .header").click(function() {
+                $(this).parent().children().not(".header").toggle(400);
+                $(this).parent().children(".header").toggleClass("open");
+            })
+        });
+    </script>
+
+  </body>
+</html>

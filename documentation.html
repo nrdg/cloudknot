@@ -1,0 +1,720 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Documentation &#8212; cloudknot 0.1 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/collapsible.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="aws Module" href="api/aws.html" />
+    <link rel="prev" title="Getting started with cloudknot" href="getting_started.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">cloudknot</a></h1>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=richford&repo=cloudknot&type=star&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">getting started</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">documentation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#knot">Knot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pars">Pars</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dockerimage">DockerImage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#clobbering-and-aws-resource-persistence">Clobbering and AWS resource persistence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#api">API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/aws.html">aws Module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/config.html">config Module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/tree/master/examples">examples</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot">code</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/issues">bugs</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="documentation">
+<span id="doc-label"></span><h1>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="knot">
+<span id="knot-label"></span><h2>Knot<a class="headerlink" href="#knot" title="Permalink to this headline">¶</a></h2>
+<p>The primary object in cloudknot is the <cite>Knot</cite>. It represents a collection of
+AWS Batch resources and has methods for interacting with AWS Batch components.
+For more detail, you can familiarize yourself with the <a class="reference external" href="http://docs.aws.amazon.com/batch/latest/userguide/what-is-batch.html">components of AWS Batch</a>.
+<cite>Knot</cite> instantiation creates the required AWS resources. You can build a <cite>Knot</cite>
+on top of a customized <cite>Pars</cite> (see below) or just use the default <cite>Pars</cite>
+(default behavior). You can submit and view jobs using the <cite>submit</cite>, <cite>get_jobs</cite>
+and <cite>view_jobs</cite> methods. To see <cite>Knot</cite> in action, see <a class="reference internal" href="getting_started.html#eg-label"><span class="std std-ref">Examples</span></a>.</p>
+<div class="toggle docutils container">
+<div class="header docutils container">
+cloudknot.Knot</div>
+<div class="content docutils container">
+<dl class="class">
+<dt id="cloudknot.Knot">
+<em class="property">class </em><code class="descclassname">cloudknot.</code><code class="descname">Knot</code><span class="sig-paren">(</span><em>name='default'</em>, <em>pars=None</em>, <em>docker_image_name=None</em>, <em>func=None</em>, <em>image_script_path=None</em>, <em>image_work_dir=None</em>, <em>username=None</em>, <em>repo_name=None</em>, <em>image_tags=None</em>, <em>job_definition_name=None</em>, <em>job_def_vcpus=None</em>, <em>memory=None</em>, <em>retries=None</em>, <em>compute_environment_name=None</em>, <em>instance_types=None</em>, <em>resource_type=None</em>, <em>min_vcpus=None</em>, <em>max_vcpus=None</em>, <em>desired_vcpus=None</em>, <em>image_id=None</em>, <em>ec2_key_pair=None</em>, <em>ce_tags=None</em>, <em>bid_percentage=None</em>, <em>job_queue_name=None</em>, <em>priority=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cloudknot/cloudknot.html#Knot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.Knot" title="Permalink to this definition">¶</a></dt>
+<dd><p>A collection of resources and methods to submit jobs to AWS Batch</p>
+<p>This object collects AWS resources that should be created once for each
+type of batch run. The resource set consists of a PARS; a docker image
+made from an input function or python script; a remote docker repo to
+house said image; and an AWS batch job definition, compute environment,
+and job queue. It also contains methods to submit batch jobs for a range
+of arguments.</p>
+<p>Initialize a Knot instance</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em>) – The name for this knot
+Default=’default’</li>
+<li><strong>pars</strong> (<a class="reference internal" href="#cloudknot.Pars" title="cloudknot.Pars"><em>Pars</em></a><em>, </em><em>optional</em>) – The PARS on which to base this knot’s AWS resources
+Default: instance returned by Pars()</li>
+<li><strong>docker_image_name</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em>) – The name of the pre-existing DockerImage instance to adopt</li>
+<li><strong>func</strong> (<em>function</em>) – Python function to be dockerized</li>
+<li><strong>image_script_path</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path to file with python script to be dockerized</li>
+<li><strong>image_work_dir</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) – Directory to store Dockerfile, requirements.txt, and python
+script with CLI
+Default: parent directory of script if <cite>script_path</cite> is provided
+else DockerImage creates a new directory, accessible by the
+<cite>docker_image.build_path</cite> property.</li>
+<li><strong>username</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) – default username created in Dockerfile and in batch job definition
+Default: ‘cloudknot-user’</li>
+<li><strong>repo_name</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em>) – Name of the AWS ECR repository to store the created Docker image
+Default: ‘cloudknot/’ + self.docker_image.images[0][‘name’]</li>
+<li><strong>image_tags</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em> or </em><em>sequence of str</em>) – Tags to be applied to this Docker image</li>
+<li><strong>job_definition_name</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em>) – Name for this knot’s AWS Batch job definition
+Default: name + ‘-cloudknot-compute-environment’</li>
+<li><strong>job_def_vcpus</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em>) – number of virtual cpus to be used to this knot’s job definition
+Default: 1</li>
+<li><strong>memory</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em>) – memory (MiB) to be used for this knot’s job definition
+Default: 8000</li>
+<li><strong>retries</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em>) – number of times a job can be moved to ‘RUNNABLE’ status.
+May be between 1 and 10
+Default: 3</li>
+<li><strong>compute_environment_name</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Name for this knot’s AWS Batch compute environment
+Default: name + ‘-cloudknot-compute-environment’</li>
+<li><strong>instance_types</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a><em> or </em><em>sequence of strings</em><em>, </em><em>optional</em>) – Compute environment instance types
+Default: (‘optimal’,)</li>
+<li><strong>resource_type</strong> (<em>'EC2'</em><em> or </em><em>'SPOT'</em>) – Compute environment resource type, either “EC2” or “SPOT”
+Default: ‘EC2’</li>
+<li><strong>min_vcpus</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em>) – minimum number of virtual cpus for instances launched in this
+compute environment
+Default: 0</li>
+<li><strong>max_vcpus</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em>) – maximum number of virtual cpus for instances launched in this
+compute environment
+Default: 256</li>
+<li><strong>desired_vcpus</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em>) – desired number of virtual cpus for instances launched in this
+compute environment
+Default: 8</li>
+<li><strong>image_id</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/constants.html#None" title="(in Python v2.7)"><em>None</em></a><em>, </em><em>optional</em>) – optional AMI id used for instances launched in this compute
+environment
+Default: None</li>
+<li><strong>ec2_key_pair</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/constants.html#None" title="(in Python v2.7)"><em>None</em></a><em>, </em><em>optional</em>) – optional EC2 key pair used for instances launched in this compute
+environment
+Default: None</li>
+<li><strong>tags</strong> (<em>dictionary</em><em> or </em><a class="reference external" href="https://docs.python.org/2/library/constants.html#None" title="(in Python v2.7)"><em>None</em></a><em>, </em><em>optional</em>) – optional key-value pair tags to be applied to resources in this
+compute environment
+Default: None</li>
+<li><strong>bid_percentage</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em>) – Compute environment bid percentage if using spot instances
+Default: 50</li>
+<li><strong>job_queue_name</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em>) – Name for this knot’s AWS Batch job queue
+Default: name + ‘-cloudknot-job-queue’</li>
+<li><strong>priority</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em>) – Default priority for jobs in this knot’s job queue
+Default: 1</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="cloudknot.Knot.clobber">
+<code class="descname">clobber</code><span class="sig-paren">(</span><em>clobber_pars=False</em>, <em>clobber_repo=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cloudknot/cloudknot.html#Knot.clobber"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.Knot.clobber" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete associated AWS resources and remove section from config</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>clobber_pars</strong> (<em>boolean</em>) – If true, clobber the associated Pars instance
+Default: False</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.Knot.clobbered">
+<code class="descname">clobbered</code><a class="headerlink" href="#cloudknot.Knot.clobbered" title="Permalink to this definition">¶</a></dt>
+<dd><p>Has this instance been previously clobbered</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.Knot.compute_environment">
+<code class="descname">compute_environment</code><a class="headerlink" href="#cloudknot.Knot.compute_environment" title="Permalink to this definition">¶</a></dt>
+<dd><p>The ComputeEnvironment instance attached to this knot</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.Knot.docker_image">
+<code class="descname">docker_image</code><a class="headerlink" href="#cloudknot.Knot.docker_image" title="Permalink to this definition">¶</a></dt>
+<dd><p>The DockerImage instance attached to this knot</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.Knot.docker_repo">
+<code class="descname">docker_repo</code><a class="headerlink" href="#cloudknot.Knot.docker_repo" title="Permalink to this definition">¶</a></dt>
+<dd><p>The DockerRepo instance attached to this knot</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudknot.Knot.get_jobs">
+<code class="descname">get_jobs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cloudknot/cloudknot.html#Knot.get_jobs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.Knot.get_jobs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of dictionaries containing job instances and info</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><strong>jobs_info</strong> (<em>list</em>) – A list of dicts [{‘job’: BatchJob instance, ‘name’: BatchJob.name,
+‘status’: BatchJob.status, ‘id’: BatchJob.job_id},]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.Knot.job_definition">
+<code class="descname">job_definition</code><a class="headerlink" href="#cloudknot.Knot.job_definition" title="Permalink to this definition">¶</a></dt>
+<dd><p>The JobDefinition instance attached to this knot</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.Knot.job_ids">
+<code class="descname">job_ids</code><a class="headerlink" href="#cloudknot.Knot.job_ids" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of batch job IDs that this knot has launched</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.Knot.job_queue">
+<code class="descname">job_queue</code><a class="headerlink" href="#cloudknot.Knot.job_queue" title="Permalink to this definition">¶</a></dt>
+<dd><p>The JobQueue instance attached to this knot</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.Knot.jobs">
+<code class="descname">jobs</code><a class="headerlink" href="#cloudknot.Knot.jobs" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of BatchJob instances that this knot has launched</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.Knot.knot_name">
+<code class="descname">knot_name</code><a class="headerlink" href="#cloudknot.Knot.knot_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The section name for this knot in the cloudknot config file</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.Knot.name">
+<code class="descname">name</code><a class="headerlink" href="#cloudknot.Knot.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The name of this AWS resource</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.Knot.pars">
+<code class="descname">pars</code><a class="headerlink" href="#cloudknot.Knot.pars" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Pars instance attached to this knot</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.Knot.region">
+<code class="descname">region</code><a class="headerlink" href="#cloudknot.Knot.region" title="Permalink to this definition">¶</a></dt>
+<dd><p>The AWS region in which this resource was created</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudknot.Knot.submit">
+<code class="descname">submit</code><span class="sig-paren">(</span><em>commands=None</em>, <em>env_vars=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cloudknot/cloudknot.html#Knot.submit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.Knot.submit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Submit batch jobs for a range of commands and environment vars</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>commands</strong> (<em>sequence of sequence of strings</em>) – Sequence of commands. This method will submit one batch job for
+each command in the sequence. Each individual command must be a
+sequence of strings since the command eventaully becomes arguments
+to the <cite>docker run</cite> command. For example, if you wanted to pass
+the commands <cite>echo 1</cite>, <cite>echo 2</cite>, <cite>echo 3</cite>, then then you would use
+<cite>submit(commands=[[“echo”, “1”], [“echo”, “2”], [“echo”, “3”]])</cite></li>
+<li><strong>env_vars</strong> (<em>sequence of sequence of strings</em>) – Sequence of environment variables. This method will submit one
+batch job for each environment variable set in the sequence</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudknot.Knot.view_jobs">
+<code class="descname">view_jobs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cloudknot/cloudknot.html#Knot.view_jobs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.Knot.view_jobs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print the job_id, name, and status of all jobs in self.jobs</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+</div>
+<div class="section" id="pars">
+<span id="pars-label"></span><h2>Pars<a class="headerlink" href="#pars" title="Permalink to this headline">¶</a></h2>
+<p>While <cite>Knot</cite> creates job-specific resources, <cite>Pars</cite> creates persistent
+resources that can be used for different types of AWS Batch workflows.
+PARS stands for Persistent AWS Resource Set. You can use one <cite>Pars</cite> for
+all of your cloudknot jobs. Or you may need to create <cite>Pars</cite> with different
+permission sets for different types of jobs. See <a class="reference internal" href="getting_started.html#eg-label"><span class="std std-ref">Examples</span></a> for
+more details.</p>
+<div class="toggle docutils container">
+<div class="header docutils container">
+cloudknot.Pars</div>
+<div class="content docutils container">
+<dl class="class">
+<dt id="cloudknot.Pars">
+<em class="property">class </em><code class="descclassname">cloudknot.</code><code class="descname">Pars</code><span class="sig-paren">(</span><em>name='default'</em>, <em>batch_service_role_name=None</em>, <em>ecs_instance_role_name=None</em>, <em>ecs_task_role_name=None</em>, <em>spot_fleet_role_name=None</em>, <em>policies=()</em>, <em>vpc_id=None</em>, <em>vpc_name=None</em>, <em>use_default_vpc=True</em>, <em>security_group_id=None</em>, <em>security_group_name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cloudknot/cloudknot.html#Pars"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.Pars" title="Permalink to this definition">¶</a></dt>
+<dd><p>PARS stands for Persistent AWS Resource Set</p>
+<p>This object collects AWS resources that could, in theory, be created only
+once for each cloudknot user and used for all of their subsequent AWS
+batch jobs. This set consists of IAM roles, a VPC with subnets for each
+availability zone, and a security group.</p>
+<p>Initialize a PARS instance.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – The name of this PARS. If <cite>pars name</cite> exists in the config file,
+Pars will retrieve those PARS resource parameters. Otherwise,
+Pars will create a new PARS with this name.
+Default: ‘default’</li>
+<li><strong>batch_service_role_name</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Name of this PARS’ batch service IAM role. If the role already
+exists, Pars will adopt it. Otherwise, it will create it.
+Default: name + ‘-cloudknot-batch-service-role’</li>
+<li><strong>ecs_instance_role_name</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Name of this PARS’ ECS instance IAM role. If the role already
+exists, Pars will adopt it. Otherwise, it will create it.
+Default: name + ‘-cloudknot-ecs-instance-role’</li>
+<li><strong>ecs_task_role_name</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Name of this PARS’ ECS task IAM role. If the role already
+exists, Pars will adopt it. Otherwise, it will create it.
+Default: name + ‘-cloudknot-ecs-task-role’</li>
+<li><strong>spot_fleet_role_name</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Name of this PARS’ spot fleet IAM role. If the role already
+exists, Pars will adopt it. Otherwise, it will create it.
+Default: name + ‘-cloudknot-spot-fleet-role’</li>
+<li><strong>policies</strong> (<em>tuple of strings</em>) – tuple of names of AWS policies to attach to each role
+Default: ()</li>
+<li><strong>vpc_id</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – The VPC-ID of the pre-existing VPC that this PARS should adopt
+Default: None</li>
+<li><strong>vpc_name</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – The name of the VPC that this PARS should create
+Default: name + ‘-cloudknot-vpc’</li>
+<li><strong>use_default_vpc</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) – if True, create or retrieve the default VPC
+if False, use other input args to create a non-default VPC</li>
+<li><strong>security_group_id</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – The ID of the pre-existing security group that this PARS should
+adopt
+Default: None</li>
+<li><strong>security_group_name</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – The name of the security group that this PARS should create
+Default: name + ‘-cloudknot-security-group’</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="cloudknot.Pars.batch_service_role">
+<code class="descname">batch_service_role</code><a class="headerlink" href="#cloudknot.Pars.batch_service_role" title="Permalink to this definition">¶</a></dt>
+<dd><p>attrgetter(attr, …) –&gt; attrgetter object</p>
+<p>Return a callable object that fetches the given attribute(s) from its operand.
+After f = attrgetter(‘name’), the call f(r) returns r.name.
+After g = attrgetter(‘name’, ‘date’), the call g(r) returns (r.name, r.date).
+After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
+(r.name.first, r.name.last).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudknot.Pars.clobber">
+<code class="descname">clobber</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cloudknot/cloudknot.html#Pars.clobber"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.Pars.clobber" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete associated AWS resources and remove section from config</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.Pars.clobbered">
+<code class="descname">clobbered</code><a class="headerlink" href="#cloudknot.Pars.clobbered" title="Permalink to this definition">¶</a></dt>
+<dd><p>Has this instance been previously clobbered</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.Pars.ecs_instance_role">
+<code class="descname">ecs_instance_role</code><a class="headerlink" href="#cloudknot.Pars.ecs_instance_role" title="Permalink to this definition">¶</a></dt>
+<dd><p>attrgetter(attr, …) –&gt; attrgetter object</p>
+<p>Return a callable object that fetches the given attribute(s) from its operand.
+After f = attrgetter(‘name’), the call f(r) returns r.name.
+After g = attrgetter(‘name’, ‘date’), the call g(r) returns (r.name, r.date).
+After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
+(r.name.first, r.name.last).</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.Pars.ecs_task_role">
+<code class="descname">ecs_task_role</code><a class="headerlink" href="#cloudknot.Pars.ecs_task_role" title="Permalink to this definition">¶</a></dt>
+<dd><p>attrgetter(attr, …) –&gt; attrgetter object</p>
+<p>Return a callable object that fetches the given attribute(s) from its operand.
+After f = attrgetter(‘name’), the call f(r) returns r.name.
+After g = attrgetter(‘name’, ‘date’), the call g(r) returns (r.name, r.date).
+After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
+(r.name.first, r.name.last).</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.Pars.name">
+<code class="descname">name</code><a class="headerlink" href="#cloudknot.Pars.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The name of this AWS resource</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.Pars.pars_name">
+<code class="descname">pars_name</code><a class="headerlink" href="#cloudknot.Pars.pars_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The section name for this PARS in the cloudknot config file</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.Pars.region">
+<code class="descname">region</code><a class="headerlink" href="#cloudknot.Pars.region" title="Permalink to this definition">¶</a></dt>
+<dd><p>The AWS region in which this resource was created</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.Pars.security_group">
+<code class="descname">security_group</code><a class="headerlink" href="#cloudknot.Pars.security_group" title="Permalink to this definition">¶</a></dt>
+<dd><p>The SecurityGroup instance attached to this PARS</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.Pars.spot_fleet_role">
+<code class="descname">spot_fleet_role</code><a class="headerlink" href="#cloudknot.Pars.spot_fleet_role" title="Permalink to this definition">¶</a></dt>
+<dd><p>attrgetter(attr, …) –&gt; attrgetter object</p>
+<p>Return a callable object that fetches the given attribute(s) from its operand.
+After f = attrgetter(‘name’), the call f(r) returns r.name.
+After g = attrgetter(‘name’, ‘date’), the call g(r) returns (r.name, r.date).
+After h = attrgetter(‘name.first’, ‘name.last’), the call h(r) returns
+(r.name.first, r.name.last).</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.Pars.vpc">
+<code class="descname">vpc</code><a class="headerlink" href="#cloudknot.Pars.vpc" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Vpc instance attached to this PARS</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+</div>
+<div class="section" id="dockerimage">
+<span id="docker-image-label"></span><h2>DockerImage<a class="headerlink" href="#dockerimage" title="Permalink to this headline">¶</a></h2>
+<p><cite>DockerImage</cite> is basically <cite>Knot</cite> without any of the AWS resources or
+submit capabilities. It will take your existing code, create a command
+line interface, and Dockerize it for later upload to AWS. If your function
+has simple dependencies, then <cite>Knot</cite> will do all of this for you. If
+you need more customization, then you may need to use <cite>DockerImage</cite> first.
+See <a class="reference internal" href="getting_started.html#eg-label"><span class="std std-ref">Examples</span></a> for more details.</p>
+<div class="toggle docutils container">
+<div class="header docutils container">
+cloudknot.DockerImage</div>
+<div class="content docutils container">
+<dl class="class">
+<dt id="cloudknot.DockerImage">
+<em class="property">class </em><code class="descclassname">cloudknot.</code><code class="descname">DockerImage</code><span class="sig-paren">(</span><em>name=None</em>, <em>func=None</em>, <em>script_path=None</em>, <em>dir_name=None</em>, <em>username=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cloudknot/dockerimage.html#DockerImage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.DockerImage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class for dockerizing a python script or function</p>
+<p>On <cite>__init__</cite>, if given a python function, DockerImage will create a CLI
+version for that function, write a requirements.txt file for all import
+statements in the function, and write a Dockerfile to containerize that
+python script. If given a path to a python script, DockerImage will assume
+it has a CLI and will skip the first step, building a requirements.txt file
+and a Dockerfile as before.</p>
+<p>If the input script or function contains imports that cannot be identified
+by pipreqs (i.e. cannot be installed with <cite>pip install package</cite>, those
+packages will not be included in requirements.txt, DockerImage will throw
+a warning, and the user must install those packages by hand in the
+Dockerfile.</p>
+<p>Initialize a DockerImage instance</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Name of DockerImage, only used to retrieve DockerImage from
+config file info. Do not use to create new DockerImage</li>
+<li><strong>func</strong> (<em>function</em>) – Python function to be dockerized</li>
+<li><strong>script_path</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) – Path to file with python script to be dockerized</li>
+<li><strong>dir_name</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) – Directory to store Dockerfile, requirements.txt, and python
+script with CLI
+Default: parent directory of script if <cite>script_path</cite> is provided
+else DockerImage creates a new directory, accessible by the
+<cite>build_path</cite> property.</li>
+<li><strong>username</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) – Default user created in the Dockerfile
+Default: ‘cloudknot-user’</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="cloudknot.DockerImage.build">
+<code class="descname">build</code><span class="sig-paren">(</span><em>tags</em>, <em>image_name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cloudknot/dockerimage.html#DockerImage.build"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.DockerImage.build" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build a DockerContainer image</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>tags</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em> or </em><em>sequence of str</em>) – Tags to be applied to this Docker image</li>
+<li><strong>image_name</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Name of Docker image to be built
+Default: ‘cloudknot/’ + self.name</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.DockerImage.build_path">
+<code class="descname">build_path</code><a class="headerlink" href="#cloudknot.DockerImage.build_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>The build path for the docker image</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudknot.DockerImage.clobber">
+<code class="descname">clobber</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cloudknot/dockerimage.html#DockerImage.clobber"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.DockerImage.clobber" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete all of the files associated with this instance</p>
+<p>Always delete the generated requirements.txt and Dockerfile. Only
+delete the script if it was auto-generated. Only delete the parent
+directory if it is empty.</p>
+<p>Also delete the local docker image</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.DockerImage.clobbered">
+<code class="descname">clobbered</code><a class="headerlink" href="#cloudknot.DockerImage.clobbered" title="Permalink to this definition">¶</a></dt>
+<dd><p>Has this instance been previously clobbered</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.DockerImage.docker_path">
+<code class="descname">docker_path</code><a class="headerlink" href="#cloudknot.DockerImage.docker_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Path to the generated Dockerfile</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.DockerImage.func">
+<code class="descname">func</code><a class="headerlink" href="#cloudknot.DockerImage.func" title="Permalink to this definition">¶</a></dt>
+<dd><p>Python function that was dockerized</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.DockerImage.images">
+<code class="descname">images</code><a class="headerlink" href="#cloudknot.DockerImage.images" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of name, tag dicts for docker images built by this instance</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.DockerImage.missing_imports">
+<code class="descname">missing_imports</code><a class="headerlink" href="#cloudknot.DockerImage.missing_imports" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of required imports that are unavailable through pip install.</p>
+<p>The user must edit the Dockerfile by hand to install these packages
+before using the build or push methods.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.DockerImage.name">
+<code class="descname">name</code><a class="headerlink" href="#cloudknot.DockerImage.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The name of this AWS resource</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.DockerImage.pip_imports">
+<code class="descname">pip_imports</code><a class="headerlink" href="#cloudknot.DockerImage.pip_imports" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of packages in the requirements.txt file</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudknot.DockerImage.push">
+<code class="descname">push</code><span class="sig-paren">(</span><em>repo=None</em>, <em>repo_uri=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cloudknot/dockerimage.html#DockerImage.push"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.DockerImage.push" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tag and push a DockerContainer image to a repository</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>repo</strong> (<a class="reference internal" href="api/_autosummary/cloudknot.aws.DockerRepo.html#cloudknot.aws.DockerRepo" title="cloudknot.aws.DockerRepo"><em>DockerRepo</em></a><em>, </em><em>optional</em>) – DockerRepo instance to which to push this image</li>
+<li><strong>repo_uri</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a><em>, </em><em>optional</em>) – URI for the docker repository to which to push this instance</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.DockerImage.region">
+<code class="descname">region</code><a class="headerlink" href="#cloudknot.DockerImage.region" title="Permalink to this definition">¶</a></dt>
+<dd><p>The AWS region in which this resource was created</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.DockerImage.repo_uri">
+<code class="descname">repo_uri</code><a class="headerlink" href="#cloudknot.DockerImage.repo_uri" title="Permalink to this definition">¶</a></dt>
+<dd><p>Location of remote repository to which the image was pushed</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.DockerImage.req_path">
+<code class="descname">req_path</code><a class="headerlink" href="#cloudknot.DockerImage.req_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Path to the generated requirements.txt file</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.DockerImage.script_path">
+<code class="descname">script_path</code><a class="headerlink" href="#cloudknot.DockerImage.script_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Path to the CLI version of the python function</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.DockerImage.username">
+<code class="descname">username</code><a class="headerlink" href="#cloudknot.DockerImage.username" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default username created in Dockerfile</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+</div>
+<div class="section" id="clobbering-and-aws-resource-persistence">
+<span id="clobber-label"></span><h2>Clobbering and AWS resource persistence<a class="headerlink" href="#clobbering-and-aws-resource-persistence" title="Permalink to this headline">¶</a></h2>
+<p>Each cloudknot object has a <cite>clobber</cite> method that will delete all associated
+AWS resources and remove references to those resources from the cloudknot
+config file. If you do not clobber an instance, you can retrieve it in a later
+cloudknot session by using its name in the initialization arguments. This
+will reduce the overhead of AWS resource creation (especially if it means
+avoiding pushing another Docker image for <a class="reference internal" href="#knot-label"><span class="std std-ref">Knots</span></a> or
+<a class="reference internal" href="#docker-image-label"><span class="std std-ref">DockerImages</span></a>). However, if you know you are done
+with a resource on AWS, it is good practice to clobber the associated cloudknot
+object to reduce clutter and avoid name collisions.</p>
+</div>
+<div class="section" id="api">
+<h2>API<a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h2>
+<p>For details on the rest of the cloudknot API, please see the following
+module pages.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/aws.html">aws Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/aws.html#classes">Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/aws.html#functions">Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/aws.html#clients">Clients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/aws.html#exceptions">Exceptions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api/config.html">config Module</a></li>
+</ul>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    
+    <div class="footer">
+      &copy;2017, Adam Richie-Halford.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/documentation.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $(".toggle > *").hide();
+            $(".toggle .header").show();
+            $(".toggle .header").click(function() {
+                $(this).parent().children().not(".header").toggle(400);
+                $(this).parent().children(".header").toggleClass("open");
+            })
+        });
+    </script>
+
+  </body>
+</html>

@@ -1,0 +1,202 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>cloudknot.aws.DockerRepo &#8212; cloudknot 0.1 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/collapsible.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="cloudknot.aws.JobDefinition" href="cloudknot.aws.JobDefinition.html" />
+    <link rel="prev" title="cloudknot.aws.SecurityGroup" href="cloudknot.aws.SecurityGroup.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">cloudknot</a></h1>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=richford&repo=cloudknot&type=star&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../documentation.html">documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../documentation.html#knot">Knot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../documentation.html#pars">Pars</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../documentation.html#dockerimage">DockerImage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../documentation.html#clobbering-and-aws-resource-persistence">Clobbering and AWS resource persistence</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../../documentation.html#api">API</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../aws.html">aws Module</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="../aws.html#classes">Classes</a><ul class="current">
+<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.IamRole.html">cloudknot.aws.IamRole</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.Vpc.html">cloudknot.aws.Vpc</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.SecurityGroup.html">cloudknot.aws.SecurityGroup</a></li>
+<li class="toctree-l5 current"><a class="current reference internal" href="#">cloudknot.aws.DockerRepo</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.JobDefinition.html">cloudknot.aws.JobDefinition</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.ComputeEnvironment.html">cloudknot.aws.ComputeEnvironment</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.JobQueue.html">cloudknot.aws.JobQueue</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.BatchJob.html">cloudknot.aws.BatchJob</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../aws.html#functions">Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aws.html#clients">Clients</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aws.html#exceptions">Exceptions</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../config.html">config Module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/tree/master/examples">examples</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot">code</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/issues">bugs</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="cloudknot-aws-dockerrepo">
+<h1>cloudknot.aws.DockerRepo<a class="headerlink" href="#cloudknot-aws-dockerrepo" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="cloudknot.aws.DockerRepo">
+<em class="property">class </em><code class="descclassname">cloudknot.aws.</code><code class="descname">DockerRepo</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cloudknot/aws/ecr.html#DockerRepo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.aws.DockerRepo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class for creating and managing remote docker repositories</p>
+<p>Initialize a Docker repo object.</p>
+<p>User may provide only <cite>name</cite> input, indicating that they would
+like to retrieve a pre-existing repo/image from AWS ECR. Or, if
+the repo does not exist, it will be created.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Name of the remote repository</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="cloudknot.aws.DockerRepo.clobber">
+<code class="descname">clobber</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cloudknot/aws/ecr.html#DockerRepo.clobber"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.aws.DockerRepo.clobber" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete this remote repository</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.DockerRepo.clobbered">
+<code class="descname">clobbered</code><a class="headerlink" href="#cloudknot.aws.DockerRepo.clobbered" title="Permalink to this definition">¶</a></dt>
+<dd><p>Has this instance been previously clobbered</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.DockerRepo.name">
+<code class="descname">name</code><a class="headerlink" href="#cloudknot.aws.DockerRepo.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The name of this AWS resource</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.DockerRepo.region">
+<code class="descname">region</code><a class="headerlink" href="#cloudknot.aws.DockerRepo.region" title="Permalink to this definition">¶</a></dt>
+<dd><p>The AWS region in which this resource was created</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.DockerRepo.repo_registry_id">
+<code class="descname">repo_registry_id</code><a class="headerlink" href="#cloudknot.aws.DockerRepo.repo_registry_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Registry ID for this AWS ECR repository</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.DockerRepo.repo_uri">
+<code class="descname">repo_uri</code><a class="headerlink" href="#cloudknot.aws.DockerRepo.repo_uri" title="Permalink to this definition">¶</a></dt>
+<dd><p>URI for this AWS ECR repository</p>
+</dd></dl>
+
+</dd></dl>
+
+<div style='clear:both'></div></div>
+
+
+          </div>
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    
+    <div class="footer">
+      &copy;2017, Adam Richie-Halford.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="../../_sources/api/_autosummary/cloudknot.aws.DockerRepo.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $(".toggle > *").hide();
+            $(".toggle .header").show();
+            $(".toggle .header").click(function() {
+                $(this).parent().children().not(".header").toggle(400);
+                $(this).parent().children(".header").toggleClass("open");
+            })
+        });
+    </script>
+
+  </body>
+</html>

@@ -1,0 +1,38 @@
+.toggle {
+    border: 1px solid black;
+    border-radius: 3px;
+}
+
+.toggle .header {
+    display: block;
+    clear: both;
+    padding: 5px;
+    background: gainsboro;
+}
+
+.toggle .content {
+    padding: 5px;
+}
+
+.toggle .header.open {
+    border-bottom: 1px solid black;
+    background: silver;
+}
+
+.toggle .header:hover {
+    background: silver;
+}
+
+.toggle .header:after {
+    content: "show ▼";
+    font-size: 75%;
+    text-align: right;
+    float:right;
+}
+
+.toggle .header.open:after {
+    content: "hide ▲";
+    font-size: 75%;
+    text-align: right;
+    float:right;
+}

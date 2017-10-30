@@ -1,0 +1,10 @@
+cloudknot\.aws\.ResourceClobberedException
+==========================================
+
+.. currentmodule:: cloudknot.aws
+
+.. autoclass:: ResourceClobberedException
+
+.. raw:: html
+
+    <div style='clear:both'></div>

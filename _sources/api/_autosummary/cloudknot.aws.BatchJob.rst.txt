@@ -1,0 +1,10 @@
+cloudknot\.aws\.BatchJob
+========================
+
+.. currentmodule:: cloudknot.aws
+
+.. autoclass:: BatchJob
+
+.. raw:: html
+
+    <div style='clear:both'></div>
