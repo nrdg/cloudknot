@@ -15,6 +15,7 @@ deploy:
 env:
   global:
     - PIP_DEPS="flake8 pytest coveralls pytest-cov"
+    - secure: "K2EJqa9df2Pur0lZWyTIvXiRfhyrAtgxOxQ0RfP6kyroCTLXQN6JWncB4RPrfjF37iFyx4QN+B4VGDRvmxS6d17hq+3BdMmQDy7W2JcXBcdQXRj1YKvGvCNOaH1AXRgshljcx/2AuT3afpe6mJvxaKx/Uc5zY8fimy0AlPVh7kTaZ5txcfglMl/KSzP+6Iy2Zh0ubxrPAitxHkVfBlo8Z/c+3+c6cKBHX5FDA/M5qJv8LaLSIFMG5464M0qqMknW/xkTey+9Ma4Q9JJD/6/9Dm1OwTq46FuNreSXBSAxK55Lf/W2sRy/PczXQmIDKRVaUUpfZEPdndQMNsfvepbZbvlGBY9c9Yq3IB2Dnh4QXxv+SjmNCnW2gM9leGzWd+a1kTGc8Fo7px7VUhZ2Oo5pmrvHMOrldT3MJ8CUqfyp8boChIqVwFL2a1AvFNnou8/BSH7Yjm5jipTQLjmC3xO3f+v1rYo2oFt7rVbHOw53qLcge6DF3ha6EclQhE9SSebxEXTTC//by9Rfk0KHYRCrBbCk9FEwOAprAfa9LvAAzahsIsxOoMqGBDJXj/6YrgCGrqD8Bp+z1zWRDQDDqDED+QpCXq5H52LSot0F/8z6n0w3HRHjjtfEMhdWlP1AlgmypkVB8Y/BdjbFv3qrFBo9GDWXeoskVpg2Mtg6Cyt94hI="
 
 python:
   - '2.7'
@@ -30,6 +31,17 @@ script:
 - mkdir for_test
 - cd for_test
 - travis_wait 50 py.test --pyargs cloudknot --cov-report term-missing --cov=cloudknot
+- cd ..
 
 after_success:
 - coveralls
+- |
+    if [[ $TRAVIS_PYTHON_VERSION == 3.6 ]]; then
+      pip install sphinx sphinx-gallery
+      set -e;
+      cd doc;
+      make html;
+      cd ..;
+      pip install doctr;
+      doctr deploy . --built-docs doc/_build/html;
+    fi
