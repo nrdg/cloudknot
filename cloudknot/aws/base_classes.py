@@ -111,21 +111,12 @@ def set_region(region='us-east-1'):
 
     # Update the boto3 clients so that the region change is reflected
     # throughout the package
-    clients['iam'] = boto3.Session(profile_name=get_profile()).client(
-        'iam', region_name=region
-    )
-    clients['ec2'] = boto3.Session(profile_name=get_profile()).client(
-        'ec2', region_name=region
-    )
-    clients['batch'] = boto3.Session(profile_name=get_profile()).client(
-        'batch', region_name=region
-    )
-    clients['ecr'] = boto3.Session(profile_name=get_profile()).client(
-        'ecr', region_name=region
-    )
-    clients['ecs'] = boto3.Session(profile_name=get_profile()).client(
-        'ecs', region_name=region
-    )
+    session = boto3.Session(profile_name=get_profile(fallback=None))
+    clients['iam'] = session.client('iam', region_name=region)
+    clients['ec2'] = session.client('ec2', region_name=region)
+    clients['batch'] = session.client('batch', region_name=region)
+    clients['ecr'] = session.client('ecr', region_name=region)
+    clients['ecs'] = session.client('ecs', region_name=region)
 
 
 def list_profiles():
@@ -183,12 +174,17 @@ def list_profiles():
     )
 
 
-def get_profile():
+def get_profile(fallback='from-env'):
     """Get the AWS profile to use
 
     First, check the cloudknot config file for the profile option.
     If that fails, return 'default'
 
+    Parameters
+    ----------
+    fallback :
+        The fallback value if get_profile cannot find an AWS profile.
+        Default: 'from-env'
     Returns
     -------
     profile_name : string
@@ -213,7 +209,7 @@ def get_profile():
 
             return 'default'
         else:
-            return None
+            return fallback
 
 
 def set_profile(profile_name):
@@ -252,38 +248,29 @@ def set_profile(profile_name):
 
     # Update the boto3 clients so that the profile change is reflected
     # throughout the package
-    clients['iam'] = boto3.Session(profile_name=profile_name).client(
-        'iam', region_name=get_region()
-    )
-    clients['ec2'] = boto3.Session(profile_name=profile_name).client(
-        'ec2', region_name=get_region()
-    )
-    clients['batch'] = boto3.Session(profile_name=profile_name).client(
-        'batch', region_name=get_region()
-    )
-    clients['ecr'] = boto3.Session(profile_name=profile_name).client(
-        'ecr', region_name=get_region()
-    )
-    clients['ecs'] = boto3.Session(profile_name=profile_name).client(
-        'ecs', region_name=get_region()
-    )
+    session = boto3.Session(profile_name=profile_name)
+    clients['iam'] = session.client('iam', region_name=get_region())
+    clients['ec2'] = session.client('ec2', region_name=get_region())
+    clients['batch'] = session.client('batch', region_name=get_region())
+    clients['ecr'] = session.client('ecr', region_name=get_region())
+    clients['ecs'] = session.client('ecs', region_name=get_region())
 
 
 #: module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, and ECS.
 clients = {
-    'iam': boto3.Session(profile_name=get_profile()).client(
+    'iam': boto3.Session(profile_name=get_profile(fallback=None)).client(
         'iam', region_name=get_region()
     ),
-    'ec2': boto3.Session(profile_name=get_profile()).client(
+    'ec2': boto3.Session(profile_name=get_profile(fallback=None)).client(
         'ec2', region_name=get_region()
     ),
-    'batch': boto3.Session(profile_name=get_profile()).client(
+    'batch': boto3.Session(profile_name=get_profile(fallback=None)).client(
         'batch', region_name=get_region()
     ),
-    'ecr': boto3.Session(profile_name=get_profile()).client(
+    'ecr': boto3.Session(profile_name=get_profile(fallback=None)).client(
         'ecr', region_name=get_region()
     ),
-    'ecs': boto3.Session(profile_name=get_profile()).client(
+    'ecs': boto3.Session(profile_name=get_profile(fallback=None)).client(
         'ecs', region_name=get_region()
     )
 }
@@ -300,21 +287,12 @@ and region.
 
 def refresh_clients():
     """Refresh the boto3 clients dictionary"""
-    clients['iam'] = boto3.Session(profile_name=get_profile()).client(
-        'iam', region_name=get_region()
-    )
-    clients['ec2'] = boto3.Session(profile_name=get_profile()).client(
-        'ec2', region_name=get_region()
-    )
-    clients['batch'] = boto3.Session(profile_name=get_profile()).client(
-        'batch', region_name=get_region()
-    )
-    clients['ecr'] = boto3.Session(profile_name=get_profile()).client(
-        'ecr', region_name=get_region()
-    )
-    clients['ecs'] = boto3.Session(profile_name=get_profile()).client(
-        'ecs', region_name=get_region()
-    )
+    session = boto3.Session(profile_name=get_profile(fallback=None))
+    clients['iam'] = session.client('iam', region_name=get_region())
+    clients['ec2'] = session.client('ec2', region_name=get_region())
+    clients['batch'] = session.client('batch', region_name=get_region())
+    clients['ecr'] = session.client('ecr', region_name=get_region())
+    clients['ecs'] = session.client('ecs', region_name=get_region())
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
