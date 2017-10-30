@@ -22,9 +22,25 @@ bibliography: paper.bib
 
 # Summary
 
-This is a really awesome summary of cloudknot.
-Something about AWS Batch [@AWSBatch]
-Something about pywren [@pywren]
-Something about cloudknot [@cloudknot]
+In the quest minimize time-to-first-result, many computational scientists are
+turning to cloud-based distributed computing with commercial vendors like
+Amazon to run their computational workloads. Yet cloud computing remains
+inaccessible to many researchers. A number of python scientific libraries have
+sought to close this gap by allowing users to interact seamlessly with AWS
+resources from within their python environment. For example, see
+cottoncandy [@cottoncandy] for interacting with numpy array data on Amazon
+S3 [@S3]. Or see pywren [@pywren], which enables users to run their existing
+python code on AWS Lambda [@AWSLambda], providing convenient distributed
+execution for jobs that fall within the AWS Lambda limits (maximum 300 seconds
+of execution time, 1.5 GB of RAM, 512 MB of local storage, and no root access).
+For jobs that require more, we introduce cloudknot [@cloudknot] to execute
+existing python code on AWS Batch [@AWSBatch].
+
+Cloudknot takes as input a python function, Dockerizes it for use in an Amazon
+ECS instance, and creates all the necessary AWS Batch constituent resources to
+submit jobs. Users can then use cloudknot to submit and view jobs for a range
+of inputs. For more details, please see the cloudknot
+documentation [@cloudknotdocs].
 
 # References
+
