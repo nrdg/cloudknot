@@ -348,6 +348,45 @@ def cleanup():
             for subnet_id in subnets:
                 ec2.delete_subnet(SubnetId=subnet_id)
 
+            response = ec2.describe_network_acls(Filters=[
+                {'Name': 'vpc-id', 'Values': [vpc['VpcId']]},
+                {'Name': 'default', 'Values': ['false']}
+            ])
+
+            network_acl_ids = [n['NetworkAclId']
+                               for n in response.get('NetworkAcls')]
+
+            # Delete the network ACL
+            for net_id in network_acl_ids:
+                retry.call(ec2.delete_network_acl, NetworkAclId=net_id)
+
+            response = ec2.describe_route_tables(Filters=[
+                {'Name': 'vpc-id', 'Values': [vpc['VpcId']]},
+                {'Name': 'association.main', 'Values': ['false']}
+            ])
+
+            route_table_ids = [rt['RouteTableId']
+                               for rt in response.get('RouteTables')]
+
+            # Delete the route table
+            for rt_id in route_table_ids:
+                retry.call(ec2.delete_route_table, RouteTableId=rt_id)
+
+            # Detach and delete the internet gateway
+            response = ec2.describe_internet_gateways(Filters=[{
+                'Name': 'attachment.vpc-id',
+                'Values': [vpc['VpcId']]
+            }])
+
+            gateway_ids = [g['InternetGatewayId']
+                           for g in response.get('InternetGateways')]
+
+            for gid in gateway_ids:
+                retry.call(ec2.detach_internet_gateway,
+                           InternetGatewayId=gid,
+                           VpcId=vpc['VpcId'])
+                retry.call(ec2.delete_internet_gateway, InternetGatewayId=gid)
+
             # delete the VPC
             ec2.delete_vpc(VpcId=vpc['VpcId'])
 
