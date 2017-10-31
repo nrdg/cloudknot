@@ -1,0 +1,21 @@
+# ~/.aws/config
+
+[default]
+region=us-east-1
+output=json
+
+[profile default]
+AWS_ACCESS_KEY_ID=AK******************
+AWS_SECRET_ACCESS_KEY=****************************************
+
+[profile another-profile-i-use]
+AWS_ACCESS_KEY_ID=AK******************
+AWS_SECRET_ACCESS_KEY=****************************************
+
+[profile project-specific-profile]
+AWS_ACCESS_KEY_ID=AK******************
+AWS_SECRET_ACCESS_KEY=****************************************
+
+[profile profile-with-another-organization]
+AWS_ACCESS_KEY_ID=AK*******************
+AWS_SECRET_ACCESS_KEY=****************************************

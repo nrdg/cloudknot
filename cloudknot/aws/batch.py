@@ -7,10 +7,10 @@ import tenacity
 from collections import namedtuple
 
 from .base_classes import NamedObject, ObjectWithArn, \
-    ObjectWithUsernameAndMemory, clients, RegionException, \
+    ObjectWithUsernameAndMemory, clients, \
     ResourceExistsException, ResourceDoesNotExistException, \
     ResourceClobberedException, CannotDeleteResourceException, \
-    wait_for_job_queue, get_region
+    wait_for_job_queue
 from .ec2 import Vpc, SecurityGroup
 from .ecr import DockerRepo
 from .iam import IamRole
@@ -109,7 +109,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             self._arn = resource.arn
 
             # Add to config file
-            self._section_name = 'job-definitions ' + self.region
+            self._section_name = self._get_section_name('job-definitions')
             cloudknot.config.add_resource(
                 self._section_name, self.name, self.arn
             )
@@ -326,7 +326,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         arn = response['jobDefinitionArn']
 
         # Add this job def to the list of job definitions in the config file
-        self._section_name = 'job-definitions ' + self.region
+        self._section_name = self._get_section_name('job-definitions')
         cloudknot.config.add_resource(self._section_name, self.name, arn)
 
         mod_logger.info('Created AWS batch job definition {name:s}'.format(
@@ -340,8 +340,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         if self.clobbered:
             return
 
-        if self.region != get_region():
-            raise RegionException(resource_region=self.region)
+        self.check_profile_and_region()
 
         clients['batch'].deregister_job_definition(jobDefinition=self.arn)
 
@@ -511,7 +510,7 @@ class ComputeEnvironment(ObjectWithArn):
             self._bid_percentage = resource.bid_percentage
             self._arn = resource.arn
 
-            self._section_name = 'compute-environments ' + self.region
+            self._section_name = self._get_section_name('compute-environments')
             cloudknot.config.add_resource(
                 self._section_name, self.name, self.arn
             )
@@ -984,7 +983,7 @@ class ComputeEnvironment(ObjectWithArn):
         arn = response['computeEnvironmentArn']
 
         # Add this compute env to the list of compute envs in the config file
-        self._section_name = 'compute-environments ' + self.region
+        self._section_name = self._get_section_name('compute-environments')
         cloudknot.config.add_resource(self._section_name, self.name, arn)
 
         mod_logger.info('Created compute environment {name:s}'.format(
@@ -998,8 +997,7 @@ class ComputeEnvironment(ObjectWithArn):
         if self.clobbered:
             return
 
-        if self.region != get_region():
-            raise RegionException(resource_region=self.region)
+        self.check_profile_and_region()
 
         retry = tenacity.Retrying(
             wait=tenacity.wait_exponential(max=16),
@@ -1152,7 +1150,7 @@ class JobQueue(ObjectWithArn):
             self._priority = resource.priority
             self._arn = resource.arn
 
-            self._section_name = 'job-queues ' + self.region
+            self._section_name = self._get_section_name('job-queues')
             cloudknot.config.add_resource(
                 self._section_name, self.name, self.arn
             )
@@ -1316,7 +1314,7 @@ class JobQueue(ObjectWithArn):
         wait_for_job_queue(name=self.name, max_wait_time=180)
 
         # Add this job queue to the list of job queues in the config file
-        self._section_name = 'job-queues ' + self.region
+        self._section_name = self._get_section_name('job-queues')
         cloudknot.config.add_resource(self._section_name, self.name, arn)
 
         mod_logger.info('Created job queue {name:s}'.format(name=self.name))
@@ -1343,8 +1341,7 @@ class JobQueue(ObjectWithArn):
                 self.arn
             )
 
-        if self.region != get_region():
-            raise RegionException(resource_region=self.region)
+        self.check_profile_and_region()
 
         # Validate input
         allowed_statuses = ['ALL', 'SUBMITTED', 'PENDING', 'RUNNABLE',
@@ -1369,8 +1366,7 @@ class JobQueue(ObjectWithArn):
         if self.clobbered:
             return
 
-        if self.region != get_region():
-            raise RegionException(resource_region=self.region)
+        self.check_profile_and_region()
 
         # First, disable submissions to the queue
         retry = tenacity.Retrying(
@@ -1480,7 +1476,7 @@ class BatchJob(NamedObject):
             self._environment_variables = job.environment_variables
             self._job_id = job.job_id
 
-            self._section_name = 'batch-jobs ' + self.region
+            self._section_name = self._get_section_name('batch-jobs')
             cloudknot.config.add_resource(
                 self._section_name, self.job_id, self.name
             )
@@ -1641,7 +1637,7 @@ class BatchJob(NamedObject):
         job_id = response['jobId']
 
         # Add this job to the list of jobs in the config file
-        self._section_name = 'batch-jobs ' + self.region
+        self._section_name = self._get_section_name('batch-jobs')
         cloudknot.config.add_resource(
             self._section_name, job_id, self.name
         )
@@ -1669,8 +1665,7 @@ class BatchJob(NamedObject):
                 self.job_id
             )
 
-        if self.region != get_region():
-            raise RegionException(resource_region=self.region)
+        self.check_profile_and_region()
 
         # Query the job_id
         response = clients['batch'].describe_jobs(jobs=[self.job_id])
@@ -1704,8 +1699,7 @@ class BatchJob(NamedObject):
                 self.job_id
             )
 
-        if self.region != get_region():
-            raise RegionException(resource_region=self.region)
+        self.check_profile_and_region()
 
         # Require the user to supply a reason for job termination
         if not isinstance(reason, six.string_types):
@@ -1732,6 +1726,8 @@ class BatchJob(NamedObject):
         """Kill an batch job and remove it's info from config"""
         if self.clobbered:
             return
+
+        self.check_profile_and_region()
 
         self.terminate(reason='Cloudknot job killed after calling '
                               'BatchJob.clobber()')

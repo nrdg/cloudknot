@@ -13,7 +13,7 @@ from ..config import get_config_file
 __all__ = [
     "ResourceDoesNotExistException", "ResourceClobberedException",
     "ResourceExistsException", "CannotDeleteResourceException",
-    "CannotCreateResourceException", "RegionException",
+    "CannotCreateResourceException", "RegionException", "ProfileException",
     "NamedObject", "ObjectWithArn", "ObjectWithUsernameAndMemory",
     "clients", "refresh_clients",
     "wait_for_compute_environment", "wait_for_job_queue",
@@ -111,21 +111,12 @@ def set_region(region='us-east-1'):
 
     # Update the boto3 clients so that the region change is reflected
     # throughout the package
-    clients['iam'] = boto3.Session(profile_name=get_profile()).client(
-        'iam', region_name=region
-    )
-    clients['ec2'] = boto3.Session(profile_name=get_profile()).client(
-        'ec2', region_name=region
-    )
-    clients['batch'] = boto3.Session(profile_name=get_profile()).client(
-        'batch', region_name=region
-    )
-    clients['ecr'] = boto3.Session(profile_name=get_profile()).client(
-        'ecr', region_name=region
-    )
-    clients['ecs'] = boto3.Session(profile_name=get_profile()).client(
-        'ecs', region_name=region
-    )
+    session = boto3.Session(profile_name=get_profile(fallback=None))
+    clients['iam'] = session.client('iam', region_name=region)
+    clients['ec2'] = session.client('ec2', region_name=region)
+    clients['batch'] = session.client('batch', region_name=region)
+    clients['ecr'] = session.client('ecr', region_name=region)
+    clients['ecs'] = session.client('ecs', region_name=region)
 
 
 def list_profiles():
@@ -183,12 +174,17 @@ def list_profiles():
     )
 
 
-def get_profile():
+def get_profile(fallback='from-env'):
     """Get the AWS profile to use
 
     First, check the cloudknot config file for the profile option.
     If that fails, return 'default'
 
+    Parameters
+    ----------
+    fallback :
+        The fallback value if get_profile cannot find an AWS profile.
+        Default: 'from-env'
     Returns
     -------
     profile_name : string
@@ -213,7 +209,7 @@ def get_profile():
 
             return 'default'
         else:
-            return None
+            return fallback
 
 
 def set_profile(profile_name):
@@ -227,11 +223,6 @@ def set_profile(profile_name):
         An AWS profile listed in the aws config file or aws shared
         credentials file
     """
-    raise NotImplementedError(
-        'set_profile is not currently implemented. If you really need to '
-        'change your AWS profile, you can restart this cloudknot session '
-        'and change you profile in ~/.aws/credentials.'
-    )
     profile_info = list_profiles()
 
     if profile_name not in profile_info.profile_names:
@@ -257,38 +248,29 @@ def set_profile(profile_name):
 
     # Update the boto3 clients so that the profile change is reflected
     # throughout the package
-    clients['iam'] = boto3.Session(profile_name=profile_name).client(
-        'iam', region_name=get_region()
-    )
-    clients['ec2'] = boto3.Session(profile_name=profile_name).client(
-        'ec2', region_name=get_region()
-    )
-    clients['batch'] = boto3.Session(profile_name=profile_name).client(
-        'batch', region_name=get_region()
-    )
-    clients['ecr'] = boto3.Session(profile_name=profile_name).client(
-        'ecr', region_name=get_region()
-    )
-    clients['ecs'] = boto3.Session(profile_name=profile_name).client(
-        'ecs', region_name=get_region()
-    )
+    session = boto3.Session(profile_name=profile_name)
+    clients['iam'] = session.client('iam', region_name=get_region())
+    clients['ec2'] = session.client('ec2', region_name=get_region())
+    clients['batch'] = session.client('batch', region_name=get_region())
+    clients['ecr'] = session.client('ecr', region_name=get_region())
+    clients['ecs'] = session.client('ecs', region_name=get_region())
 
 
 #: module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, and ECS.
 clients = {
-    'iam': boto3.Session(profile_name=get_profile()).client(
+    'iam': boto3.Session(profile_name=get_profile(fallback=None)).client(
         'iam', region_name=get_region()
     ),
-    'ec2': boto3.Session(profile_name=get_profile()).client(
+    'ec2': boto3.Session(profile_name=get_profile(fallback=None)).client(
         'ec2', region_name=get_region()
     ),
-    'batch': boto3.Session(profile_name=get_profile()).client(
+    'batch': boto3.Session(profile_name=get_profile(fallback=None)).client(
         'batch', region_name=get_region()
     ),
-    'ecr': boto3.Session(profile_name=get_profile()).client(
+    'ecr': boto3.Session(profile_name=get_profile(fallback=None)).client(
         'ecr', region_name=get_region()
     ),
-    'ecs': boto3.Session(profile_name=get_profile()).client(
+    'ecs': boto3.Session(profile_name=get_profile(fallback=None)).client(
         'ecs', region_name=get_region()
     )
 }
@@ -305,21 +287,12 @@ and region.
 
 def refresh_clients():
     """Refresh the boto3 clients dictionary"""
-    clients['iam'] = boto3.Session(profile_name=get_profile()).client(
-        'iam', region_name=get_region()
-    )
-    clients['ec2'] = boto3.Session(profile_name=get_profile()).client(
-        'ec2', region_name=get_region()
-    )
-    clients['batch'] = boto3.Session(profile_name=get_profile()).client(
-        'batch', region_name=get_region()
-    )
-    clients['ecr'] = boto3.Session(profile_name=get_profile()).client(
-        'ecr', region_name=get_region()
-    )
-    clients['ecs'] = boto3.Session(profile_name=get_profile()).client(
-        'ecs', region_name=get_region()
-    )
+    session = boto3.Session(profile_name=get_profile(fallback=None))
+    clients['iam'] = session.client('iam', region_name=get_region())
+    clients['ec2'] = session.client('ec2', region_name=get_region())
+    clients['batch'] = session.client('batch', region_name=get_region())
+    clients['ecr'] = session.client('ecr', region_name=get_region())
+    clients['ecs'] = session.client('ecs', region_name=get_region())
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -430,6 +403,27 @@ class RegionException(Exception):
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
+class ProfileException(Exception):
+    """Exception indicating the current profile isn't the resource's profile"""
+    def __init__(self, resource_profile):
+        """Initialize the Exception
+
+        Parameters
+        ----------
+        resource_profile : string
+            The resource profile
+        """
+        super(ProfileException, self).__init__(
+            "This resource's profile ({resource:s}) does not match the "
+            "current profile ({current:s})".format(
+                resource=resource_profile, current=get_profile()
+            )
+        )
+        self.current_profile = get_profile()
+        self.resource_profile = resource_profile
+
+
+# noinspection PyPropertyAccess,PyAttributeOutsideInit
 class NamedObject(object):
     """Base class for building objects with name property"""
     def __init__(self, name):
@@ -443,6 +437,7 @@ class NamedObject(object):
         self._name = str(name)
         self._clobbered = False
         self._region = get_region()
+        self._profile = get_profile()
 
     @property
     def name(self):
@@ -458,6 +453,30 @@ class NamedObject(object):
     def region(self):
         """The AWS region in which this resource was created"""
         return self._region
+
+    @property
+    def profile(self):
+        """The AWS profile in which this resource was created"""
+        return self._profile
+
+    def _get_section_name(self, resource_type):
+        """Return the config section name
+
+        Append profile and region to the resource type name
+        """
+        return ' '.join([resource_type, self.profile, self.region])
+
+    def check_profile(self):
+        """Check for profile exception"""
+        if self.profile != get_profile():
+            raise ProfileException(resource_profile=self.profile)
+
+    def check_profile_and_region(self):
+        """Check for region and profile exceptions"""
+        if self.region != get_region():
+            raise RegionException(resource_region=self.region)
+
+        self.check_profile()
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit

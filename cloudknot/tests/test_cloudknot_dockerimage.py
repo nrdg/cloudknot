@@ -27,6 +27,22 @@ def cleanup():
     batch = ck.aws.clients['batch']
     ecs = ck.aws.clients['ecs']
     config_file = ck.config.get_config_file()
+    section_suffix = ck.get_profile() + ' ' + ck.get_region()
+    jq_section_name = 'job-queues ' + section_suffix
+    ce_section_name = 'compute-environments ' + section_suffix
+    jd_section_name = 'job-definitions ' + section_suffix
+    roles_section_name = 'roles ' + ck.get_profile() + ' global'
+    repos_section_name = 'docker-repos ' + section_suffix
+    vpc_section_name = 'vpc ' + section_suffix
+    sg_section_name = 'security-groups ' + section_suffix
+
+    retry = tenacity.Retrying(
+        wait=tenacity.wait_exponential(max=16),
+        stop=tenacity.stop_after_delay(120),
+        retry=tenacity.retry_if_exception_type(
+            batch.exceptions.ClientException
+        )
+    )
 
     # Clean up job queues from AWS
     # ----------------------------
@@ -66,7 +82,8 @@ def cleanup():
 
     for jq in enabled:
         ck.aws.wait_for_job_queue(name=jq['name'], max_wait_time=180)
-        batch.update_job_queue(jobQueue=jq['arn'], state='DISABLED')
+        retry.call(batch.update_job_queue,
+                   jobQueue=jq['arn'], state='DISABLED')
 
     config = configparser.ConfigParser()
     config.read(config_file)
@@ -80,12 +97,11 @@ def cleanup():
         ck.aws.wait_for_job_queue(name=jq['name'], max_wait_time=180)
 
         # Finally, delete the job queue
-        batch.delete_job_queue(jobQueue=jq['arn'])
+        retry.call(batch.delete_job_queue, jobQueue=jq['arn'])
 
         # Clean up config file
         try:
-            config.remove_option('job-queues ' + ck.aws.get_region(),
-                                 jq['name'])
+            config.remove_option(jq_section_name, jq['name'])
         except configparser.NoSectionError:
             pass
 
@@ -134,10 +150,9 @@ def cleanup():
         )
 
         # Set the compute environment state to 'DISABLED'
-        batch.update_compute_environment(
-            computeEnvironment=ce['arn'],
-            state='DISABLED'
-        )
+        retry.call(batch.update_compute_environment,
+                   computeEnvironment=ce['arn'],
+                   state='DISABLED')
 
     config = configparser.ConfigParser()
     config.read(config_file)
@@ -158,20 +173,23 @@ def cleanup():
             name = queue['jobQueueName']
 
             # Disable submissions to the queue
-            ck.aws.wait_for_job_queue(
-                name=name, log=True, max_wait_time=180
-            )
-            batch.update_job_queue(jobQueue=arn, state='DISABLED')
+            if queue['state'] == 'ENABLED':
+                ck.aws.wait_for_job_queue(
+                    name=name, log=True, max_wait_time=180
+                )
+                retry.call(batch.update_job_queue,
+                           jobQueue=arn, state='DISABLED')
 
             # Delete the job queue
-            ck.aws.wait_for_job_queue(
-                name=name, log=True, max_wait_time=180
-            )
-            batch.delete_job_queue(jobQueue=arn)
+            if queue['status'] not in ['DELETED', 'DELETING']:
+                ck.aws.wait_for_job_queue(
+                    name=name, log=True, max_wait_time=180
+                )
+                retry.call(batch.delete_job_queue, jobQueue=arn)
 
             # Clean up config file
             try:
-                config.remove_option('job-queues ' + ck.aws.get_region(), name)
+                config.remove_option(jq_section_name, name)
             except configparser.NoSectionError:
                 pass
 
@@ -214,14 +232,6 @@ def cleanup():
             arn=ce['arn'], name=ce['name'], log=False
         )
 
-        retry = tenacity.Retrying(
-            wait=tenacity.wait_exponential(max=16),
-            stop=tenacity.stop_after_delay(120),
-            retry=tenacity.retry_if_exception_type(
-                batch.exceptions.ClientException
-            )
-        )
-
         retry.call(
             batch.delete_compute_environment,
             computeEnvironment=ce['arn']
@@ -229,8 +239,7 @@ def cleanup():
 
         # Clean up config file
         try:
-            config.remove_option('compute-environments ' + ck.aws.get_region(),
-                                 ce['name'])
+            config.remove_option(ce_section_name, ce['name'])
         except configparser.NoSectionError:
             pass
 
@@ -270,12 +279,11 @@ def cleanup():
 
     for jd in unit_test_jds:
         # Deregister the job definition
-        batch.deregister_job_definition(jobDefinition=jd['arn'])
+        retry.call(batch.deregister_job_definition, jobDefinition=jd['arn'])
 
         # Clean up config file
         try:
-            config.remove_option('job-definitions ' + ck.aws.get_region(),
-                                 jd['name'])
+            config.remove_option(jd_section_name, jd['name'])
         except configparser.NoSectionError:
             pass
 
@@ -285,6 +293,14 @@ def cleanup():
     # Clean up security_groups from AWS
     # ---------------------------------
     # Find all unit test security groups
+    ec2_retry = tenacity.Retrying(
+        wait=tenacity.wait_exponential(max=16),
+        stop=tenacity.stop_after_delay(60),
+        retry=tenacity.retry_if_exception_type(
+            ec2.exceptions.ClientError
+        )
+    )
+
     response = ec2.describe_security_groups()
     sgs = [
         {'name': d['GroupName'], 'id': d['GroupId']}
@@ -300,12 +316,11 @@ def cleanup():
 
     for sg in unit_test_sgs:
         # Delete role
-        ec2.delete_security_group(GroupId=sg['id'])
+        ec2_retry.call(ec2.delete_security_group, GroupId=sg['id'])
 
         # Clean up config file
         try:
-            config.remove_option('security-groups ' + ck.aws.get_region(),
-                                 sg['id'])
+            config.remove_option(sg_section_name, sg['id'])
         except configparser.NoSectionError:
             pass
 
@@ -343,15 +358,54 @@ def cleanup():
             subnets = [d['SubnetId'] for d in response.get('Subnets')]
 
             for subnet_id in subnets:
-                ec2.delete_subnet(SubnetId=subnet_id)
+                ec2_retry(ec2.delete_subnet, SubnetId=subnet_id)
+
+            response = ec2.describe_network_acls(Filters=[
+                {'Name': 'vpc-id', 'Values': [vpc['VpcId']]},
+                {'Name': 'default', 'Values': ['false']}
+            ])
+
+            network_acl_ids = [n['NetworkAclId']
+                               for n in response.get('NetworkAcls')]
+
+            # Delete the network ACL
+            for net_id in network_acl_ids:
+                ec2_retry.call(ec2.delete_network_acl, NetworkAclId=net_id)
+
+            response = ec2.describe_route_tables(Filters=[
+                {'Name': 'vpc-id', 'Values': [vpc['VpcId']]},
+                {'Name': 'association.main', 'Values': ['false']}
+            ])
+
+            route_table_ids = [rt['RouteTableId']
+                               for rt in response.get('RouteTables')]
+
+            # Delete the route table
+            for rt_id in route_table_ids:
+                ec2_retry.call(ec2.delete_route_table, RouteTableId=rt_id)
+
+            # Detach and delete the internet gateway
+            response = ec2.describe_internet_gateways(Filters=[{
+                'Name': 'attachment.vpc-id',
+                'Values': [vpc['VpcId']]
+            }])
+
+            gateway_ids = [g['InternetGatewayId']
+                           for g in response.get('InternetGateways')]
+
+            for gid in gateway_ids:
+                ec2_retry.call(ec2.detach_internet_gateway,
+                               InternetGatewayId=gid,
+                               VpcId=vpc['VpcId'])
+                ec2_retry.call(ec2.delete_internet_gateway,
+                               InternetGatewayId=gid)
 
             # delete the VPC
-            ec2.delete_vpc(VpcId=vpc['VpcId'])
+            ec2_retry(ec2.delete_vpc, VpcId=vpc['VpcId'])
 
             # Clean up config file
             try:
-                config.remove_option('vpc ' + ck.aws.get_region(),
-                                     vpc['VpcId'])
+                config.remove_option(vpc_section_name, vpc['VpcId'])
             except configparser.NoSectionError:
                 pass
 
@@ -391,6 +445,15 @@ def cleanup():
         # Delete role
         iam.delete_role(RoleName=role_name)
 
+    # Clean up config file
+    config = configparser.ConfigParser()
+    config.read(config_file)
+    for role_name in config.options(roles_section_name):
+        if UNIT_TEST_PREFIX in role_name:
+            config.remove_option(roles_section_name, role_name)
+    with open(config_file, 'w') as f:
+        config.write(f)
+
     # Clean up repos from AWS
     # -----------------------
     # Get all repos with unit test prefix in the name
@@ -408,12 +471,12 @@ def cleanup():
             force=True
         )
 
-    # Clean up config file
+    # Clean up repos from config file
     config = configparser.ConfigParser()
     config.read(config_file)
-    for role_name in config.options('roles'):
-        if UNIT_TEST_PREFIX in role_name:
-            config.remove_option('roles', role_name)
+    for repo_name in config.options(repos_section_name):
+        if UNIT_TEST_PREFIX in repo_name:
+            config.remove_option(repos_section_name, repo_name)
     with open(config_file, 'w') as f:
         config.write(f)
 

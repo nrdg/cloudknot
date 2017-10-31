@@ -34,7 +34,7 @@ class DockerRepo(NamedObject):
         self._repo_registry_id = repo_info.registry_id
 
         # Add to config file
-        self._section_name = 'docker-repos ' + self.region
+        self._section_name = self._get_section_name('docker-repos')
         cloudknot.config.add_resource(
             self._section_name, self.name, self.repo_uri
         )
@@ -94,6 +94,8 @@ class DockerRepo(NamedObject):
         """Delete this remote repository"""
         if self.clobbered:
             return
+
+        self.check_profile_and_region()
 
         try:
             # Remove the remote docker image

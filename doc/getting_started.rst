@@ -29,7 +29,7 @@ the `awscli configuration instructions
 
 If you have a "default" profile listed in either the AWS credentials file or
 the AWS CLI configuration file, then cloudknot should work out of the box.
-If you don't knot what either of those files are, read about
+If you don't know what either of those files are, read about
 `AWS configuration files
 <https://docs.aws.amazon.com/cli/latest/userguide/cli-config-files.html>`_.
 
