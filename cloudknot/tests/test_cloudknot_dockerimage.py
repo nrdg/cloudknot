@@ -395,8 +395,8 @@ def cleanup():
 
             for gid in gateway_ids:
                 ec2_retry.call(ec2.detach_internet_gateway,
-                           InternetGatewayId=gid,
-                           VpcId=vpc['VpcId'])
+                               InternetGatewayId=gid,
+                               VpcId=vpc['VpcId'])
                 ec2_retry.call(ec2.delete_internet_gateway, InternetGatewayId=gid)
 
             # delete the VPC
