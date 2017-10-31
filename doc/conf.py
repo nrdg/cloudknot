@@ -149,7 +149,7 @@ html_theme = 'alabaster'
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
-    'description': 'Run your existing python code on AWS Batch'
+    'description': 'Run your existing python code on AWS Batch',
     'github_user': 'richford',
     'github_repo': 'cloudknot',
     'github_type': 'star',
