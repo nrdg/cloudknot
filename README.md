@@ -1,7 +1,7 @@
 ## cloudknot
 [![Build Status](https://travis-ci.org/richford/cloudknot.svg?branch=master)](https://travis-ci.org/richford/cloudknot)
 
-A knot is a collective noun for a group of snakes. `Cloudknot` is a python
+A knot is a collective noun for a group of snakes. Cloudknot is a python
 library designed to run your existing python code on
 [AWS Batch](https://aws.amazon.com/batch).
 
