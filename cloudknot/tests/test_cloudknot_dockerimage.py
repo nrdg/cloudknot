@@ -81,7 +81,8 @@ def cleanup():
 
     for jq in enabled:
         ck.aws.wait_for_job_queue(name=jq['name'], max_wait_time=180)
-        retry.call(batch.update_job_queue, jobQueue=jq['arn'], state='DISABLED')
+        retry.call(batch.update_job_queue,
+                   jobQueue=jq['arn'], state='DISABLED')
 
     config = configparser.ConfigParser()
     config.read(config_file)
@@ -149,9 +150,8 @@ def cleanup():
 
         # Set the compute environment state to 'DISABLED'
         retry.call(batch.update_compute_environment,
-            computeEnvironment=ce['arn'],
-            state='DISABLED'
-        )
+                   computeEnvironment=ce['arn'],
+                   state='DISABLED')
 
     config = configparser.ConfigParser()
     config.read(config_file)
