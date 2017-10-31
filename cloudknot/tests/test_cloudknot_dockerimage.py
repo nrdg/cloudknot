@@ -32,6 +32,7 @@ def cleanup():
     ce_section_name = 'compute-environments ' + section_suffix
     jd_section_name = 'job-definitions ' + section_suffix
     roles_section_name = 'roles ' + ck.get_profile() + ' global'
+    repos_section_name = 'docker-repos ' + section_suffix
     vpc_section_name = 'vpc ' + section_suffix
     sg_section_name = 'security-groups ' + section_suffix
 
@@ -292,6 +293,14 @@ def cleanup():
     # Clean up security_groups from AWS
     # ---------------------------------
     # Find all unit test security groups
+    ec2_retry = tenacity.Retrying(
+        wait=tenacity.wait_exponential(max=16),
+        stop=tenacity.stop_after_delay(60),
+        retry=tenacity.retry_if_exception_type(
+            ec2.exceptions.ClientError
+        )
+    )
+
     response = ec2.describe_security_groups()
     sgs = [
         {'name': d['GroupName'], 'id': d['GroupId']}
@@ -307,7 +316,7 @@ def cleanup():
 
     for sg in unit_test_sgs:
         # Delete role
-        ec2.delete_security_group(GroupId=sg['id'])
+        ec2_retry.call(ec2.delete_security_group, GroupId=sg['id'])
 
         # Clean up config file
         try:
@@ -349,7 +358,7 @@ def cleanup():
             subnets = [d['SubnetId'] for d in response.get('Subnets')]
 
             for subnet_id in subnets:
-                ec2.delete_subnet(SubnetId=subnet_id)
+                ec2_retry(ec2.delete_subnet, SubnetId=subnet_id)
 
             response = ec2.describe_network_acls(Filters=[
                 {'Name': 'vpc-id', 'Values': [vpc['VpcId']]},
@@ -361,7 +370,7 @@ def cleanup():
 
             # Delete the network ACL
             for net_id in network_acl_ids:
-                retry.call(ec2.delete_network_acl, NetworkAclId=net_id)
+                ec2_retry.call(ec2.delete_network_acl, NetworkAclId=net_id)
 
             response = ec2.describe_route_tables(Filters=[
                 {'Name': 'vpc-id', 'Values': [vpc['VpcId']]},
@@ -373,7 +382,7 @@ def cleanup():
 
             # Delete the route table
             for rt_id in route_table_ids:
-                retry.call(ec2.delete_route_table, RouteTableId=rt_id)
+                ec2_retry.call(ec2.delete_route_table, RouteTableId=rt_id)
 
             # Detach and delete the internet gateway
             response = ec2.describe_internet_gateways(Filters=[{
@@ -385,13 +394,13 @@ def cleanup():
                            for g in response.get('InternetGateways')]
 
             for gid in gateway_ids:
-                retry.call(ec2.detach_internet_gateway,
+                ec2_retry.call(ec2.detach_internet_gateway,
                            InternetGatewayId=gid,
                            VpcId=vpc['VpcId'])
-                retry.call(ec2.delete_internet_gateway, InternetGatewayId=gid)
+                ec2_retry.call(ec2.delete_internet_gateway, InternetGatewayId=gid)
 
             # delete the VPC
-            ec2.delete_vpc(VpcId=vpc['VpcId'])
+            ec2_retry(ec2.delete_vpc, VpcId=vpc['VpcId'])
 
             # Clean up config file
             try:
@@ -460,6 +469,15 @@ def cleanup():
             repositoryName=r['repositoryName'],
             force=True
         )
+
+    # Clean up repos from config file
+    config = configparser.ConfigParser()
+    config.read(config_file)
+    for repo_name in config.options(repos_section_name):
+        if UNIT_TEST_PREFIX in repo_name:
+            config.remove_option(repos_section_name, repo_name)
+    with open(config_file, 'w') as f:
+        config.write(f)
 
 
 def get_testing_name():
