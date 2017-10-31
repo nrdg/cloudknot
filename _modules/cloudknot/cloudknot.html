@@ -191,6 +191,10 @@
         <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">get_config_file</span><span class="p">())</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_pars_name</span> <span class="o">=</span> <span class="s1">&#39;pars &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pars_name</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">sections</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_region</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pars_name</span><span class="p">,</span> <span class="s1">&#39;region&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_profile</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pars_name</span><span class="p">,</span> <span class="s1">&#39;profile&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">check_profile_and_region</span><span class="p">()</span>
+
             <span class="c1"># Pars exists, check that user did not provide any resource names</span>
             <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">batch_service_role_name</span><span class="p">,</span> <span class="n">ecs_instance_role_name</span><span class="p">,</span>
                     <span class="n">spot_fleet_role_name</span><span class="p">,</span> <span class="n">vpc_id</span><span class="p">,</span> <span class="n">security_group_id</span><span class="p">]):</span>
@@ -340,15 +344,10 @@
                     <span class="p">)</span>
                 <span class="p">)</span>
 
-            <span class="c1"># Verify that the VPC and security group regions match</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vpc</span><span class="o">.</span><span class="n">region</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">security_group</span><span class="o">.</span><span class="n">region</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">RegionException</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vpc</span><span class="o">.</span><span class="n">region</span><span class="p">)</span>
-
-            <span class="c1"># Set the PARS region to match the VPC and security group</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_region</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vpc</span><span class="o">.</span><span class="n">region</span>
             <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
             <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">get_config_file</span><span class="p">())</span>
             <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pars_name</span><span class="p">,</span> <span class="s1">&#39;region&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">region</span><span class="p">)</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pars_name</span><span class="p">,</span> <span class="s1">&#39;profile&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">)</span>
 
             <span class="c1"># Save config to file</span>
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">get_config_file</span><span class="p">(),</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
@@ -563,19 +562,13 @@
                         <span class="p">)</span>
                     <span class="p">)</span>
 
-            <span class="c1"># Verify that the VPC and security group regions match</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vpc</span><span class="o">.</span><span class="n">region</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">security_group</span><span class="o">.</span><span class="n">region</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">RegionException</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vpc</span><span class="o">.</span><span class="n">region</span><span class="p">)</span>
-
-            <span class="c1"># Set the PARS region to match the VPC and security group</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_region</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vpc</span><span class="o">.</span><span class="n">region</span>
-
             <span class="c1"># Save the new pars resources in config object</span>
             <span class="c1"># Use config.set() for python 2.7 compatibility</span>
             <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
             <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">get_config_file</span><span class="p">())</span>
             <span class="n">config</span><span class="o">.</span><span class="n">add_section</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pars_name</span><span class="p">)</span>
             <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pars_name</span><span class="p">,</span> <span class="s1">&#39;region&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">region</span><span class="p">)</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pars_name</span><span class="p">,</span> <span class="s1">&#39;profile&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">)</span>
             <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_pars_name</span><span class="p">,</span>
                 <span class="s1">&#39;batch-service-role&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch_service_role</span><span class="o">.</span><span class="n">name</span>
@@ -634,6 +627,9 @@
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;new role must be an instance of IamRole&#39;</span><span class="p">)</span>
 
             <span class="n">old_role</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">old_role</span><span class="o">.</span><span class="n">profile</span> <span class="o">!=</span> <span class="n">new_role</span><span class="o">.</span><span class="n">profile</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">ProfileException</span><span class="p">(</span><span class="n">new_role</span><span class="o">.</span><span class="n">profile</span><span class="p">)</span>
 
             <span class="n">mod_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
                 <span class="s1">&#39;You are setting a new role for PARS </span><span class="si">{name:s}</span><span class="s1">. The old &#39;</span>
@@ -713,6 +709,9 @@
         <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">region</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vpc</span><span class="o">.</span><span class="n">region</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">RegionException</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">region</span><span class="p">)</span>
 
+        <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">profile</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vpc</span><span class="o">.</span><span class="n">profile</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">ProfileException</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">profile</span><span class="p">)</span>
+
         <span class="n">mod_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
             <span class="s1">&#39;You are setting a new VPC for PARS </span><span class="si">{name:s}</span><span class="s1">. The old &#39;</span>
             <span class="s1">&#39;VPC </span><span class="si">{vpc_id:s}</span><span class="s1"> will be clobbered.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
@@ -783,6 +782,9 @@
         <span class="k">if</span> <span class="n">sg</span><span class="o">.</span><span class="n">region</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_security_group</span><span class="o">.</span><span class="n">region</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">RegionException</span><span class="p">(</span><span class="n">sg</span><span class="o">.</span><span class="n">region</span><span class="p">)</span>
 
+        <span class="k">if</span> <span class="n">sg</span><span class="o">.</span><span class="n">profile</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_security_group</span><span class="o">.</span><span class="n">profile</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">ProfileException</span><span class="p">(</span><span class="n">sg</span><span class="o">.</span><span class="n">profile</span><span class="p">)</span>
+
         <span class="n">mod_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
             <span class="s1">&#39;You are setting a new security group for PARS </span><span class="si">{name:s}</span><span class="s1">. The old &#39;</span>
             <span class="s1">&#39;security group </span><span class="si">{sg_id:s}</span><span class="s1"> will be clobbered.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
@@ -811,8 +813,7 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">clobbered</span><span class="p">:</span>
             <span class="k">return</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">region</span> <span class="o">!=</span> <span class="n">aws</span><span class="o">.</span><span class="n">get_region</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">RegionException</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">region</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_profile_and_region</span><span class="p">()</span>
 
         <span class="c1"># Delete all associated AWS resources</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_security_group</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
@@ -994,6 +995,10 @@
                                  <span class="s1">&#39;clobber the pre-existing knot.&#39;</span><span class="p">)</span>
 
             <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Found knot </span><span class="si">{name:s}</span><span class="s1"> in config&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">))</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_region</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span><span class="p">,</span> <span class="s1">&#39;region&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_profile</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span><span class="p">,</span> <span class="s1">&#39;profile&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">check_profile_and_region</span><span class="p">()</span>
 
             <span class="n">pars_name</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span><span class="p">,</span> <span class="s1">&#39;pars&#39;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_pars</span> <span class="o">=</span> <span class="n">Pars</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">pars_name</span><span class="p">)</span>
@@ -1342,6 +1347,7 @@
             <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">get_config_file</span><span class="p">())</span>
             <span class="n">config</span><span class="o">.</span><span class="n">add_section</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span><span class="p">)</span>
             <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span><span class="p">,</span> <span class="s1">&#39;region&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">region</span><span class="p">)</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span><span class="p">,</span> <span class="s1">&#39;profile&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">)</span>
             <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span><span class="p">,</span> <span class="s1">&#39;pars&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
             <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span><span class="p">,</span> <span class="s1">&#39;docker-image&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
             <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span><span class="p">,</span> <span class="s1">&#39;docker-repo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">docker_repo</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
@@ -1428,8 +1434,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
             <span class="p">)</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">region</span> <span class="o">!=</span> <span class="n">aws</span><span class="o">.</span><span class="n">get_region</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">RegionException</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">region</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_profile_and_region</span><span class="p">()</span>
 
         <span class="c1"># User must supply either commands or env_vars</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">commands</span> <span class="ow">or</span> <span class="n">env_vars</span><span class="p">):</span>
@@ -1497,8 +1502,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
             <span class="p">)</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">region</span> <span class="o">!=</span> <span class="n">aws</span><span class="o">.</span><span class="n">get_region</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">RegionException</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">region</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_profile_and_region</span><span class="p">()</span>
 
         <span class="n">jobs_info</span> <span class="o">=</span> <span class="p">[</span>
             <span class="p">{</span>
@@ -1522,8 +1526,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
             <span class="p">)</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">region</span> <span class="o">!=</span> <span class="n">aws</span><span class="o">.</span><span class="n">get_region</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">RegionException</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">region</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_profile_and_region</span><span class="p">()</span>
 
         <span class="n">order</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;SUBMITTED&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;PENDING&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;RUNNABLE&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;STARTING&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
                  <span class="s1">&#39;RUNNING&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s1">&#39;FAILED&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s1">&#39;SUCCEEDED&#39;</span><span class="p">:</span> <span class="mi">6</span><span class="p">}</span>
@@ -1549,8 +1552,7 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">clobbered</span><span class="p">:</span>
             <span class="k">return</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">region</span> <span class="o">!=</span> <span class="n">aws</span><span class="o">.</span><span class="n">get_region</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">RegionException</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">region</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_profile_and_region</span><span class="p">()</span>
 
         <span class="c1"># Delete all associated AWS resources</span>
         <span class="c1"># Iterate over copy of self.jobs since we are removing from</span>

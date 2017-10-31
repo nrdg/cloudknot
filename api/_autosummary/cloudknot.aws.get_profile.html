@@ -109,7 +109,7 @@
 <h1>cloudknot.aws.get_profile<a class="headerlink" href="#cloudknot-aws-get-profile" title="Permalink to this headline">¶</a></h1>
 <dl class="function">
 <dt id="cloudknot.aws.get_profile">
-<code class="descclassname">cloudknot.aws.</code><code class="descname">get_profile</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cloudknot/aws/base_classes.html#get_profile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.aws.get_profile" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">cloudknot.aws.</code><code class="descname">get_profile</code><span class="sig-paren">(</span><em>fallback='from-env'</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cloudknot/aws/base_classes.html#get_profile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.aws.get_profile" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get the AWS profile to use</p>
 <p>First, check the cloudknot config file for the profile option.
 If that fails, return ‘default’</p>
@@ -117,7 +117,10 @@ If that fails, return ‘default’</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><strong>profile_name</strong> (<em>string</em>) – An AWS profile listed in the aws config file or aws shared
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>fallback</strong> – The fallback value if get_profile cannot find an AWS profile.
+Default: ‘from-env’</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>profile_name</strong> (<em>string</em>) – An AWS profile listed in the aws config file or aws shared
 credentials file</td>
 </tr>
 </tbody>

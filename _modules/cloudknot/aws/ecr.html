@@ -115,7 +115,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_repo_registry_id</span> <span class="o">=</span> <span class="n">repo_info</span><span class="o">.</span><span class="n">registry_id</span>
 
         <span class="c1"># Add to config file</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_section_name</span> <span class="o">=</span> <span class="s1">&#39;docker-repos &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">region</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_section_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_section_name</span><span class="p">(</span><span class="s1">&#39;docker-repos&#39;</span><span class="p">)</span>
         <span class="n">cloudknot</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">add_resource</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_section_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">repo_uri</span>
         <span class="p">)</span>
@@ -175,6 +175,8 @@
         <span class="sd">&quot;&quot;&quot;Delete this remote repository&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">clobbered</span><span class="p">:</span>
             <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_profile_and_region</span><span class="p">()</span>
 
         <span class="k">try</span><span class="p">:</span>
             <span class="c1"># Remove the remote docker image</span>

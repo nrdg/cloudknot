@@ -110,7 +110,7 @@ line utilities. If you haven’t already done so, we recommend that you follow
 the <a class="reference external" href="http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html">awscli configuration instructions</a>.</p>
 <p>If you have a “default” profile listed in either the AWS credentials file or
 the AWS CLI configuration file, then cloudknot should work out of the box.
-If you don’t knot what either of those files are, read about
+If you don’t know what either of those files are, read about
 <a class="reference external" href="https://docs.aws.amazon.com/cli/latest/userguide/cli-config-files.html">AWS configuration files</a>.</p>
 </div>
 <div class="section" id="permissions">
@@ -124,6 +124,146 @@ for a cloudknot user should be contained in the following policy summary:</p>
 <div class="header docutils container">
 <strong>policy summary</strong></div>
 <div class="content docutils container">
+<div class="highlight-none"><div class="highlight"><pre><span></span>{
+    &quot;Version&quot;: &quot;2012-10-17&quot;,
+    &quot;Statement&quot;: [
+        {
+            &quot;Sid&quot;: &quot;Stmt1506474362000&quot;,
+            &quot;Effect&quot;: &quot;Allow&quot;,
+            &quot;Action&quot;: [
+                &quot;iam:AddRoleToInstanceProfile&quot;,
+                &quot;iam:AttachRolePolicy&quot;,
+                &quot;iam:CreateInstanceProfile&quot;,
+                &quot;iam:CreateRole&quot;,
+                &quot;iam:DeleteInstanceProfile&quot;,
+                &quot;iam:DeleteRole&quot;,
+                &quot;iam:DetachRolePolicy&quot;,
+                &quot;iam:GetRole&quot;,
+                &quot;iam:ListAttachedRolePolicies&quot;,
+                &quot;iam:ListInstanceProfilesForRole&quot;,
+                &quot;iam:ListPolicies&quot;,
+                &quot;iam:ListRoles&quot;,
+                &quot;iam:PassRole&quot;,
+                &quot;iam:RemoveRoleFromInstanceProfile&quot;,
+                &quot;iam:GetInstanceProfile&quot;,
+                &quot;sts:AssumeRole&quot;
+            ],
+            &quot;Resource&quot;: [
+                &quot;*&quot;
+            ]
+        },
+        {
+            &quot;Sid&quot;: &quot;Stmt1506474653000&quot;,
+            &quot;Effect&quot;: &quot;Allow&quot;,
+            &quot;Action&quot;: [
+                &quot;ec2:AssociateDhcpOptions&quot;,
+                &quot;ec2:AssociateRouteTable&quot;,
+                &quot;ec2:AttachInternetGateway&quot;,
+                &quot;ec2:AuthorizeSecurityGroupEgress&quot;,
+                &quot;ec2:AuthorizeSecurityGroupIngress&quot;,
+                &quot;ec2:CreateDhcpOptions&quot;,
+                &quot;ec2:CreateInternetGateway&quot;,
+                &quot;ec2:CreateNatGateway&quot;,
+                &quot;ec2:CreateNetworkAcl&quot;,
+                &quot;ec2:CreateNetworkAclEntry&quot;,
+                &quot;ec2:CreateNetworkInterface&quot;,
+                &quot;ec2:CreateNetworkInterfacePermission&quot;,
+                &quot;ec2:CreateRoute&quot;,
+                &quot;ec2:CreateRouteTable&quot;,
+                &quot;ec2:CreateSecurityGroup&quot;,
+                &quot;ec2:CreateSubnet&quot;,
+                &quot;ec2:CreateTags&quot;,
+                &quot;ec2:CreateVpc&quot;,
+                &quot;ec2:CreateVpcEndpoint&quot;,
+                &quot;ec2:CreateVpcPeeringConnection&quot;,
+                &quot;ec2:CreateVpnConnection&quot;,
+                &quot;ec2:CreateVpnConnectionRoute&quot;,
+                &quot;ec2:CreateVpnGateway&quot;,
+                &quot;ec2:DeleteInternetGateway&quot;,
+                &quot;ec2:DeleteNetworkAcl&quot;,
+                &quot;ec2:DeleteRouteTable&quot;,
+                &quot;ec2:DeleteSecurityGroup&quot;,
+                &quot;ec2:DeleteSubnet&quot;,
+                &quot;ec2:DeleteVpc&quot;,
+                &quot;ec2:DescribeAvailabilityZones&quot;,
+                &quot;ec2:DescribeInstances&quot;,
+                &quot;ec2:DescribeInternetGateways&quot;,
+                &quot;ec2:DescribeNetworkAcls&quot;,
+                &quot;ec2:DescribeRegions&quot;,
+                &quot;ec2:DescribeRouteTables&quot;,
+                &quot;ec2:DescribeSecurityGroups&quot;,
+                &quot;ec2:DescribeSubnets&quot;,
+                &quot;ec2:DescribeTags&quot;,
+                &quot;ec2:DescribeVpcs&quot;,
+                &quot;ec2:DetachInternetGateway&quot;,
+                &quot;ec2:ModifySubnetAttribute&quot;,
+                &quot;ec2:TerminateInstances&quot;
+            ],
+            &quot;Resource&quot;: [
+                &quot;*&quot;
+            ]
+        },
+        {
+            &quot;Sid&quot;: &quot;Stmt1506474963000&quot;,
+            &quot;Effect&quot;: &quot;Allow&quot;,
+            &quot;Action&quot;: [
+                &quot;batch:CancelJob&quot;,
+                &quot;batch:CreateComputeEnvironment&quot;,
+                &quot;batch:CreateJobQueue&quot;,
+                &quot;batch:DeleteComputeEnvironment&quot;,
+                &quot;batch:DeleteJobQueue&quot;,
+                &quot;batch:DeregisterJobDefinition&quot;,
+                &quot;batch:DescribeComputeEnvironments&quot;,
+                &quot;batch:DescribeJobDefinitions&quot;,
+                &quot;batch:DescribeJobQueues&quot;,
+                &quot;batch:DescribeJobs&quot;,
+                &quot;batch:ListJobs&quot;,
+                &quot;batch:RegisterJobDefinition&quot;,
+                &quot;batch:SubmitJob&quot;,
+                &quot;batch:TerminateJob&quot;,
+                &quot;batch:UpdateComputeEnvironment&quot;,
+                &quot;batch:UpdateJobQueue&quot;
+            ],
+            &quot;Resource&quot;: [
+                &quot;*&quot;
+            ]
+        },
+        {
+            &quot;Sid&quot;: &quot;Stmt1506475112000&quot;,
+            &quot;Effect&quot;: &quot;Allow&quot;,
+            &quot;Action&quot;: [
+                &quot;ecr:CreateRepository&quot;,
+                &quot;ecr:DescribeRepositories&quot;,
+                &quot;ecr:DescribeImages&quot;,
+                &quot;ecr:GetAuthorizationToken&quot;,
+                &quot;ecr:InitiateLayerUpload&quot;,
+                &quot;ecr:UploadLayerPart&quot;,
+                &quot;ecr:CompleteLayerUpload&quot;,
+                &quot;ecr:BatchCheckLayerAvailability&quot;,
+                &quot;ecr:BatchDeleteImage&quot;,
+                &quot;ecr:PutImage&quot;,
+                &quot;ecr:DeleteRepository&quot;
+            ],
+            &quot;Resource&quot;: [
+                &quot;*&quot;
+            ]
+        },
+        {
+            &quot;Sid&quot;: &quot;Stmt1508984153000&quot;,
+            &quot;Effect&quot;: &quot;Allow&quot;,
+            &quot;Action&quot;: [
+                &quot;ecs:DeleteCluster&quot;,
+                &quot;ecs:DeregisterContainerInstance&quot;,
+                &quot;ecs:ListContainerInstances&quot;
+            ],
+            &quot;Resource&quot;: [
+                &quot;*&quot;
+            ]
+        }
+    ]
+}
+</pre></div>
+</div>
 </div>
 </div>
 </div>
@@ -131,7 +271,49 @@ for a cloudknot user should be contained in the following policy summary:</p>
 <h2>Using multiple AWS profiles<a class="headerlink" href="#using-multiple-aws-profiles" title="Permalink to this headline">¶</a></h2>
 <p>If you want to use cloudknot with multiple AWS profiles, make sure that you
 have the profiles configured in the AWS credentials file, e.g.:</p>
+<div class="highlight-none"><div class="highlight"><pre><span></span># ~/.aws/credentials
+
+[default]
+AWS_ACCESS_KEY_ID=AK******************
+AWS_SECRET_ACCESS_KEY=****************************************
+
+[another-profile-i-use]
+AWS_ACCESS_KEY_ID=AK******************
+AWS_SECRET_ACCESS_KEY=****************************************
+
+[project-specific-profile]
+AWS_ACCESS_KEY_ID=AK******************
+AWS_SECRET_ACCESS_KEY=****************************************
+
+[profile-with-another-organization]
+AWS_ACCESS_KEY_ID=AK*******************
+AWS_SECRET_ACCESS_KEY=****************************************
+</pre></div>
+</div>
 <p>or in the AWS config file, e.g.:</p>
+<div class="highlight-none"><div class="highlight"><pre><span></span># ~/.aws/config
+
+[default]
+region=us-east-1
+output=json
+
+[profile default]
+AWS_ACCESS_KEY_ID=AK******************
+AWS_SECRET_ACCESS_KEY=****************************************
+
+[profile another-profile-i-use]
+AWS_ACCESS_KEY_ID=AK******************
+AWS_SECRET_ACCESS_KEY=****************************************
+
+[profile project-specific-profile]
+AWS_ACCESS_KEY_ID=AK******************
+AWS_SECRET_ACCESS_KEY=****************************************
+
+[profile profile-with-another-organization]
+AWS_ACCESS_KEY_ID=AK*******************
+AWS_SECRET_ACCESS_KEY=****************************************
+</pre></div>
+</div>
 <p>Then you can use the cloudknot functions <a class="reference internal" href="api/_autosummary/cloudknot.aws.set_profile.html#cloudknot.aws.set_profile" title="cloudknot.aws.set_profile"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.aws.set_profile()</span></code></a>,
 <a class="reference internal" href="api/_autosummary/cloudknot.aws.get_profile.html#cloudknot.aws.get_profile" title="cloudknot.aws.get_profile"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.aws.get_profile()</span></code></a>, and <a class="reference internal" href="api/_autosummary/cloudknot.aws.list_profiles.html#cloudknot.aws.list_profiles" title="cloudknot.aws.list_profiles"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.aws.list_profiles()</span></code></a>
 to interact with your various AWS profiles.</p>

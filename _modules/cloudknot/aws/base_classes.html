@@ -94,7 +94,7 @@
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
     <span class="s2">&quot;ResourceDoesNotExistException&quot;</span><span class="p">,</span> <span class="s2">&quot;ResourceClobberedException&quot;</span><span class="p">,</span>
     <span class="s2">&quot;ResourceExistsException&quot;</span><span class="p">,</span> <span class="s2">&quot;CannotDeleteResourceException&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;CannotCreateResourceException&quot;</span><span class="p">,</span> <span class="s2">&quot;RegionException&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;CannotCreateResourceException&quot;</span><span class="p">,</span> <span class="s2">&quot;RegionException&quot;</span><span class="p">,</span> <span class="s2">&quot;ProfileException&quot;</span><span class="p">,</span>
     <span class="s2">&quot;NamedObject&quot;</span><span class="p">,</span> <span class="s2">&quot;ObjectWithArn&quot;</span><span class="p">,</span> <span class="s2">&quot;ObjectWithUsernameAndMemory&quot;</span><span class="p">,</span>
     <span class="s2">&quot;clients&quot;</span><span class="p">,</span> <span class="s2">&quot;refresh_clients&quot;</span><span class="p">,</span>
     <span class="s2">&quot;wait_for_compute_environment&quot;</span><span class="p">,</span> <span class="s2">&quot;wait_for_job_queue&quot;</span><span class="p">,</span>
@@ -192,21 +192,12 @@
 
     <span class="c1"># Update the boto3 clients so that the region change is reflected</span>
     <span class="c1"># throughout the package</span>
-    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">())</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
-        <span class="s1">&#39;iam&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span>
-    <span class="p">)</span>
-    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ec2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">())</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
-        <span class="s1">&#39;ec2&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span>
-    <span class="p">)</span>
-    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;batch&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">())</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
-        <span class="s1">&#39;batch&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span>
-    <span class="p">)</span>
-    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ecr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">())</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
-        <span class="s1">&#39;ecr&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span>
-    <span class="p">)</span>
-    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ecs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">())</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
-        <span class="s1">&#39;ecs&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span>
-    <span class="p">)</span></div>
+    <span class="n">session</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;iam&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">)</span>
+    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ec2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ec2&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">)</span>
+    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;batch&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;batch&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">)</span>
+    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ecr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ecr&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">)</span>
+    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ecs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ecs&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="list_profiles"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.list_profiles.html#cloudknot.aws.list_profiles">[docs]</a><span class="k">def</span> <span class="nf">list_profiles</span><span class="p">():</span>
@@ -264,12 +255,17 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="get_profile"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.get_profile.html#cloudknot.aws.get_profile">[docs]</a><span class="k">def</span> <span class="nf">get_profile</span><span class="p">():</span>
+<div class="viewcode-block" id="get_profile"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.get_profile.html#cloudknot.aws.get_profile">[docs]</a><span class="k">def</span> <span class="nf">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="s1">&#39;from-env&#39;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Get the AWS profile to use</span>
 
 <span class="sd">    First, check the cloudknot config file for the profile option.</span>
 <span class="sd">    If that fails, return &#39;default&#39;</span>
 
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fallback :</span>
+<span class="sd">        The fallback value if get_profile cannot find an AWS profile.</span>
+<span class="sd">        Default: &#39;from-env&#39;</span>
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    profile_name : string</span>
@@ -294,7 +290,7 @@
 
             <span class="k">return</span> <span class="s1">&#39;default&#39;</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">None</span></div>
+            <span class="k">return</span> <span class="n">fallback</span></div>
 
 
 <div class="viewcode-block" id="set_profile"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.set_profile.html#cloudknot.aws.set_profile">[docs]</a><span class="k">def</span> <span class="nf">set_profile</span><span class="p">(</span><span class="n">profile_name</span><span class="p">):</span>
@@ -308,11 +304,6 @@
 <span class="sd">        An AWS profile listed in the aws config file or aws shared</span>
 <span class="sd">        credentials file</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-        <span class="s1">&#39;set_profile is not currently implemented. If you really need to &#39;</span>
-        <span class="s1">&#39;change your AWS profile, you can restart this cloudknot session &#39;</span>
-        <span class="s1">&#39;and change you profile in ~/.aws/credentials.&#39;</span>
-    <span class="p">)</span>
     <span class="n">profile_info</span> <span class="o">=</span> <span class="n">list_profiles</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">profile_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">profile_info</span><span class="o">.</span><span class="n">profile_names</span><span class="p">:</span>
@@ -338,38 +329,29 @@
 
     <span class="c1"># Update the boto3 clients so that the profile change is reflected</span>
     <span class="c1"># throughout the package</span>
-    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">profile_name</span><span class="p">)</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
-        <span class="s1">&#39;iam&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
-    <span class="p">)</span>
-    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ec2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">profile_name</span><span class="p">)</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
-        <span class="s1">&#39;ec2&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
-    <span class="p">)</span>
-    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;batch&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">profile_name</span><span class="p">)</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
-        <span class="s1">&#39;batch&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
-    <span class="p">)</span>
-    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ecr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">profile_name</span><span class="p">)</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
-        <span class="s1">&#39;ecr&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
-    <span class="p">)</span>
-    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ecs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">profile_name</span><span class="p">)</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
-        <span class="s1">&#39;ecs&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
-    <span class="p">)</span></div>
+    <span class="n">session</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">profile_name</span><span class="p">)</span>
+    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;iam&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">())</span>
+    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ec2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ec2&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">())</span>
+    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;batch&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;batch&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">())</span>
+    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ecr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ecr&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">())</span>
+    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ecs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ecs&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">())</span></div>
 
 
 <span class="c1">#: module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, and ECS.</span>
 <span class="n">clients</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;iam&#39;</span><span class="p">:</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">())</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
+    <span class="s1">&#39;iam&#39;</span><span class="p">:</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
         <span class="s1">&#39;iam&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
     <span class="p">),</span>
-    <span class="s1">&#39;ec2&#39;</span><span class="p">:</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">())</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
+    <span class="s1">&#39;ec2&#39;</span><span class="p">:</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
         <span class="s1">&#39;ec2&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
     <span class="p">),</span>
-    <span class="s1">&#39;batch&#39;</span><span class="p">:</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">())</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
+    <span class="s1">&#39;batch&#39;</span><span class="p">:</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
         <span class="s1">&#39;batch&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
     <span class="p">),</span>
-    <span class="s1">&#39;ecr&#39;</span><span class="p">:</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">())</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
+    <span class="s1">&#39;ecr&#39;</span><span class="p">:</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
         <span class="s1">&#39;ecr&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
     <span class="p">),</span>
-    <span class="s1">&#39;ecs&#39;</span><span class="p">:</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">())</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
+    <span class="s1">&#39;ecs&#39;</span><span class="p">:</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
         <span class="s1">&#39;ecs&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
     <span class="p">)</span>
 <span class="p">}</span>
@@ -386,21 +368,12 @@
 
 <div class="viewcode-block" id="refresh_clients"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.refresh_clients.html#cloudknot.aws.refresh_clients">[docs]</a><span class="k">def</span> <span class="nf">refresh_clients</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot;Refresh the boto3 clients dictionary&quot;&quot;&quot;</span>
-    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">())</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
-        <span class="s1">&#39;iam&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
-    <span class="p">)</span>
-    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ec2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">())</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
-        <span class="s1">&#39;ec2&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
-    <span class="p">)</span>
-    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;batch&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">())</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
-        <span class="s1">&#39;batch&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
-    <span class="p">)</span>
-    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ecr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">())</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
-        <span class="s1">&#39;ecr&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
-    <span class="p">)</span>
-    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ecs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">())</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
-        <span class="s1">&#39;ecs&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
-    <span class="p">)</span></div>
+    <span class="n">session</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;iam&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">())</span>
+    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ec2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ec2&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">())</span>
+    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;batch&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;batch&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">())</span>
+    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ecr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ecr&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">())</span>
+    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ecs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ecs&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">())</span></div>
 
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
@@ -511,6 +484,27 @@
 
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
+<span class="k">class</span> <span class="nc">ProfileException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Exception indicating the current profile isn&#39;t the resource&#39;s profile&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource_profile</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        resource_profile : string</span>
+<span class="sd">            The resource profile</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ProfileException</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="s2">&quot;This resource&#39;s profile (</span><span class="si">{resource:s}</span><span class="s2">) does not match the &quot;</span>
+            <span class="s2">&quot;current profile (</span><span class="si">{current:s}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">resource</span><span class="o">=</span><span class="n">resource_profile</span><span class="p">,</span> <span class="n">current</span><span class="o">=</span><span class="n">get_profile</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_profile</span> <span class="o">=</span> <span class="n">get_profile</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resource_profile</span> <span class="o">=</span> <span class="n">resource_profile</span>
+
+
+<span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
 <span class="k">class</span> <span class="nc">NamedObject</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Base class for building objects with name property&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
@@ -524,6 +518,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_clobbered</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_region</span> <span class="o">=</span> <span class="n">get_region</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_profile</span> <span class="o">=</span> <span class="n">get_profile</span><span class="p">()</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -539,6 +534,30 @@
     <span class="k">def</span> <span class="nf">region</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;The AWS region in which this resource was created&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_region</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">profile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The AWS profile in which this resource was created&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_profile</span>
+
+    <span class="k">def</span> <span class="nf">_get_section_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource_type</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the config section name</span>
+
+<span class="sd">        Append profile and region to the resource type name</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">resource_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">region</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">check_profile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Check for profile exception&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">profile</span> <span class="o">!=</span> <span class="n">get_profile</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="n">ProfileException</span><span class="p">(</span><span class="n">resource_profile</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">check_profile_and_region</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Check for region and profile exceptions&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">region</span> <span class="o">!=</span> <span class="n">get_region</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="n">RegionException</span><span class="p">(</span><span class="n">resource_region</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">region</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_profile</span><span class="p">()</span>
 
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>

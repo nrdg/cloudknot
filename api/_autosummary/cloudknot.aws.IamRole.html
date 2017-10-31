@@ -142,6 +142,18 @@ Default: False</li>
 </dd></dl>
 
 <dl class="method">
+<dt id="cloudknot.aws.IamRole.check_profile">
+<code class="descname">check_profile</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cloudknot.aws.IamRole.check_profile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check for profile exception</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudknot.aws.IamRole.check_profile_and_region">
+<code class="descname">check_profile_and_region</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cloudknot.aws.IamRole.check_profile_and_region" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check for region and profile exceptions</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="cloudknot.aws.IamRole.clobber">
 <code class="descname">clobber</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cloudknot/aws/iam.html#IamRole.clobber"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.aws.IamRole.clobber" title="Permalink to this definition">¶</a></dt>
 <dd><p>Delete this AWS IAM role and remove from config file</p>
@@ -191,6 +203,12 @@ Default: False</li>
 <dd><p>Boolean flag to indicate whether this resource was pre-existing</p>
 <p>True if resource was retrieved from AWS,
 False if it was created on __init__.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.IamRole.profile">
+<code class="descname">profile</code><a class="headerlink" href="#cloudknot.aws.IamRole.profile" title="Permalink to this definition">¶</a></dt>
+<dd><p>The AWS profile in which this resource was created</p>
 </dd></dl>
 
 <dl class="attribute">

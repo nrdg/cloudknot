@@ -128,6 +128,7 @@
 <span class="sd">            Default: False</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">IamRole</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_region</span> <span class="o">=</span> <span class="s1">&#39;global&#39;</span>
 
         <span class="n">role</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exists_already</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_pre_existing</span> <span class="o">=</span> <span class="n">role</span><span class="o">.</span><span class="n">exists</span>
@@ -149,7 +150,9 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_service</span> <span class="o">=</span> <span class="n">rpd_statement</span><span class="p">[</span><span class="s1">&#39;Principal&#39;</span><span class="p">][</span><span class="s1">&#39;Service&#39;</span><span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_policies</span> <span class="o">=</span> <span class="n">role</span><span class="o">.</span><span class="n">policies</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_arn</span> <span class="o">=</span> <span class="n">role</span><span class="o">.</span><span class="n">arn</span>
-            <span class="n">cloudknot</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">add_resource</span><span class="p">(</span><span class="s1">&#39;roles&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">arn</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_section_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_section_name</span><span class="p">(</span><span class="s1">&#39;roles&#39;</span><span class="p">)</span>
+            <span class="n">cloudknot</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">add_resource</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_section_name</span><span class="p">,</span>
+                                          <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">arn</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">([</span><span class="n">description</span><span class="p">,</span> <span class="n">service</span><span class="p">,</span> <span class="n">policies</span><span class="p">]):</span>
                 <span class="k">raise</span> <span class="n">ResourceDoesNotExistException</span><span class="p">(</span>
@@ -415,7 +418,8 @@
             <span class="p">))</span>
 
         <span class="c1"># Add this role to the list of roles in the config file</span>
-        <span class="n">cloudknot</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">add_resource</span><span class="p">(</span><span class="s1">&#39;roles&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">role_arn</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_section_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_section_name</span><span class="p">(</span><span class="s1">&#39;roles&#39;</span><span class="p">)</span>
+        <span class="n">cloudknot</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">add_resource</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_section_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">role_arn</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">role_arn</span>
 
@@ -434,6 +438,8 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">arn</span>
             <span class="p">)</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_profile</span><span class="p">()</span>
+
         <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">list_instance_profiles_for_role</span><span class="p">(</span>
             <span class="n">RoleName</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span>
         <span class="p">)</span>
@@ -450,6 +456,8 @@
         <span class="sd">&quot;&quot;&quot;Delete this AWS IAM role and remove from config file&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">clobbered</span><span class="p">:</span>
             <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_profile</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">service</span> <span class="o">==</span> <span class="s1">&#39;batch.amazonaws.com&#39;</span><span class="p">:</span>
             <span class="c1"># If this is a batch service role, wait for any dependent compute</span>
@@ -553,7 +561,7 @@
         <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">delete_role</span><span class="p">(</span><span class="n">RoleName</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
         <span class="c1"># Remove this role from the list of roles in the config file</span>
-        <span class="n">cloudknot</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">remove_resource</span><span class="p">(</span><span class="s1">&#39;roles&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">cloudknot</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">remove_resource</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_section_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
         <span class="c1"># Set the clobbered parameter to True,</span>
         <span class="c1"># preventing subsequent method calls</span>

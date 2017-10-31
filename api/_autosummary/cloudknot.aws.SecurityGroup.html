@@ -133,6 +133,18 @@ Default: None</li>
 </tbody>
 </table>
 <dl class="method">
+<dt id="cloudknot.aws.SecurityGroup.check_profile">
+<code class="descname">check_profile</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cloudknot.aws.SecurityGroup.check_profile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check for profile exception</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudknot.aws.SecurityGroup.check_profile_and_region">
+<code class="descname">check_profile_and_region</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cloudknot.aws.SecurityGroup.check_profile_and_region" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check for region and profile exceptions</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="cloudknot.aws.SecurityGroup.clobber">
 <code class="descname">clobber</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cloudknot/aws/ec2.html#SecurityGroup.clobber"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.aws.SecurityGroup.clobber" title="Permalink to this definition">¶</a></dt>
 <dd><p>Delete this AWS security group and associated resources</p>
@@ -162,6 +174,12 @@ Default: None</li>
 <dd><p>Boolean flag to indicate whether this resource was pre-existing</p>
 <p>True if resource was retrieved from AWS,
 False if it was created on __init__.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.SecurityGroup.profile">
+<code class="descname">profile</code><a class="headerlink" href="#cloudknot.aws.SecurityGroup.profile" title="Permalink to this definition">¶</a></dt>
+<dd><p>The AWS profile in which this resource was created</p>
 </dd></dl>
 
 <dl class="attribute">
