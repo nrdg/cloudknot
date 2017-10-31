@@ -35,6 +35,14 @@ def cleanup():
     vpc_section_name = 'vpc ' + section_suffix
     sg_section_name = 'security-groups ' + section_suffix
 
+    retry = tenacity.Retrying(
+        wait=tenacity.wait_exponential(max=16),
+        stop=tenacity.stop_after_delay(120),
+        retry=tenacity.retry_if_exception_type(
+            batch.exceptions.ClientException
+        )
+    )
+
     # Clean up job queues from AWS
     # ----------------------------
     # Find all unit testing job queues
@@ -73,7 +81,7 @@ def cleanup():
 
     for jq in enabled:
         ck.aws.wait_for_job_queue(name=jq['name'], max_wait_time=180)
-        batch.update_job_queue(jobQueue=jq['arn'], state='DISABLED')
+        retry.call(batch.update_job_queue, jobQueue=jq['arn'], state='DISABLED')
 
     config = configparser.ConfigParser()
     config.read(config_file)
@@ -87,7 +95,7 @@ def cleanup():
         ck.aws.wait_for_job_queue(name=jq['name'], max_wait_time=180)
 
         # Finally, delete the job queue
-        batch.delete_job_queue(jobQueue=jq['arn'])
+        retry.call(batch.delete_job_queue, jobQueue=jq['arn'])
 
         # Clean up config file
         try:
@@ -140,7 +148,7 @@ def cleanup():
         )
 
         # Set the compute environment state to 'DISABLED'
-        batch.update_compute_environment(
+        retry.call(batch.update_compute_environment,
             computeEnvironment=ce['arn'],
             state='DISABLED'
         )
@@ -164,16 +172,19 @@ def cleanup():
             name = queue['jobQueueName']
 
             # Disable submissions to the queue
-            ck.aws.wait_for_job_queue(
-                name=name, log=True, max_wait_time=180
-            )
-            batch.update_job_queue(jobQueue=arn, state='DISABLED')
+            if queue['state'] == 'ENABLED':
+                ck.aws.wait_for_job_queue(
+                    name=name, log=True, max_wait_time=180
+                )
+                retry.call(batch.update_job_queue,
+                           jobQueue=arn, state='DISABLED')
 
             # Delete the job queue
-            ck.aws.wait_for_job_queue(
-                name=name, log=True, max_wait_time=180
-            )
-            batch.delete_job_queue(jobQueue=arn)
+            if queue['status'] not in ['DELETED', 'DELETING']:
+                ck.aws.wait_for_job_queue(
+                    name=name, log=True, max_wait_time=180
+                )
+                retry.call(batch.delete_job_queue, jobQueue=arn)
 
             # Clean up config file
             try:
@@ -218,14 +229,6 @@ def cleanup():
 
         ck.aws.wait_for_compute_environment(
             arn=ce['arn'], name=ce['name'], log=False
-        )
-
-        retry = tenacity.Retrying(
-            wait=tenacity.wait_exponential(max=16),
-            stop=tenacity.stop_after_delay(120),
-            retry=tenacity.retry_if_exception_type(
-                batch.exceptions.ClientException
-            )
         )
 
         retry.call(
@@ -275,7 +278,7 @@ def cleanup():
 
     for jd in unit_test_jds:
         # Deregister the job definition
-        batch.deregister_job_definition(jobDefinition=jd['arn'])
+        retry.call(batch.deregister_job_definition, jobDefinition=jd['arn'])
 
         # Clean up config file
         try:
@@ -432,6 +435,15 @@ def cleanup():
         # Delete role
         iam.delete_role(RoleName=role_name)
 
+    # Clean up config file
+    config = configparser.ConfigParser()
+    config.read(config_file)
+    for role_name in config.options(roles_section_name):
+        if UNIT_TEST_PREFIX in role_name:
+            config.remove_option(roles_section_name, role_name)
+    with open(config_file, 'w') as f:
+        config.write(f)
+
     # Clean up repos from AWS
     # -----------------------
     # Get all repos with unit test prefix in the name
@@ -448,15 +460,6 @@ def cleanup():
             repositoryName=r['repositoryName'],
             force=True
         )
-
-    # Clean up config file
-    config = configparser.ConfigParser()
-    config.read(config_file)
-    for role_name in config.options(roles_section_name):
-        if UNIT_TEST_PREFIX in role_name:
-            config.remove_option(roles_section_name, role_name)
-    with open(config_file, 'w') as f:
-        config.write(f)
 
 
 def get_testing_name():
