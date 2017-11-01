@@ -118,6 +118,8 @@ class DockerImage(aws.NamedObject):
             self._script_path = config.get(section_name, 'script-path')
             self._docker_path = config.get(section_name, 'docker-path')
             self._req_path = config.get(section_name, 'req-path')
+            self._github_installs = config.get(section_name,
+                                               'github-imports').split()
             self._username = config.get(section_name, 'username')
             self._clobber_script = config.getboolean(section_name,
                                                      'clobber-script')
@@ -219,12 +221,6 @@ class DockerImage(aws.NamedObject):
                     'if it is no longer needed.'.format(file=self.req_path)
                 )
 
-            # Set self.pip_imports and self.missing_imports
-            self._set_imports()
-
-            # Write the requirements.txt file and Dockerfile
-            pipreqs.generate_requirements_file(self.req_path, self.pip_imports)
-
             # Validate github installs before building Dockerfile
             if isinstance(github_installs, six.string_types):
                 self._github_installs = [github_installs]
@@ -247,6 +243,12 @@ class DockerImage(aws.NamedObject):
                         'https://github.com/user/repo.git@branch, '
                     )
 
+            # Set self.pip_imports and self.missing_imports
+            self._set_imports()
+
+            # Write the requirements.txt file and Dockerfile
+            pipreqs.generate_requirements_file(self.req_path, self.pip_imports)
+
             self._write_dockerfile()
 
             self._images = []
@@ -262,6 +264,8 @@ class DockerImage(aws.NamedObject):
                 section_name, 'docker-path', self.docker_path
             )
             ckconfig.add_resource(section_name, 'req-path', self.req_path)
+            ckconfig.add_resource(section_name, 'github-imports',
+                                  ' '.join(self.github_installs))
             ckconfig.add_resource(section_name, 'username', self.username)
             ckconfig.add_resource(section_name, 'images', '')
             ckconfig.add_resource(section_name, 'repo-uri', '')
@@ -413,11 +417,12 @@ class DockerImage(aws.NamedObject):
         # Of those names, store that ones that are available via pip
         self._pip_imports = pipreqs.get_imports_info(import_names)
 
-        if len(import_names) != len(self.pip_imports):
-            # If some imports were left out, store their names
-            pip_names = set([i['name'] for i in self.pip_imports])
-            self._missing_imports = list(set(import_names) - pip_names)
+        # If some imports were left out, store their names
+        pip_names = set([i['name'] for i in self.pip_imports])
+        self._missing_imports = list(set(import_names) - pip_names)
 
+        if len(import_names) != (len(self.pip_imports)
+                                 + len(self.github_installs)):
             # And warn the user
             mod_logger.warning(
                 'Warning, some imports not found by pipreqs. You will '
@@ -425,9 +430,6 @@ class DockerImage(aws.NamedObject):
                 'from github. You need to install the following packages '
                 '{missing!s}'.format(missing=self.missing_imports)
             )
-        else:
-            # All imports accounted for
-            self._missing_imports = None
 
     def build(self, tags, image_name=None):
         """Build a DockerContainer image
