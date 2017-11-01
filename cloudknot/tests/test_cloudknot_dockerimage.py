@@ -1168,7 +1168,7 @@ def test_Knot(cleanup):
         knot2 = ck.Knot(
             name=name,
             pars=knot.pars,
-            docker_image_name=knot.docker_image.name,
+            docker_image=knot.docker_image,
             repo_name=knot.docker_repo.name,
             job_definition_name=knot.job_definition.name,
             compute_environment_name=knot.compute_environment.name,
