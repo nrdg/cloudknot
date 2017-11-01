@@ -5,6 +5,7 @@ import docker
 import inspect
 import logging
 import os
+import re
 import six
 import subprocess
 import tempfile
@@ -39,7 +40,7 @@ class DockerImage(aws.NamedObject):
     Dockerfile.
     """
     def __init__(self, name=None, func=None, script_path=None,
-                 dir_name=None, username=None):
+                 dir_name=None, github_installs=(), username=None):
         """Initialize a DockerImage instance
 
         Parameters
@@ -60,6 +61,12 @@ class DockerImage(aws.NamedObject):
             Default: parent directory of script if `script_path` is provided
             else DockerImage creates a new directory, accessible by the
             `build_path` property.
+
+        github_installs : string or sequence of strings
+            Github addresses for packages to install from github rather than
+            PyPI (e.g. git://github.com/richford/cloudknot.git or
+            git://github.com/richford/cloudknot.git@newfeaturebranch)
+            Default: ()
 
         username : string
             Default user created in the Dockerfile
@@ -217,6 +224,29 @@ class DockerImage(aws.NamedObject):
 
             # Write the requirements.txt file and Dockerfile
             pipreqs.generate_requirements_file(self.req_path, self.pip_imports)
+
+            # Validate github installs before building Dockerfile
+            if isinstance(github_installs, six.string_types):
+                self._github_installs = [github_installs]
+            elif all(isinstance(x, six.string_types) for x in github_installs):
+                self._github_installs = list(github_installs)
+            else:
+                raise ValueError('github_installs must be a string or a '
+                                 'sequence of strings.')
+
+            pattern = r'(https|git)(://github.com/).*/.*\.git($|@.*$)'
+            for install in self._github_installs:
+                match_obj = re.match(pattern, install)
+                if match_obj is None:
+                    raise ValueError(
+                        'One of your github_installs, {i:s} is not formatted '
+                        'correctly. It should look something like '
+                        'git://github.com/user/repo.git, '
+                        'git://github.com/user/repo.git@branch, '
+                        'https://github.com/user/repo.git, or '
+                        'https://github.com/user/repo.git@branch, '
+                    )
+
             self._write_dockerfile()
 
             self._images = []
@@ -269,6 +299,11 @@ class DockerImage(aws.NamedObject):
     def pip_imports(self):
         """List of packages in the requirements.txt file"""
         return self._pip_imports
+
+    @property
+    def github_installs(self):
+        """List of packages installed from github rather than PyPI"""
+        return self._github_installs
 
     @property
     def username(self):
@@ -330,7 +365,11 @@ class DockerImage(aws.NamedObject):
 
             f.write('# Install python dependencies\n')
             f.write('COPY requirements.txt /tmp/\n')
-            f.write('RUN pip install -r /tmp/requirements.txt\n\n')
+            f.write('RUN pip install -r /tmp/requirements.txt')
+            for install in self.github_installs:
+                f.write(' \\\n    && pip install git+' + install)
+
+            f.write('\n\n')
 
             f.write('# Create a default user. Available via runtime flag ')
             f.write('`--user {user:s}`.\n'.format(user=self.username))
