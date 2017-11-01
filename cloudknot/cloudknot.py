@@ -997,6 +997,13 @@ class Knot(aws.NamedObject):
                 ))
 
             if docker_image:
+                if any([func, image_script_path, image_work_dir]):
+                    raise ValueError(
+                        'you gave redundant, possibly conflicting input: '
+                        '`docker_image` and one of [`func`, '
+                        '`image_script_path`, `image_work_dir`]'
+                    )
+
                 if not isinstance(docker_image, dockerimage.DockerImage):
                     raise ValueError('docker_image must be a cloudknot '
                                      'DockerImage instance.')
