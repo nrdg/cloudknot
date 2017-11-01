@@ -40,6 +40,8 @@
 
 
 
+<p class="blurb">Run your existing python code on AWS Batch</p>
+
 
 
 
@@ -1540,7 +1542,8 @@
         <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="n">job_info</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="n">fmt</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="n">job</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="Knot.clobber"><a class="viewcode-back" href="../../documentation.html#cloudknot.Knot.clobber">[docs]</a>    <span class="k">def</span> <span class="nf">clobber</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clobber_pars</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">clobber_repo</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="Knot.clobber"><a class="viewcode-back" href="../../documentation.html#cloudknot.Knot.clobber">[docs]</a>    <span class="k">def</span> <span class="nf">clobber</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clobber_pars</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">clobber_repo</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">clobber_image</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Delete associated AWS resources and remove section from config</span>
 
 <span class="sd">        Parameters</span>
@@ -1564,9 +1567,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">job_queue</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">compute_environment</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">docker_repo</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="n">clobber_repo</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">docker_repo</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">clobber_image</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="n">clobber_pars</span><span class="p">:</span>
