@@ -358,7 +358,7 @@ def cleanup():
             subnets = [d['SubnetId'] for d in response.get('Subnets')]
 
             for subnet_id in subnets:
-                ec2_retry(ec2.delete_subnet, SubnetId=subnet_id)
+                ec2_retry.call(ec2.delete_subnet, SubnetId=subnet_id)
 
             response = ec2.describe_network_acls(Filters=[
                 {'Name': 'vpc-id', 'Values': [vpc['VpcId']]},
@@ -401,7 +401,7 @@ def cleanup():
                                InternetGatewayId=gid)
 
             # delete the VPC
-            ec2_retry(ec2.delete_vpc, VpcId=vpc['VpcId'])
+            ec2_retry.call(ec2.delete_vpc, VpcId=vpc['VpcId'])
 
             # Clean up config file
             try:
