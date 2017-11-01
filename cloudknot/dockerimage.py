@@ -457,14 +457,30 @@ class DockerImage(aws.NamedObject):
                 tag=im['name'] + ':' + im['tag']
             )
 
+        # Update the config file images list
         config_file = get_config_file()
         config = configparser.ConfigParser()
         config.read(config_file)
-        config_images = config.get('docker-image ' + self.name, 'images')
-        config_images += ' '.join([i['name'] + ':' + i['tag'] for i in images])
 
+        # Get list of images in config file
         section_name = 'docker-image ' + self.name
-        ckconfig.add_resource(section_name, 'images', config_images)
+        config_images_str = config.get(section_name, 'images')
+
+        # Split config images into list
+        config_images_list = config_images_str.split()
+
+        # Convert images just build into list
+        current_images_list = [i['name'] + ':' + i['tag'] for i in images]
+
+        # Get the union of the two lists
+        config_images = list(set(config_images_list)
+                             | set(current_images_list))
+
+        # Convert back to space separated list string
+        config_images_str = ' '.join(config_images)
+
+        # Reload to config file
+        ckconfig.add_resource(section_name, 'images', config_images_str)
 
     def push(self, repo=None, repo_uri=None):
         """Tag and push a DockerContainer image to a repository

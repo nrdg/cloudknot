@@ -795,6 +795,12 @@ def test_Vpc():
 
         vpc_id = response.get('Vpc')['VpcId']
 
+        # Wait for VPC to exist and be available
+        wait_for_vpc = ec2.get_waiter('vpc_exists')
+        wait_for_vpc.wait(VpcIds=[vpc_id])
+        wait_for_vpc = ec2.get_waiter('vpc_available')
+        wait_for_vpc.wait(VpcIds=[vpc_id])
+
         # Tag the VPC
         ec2.create_tags(
             Resources=[vpc_id],

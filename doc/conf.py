@@ -19,7 +19,7 @@ import os
 
 # General information about the project.
 project = u'cloudknot'
-copyright = u'2017, Adam Richie-Halford'
+copyright = u'2017, Adam Richie-Halford, Ariel Rokem'
 author = u'Adam Richie-Halford'
 
 currentdir = os.path.abspath(os.path.dirname(__file__))
