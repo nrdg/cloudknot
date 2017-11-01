@@ -473,7 +473,8 @@ class DockerImage(aws.NamedObject):
         current_images_list = [i['name'] + ':' + i['tag'] for i in images]
 
         # Get the union of the two lists
-        config_images = list(set(config_images_list) | set(current_images_list))
+        config_images = list(set(config_images_list)
+                             | set(current_images_list))
 
         # Convert back to space separated list string
         config_images_str = ' '.join(config_images)
