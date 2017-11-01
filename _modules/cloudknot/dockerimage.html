@@ -540,14 +540,30 @@
                 <span class="n">tag</span><span class="o">=</span><span class="n">im</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;:&#39;</span> <span class="o">+</span> <span class="n">im</span><span class="p">[</span><span class="s1">&#39;tag&#39;</span><span class="p">]</span>
             <span class="p">)</span>
 
+        <span class="c1"># Update the config file images list</span>
         <span class="n">config_file</span> <span class="o">=</span> <span class="n">get_config_file</span><span class="p">()</span>
         <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
         <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
-        <span class="n">config_images</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;docker-image &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s1">&#39;images&#39;</span><span class="p">)</span>
-        <span class="n">config_images</span> <span class="o">+=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">i</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;:&#39;</span> <span class="o">+</span> <span class="n">i</span><span class="p">[</span><span class="s1">&#39;tag&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">images</span><span class="p">])</span>
 
+        <span class="c1"># Get list of images in config file</span>
         <span class="n">section_name</span> <span class="o">=</span> <span class="s1">&#39;docker-image &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
-        <span class="n">ckconfig</span><span class="o">.</span><span class="n">add_resource</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span> <span class="s1">&#39;images&#39;</span><span class="p">,</span> <span class="n">config_images</span><span class="p">)</span></div>
+        <span class="n">config_images_str</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span> <span class="s1">&#39;images&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Split config images into list</span>
+        <span class="n">config_images_list</span> <span class="o">=</span> <span class="n">config_images_str</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+
+        <span class="c1"># Convert images just build into list</span>
+        <span class="n">current_images_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;:&#39;</span> <span class="o">+</span> <span class="n">i</span><span class="p">[</span><span class="s1">&#39;tag&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">images</span><span class="p">]</span>
+
+        <span class="c1"># Get the union of the two lists</span>
+        <span class="n">config_images</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">config_images_list</span><span class="p">)</span>
+                             <span class="o">|</span> <span class="nb">set</span><span class="p">(</span><span class="n">current_images_list</span><span class="p">))</span>
+
+        <span class="c1"># Convert back to space separated list string</span>
+        <span class="n">config_images_str</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">config_images</span><span class="p">)</span>
+
+        <span class="c1"># Reload to config file</span>
+        <span class="n">ckconfig</span><span class="o">.</span><span class="n">add_resource</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span> <span class="s1">&#39;images&#39;</span><span class="p">,</span> <span class="n">config_images_str</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DockerImage.push"><a class="viewcode-back" href="../../documentation.html#cloudknot.DockerImage.push">[docs]</a>    <span class="k">def</span> <span class="nf">push</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">repo</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">repo_uri</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Tag and push a DockerContainer image to a repository</span>
@@ -699,7 +715,7 @@
   </div>
     
     <div class="footer">
-      &copy;2017, Adam Richie-Halford.
+      &copy;2017, Adam Richie-Halford, Ariel Rokem.
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
