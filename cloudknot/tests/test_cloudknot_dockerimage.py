@@ -1150,8 +1150,7 @@ def test_Knot(cleanup):
         assert knot.knot_name == 'knot ' + name
         assert knot.pars.name == pars.name
         assert knot.docker_image.name == unit_testing_func.__name__
-        repo_name = knot.docker_image.images[0]['name']
-        assert knot.docker_repo.name == repo_name
+        assert knot.docker_repo is None
         pre = name + '-cloudknot-'
         assert knot.job_definition.name == pre + 'job-definition'
         assert knot.job_queue.name == pre + 'job-queue'
@@ -1169,7 +1168,6 @@ def test_Knot(cleanup):
             name=name,
             pars=knot.pars,
             docker_image=knot.docker_image,
-            repo_name=knot.docker_repo.name,
             job_definition_name=knot.job_definition.name,
             compute_environment_name=knot.compute_environment.name,
             job_queue_name=knot.job_queue.name
@@ -1180,8 +1178,7 @@ def test_Knot(cleanup):
         assert knot2.knot_name == 'knot ' + name
         assert knot2.pars.name == pars.name
         assert knot2.docker_image.name == unit_testing_func.__name__
-        repo_name = knot.docker_image.images[0]['name']
-        assert knot2.docker_repo.name == repo_name
+        assert knot2.docker_repo is None
         assert knot2.job_definition.name == pre + 'job-definition'
         assert knot2.job_queue.name == pre + 'job-queue'
         assert knot2.compute_environment.name == pre + 'compute-environment'
