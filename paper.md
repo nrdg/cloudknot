@@ -16,7 +16,7 @@ affiliations:
    index: 1
  - name: University of Washington, eScience Institute
    index: 2
-date: 31 October 2017
+date: 14 November 2017
 bibliography: paper.bib
 ---
 
