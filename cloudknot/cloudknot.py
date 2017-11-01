@@ -767,10 +767,11 @@ class Knot(aws.NamedObject):
     and job queue. It also contains methods to submit batch jobs for a range
     of arguments.
     """
-    def __init__(self, name='default', pars=None, docker_image=None,
-                 func=None, image_script_path=None, image_work_dir=None,
-                 username=None, repo_name=None, image_tags=None,
-                 job_definition_name=None, job_def_vcpus=None, memory=None,
+    def __init__(self, name='default', pars=None, pars_policies=(),
+                 docker_image=None, func=None, image_script_path=None,
+                 image_work_dir=None, username=None, repo_name=None,
+                 image_tags=None, job_definition_name=None,
+                 job_def_vcpus=None, memory=None,
                  retries=None, compute_environment_name=None,
                  instance_types=None, resource_type=None, min_vcpus=None,
                  max_vcpus=None, desired_vcpus=None, image_id=None,
@@ -787,6 +788,10 @@ class Knot(aws.NamedObject):
         pars : Pars, optional
             The PARS on which to base this knot's AWS resources
             Default: instance returned by Pars()
+
+        pars_policies : tuple of strings
+            tuple of names of AWS policies to attach to each role
+            Default: ()
 
         docker_image : DockerImage, optional
             The pre-existing DockerImage instance to adopt
@@ -901,7 +906,7 @@ class Knot(aws.NamedObject):
         config.read(get_config_file())
         if self._knot_name in config.sections():
             if any([
-                pars, docker_image, func, image_script_path,
+                pars, pars_policies, docker_image, func, image_script_path,
                 image_work_dir, username, repo_name, job_definition_name,
                 job_def_vcpus, memory, retries, compute_environment_name,
                 instance_types, resource_type, min_vcpus, max_vcpus,
@@ -986,7 +991,7 @@ class Knot(aws.NamedObject):
                     name=self.name, p=self.pars.name
                 ))
             else:
-                self._pars = Pars()
+                self._pars = Pars(name=self.name, policies=pars_policies)
                 mod_logger.info('knot {name:s} created PARS {p:s}'.format(
                     name=self.name, p=self.pars.name
                 ))
