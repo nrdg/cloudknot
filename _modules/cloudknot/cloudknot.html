@@ -850,10 +850,11 @@
 <span class="sd">    and job queue. It also contains methods to submit batch jobs for a range</span>
 <span class="sd">    of arguments.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="n">pars</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">docker_image_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">func</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_script_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_work_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">username</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">repo_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_tags</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">job_definition_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">job_def_vcpus</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">memory</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="n">pars</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pars_policies</span><span class="o">=</span><span class="p">(),</span>
+                 <span class="n">docker_image</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">func</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_script_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">image_work_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">username</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">repo_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">image_tags</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">job_definition_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">job_def_vcpus</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">memory</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">retries</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">compute_environment_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">instance_types</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">resource_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">min_vcpus</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">max_vcpus</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">desired_vcpus</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -871,8 +872,12 @@
 <span class="sd">            The PARS on which to base this knot&#39;s AWS resources</span>
 <span class="sd">            Default: instance returned by Pars()</span>
 
-<span class="sd">        docker_image_name : str, optional</span>
-<span class="sd">            The name of the pre-existing DockerImage instance to adopt</span>
+<span class="sd">        pars_policies : tuple of strings</span>
+<span class="sd">            tuple of names of AWS policies to attach to each role</span>
+<span class="sd">            Default: ()</span>
+
+<span class="sd">        docker_image : DockerImage, optional</span>
+<span class="sd">            The pre-existing DockerImage instance to adopt</span>
 
 <span class="sd">        func : function</span>
 <span class="sd">            Python function to be dockerized</span>
@@ -984,7 +989,7 @@
         <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">get_config_file</span><span class="p">())</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">sections</span><span class="p">():</span>
             <span class="k">if</span> <span class="nb">any</span><span class="p">([</span>
-                <span class="n">pars</span><span class="p">,</span> <span class="n">docker_image_name</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">image_script_path</span><span class="p">,</span>
+                <span class="n">pars</span><span class="p">,</span> <span class="n">pars_policies</span><span class="p">,</span> <span class="n">docker_image</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">image_script_path</span><span class="p">,</span>
                 <span class="n">image_work_dir</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">repo_name</span><span class="p">,</span> <span class="n">job_definition_name</span><span class="p">,</span>
                 <span class="n">job_def_vcpus</span><span class="p">,</span> <span class="n">memory</span><span class="p">,</span> <span class="n">retries</span><span class="p">,</span> <span class="n">compute_environment_name</span><span class="p">,</span>
                 <span class="n">instance_types</span><span class="p">,</span> <span class="n">resource_type</span><span class="p">,</span> <span class="n">min_vcpus</span><span class="p">,</span> <span class="n">max_vcpus</span><span class="p">,</span>
@@ -1015,21 +1020,23 @@
             <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">images</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">tags</span><span class="o">=</span><span class="n">image_tags</span><span class="p">)</span>
                 <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                    <span class="s1">&#39;Knot </span><span class="si">{name:s}</span><span class="s1"> built docker image </span><span class="si">{dr:s}</span><span class="s1">&#39;</span>
-                    <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">dr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                    <span class="s1">&#39;knot </span><span class="si">{name:s}</span><span class="s1"> built docker image </span><span class="si">{i!s}</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">images</span><span class="p">)</span>
                 <span class="p">)</span>
 
-            <span class="n">repo_name</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span><span class="p">,</span> <span class="s1">&#39;docker-repo&#39;</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_docker_repo</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">DockerRepo</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">repo_name</span><span class="p">)</span>
-            <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Knot </span><span class="si">{name:s}</span><span class="s1"> adopted docker repository &#39;</span>
-                            <span class="s1">&#39;</span><span class="si">{dr:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">dr</span><span class="o">=</span><span class="n">repo_name</span><span class="p">))</span>
-
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">repo_uri</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">repo_name</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span><span class="p">,</span> <span class="s1">&#39;docker-repo&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_docker_repo</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">DockerRepo</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">repo_name</span><span class="p">)</span>
+                <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Knot </span><span class="si">{name:s}</span><span class="s1"> adopted docker repository &#39;</span>
+                                <span class="s1">&#39;</span><span class="si">{dr:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">dr</span><span class="o">=</span><span class="n">repo_name</span><span class="p">))</span>
+
                 <span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">repo</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">docker_repo</span><span class="p">)</span>
                 <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
                     <span class="s1">&#39;Knot </span><span class="si">{name:s}</span><span class="s1"> pushed docker image </span><span class="si">{dr:s}</span><span class="s1">&#39;</span>
                     <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">dr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
                 <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_docker_repo</span> <span class="o">=</span> <span class="kc">None</span>
 
             <span class="n">jd_name</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span><span class="p">,</span> <span class="s1">&#39;job-definition&#39;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_job_definition</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">JobDefinition</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">jd_name</span><span class="p">)</span>
@@ -1066,57 +1073,80 @@
                 <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;knot </span><span class="si">{name:s}</span><span class="s1"> adopted PARS </span><span class="si">{p:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                     <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">name</span>
                 <span class="p">))</span>
+                <span class="n">pars_cleanup</span> <span class="o">=</span> <span class="kc">False</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_pars</span> <span class="o">=</span> <span class="n">Pars</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_pars</span> <span class="o">=</span> <span class="n">Pars</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">policies</span><span class="o">=</span><span class="n">pars_policies</span><span class="p">)</span>
                 <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;knot </span><span class="si">{name:s}</span><span class="s1"> created PARS </span><span class="si">{p:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                     <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">name</span>
                 <span class="p">))</span>
+                <span class="n">pars_cleanup</span> <span class="o">=</span> <span class="kc">True</span>
 
-            <span class="c1"># Create and build the docker image</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_docker_image</span> <span class="o">=</span> <span class="n">dockerimage</span><span class="o">.</span><span class="n">DockerImage</span><span class="p">(</span>
-                <span class="n">name</span><span class="o">=</span><span class="n">docker_image_name</span><span class="p">,</span>
-                <span class="n">func</span><span class="o">=</span><span class="n">func</span><span class="p">,</span>
-                <span class="n">script_path</span><span class="o">=</span><span class="n">image_script_path</span><span class="p">,</span>
-                <span class="n">dir_name</span><span class="o">=</span><span class="n">image_work_dir</span><span class="p">,</span>
-                <span class="n">username</span><span class="o">=</span><span class="n">username</span>
-            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">docker_image</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">func</span><span class="p">,</span> <span class="n">image_script_path</span><span class="p">,</span> <span class="n">image_work_dir</span><span class="p">]):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s1">&#39;you gave redundant, possibly conflicting input: &#39;</span>
+                        <span class="s1">&#39;`docker_image` and one of [`func`, &#39;</span>
+                        <span class="s1">&#39;`image_script_path`, `image_work_dir`]&#39;</span>
+                    <span class="p">)</span>
 
-            <span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">tags</span><span class="o">=</span><span class="n">image_tags</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">docker_image</span><span class="p">,</span> <span class="n">dockerimage</span><span class="o">.</span><span class="n">DockerImage</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;docker_image must be a cloudknot &#39;</span>
+                                     <span class="s1">&#39;DockerImage instance.&#39;</span><span class="p">)</span>
 
-            <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;knot </span><span class="si">{name:s}</span><span class="s1"> built docker image </span><span class="si">{i!s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">images</span>
-            <span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_docker_image</span> <span class="o">=</span> <span class="n">docker_image</span>
+                <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Knot </span><span class="si">{name:s}</span><span class="s1"> adopted docker image </span><span class="si">{i:s}</span><span class="s1">&#39;</span>
+                                <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="n">docker_image</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
 
-            <span class="c1"># Create the remote repo</span>
-            <span class="n">repo_name</span> <span class="o">=</span> <span class="p">(</span><span class="n">repo_name</span> <span class="k">if</span> <span class="n">repo_name</span>
-                         <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">images</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">])</span>
-
-            <span class="c1"># Later in __init__, we may abort this init because of</span>
-            <span class="c1"># inconsistent job def, compute env, or job queue parameters</span>
-            <span class="c1"># If we do that, we don&#39;t want to leave a bunch of newly created</span>
-            <span class="c1"># resources around so keep track of whether this repo was created</span>
-            <span class="c1"># or adopted.</span>
-            <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">has_option</span><span class="p">(</span><span class="s1">&#39;docker-repos&#39;</span><span class="p">,</span> <span class="n">repo_name</span><span class="p">):</span>
-                <span class="c1"># Pre-existing repo, no cleanup necessary</span>
-                <span class="n">repo_cleanup</span> <span class="o">=</span> <span class="kc">False</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="c1"># Freshly created repo, cleanup necessary</span>
-                <span class="n">repo_cleanup</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="c1"># Create and build the docker image</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_docker_image</span> <span class="o">=</span> <span class="n">dockerimage</span><span class="o">.</span><span class="n">DockerImage</span><span class="p">(</span>
+                    <span class="n">func</span><span class="o">=</span><span class="n">func</span><span class="p">,</span>
+                    <span class="n">script_path</span><span class="o">=</span><span class="n">image_script_path</span><span class="p">,</span>
+                    <span class="n">dir_name</span><span class="o">=</span><span class="n">image_work_dir</span><span class="p">,</span>
+                    <span class="n">username</span><span class="o">=</span><span class="n">username</span>
+                <span class="p">)</span>
 
-            <span class="bp">self</span><span class="o">.</span><span class="n">_docker_repo</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">DockerRepo</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">repo_name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">images</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">tags</span><span class="o">=</span><span class="n">image_tags</span><span class="p">)</span>
+                <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s1">&#39;knot </span><span class="si">{name:s}</span><span class="s1"> built docker image </span><span class="si">{i!s}</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">images</span><span class="p">)</span>
+                <span class="p">)</span>
 
-            <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                <span class="s1">&#39;knot </span><span class="si">{name:s}</span><span class="s1"> created/adopted docker repo &#39;</span>
-                <span class="s1">&#39;</span><span class="si">{r:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">docker_repo</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-            <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">repo_uri</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># Create the remote repo</span>
+                <span class="n">repo_name</span> <span class="o">=</span> <span class="p">(</span><span class="n">repo_name</span> <span class="k">if</span> <span class="n">repo_name</span>
+                             <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">images</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">])</span>
 
-            <span class="c1"># Push to remote repo</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">repo</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">docker_repo</span><span class="p">)</span>
+                <span class="c1"># Later in __init__, we may abort this init because of</span>
+                <span class="c1"># inconsistent job def, compute env, or job queue parameters</span>
+                <span class="c1"># If we do that, we don&#39;t want to leave a bunch of newly</span>
+                <span class="c1"># created resources around so keep track of whether this repo</span>
+                <span class="c1"># was created or adopted.</span>
+                <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">has_option</span><span class="p">(</span><span class="s1">&#39;docker-repos&#39;</span><span class="p">,</span> <span class="n">repo_name</span><span class="p">):</span>
+                    <span class="c1"># Pre-existing repo, no cleanup necessary</span>
+                    <span class="n">repo_cleanup</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Freshly created repo, cleanup necessary</span>
+                    <span class="n">repo_cleanup</span> <span class="o">=</span> <span class="kc">True</span>
 
-            <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                <span class="s2">&quot;knot </span><span class="si">{name:s}</span><span class="s2"> pushed it&#39;s docker image to the repo &quot;</span>
-                <span class="s2">&quot;</span><span class="si">{r:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">docker_repo</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-            <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_docker_repo</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">DockerRepo</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">repo_name</span><span class="p">)</span>
+
+                <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s1">&#39;knot </span><span class="si">{name:s}</span><span class="s1"> created/adopted docker repo &#39;</span>
+                    <span class="s1">&#39;</span><span class="si">{r:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">docker_repo</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="p">)</span>
+
+                <span class="c1"># Push to remote repo</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">repo</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">docker_repo</span><span class="p">)</span>
+
+                <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;knot </span><span class="si">{name:s}</span><span class="s2"> pushed it&#39;s docker image to the repo &quot;</span>
+                    <span class="s2">&quot;</span><span class="si">{r:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">docker_repo</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">repo_cleanup</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_docker_repo</span> <span class="o">=</span> <span class="kc">None</span>
 
             <span class="k">try</span><span class="p">:</span>
                 <span class="c1"># Create job definition</span>
@@ -1168,6 +1198,9 @@
                 <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">matches</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
                     <span class="k">if</span> <span class="n">repo_cleanup</span><span class="p">:</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">docker_repo</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
+
+                    <span class="k">if</span> <span class="n">pars_cleanup</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
 
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                         <span class="s1">&#39;The requested job definition already exists but &#39;</span>
@@ -1275,6 +1308,9 @@
                     <span class="k">if</span> <span class="n">jd_cleanup</span><span class="p">:</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
 
+                    <span class="k">if</span> <span class="n">pars_cleanup</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
+
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                         <span class="s1">&#39;The requested compute environment already exists &#39;</span>
                         <span class="s1">&#39;but does not match the input parameters. &#39;</span>
@@ -1328,6 +1364,9 @@
                     <span class="k">if</span> <span class="n">ce_cleanup</span><span class="p">:</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">compute_environment</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
 
+                    <span class="k">if</span> <span class="n">pars_cleanup</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
+
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                         <span class="s1">&#39;The requested job queue already exists &#39;</span>
                         <span class="s1">&#39;but does not match the input parameters. &#39;</span>
@@ -1352,14 +1391,12 @@
             <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span><span class="p">,</span> <span class="s1">&#39;profile&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">)</span>
             <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span><span class="p">,</span> <span class="s1">&#39;pars&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
             <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span><span class="p">,</span> <span class="s1">&#39;docker-image&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-            <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span><span class="p">,</span> <span class="s1">&#39;docker-repo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">docker_repo</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-            <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span><span class="p">,</span> <span class="s1">&#39;job-definition&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">name</span>
-            <span class="p">)</span>
-            <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span><span class="p">,</span>
-                <span class="s1">&#39;compute-environment&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_environment</span><span class="o">.</span><span class="n">name</span>
-            <span class="p">)</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span><span class="p">,</span> <span class="s1">&#39;docker-repo&#39;</span><span class="p">,</span>
+                       <span class="bp">self</span><span class="o">.</span><span class="n">docker_repo</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">docker_repo</span> <span class="k">else</span> <span class="s1">&#39;None&#39;</span><span class="p">)</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span><span class="p">,</span> <span class="s1">&#39;job-definition&#39;</span><span class="p">,</span>
+                       <span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span><span class="p">,</span> <span class="s1">&#39;compute-environment&#39;</span><span class="p">,</span>
+                       <span class="bp">self</span><span class="o">.</span><span class="n">compute_environment</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
             <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span><span class="p">,</span> <span class="s1">&#39;job-queue&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_queue</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
             <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span><span class="p">,</span> <span class="s1">&#39;job_ids&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
 
@@ -1551,6 +1588,14 @@
 <span class="sd">        clobber_pars : boolean</span>
 <span class="sd">            If true, clobber the associated Pars instance</span>
 <span class="sd">            Default: False</span>
+
+<span class="sd">        clobber_repo : boolean</span>
+<span class="sd">            If true, clobber the associated DockerRepo instance</span>
+<span class="sd">            Default: False</span>
+
+<span class="sd">        clobber_image : boolean</span>
+<span class="sd">            If true, clobber the associated DockerImage instance</span>
+<span class="sd">            Default: False</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">clobbered</span><span class="p">:</span>
             <span class="k">return</span>
@@ -1568,7 +1613,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">compute_environment</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
 
-        <span class="k">if</span> <span class="n">clobber_repo</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">clobber_repo</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">docker_repo</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">docker_repo</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="n">clobber_image</span><span class="p">:</span>

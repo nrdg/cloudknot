@@ -509,24 +509,6 @@
         <span class="n">images</span> <span class="o">=</span> <span class="p">[{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">image_name</span><span class="p">,</span> <span class="s1">&#39;tag&#39;</span><span class="p">:</span> <span class="n">t</span><span class="p">}</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tags</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_images</span> <span class="o">+=</span> <span class="p">[</span><span class="n">im</span> <span class="k">for</span> <span class="n">im</span> <span class="ow">in</span> <span class="n">images</span> <span class="k">if</span> <span class="n">im</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">]</span>
 
-        <span class="c1"># Refresh the aws ecr login credentials</span>
-        <span class="n">login_cmd</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">([</span>
-            <span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="s1">&#39;ecr&#39;</span><span class="p">,</span> <span class="s1">&#39;get-login&#39;</span><span class="p">,</span> <span class="s1">&#39;--no-include-email&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;--region&#39;</span><span class="p">,</span> <span class="n">get_region</span><span class="p">()</span>
-        <span class="p">])</span>
-
-        <span class="c1"># Login</span>
-        <span class="n">login_result</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">(</span>
-            <span class="n">login_cmd</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;ASCII&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">))</span>
-
-        <span class="c1"># If login failed, pass error to user</span>
-        <span class="k">if</span> <span class="n">login_result</span><span class="p">:</span>  <span class="c1"># pragma: nocover</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s1">&#39;Unable to login to AWS ECR using `</span><span class="si">{login:s}</span><span class="s1">`&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                    <span class="n">login</span><span class="o">=</span><span class="n">login_cmd</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
-                <span class="p">)</span>
-            <span class="p">)</span>
-
         <span class="c1"># Use docker low-level APIClient</span>
         <span class="n">c</span> <span class="o">=</span> <span class="n">docker</span><span class="o">.</span><span class="n">from_env</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">im</span> <span class="ow">in</span> <span class="n">images</span><span class="p">:</span>
@@ -598,6 +580,24 @@
                 <span class="s1">&#39;The images property is empty, indicating that the build &#39;</span>
                 <span class="s1">&#39;method has not yet been called. Call `build(tags=&lt;tags&gt;)` &#39;</span>
                 <span class="s1">&#39;first before calling `tag()`.&#39;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Refresh the aws ecr login credentials</span>
+        <span class="n">login_cmd</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">([</span>
+            <span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="s1">&#39;ecr&#39;</span><span class="p">,</span> <span class="s1">&#39;get-login&#39;</span><span class="p">,</span> <span class="s1">&#39;--no-include-email&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;--region&#39;</span><span class="p">,</span> <span class="n">get_region</span><span class="p">()</span>
+        <span class="p">])</span>
+
+        <span class="c1"># Login</span>
+        <span class="n">login_result</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">(</span>
+            <span class="n">login_cmd</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;ASCII&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">))</span>
+
+        <span class="c1"># If login failed, pass error to user</span>
+        <span class="k">if</span> <span class="n">login_result</span><span class="p">:</span>  <span class="c1"># pragma: nocover</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s1">&#39;Unable to login to AWS ECR using `</span><span class="si">{login:s}</span><span class="s1">`&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">login</span><span class="o">=</span><span class="n">login_cmd</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+                <span class="p">)</span>
             <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">repo</span><span class="p">:</span>

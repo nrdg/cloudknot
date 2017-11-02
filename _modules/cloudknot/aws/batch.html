@@ -1084,7 +1084,7 @@
 
         <span class="n">retry</span> <span class="o">=</span> <span class="n">tenacity</span><span class="o">.</span><span class="n">Retrying</span><span class="p">(</span>
             <span class="n">wait</span><span class="o">=</span><span class="n">tenacity</span><span class="o">.</span><span class="n">wait_exponential</span><span class="p">(</span><span class="nb">max</span><span class="o">=</span><span class="mi">16</span><span class="p">),</span>
-            <span class="n">stop</span><span class="o">=</span><span class="n">tenacity</span><span class="o">.</span><span class="n">stop_after_delay</span><span class="p">(</span><span class="mi">120</span><span class="p">),</span>
+            <span class="n">stop</span><span class="o">=</span><span class="n">tenacity</span><span class="o">.</span><span class="n">stop_after_delay</span><span class="p">(</span><span class="mi">180</span><span class="p">),</span>
             <span class="n">retry</span><span class="o">=</span><span class="n">tenacity</span><span class="o">.</span><span class="n">retry_if_exception_type</span><span class="p">(</span>
                 <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;batch&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">ClientException</span>
             <span class="p">)</span>
@@ -1118,7 +1118,7 @@
 
         <span class="n">retry_if_exception</span> <span class="o">=</span> <span class="n">tenacity</span><span class="o">.</span><span class="n">Retrying</span><span class="p">(</span>
             <span class="n">wait</span><span class="o">=</span><span class="n">tenacity</span><span class="o">.</span><span class="n">wait_exponential</span><span class="p">(</span><span class="nb">max</span><span class="o">=</span><span class="mi">16</span><span class="p">),</span>
-            <span class="n">stop</span><span class="o">=</span><span class="n">tenacity</span><span class="o">.</span><span class="n">stop_after_delay</span><span class="p">(</span><span class="mi">120</span><span class="p">),</span>
+            <span class="n">stop</span><span class="o">=</span><span class="n">tenacity</span><span class="o">.</span><span class="n">stop_after_delay</span><span class="p">(</span><span class="mi">300</span><span class="p">),</span>
             <span class="n">retry</span><span class="o">=</span><span class="n">tenacity</span><span class="o">.</span><span class="n">retry_if_exception_type</span><span class="p">()</span>
         <span class="p">)</span>
         <span class="n">retry_if_exception</span><span class="o">.</span><span class="n">call</span><span class="p">(</span>
