@@ -1001,7 +1001,7 @@ class ComputeEnvironment(ObjectWithArn):
 
         retry = tenacity.Retrying(
             wait=tenacity.wait_exponential(max=16),
-            stop=tenacity.stop_after_delay(120),
+            stop=tenacity.stop_after_delay(180),
             retry=tenacity.retry_if_exception_type(
                 clients['batch'].exceptions.ClientException
             )
@@ -1035,7 +1035,7 @@ class ComputeEnvironment(ObjectWithArn):
 
         retry_if_exception = tenacity.Retrying(
             wait=tenacity.wait_exponential(max=16),
-            stop=tenacity.stop_after_delay(120),
+            stop=tenacity.stop_after_delay(300),
             retry=tenacity.retry_if_exception_type()
         )
         retry_if_exception.call(

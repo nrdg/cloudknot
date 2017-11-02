@@ -767,10 +767,11 @@ class Knot(aws.NamedObject):
     and job queue. It also contains methods to submit batch jobs for a range
     of arguments.
     """
-    def __init__(self, name='default', pars=None, docker_image_name=None,
-                 func=None, image_script_path=None, image_work_dir=None,
-                 username=None, repo_name=None, image_tags=None,
-                 job_definition_name=None, job_def_vcpus=None, memory=None,
+    def __init__(self, name='default', pars=None, pars_policies=(),
+                 docker_image=None, func=None, image_script_path=None,
+                 image_work_dir=None, username=None, repo_name=None,
+                 image_tags=None, job_definition_name=None,
+                 job_def_vcpus=None, memory=None,
                  retries=None, compute_environment_name=None,
                  instance_types=None, resource_type=None, min_vcpus=None,
                  max_vcpus=None, desired_vcpus=None, image_id=None,
@@ -788,8 +789,12 @@ class Knot(aws.NamedObject):
             The PARS on which to base this knot's AWS resources
             Default: instance returned by Pars()
 
-        docker_image_name : str, optional
-            The name of the pre-existing DockerImage instance to adopt
+        pars_policies : tuple of strings
+            tuple of names of AWS policies to attach to each role
+            Default: ()
+
+        docker_image : DockerImage, optional
+            The pre-existing DockerImage instance to adopt
 
         func : function
             Python function to be dockerized
@@ -901,7 +906,7 @@ class Knot(aws.NamedObject):
         config.read(get_config_file())
         if self._knot_name in config.sections():
             if any([
-                pars, docker_image_name, func, image_script_path,
+                pars, pars_policies, docker_image, func, image_script_path,
                 image_work_dir, username, repo_name, job_definition_name,
                 job_def_vcpus, memory, retries, compute_environment_name,
                 instance_types, resource_type, min_vcpus, max_vcpus,
@@ -932,21 +937,23 @@ class Knot(aws.NamedObject):
             if not self.docker_image.images:
                 self.docker_image.build(tags=image_tags)
                 mod_logger.info(
-                    'Knot {name:s} built docker image {dr:s}'
-                    ''.format(name=self.name, dr=self.docker_image.name)
+                    'knot {name:s} built docker image {i!s}'
+                    ''.format(name=self.name, i=self.docker_image.images)
                 )
 
-            repo_name = config.get(self._knot_name, 'docker-repo')
-            self._docker_repo = aws.DockerRepo(name=repo_name)
-            mod_logger.info('Knot {name:s} adopted docker repository '
-                            '{dr:s}'.format(name=self.name, dr=repo_name))
-
             if self.docker_image.repo_uri is None:
+                repo_name = config.get(self._knot_name, 'docker-repo')
+                self._docker_repo = aws.DockerRepo(name=repo_name)
+                mod_logger.info('Knot {name:s} adopted docker repository '
+                                '{dr:s}'.format(name=self.name, dr=repo_name))
+
                 self.docker_image.push(repo=self.docker_repo)
                 mod_logger.info(
                     'Knot {name:s} pushed docker image {dr:s}'
                     ''.format(name=self.name, dr=self.docker_image.name)
                 )
+            else:
+                self._docker_repo = None
 
             jd_name = config.get(self._knot_name, 'job-definition')
             self._job_definition = aws.JobDefinition(name=jd_name)
@@ -983,57 +990,80 @@ class Knot(aws.NamedObject):
                 mod_logger.info('knot {name:s} adopted PARS {p:s}'.format(
                     name=self.name, p=self.pars.name
                 ))
+                pars_cleanup = False
             else:
-                self._pars = Pars()
+                self._pars = Pars(name=self.name, policies=pars_policies)
                 mod_logger.info('knot {name:s} created PARS {p:s}'.format(
                     name=self.name, p=self.pars.name
                 ))
+                pars_cleanup = True
 
-            # Create and build the docker image
-            self._docker_image = dockerimage.DockerImage(
-                name=docker_image_name,
-                func=func,
-                script_path=image_script_path,
-                dir_name=image_work_dir,
-                username=username
-            )
+            if docker_image:
+                if any([func, image_script_path, image_work_dir]):
+                    raise ValueError(
+                        'you gave redundant, possibly conflicting input: '
+                        '`docker_image` and one of [`func`, '
+                        '`image_script_path`, `image_work_dir`]'
+                    )
 
-            self.docker_image.build(tags=image_tags)
+                if not isinstance(docker_image, dockerimage.DockerImage):
+                    raise ValueError('docker_image must be a cloudknot '
+                                     'DockerImage instance.')
 
-            mod_logger.info('knot {name:s} built docker image {i!s}'.format(
-                name=self.name, i=self.docker_image.images
-            ))
+                self._docker_image = docker_image
+                mod_logger.info('Knot {name:s} adopted docker image {i:s}'
+                                ''.format(name=self.name, i=docker_image.name))
 
-            # Create the remote repo
-            repo_name = (repo_name if repo_name
-                         else self.docker_image.images[0]['name'])
-
-            # Later in __init__, we may abort this init because of
-            # inconsistent job def, compute env, or job queue parameters
-            # If we do that, we don't want to leave a bunch of newly created
-            # resources around so keep track of whether this repo was created
-            # or adopted.
-            if config.has_option('docker-repos', repo_name):
-                # Pre-existing repo, no cleanup necessary
-                repo_cleanup = False
             else:
-                # Freshly created repo, cleanup necessary
-                repo_cleanup = True
+                # Create and build the docker image
+                self._docker_image = dockerimage.DockerImage(
+                    func=func,
+                    script_path=image_script_path,
+                    dir_name=image_work_dir,
+                    username=username
+                )
 
-            self._docker_repo = aws.DockerRepo(name=repo_name)
+            if not self.docker_image.images:
+                self.docker_image.build(tags=image_tags)
+                mod_logger.info(
+                    'knot {name:s} built docker image {i!s}'
+                    ''.format(name=self.name, i=self.docker_image.images)
+                )
 
-            mod_logger.info(
-                'knot {name:s} created/adopted docker repo '
-                '{r:s}'.format(name=self.name, r=self.docker_repo.name)
-            )
+            if self.docker_image.repo_uri is None:
+                # Create the remote repo
+                repo_name = (repo_name if repo_name
+                             else self.docker_image.images[0]['name'])
 
-            # Push to remote repo
-            self.docker_image.push(repo=self.docker_repo)
+                # Later in __init__, we may abort this init because of
+                # inconsistent job def, compute env, or job queue parameters
+                # If we do that, we don't want to leave a bunch of newly
+                # created resources around so keep track of whether this repo
+                # was created or adopted.
+                if config.has_option('docker-repos', repo_name):
+                    # Pre-existing repo, no cleanup necessary
+                    repo_cleanup = False
+                else:
+                    # Freshly created repo, cleanup necessary
+                    repo_cleanup = True
 
-            mod_logger.info(
-                "knot {name:s} pushed it's docker image to the repo "
-                "{r:s}".format(name=self.name, r=self.docker_repo.name)
-            )
+                self._docker_repo = aws.DockerRepo(name=repo_name)
+
+                mod_logger.info(
+                    'knot {name:s} created/adopted docker repo '
+                    '{r:s}'.format(name=self.name, r=self.docker_repo.name)
+                )
+
+                # Push to remote repo
+                self.docker_image.push(repo=self.docker_repo)
+
+                mod_logger.info(
+                    "knot {name:s} pushed it's docker image to the repo "
+                    "{r:s}".format(name=self.name, r=self.docker_repo.name)
+                )
+            else:
+                repo_cleanup = False
+                self._docker_repo = None
 
             try:
                 # Create job definition
@@ -1085,6 +1115,9 @@ class Knot(aws.NamedObject):
                 if not all(matches.values()):
                     if repo_cleanup:
                         self.docker_repo.clobber()
+
+                    if pars_cleanup:
+                        self.pars.clobber()
 
                     raise ValueError(
                         'The requested job definition already exists but '
@@ -1192,6 +1225,9 @@ class Knot(aws.NamedObject):
                     if jd_cleanup:
                         self.job_definition.clobber()
 
+                    if pars_cleanup:
+                        self.pars.clobber()
+
                     raise ValueError(
                         'The requested compute environment already exists '
                         'but does not match the input parameters. '
@@ -1245,6 +1281,9 @@ class Knot(aws.NamedObject):
                     if ce_cleanup:
                         self.compute_environment.clobber()
 
+                    if pars_cleanup:
+                        self.pars.clobber()
+
                     raise ValueError(
                         'The requested job queue already exists '
                         'but does not match the input parameters. '
@@ -1269,14 +1308,12 @@ class Knot(aws.NamedObject):
             config.set(self._knot_name, 'profile', self.profile)
             config.set(self._knot_name, 'pars', self.pars.name)
             config.set(self._knot_name, 'docker-image', self.docker_image.name)
-            config.set(self._knot_name, 'docker-repo', self.docker_repo.name)
-            config.set(
-                self._knot_name, 'job-definition', self.job_definition.name
-            )
-            config.set(
-                self._knot_name,
-                'compute-environment', self.compute_environment.name
-            )
+            config.set(self._knot_name, 'docker-repo',
+                       self.docker_repo.name if self.docker_repo else 'None')
+            config.set(self._knot_name, 'job-definition',
+                       self.job_definition.name)
+            config.set(self._knot_name, 'compute-environment',
+                       self.compute_environment.name)
             config.set(self._knot_name, 'job-queue', self.job_queue.name)
             config.set(self._knot_name, 'job_ids', '')
 
@@ -1468,6 +1505,14 @@ class Knot(aws.NamedObject):
         clobber_pars : boolean
             If true, clobber the associated Pars instance
             Default: False
+
+        clobber_repo : boolean
+            If true, clobber the associated DockerRepo instance
+            Default: False
+
+        clobber_image : boolean
+            If true, clobber the associated DockerImage instance
+            Default: False
         """
         if self.clobbered:
             return
@@ -1485,7 +1530,7 @@ class Knot(aws.NamedObject):
         self.compute_environment.clobber()
         self.job_definition.clobber()
 
-        if clobber_repo:
+        if clobber_repo and self.docker_repo:
             self.docker_repo.clobber()
 
         if clobber_image:
