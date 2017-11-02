@@ -23,7 +23,6 @@ def cleanup():
     yield None
     iam = ck.aws.clients['iam']
     ec2 = ck.aws.clients['ec2']
-    ecr = ck.aws.clients['ecr']
     batch = ck.aws.clients['batch']
     ecs = ck.aws.clients['ecs']
     config_file = ck.config.get_config_file()
@@ -32,7 +31,6 @@ def cleanup():
     ce_section_name = 'compute-environments ' + section_suffix
     jd_section_name = 'job-definitions ' + section_suffix
     roles_section_name = 'roles ' + ck.get_profile() + ' global'
-    repos_section_name = 'docker-repos ' + section_suffix
     vpc_section_name = 'vpc ' + section_suffix
     sg_section_name = 'security-groups ' + section_suffix
 
@@ -454,6 +452,15 @@ def cleanup():
     with open(config_file, 'w') as f:
         config.write(f)
 
+
+@pytest.fixture(scope='module')
+def cleanup_repos():
+    yield None
+    ecr = ck.aws.clients['ecr']
+    config_file = ck.config.get_config_file()
+    section_suffix = ck.get_profile() + ' ' + ck.get_region()
+    repos_section_name = 'docker-repos ' + section_suffix
+
     # Clean up repos from AWS
     # -----------------------
     # Get all repos with unit test prefix in the name
@@ -461,6 +468,7 @@ def cleanup():
     repos = [r for r in response.get('repositories')
              if ('unit_testing_func' in r['repositoryName']
                  or 'test_func_input' in r['repositoryName']
+                 or 'simple_unit_testing_func' in r['repositoryName']
                  or UNIT_TEST_PREFIX in r['repositoryName'])]
 
     # Delete the AWS ECR repo
@@ -487,17 +495,13 @@ def get_testing_name():
     return name
 
 
-def test_Pars(cleanup):
-    config = configparser.ConfigParser()
+def test_Pars():
     config_file = ck.config.get_config_file()
     p = None
 
     try:
         name = get_testing_name()
-        try:
-            p = ck.Pars(name=name)
-        except ck.aws.CannotCreateResourceException:
-            p = ck.Pars(name=name, use_default_vpc=False)
+        p = ck.Pars(name=name)
 
         # Re-instantiate the PARS so that it retrieves from config
         # with resources that already exist
@@ -751,7 +755,7 @@ def unit_testing_func(name=None, no_capitalize=False):
     return 'Hello world!'
 
 
-def test_DockerImage(cleanup):
+def test_DockerImage(cleanup_repos):
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
     ecr = ck.aws.clients['ecr']
@@ -1114,8 +1118,7 @@ def test_DockerImage(cleanup):
         raise e
 
 
-def test_Knot(cleanup):
-    config = configparser.ConfigParser()
+def test_Knot(cleanup_repos):
     config_file = ck.config.get_config_file()
     knot, knot2 = None, None
 
@@ -1180,13 +1183,13 @@ def test_Knot(cleanup):
         assert knot2.job_queue.name == pre + 'job-queue'
         assert knot2.compute_environment.name == pre + 'compute-environment'
 
-        knot2.clobber(clobber_pars=True)
+        knot2.clobber(clobber_pars=True, clobber_image=True)
     except Exception as e:
         try:
             if knot2:
-                knot2.clobber(clobber_pars=True)
+                knot2.clobber(clobber_pars=True, clobber_image=True)
             elif knot:
-                knot.clobber(clobber_pars=True)
+                knot.clobber(clobber_pars=True, clobber_image=True)
         except Exception:
             pass
 
@@ -1206,10 +1209,7 @@ def test_Knot(cleanup):
     clobber_pars = 'pars default' not in config.sections()
 
     try:
-        try:
-            pars = ck.Pars()
-        except ck.aws.CannotCreateResourceException:
-            pars = ck.Pars(use_default_vpc=False)
+        pars = ck.Pars()
 
         # Make a job definition for input testing
         jd = ck.aws.JobDefinition(
