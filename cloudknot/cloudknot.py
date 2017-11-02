@@ -990,11 +990,13 @@ class Knot(aws.NamedObject):
                 mod_logger.info('knot {name:s} adopted PARS {p:s}'.format(
                     name=self.name, p=self.pars.name
                 ))
+                pars_cleanup = False
             else:
                 self._pars = Pars(name=self.name, policies=pars_policies)
                 mod_logger.info('knot {name:s} created PARS {p:s}'.format(
                     name=self.name, p=self.pars.name
                 ))
+                pars_cleanup = True
 
             if docker_image:
                 if any([func, image_script_path, image_work_dir]):
@@ -1111,6 +1113,9 @@ class Knot(aws.NamedObject):
                 }
 
                 if not all(matches.values()):
+                    if pars_cleanup:
+                        self.pars.clobber()
+
                     if repo_cleanup:
                         self.docker_repo.clobber()
 
@@ -1214,6 +1219,9 @@ class Knot(aws.NamedObject):
                 }
 
                 if not all(matches.values()):
+                    if pars_cleanup:
+                        self.pars.clobber()
+
                     if repo_cleanup:
                         self.docker_repo.clobber()
 
@@ -1264,6 +1272,9 @@ class Knot(aws.NamedObject):
                 }
 
                 if not all(matches.values()):
+                    if pars_cleanup:
+                        self.pars.clobber()
+
                     if repo_cleanup:
                         self.docker_repo.clobber()
 
