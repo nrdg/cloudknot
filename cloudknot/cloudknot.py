@@ -1113,11 +1113,11 @@ class Knot(aws.NamedObject):
                 }
 
                 if not all(matches.values()):
-                    if pars_cleanup:
-                        self.pars.clobber()
-
                     if repo_cleanup:
                         self.docker_repo.clobber()
+
+                    if pars_cleanup:
+                        self.pars.clobber()
 
                     raise ValueError(
                         'The requested job definition already exists but '
@@ -1219,14 +1219,14 @@ class Knot(aws.NamedObject):
                 }
 
                 if not all(matches.values()):
-                    if pars_cleanup:
-                        self.pars.clobber()
-
                     if repo_cleanup:
                         self.docker_repo.clobber()
 
                     if jd_cleanup:
                         self.job_definition.clobber()
+
+                    if pars_cleanup:
+                        self.pars.clobber()
 
                     raise ValueError(
                         'The requested compute environment already exists '
@@ -1272,9 +1272,6 @@ class Knot(aws.NamedObject):
                 }
 
                 if not all(matches.values()):
-                    if pars_cleanup:
-                        self.pars.clobber()
-
                     if repo_cleanup:
                         self.docker_repo.clobber()
 
@@ -1283,6 +1280,9 @@ class Knot(aws.NamedObject):
 
                     if ce_cleanup:
                         self.compute_environment.clobber()
+
+                    if pars_cleanup:
+                        self.pars.clobber()
 
                     raise ValueError(
                         'The requested job queue already exists '
