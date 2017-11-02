@@ -426,24 +426,6 @@ class DockerImage(aws.NamedObject):
         images = [{'name': image_name, 'tag': t} for t in tags]
         self._images += [im for im in images if im not in self.images]
 
-        # Refresh the aws ecr login credentials
-        login_cmd = subprocess.check_output([
-            'aws', 'ecr', 'get-login', '--no-include-email',
-            '--region', get_region()
-        ])
-
-        # Login
-        login_result = subprocess.call(
-            login_cmd.decode('ASCII').rstrip('\n').split(' '))
-
-        # If login failed, pass error to user
-        if login_result:  # pragma: nocover
-            raise ValueError(
-                'Unable to login to AWS ECR using `{login:s}`'.format(
-                    login=login_cmd.decode()
-                )
-            )
-
         # Use docker low-level APIClient
         c = docker.from_env()
         for im in images:
@@ -515,6 +497,24 @@ class DockerImage(aws.NamedObject):
                 'The images property is empty, indicating that the build '
                 'method has not yet been called. Call `build(tags=<tags>)` '
                 'first before calling `tag()`.'
+            )
+
+        # Refresh the aws ecr login credentials
+        login_cmd = subprocess.check_output([
+            'aws', 'ecr', 'get-login', '--no-include-email',
+            '--region', get_region()
+        ])
+
+        # Login
+        login_result = subprocess.call(
+            login_cmd.decode('ASCII').rstrip('\n').split(' '))
+
+        # If login failed, pass error to user
+        if login_result:  # pragma: nocover
+            raise ValueError(
+                'Unable to login to AWS ECR using `{login:s}`'.format(
+                    login=login_cmd.decode()
+                )
             )
 
         if repo:
