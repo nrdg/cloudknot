@@ -5,6 +5,7 @@ import docker
 import inspect
 import logging
 import os
+import re
 import six
 import subprocess
 import tempfile
@@ -39,7 +40,7 @@ class DockerImage(aws.NamedObject):
     Dockerfile.
     """
     def __init__(self, name=None, func=None, script_path=None,
-                 dir_name=None, username=None):
+                 dir_name=None, github_installs=(), username=None):
         """Initialize a DockerImage instance
 
         Parameters
@@ -60,6 +61,12 @@ class DockerImage(aws.NamedObject):
             Default: parent directory of script if `script_path` is provided
             else DockerImage creates a new directory, accessible by the
             `build_path` property.
+
+        github_installs : string or sequence of strings
+            Github addresses for packages to install from github rather than
+            PyPI (e.g. git://github.com/richford/cloudknot.git or
+            git://github.com/richford/cloudknot.git@newfeaturebranch)
+            Default: ()
 
         username : string
             Default user created in the Dockerfile
@@ -111,6 +118,8 @@ class DockerImage(aws.NamedObject):
             self._script_path = config.get(section_name, 'script-path')
             self._docker_path = config.get(section_name, 'docker-path')
             self._req_path = config.get(section_name, 'req-path')
+            self._github_installs = config.get(section_name,
+                                               'github-imports').split()
             self._username = config.get(section_name, 'username')
             self._clobber_script = config.getboolean(section_name,
                                                      'clobber-script')
@@ -212,11 +221,34 @@ class DockerImage(aws.NamedObject):
                     'if it is no longer needed.'.format(file=self.req_path)
                 )
 
+            # Validate github installs before building Dockerfile
+            if isinstance(github_installs, six.string_types):
+                self._github_installs = [github_installs]
+            elif all(isinstance(x, six.string_types) for x in github_installs):
+                self._github_installs = list(github_installs)
+            else:
+                raise ValueError('github_installs must be a string or a '
+                                 'sequence of strings.')
+
+            pattern = r'(https|git)(://github.com/).*/.*\.git($|@.*$)'
+            for install in self._github_installs:
+                match_obj = re.match(pattern, install)
+                if match_obj is None:
+                    raise ValueError(
+                        'One of your github_installs, {i:s} is not formatted '
+                        'correctly. It should look something like '
+                        'git://github.com/user/repo.git, '
+                        'git://github.com/user/repo.git@branch, '
+                        'https://github.com/user/repo.git, or '
+                        'https://github.com/user/repo.git@branch, '
+                    )
+
             # Set self.pip_imports and self.missing_imports
             self._set_imports()
 
             # Write the requirements.txt file and Dockerfile
             pipreqs.generate_requirements_file(self.req_path, self.pip_imports)
+
             self._write_dockerfile()
 
             self._images = []
@@ -232,6 +264,8 @@ class DockerImage(aws.NamedObject):
                 section_name, 'docker-path', self.docker_path
             )
             ckconfig.add_resource(section_name, 'req-path', self.req_path)
+            ckconfig.add_resource(section_name, 'github-imports',
+                                  ' '.join(self.github_installs))
             ckconfig.add_resource(section_name, 'username', self.username)
             ckconfig.add_resource(section_name, 'images', '')
             ckconfig.add_resource(section_name, 'repo-uri', '')
@@ -269,6 +303,11 @@ class DockerImage(aws.NamedObject):
     def pip_imports(self):
         """List of packages in the requirements.txt file"""
         return self._pip_imports
+
+    @property
+    def github_installs(self):
+        """List of packages installed from github rather than PyPI"""
+        return self._github_installs
 
     @property
     def username(self):
@@ -330,7 +369,11 @@ class DockerImage(aws.NamedObject):
 
             f.write('# Install python dependencies\n')
             f.write('COPY requirements.txt /tmp/\n')
-            f.write('RUN pip install -r /tmp/requirements.txt\n\n')
+            f.write('RUN pip install -r /tmp/requirements.txt')
+            for install in self.github_installs:
+                f.write(' \\\n    && pip install git+' + install)
+
+            f.write('\n\n')
 
             f.write('# Create a default user. Available via runtime flag ')
             f.write('`--user {user:s}`.\n'.format(user=self.username))
@@ -374,11 +417,12 @@ class DockerImage(aws.NamedObject):
         # Of those names, store that ones that are available via pip
         self._pip_imports = pipreqs.get_imports_info(import_names)
 
-        if len(import_names) != len(self.pip_imports):
-            # If some imports were left out, store their names
-            pip_names = set([i['name'] for i in self.pip_imports])
-            self._missing_imports = list(set(import_names) - pip_names)
+        # If some imports were left out, store their names
+        pip_names = set([i['name'] for i in self.pip_imports])
+        self._missing_imports = list(set(import_names) - pip_names)
 
+        if len(import_names) != (len(self.pip_imports)
+                                 + len(self.github_installs)):
             # And warn the user
             mod_logger.warning(
                 'Warning, some imports not found by pipreqs. You will '
@@ -386,9 +430,6 @@ class DockerImage(aws.NamedObject):
                 'from github. You need to install the following packages '
                 '{missing!s}'.format(missing=self.missing_imports)
             )
-        else:
-            # All imports accounted for
-            self._missing_imports = None
 
     def build(self, tags, image_name=None):
         """Build a DockerContainer image
