@@ -339,7 +339,18 @@ class DockerImage(aws.NamedObject):
         Use clize.run to create CLI
         """
         with open(self.script_path, 'w') as f:
-            f.write('from clize import run\n\n\n')
+            f.write('import boto3\n')
+            f.write('import cloudpickle\n')
+            f.write('from clize import run\n')
+            f.write('from functools import wraps\n\n\n')
+            f.write('def pickle_to_s3(f):\n')
+            f.write('    @wraps(f)\n')
+            f.write('    def wrapper(*args, **kwargs):\n')
+            f.write('        bucket = os.environ.get("CK_JOBS_S3_BUCKET")\n')
+            f.write('        key = os.environ.get("CK_S3_JOB_KEY")\n')
+            f.write('        pickled_result = cloudpickle.dumps(f(*args, **kwargs))\n')
+            f.write('        s3.put_object(Bucket=bucket, Body=pickled_result, Key=key)\n\n')
+            f.write('    return wrapper\n\n\n')
             f.write(inspect.getsource(self.func))
             f.write('\n\n')
             f.write('if __name__ == "__main__":\n')
