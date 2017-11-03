@@ -895,7 +895,7 @@ def test_DockerImage(cleanup_repos):
         assert di.name == op.basename(script_path)
         import_names = set([d['name'] for d in di.pip_imports])
         assert import_names == correct_pip_imports
-        assert di.missing_imports is None
+        assert di.missing_imports == []
         assert di.username == 'unit-test-username'
         assert di.func is None
         assert di.build_path == dir_name
