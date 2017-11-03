@@ -277,17 +277,21 @@ class Vpc(NamedObject):
                 name = name_tag['Value']
             except IndexError:
                 name = 'cloudknot-acquired-pre-existing-vpc'
-                clients['ec2'].create_tags(
+
+                retry = tenacity.Retrying(
+                    wait=tenacity.wait_exponential(max=16),
+                    stop=tenacity.stop_after_delay(120),
+                    retry=tenacity.retry_if_exception_type(
+                        clients['ec2'].exceptions.ClientError
+                    )
+                )
+
+                retry.call(
+                    clients['ec2'].create_tags,
                     Resources=[vpc_id],
                     Tags=[
-                        {
-                            'Key': 'owner',
-                            'Value': 'cloudknot'
-                        },
-                        {
-                            'Key': 'Name',
-                            'Value': name
-                        }
+                        {'Key': 'owner', 'Value': 'cloudknot'},
+                        {'Key': 'Name', 'Value': name}
                     ]
                 )
 
@@ -359,18 +363,22 @@ class Vpc(NamedObject):
         wait_for_vpc.wait(VpcIds=[vpc_id])
         wait_for_vpc = clients['ec2'].get_waiter('vpc_available')
         wait_for_vpc.wait(VpcIds=[vpc_id])
+
+        retry = tenacity.Retrying(
+            wait=tenacity.wait_exponential(max=16),
+            stop=tenacity.stop_after_delay(120),
+            retry=tenacity.retry_if_exception_type(
+                clients['ec2'].exceptions.ClientError
+            )
+        )
+
         # Tag the VPC with name and owner
-        clients['ec2'].create_tags(
+        retry.call(
+            clients['ec2'].create_tags,
             Resources=[vpc_id],
             Tags=[
-                {
-                    'Key': 'owner',
-                    'Value': 'cloudknot'
-                },
-                {
-                    'Key': 'Name',
-                    'Value': self.name
-                }
+                {'Key': 'owner', 'Value': 'cloudknot'},
+                {'Key': 'Name', 'Value': self.name}
             ]
         )
 
