@@ -339,22 +339,39 @@ class DockerImage(aws.NamedObject):
         Use clize.run to create CLI
         """
         with open(self.script_path, 'w') as f:
+            # i is an indentation shorthand
+            i = '    '
+            i2 = i + i
             f.write('import boto3\n')
             f.write('import cloudpickle\n')
+            f.write('import os\n')
             f.write('from clize import run\n')
             f.write('from functools import wraps\n\n\n')
             f.write('def pickle_to_s3(f):\n')
-            f.write('    @wraps(f)\n')
-            f.write('    def wrapper(*args, **kwargs):\n')
-            f.write('        bucket = os.environ.get("CK_JOBS_S3_BUCKET")\n')
-            f.write('        key = os.environ.get("CK_S3_JOB_KEY")\n')
-            f.write('        pickled_result = cloudpickle.dumps(f(*args, **kwargs))\n')
-            f.write('        s3.put_object(Bucket=bucket, Body=pickled_result, Key=key)\n\n')
-            f.write('    return wrapper\n\n\n')
+            f.write(i + '@wraps(f)\n')
+            f.write(i + 'def wrapper(*args, **kwargs):\n')
+            f.write(i2 + 's3 = boto3.client("s3")\n')
+            f.write(i2 + 'bucket = '
+                         'os.environ.get("CLOUDKNOT_JOBS_S3_BUCKET")\n')
+            f.write(i2 + 'key = "cloudknot.jobs/"\n')
+            f.write(i2 + 'key += '
+                         'os.environ.get("CLOUDKNOT_S3_JOBDEF_KEY")\n')
+            f.write(i2 + 'key += "/" + '
+                         'os.environ.get("AWS_BATCH_JOB_ID")\n')
+            f.write(i2 + 'key += '
+                         '"/" + os.environ.get("AWS_BATCH_JOB_ATTEMPT")\n')
+            f.write(i2 + 'key += '
+                         '"/output.pickle"\n')
+            f.write(i2 + 'pickled_result = '
+                         'cloudpickle.dumps(f(*args, **kwargs))\n')
+            f.write(i2 + 's3.put_object(Bucket=bucket, '
+                         'Body=pickled_result, Key=key)\n\n')
+            f.write(i + 'return wrapper\n\n\n')
+            f.write('@pickle_to_s3\n')
             f.write(inspect.getsource(self.func))
             f.write('\n\n')
             f.write('if __name__ == "__main__":\n')
-            f.write('    run({func_name:s})\n'.format(func_name=self.name))
+            f.write(i + 'run({func_name:s})\n'.format(func_name=self.name))
 
         mod_logger.info(
             'Wrote python function {func:s} to script {script:s}'.format(
