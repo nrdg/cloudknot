@@ -532,7 +532,7 @@ cloudknot.DockerImage</div>
 <div class="content docutils container">
 <dl class="class">
 <dt id="cloudknot.DockerImage">
-<em class="property">class </em><code class="descclassname">cloudknot.</code><code class="descname">DockerImage</code><span class="sig-paren">(</span><em>name=None</em>, <em>func=None</em>, <em>script_path=None</em>, <em>dir_name=None</em>, <em>username=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cloudknot/dockerimage.html#DockerImage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.DockerImage" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">cloudknot.</code><code class="descname">DockerImage</code><span class="sig-paren">(</span><em>name=None</em>, <em>func=None</em>, <em>script_path=None</em>, <em>dir_name=None</em>, <em>github_installs=()</em>, <em>username=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cloudknot/dockerimage.html#DockerImage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.DockerImage" title="Permalink to this definition">¶</a></dt>
 <dd><p>Class for dockerizing a python script or function</p>
 <p>On <cite>__init__</cite>, if given a python function, DockerImage will create a CLI
 version for that function, write a requirements.txt file for all import
@@ -560,6 +560,10 @@ script with CLI
 Default: parent directory of script if <cite>script_path</cite> is provided
 else DockerImage creates a new directory, accessible by the
 <cite>build_path</cite> property.</li>
+<li><strong>github_installs</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a><em> or </em><em>sequence of strings</em>) – Github addresses for packages to install from github rather than
+PyPI (e.g. git://github.com/richford/cloudknot.git or
+git://github.com/richford/cloudknot.git&#64;newfeaturebranch)
+Default: ()</li>
 <li><strong>username</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) – Default user created in the Dockerfile
 Default: ‘cloudknot-user’</li>
 </ul>
@@ -630,6 +634,12 @@ directory if it is empty.</p>
 <dt id="cloudknot.DockerImage.func">
 <code class="descname">func</code><a class="headerlink" href="#cloudknot.DockerImage.func" title="Permalink to this definition">¶</a></dt>
 <dd><p>Python function that was dockerized</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.DockerImage.github_installs">
+<code class="descname">github_installs</code><a class="headerlink" href="#cloudknot.DockerImage.github_installs" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of packages installed from github rather than PyPI</p>
 </dd></dl>
 
 <dl class="attribute">

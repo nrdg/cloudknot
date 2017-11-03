@@ -88,6 +88,7 @@
 <span class="kn">import</span> <span class="nn">inspect</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">six</span>
 <span class="kn">import</span> <span class="nn">subprocess</span>
 <span class="kn">import</span> <span class="nn">tempfile</span>
@@ -122,7 +123,7 @@
 <span class="sd">    Dockerfile.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">func</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">script_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">dir_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">username</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                 <span class="n">dir_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">github_installs</span><span class="o">=</span><span class="p">(),</span> <span class="n">username</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize a DockerImage instance</span>
 
 <span class="sd">        Parameters</span>
@@ -143,6 +144,12 @@
 <span class="sd">            Default: parent directory of script if `script_path` is provided</span>
 <span class="sd">            else DockerImage creates a new directory, accessible by the</span>
 <span class="sd">            `build_path` property.</span>
+
+<span class="sd">        github_installs : string or sequence of strings</span>
+<span class="sd">            Github addresses for packages to install from github rather than</span>
+<span class="sd">            PyPI (e.g. git://github.com/richford/cloudknot.git or</span>
+<span class="sd">            git://github.com/richford/cloudknot.git@newfeaturebranch)</span>
+<span class="sd">            Default: ()</span>
 
 <span class="sd">        username : string</span>
 <span class="sd">            Default user created in the Dockerfile</span>
@@ -194,6 +201,8 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_script_path</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span> <span class="s1">&#39;script-path&#39;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_docker_path</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span> <span class="s1">&#39;docker-path&#39;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_req_path</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span> <span class="s1">&#39;req-path&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_github_installs</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span>
+                                               <span class="s1">&#39;github-imports&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_username</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span> <span class="s1">&#39;username&#39;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_clobber_script</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">getboolean</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span>
                                                      <span class="s1">&#39;clobber-script&#39;</span><span class="p">)</span>
@@ -295,11 +304,34 @@
                     <span class="s1">&#39;if it is no longer needed.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">req_path</span><span class="p">)</span>
                 <span class="p">)</span>
 
+            <span class="c1"># Validate github installs before building Dockerfile</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">github_installs</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_github_installs</span> <span class="o">=</span> <span class="p">[</span><span class="n">github_installs</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">github_installs</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_github_installs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">github_installs</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;github_installs must be a string or a &#39;</span>
+                                 <span class="s1">&#39;sequence of strings.&#39;</span><span class="p">)</span>
+
+            <span class="n">pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;(https|git)(://github.com/).*/.*\.git($|@.*$)&#39;</span>
+            <span class="k">for</span> <span class="n">install</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_github_installs</span><span class="p">:</span>
+                <span class="n">match_obj</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">install</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">match_obj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s1">&#39;One of your github_installs, </span><span class="si">{i:s}</span><span class="s1"> is not formatted &#39;</span>
+                        <span class="s1">&#39;correctly. It should look something like &#39;</span>
+                        <span class="s1">&#39;git://github.com/user/repo.git, &#39;</span>
+                        <span class="s1">&#39;git://github.com/user/repo.git@branch, &#39;</span>
+                        <span class="s1">&#39;https://github.com/user/repo.git, or &#39;</span>
+                        <span class="s1">&#39;https://github.com/user/repo.git@branch, &#39;</span>
+                    <span class="p">)</span>
+
             <span class="c1"># Set self.pip_imports and self.missing_imports</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_set_imports</span><span class="p">()</span>
 
             <span class="c1"># Write the requirements.txt file and Dockerfile</span>
             <span class="n">pipreqs</span><span class="o">.</span><span class="n">generate_requirements_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">req_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pip_imports</span><span class="p">)</span>
+
             <span class="bp">self</span><span class="o">.</span><span class="n">_write_dockerfile</span><span class="p">()</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">_images</span> <span class="o">=</span> <span class="p">[]</span>
@@ -315,6 +347,8 @@
                 <span class="n">section_name</span><span class="p">,</span> <span class="s1">&#39;docker-path&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">docker_path</span>
             <span class="p">)</span>
             <span class="n">ckconfig</span><span class="o">.</span><span class="n">add_resource</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span> <span class="s1">&#39;req-path&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">req_path</span><span class="p">)</span>
+            <span class="n">ckconfig</span><span class="o">.</span><span class="n">add_resource</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span> <span class="s1">&#39;github-imports&#39;</span><span class="p">,</span>
+                                  <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">github_installs</span><span class="p">))</span>
             <span class="n">ckconfig</span><span class="o">.</span><span class="n">add_resource</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span> <span class="s1">&#39;username&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">username</span><span class="p">)</span>
             <span class="n">ckconfig</span><span class="o">.</span><span class="n">add_resource</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span> <span class="s1">&#39;images&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
             <span class="n">ckconfig</span><span class="o">.</span><span class="n">add_resource</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span> <span class="s1">&#39;repo-uri&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
@@ -352,6 +386,11 @@
     <span class="k">def</span> <span class="nf">pip_imports</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;List of packages in the requirements.txt file&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pip_imports</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">github_installs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;List of packages installed from github rather than PyPI&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_github_installs</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">username</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -413,7 +452,11 @@
 
             <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;# Install python dependencies</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
             <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;COPY requirements.txt /tmp/</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;RUN pip install -r /tmp/requirements.txt</span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;RUN pip install -r /tmp/requirements.txt&#39;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">install</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">github_installs</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39; </span><span class="se">\\\n</span><span class="s1">    &amp;&amp; pip install git+&#39;</span> <span class="o">+</span> <span class="n">install</span><span class="p">)</span>
+
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="p">)</span>
 
             <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;# Create a default user. Available via runtime flag &#39;</span><span class="p">)</span>
             <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;`--user </span><span class="si">{user:s}</span><span class="s1">`.</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">user</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">username</span><span class="p">))</span>
@@ -457,11 +500,12 @@
         <span class="c1"># Of those names, store that ones that are available via pip</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_pip_imports</span> <span class="o">=</span> <span class="n">pipreqs</span><span class="o">.</span><span class="n">get_imports_info</span><span class="p">(</span><span class="n">import_names</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">import_names</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pip_imports</span><span class="p">):</span>
-            <span class="c1"># If some imports were left out, store their names</span>
-            <span class="n">pip_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">i</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pip_imports</span><span class="p">])</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_missing_imports</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">import_names</span><span class="p">)</span> <span class="o">-</span> <span class="n">pip_names</span><span class="p">)</span>
+        <span class="c1"># If some imports were left out, store their names</span>
+        <span class="n">pip_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">i</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pip_imports</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_missing_imports</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">import_names</span><span class="p">)</span> <span class="o">-</span> <span class="n">pip_names</span><span class="p">)</span>
 
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">import_names</span><span class="p">)</span> <span class="o">!=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pip_imports</span><span class="p">)</span>
+                                 <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">github_installs</span><span class="p">)):</span>
             <span class="c1"># And warn the user</span>
             <span class="n">mod_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
                 <span class="s1">&#39;Warning, some imports not found by pipreqs. You will &#39;</span>
@@ -469,9 +513,6 @@
                 <span class="s1">&#39;from github. You need to install the following packages &#39;</span>
                 <span class="s1">&#39;</span><span class="si">{missing!s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">missing</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">missing_imports</span><span class="p">)</span>
             <span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># All imports accounted for</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_missing_imports</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="DockerImage.build"><a class="viewcode-back" href="../../documentation.html#cloudknot.DockerImage.build">[docs]</a>    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tags</span><span class="p">,</span> <span class="n">image_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Build a DockerContainer image</span>
