@@ -40,8 +40,53 @@ UNIT_TEST_PREFIX = 'cloudknot-unit-test'
 data_path = op.join(ck.__path__[0], 'data')
 
 
+def get_testing_name():
+    u = str(uuid.uuid4()).replace('-', '')[:8]
+    name = UNIT_TEST_PREFIX + '-' + u
+    return name
+
+
 @pytest.fixture(scope='module')
-def pars():
+def bucket_cleanup():
+    ck.set_s3_bucket(get_testing_name())
+    yield None
+    bucket = ck.get_s3_bucket()
+    bucket_policy = ck.aws.base_classes.get_s3_policy_name()
+
+    s3 = ck.aws.clients['s3']
+    s3.delete_bucket(Bucket=bucket)
+
+    iam = ck.aws.clients['iam']
+    response = iam.list_policies(
+        Scope='Local',
+        PathPrefix='/cloudknot/'
+    )
+
+    policy_dict = [p for p in response.get('Policies')
+                   if p['PolicyName'] == bucket_policy]
+
+    arn = policy_dict['Arn']
+
+    response = iam.list_policy_versions(
+        PolicyArn=arn
+    )
+
+    # Get non-default versions
+    versions = [v for v in response.get('Versions')
+                if not v['IsDefaultVersion']]
+
+    # Get the oldest version and delete it
+    for v in versions:
+        iam.delete_policy_version(
+            PolicyArn=arn,
+            VersionId=v['VersionId']
+        )
+
+    iam.delete_policy(PolicyArn=arn)
+
+
+@pytest.fixture(scope='module')
+def pars(bucket_cleanup):
     p = None
     try:
         p = ck.Pars(name='unit-test')
@@ -49,12 +94,6 @@ def pars():
         p = ck.Pars(name='unit-test', use_default_vpc=False)
     yield p
     p.clobber()
-
-
-def get_testing_name():
-    u = str(uuid.uuid4()).replace('-', '')[:8]
-    name = UNIT_TEST_PREFIX + '-' + u
-    return name
 
 
 def test_wait_for_compute_environment(pars):
@@ -110,7 +149,7 @@ def test_wait_for_job_queue(pars):
             ce.clobber()
 
 
-def test_get_region():
+def test_get_region(bucket_cleanup):
     # Save environment variables for restoration later
     try:
         old_region_env = os.environ['AWS_DEFAULT_REGION']
@@ -229,7 +268,7 @@ def test_get_region():
         ck.refresh_clients()
 
 
-def test_set_region():
+def test_set_region(bucket_cleanup):
     with pytest.raises(ValueError):
         ck.set_region(region='not a valid region name')
 
@@ -267,7 +306,7 @@ def test_set_region():
         ck.refresh_clients()
 
 
-def test_list_profiles():
+def test_list_profiles(bucket_cleanup):
     try:
         old_credentials_file = os.environ['AWS_SHARED_CREDENTIALS_FILE']
     except KeyError:
@@ -310,7 +349,7 @@ def test_list_profiles():
                 pass
 
 
-def test_get_profile():
+def test_get_profile(bucket_cleanup):
     try:
         old_credentials_file = os.environ['AWS_SHARED_CREDENTIALS_FILE']
     except KeyError:
@@ -384,7 +423,7 @@ def test_get_profile():
         ck.refresh_clients()
 
 
-def test_set_profile():
+def test_set_profile(bucket_cleanup):
     try:
         old_credentials_file = os.environ['AWS_SHARED_CREDENTIALS_FILE']
     except KeyError:
@@ -448,7 +487,7 @@ def test_set_profile():
         ck.refresh_clients()
 
 
-def test_ObjectWithUsernameAndMemory():
+def test_ObjectWithUsernameAndMemory(bucket_cleanup):
     for mem in [-42, 'not-an-int']:
         with pytest.raises(ValueError):
             ck.aws.base_classes.ObjectWithUsernameAndMemory(
@@ -457,7 +496,7 @@ def test_ObjectWithUsernameAndMemory():
             )
 
 
-def test_IamRole():
+def test_IamRole(bucket_cleanup):
     iam = ck.aws.clients['iam']
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
@@ -666,7 +705,7 @@ def test_IamRole():
         raise e
 
 
-def test_DockerRepo():
+def test_DockerRepo(bucket_cleanup):
     ecr = ck.aws.clients['ecr']
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
@@ -778,7 +817,7 @@ def test_DockerRepo():
         raise e
 
 
-def test_Vpc():
+def test_Vpc(bucket_cleanup):
     ec2 = ck.aws.clients['ec2']
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
@@ -1028,7 +1067,7 @@ def test_Vpc():
         raise e
 
 
-def test_SecurityGroup():
+def test_SecurityGroup(bucket_cleanup):
     ec2 = ck.aws.clients['ec2']
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
