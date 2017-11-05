@@ -2,10 +2,13 @@ from __future__ import absolute_import, division, print_function
 
 import boto3
 import configparser
+import getpass
+import json
 import logging
 import os
 import sys
 import time
+import uuid
 from collections import namedtuple
 
 from ..config import get_config_file
@@ -18,10 +21,215 @@ __all__ = [
     "clients", "refresh_clients",
     "wait_for_compute_environment", "wait_for_job_queue",
     "get_region", "set_region",
+    "get_s3_bucket", "set_s3_bucket", "get_s3_policy_name",
     "get_profile", "set_profile", "list_profiles",
 ]
 
 mod_logger = logging.getLogger(__name__)
+
+
+def get_s3_bucket():
+    """Get the cloudknot S3 bucket
+
+    First, check the cloudknot config file for the bucket option.
+    If that fails, check for the CLOUDKNOT_S3_BUCKET environment variable.
+    If that fails, use 'cloudknot-' + getpass.getuser().lower() + '-' + uuid4()
+
+    Returns
+    -------
+    region : string
+        Cloudknot S3 bucket name
+    """
+    config_file = get_config_file()
+    config = configparser.ConfigParser()
+    config.read(config_file)
+
+    option = 's3-bucket'
+    if config.has_section('aws') and config.has_option('aws', option):
+        return config.get('aws', option)
+    else:
+        # Set `bucket`, the fallback bucket in case the cloudknot
+        # bucket environment variable is not set
+        try:
+            # Get the region from an environment variable
+            bucket = os.environ['CLOUDKNOT_S3_BUCKET']
+        except KeyError:
+            bucket = ('cloudknot-' + getpass.getuser().lower()
+                      + '-' + str(uuid.uuid4()))
+
+        # Use set_s3_bucket to check for name availability
+        # and write to config file
+        set_s3_bucket(bucket)
+
+        return bucket
+
+
+def set_s3_bucket(bucket):
+    """Set the cloudknot S3 bucket
+
+    Set bucket by modifying the cloudknot config file
+
+    Parameters
+    ----------
+    bucket : string
+        Cloudknot S3 bucket name
+    """
+    try:
+        clients['s3'].create_bucket(Bucket=bucket)
+    except clients['s3'].exceptions.BucketAlreadyOwnedByYou:
+        pass
+    except clients['s3'].exceptions.BucketAlreadyExists:
+        raise ValueError('The requested bucket name is not available.')
+
+    # Update the s3_policy with new bucket name
+    update_s3_policy(bucket)
+
+    config_file = get_config_file()
+    config = configparser.ConfigParser()
+    config.read(config_file)
+
+    if not config.has_section('aws'):  # pragma: nocover
+        config.add_section('aws')
+
+    config.set('aws', 's3-bucket', bucket)
+    with open(config_file, 'w') as f:
+        config.write(f)
+
+
+def get_bucket_policy(bucket):
+    """Return the policy document to access an S3 bucket
+
+    Parameters
+    ----------
+    bucket: string
+        An Amazon S3 bucket name
+
+    Returns
+    -------
+    s3_policy: dict
+        A dictionary containing the AWS policy document
+    """
+    # Add policy statements to access to cloudknot S3 bucket
+    s3_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": ["s3:ListBucket"],
+                "Resource": ["arn:aws:s3:::{0:s}".format(bucket)]
+            },
+            {
+                "Effect": "Allow",
+                "Action": ["s3:PutObject"],
+                "Resource": ["arn:aws:s3:::{0:s}/*".format(bucket)]
+            }
+        ]
+    }
+
+    return s3_policy
+
+
+def get_s3_policy_name():
+    """Get the policy that grants access to the cloudknot S3 bucket
+
+    First, check the cloudknot config file for the bucket-policy option.
+    If that fails, use 'cloudknot-bucket-access-' + uuid4()
+
+    Returns
+    -------
+    policy : string
+        Cloudknot S3 bucket access policy name
+    """
+    config_file = get_config_file()
+    config = configparser.ConfigParser()
+    config.read(config_file)
+
+    bucket = get_s3_bucket()
+    s3_policy = get_bucket_policy(bucket)
+
+    option = 's3-bucket-policy'
+    if config.has_section('aws') and config.has_option('aws', option):
+        # Get policy name from the config file
+        policy = config.get('aws', option)
+    else:
+        # or create new one if it doesn't exist
+        policy = 'cloudknot-bucket-access-' + str(uuid.uuid4())
+
+        if not config.has_section('aws'):
+            config.add_section('aws')
+
+        config.set('aws', option, policy)
+        with open(config_file, 'w') as f:
+            config.write(f)
+
+    try:
+        # Create the policy
+        clients['iam'].create_policy(
+            PolicyName=policy,
+            Path='/cloudknot/',
+            PolicyDocument=json.dumps(s3_policy),
+            Description='Grants access to S3 bucket {0:s}'.format(bucket)
+        )
+    except clients['iam'].exceptions.EntityAlreadyExistsException:
+        # Policy already exists, do nothing
+        pass
+
+    return policy
+
+
+def update_s3_policy(bucket):
+    """Update the cloudknot S3 access policy with new bucket name
+
+    Parameters
+    ----------
+    bucket: string
+        Amazon S3 bucket name
+    """
+    s3_policy = get_bucket_policy(bucket)
+    policy = get_s3_policy_name()
+
+    # After calling get_s3_policy_name(), the policy already exists
+    # Get the ARN
+    response = clients['iam'].list_policies(
+        Scope='Local',
+        PathPrefix='/cloudknot/'
+    )
+
+    policy_dict = [p for p in response.get('Policies')
+                   if p['PolicyName'] == policy]
+
+    arn = policy_dict['Arn']
+
+    try:
+        # Update the policy
+        clients['iam'].create_policy_version(
+            PolicyArn=arn,
+            PolicyDocument=json.dumps(s3_policy),
+            SetAsDefault=True
+        )
+    except clients['iam'].exceptions.LimitExceededException:
+        # Too many policy versions. List policy versions and delete oldest
+        response = clients['iam'].list_policy_versions(
+            PolicyArn=arn
+        )
+
+        # Get non-default versions
+        versions = [v for v in response.get('Versions')
+                    if not v['IsDefaultVersion']]
+
+        # Get the oldest version and delete it
+        oldest = sorted(versions, key=lambda ver: ver['CreateDate'])[0]
+        clients['iam'].delete_policy_version(
+            PolicyArn=arn,
+            VersionId=oldest['VersionId']
+        )
+
+        # Update the policy not that there's room for another version
+        clients['iam'].create_policy_version(
+            PolicyArn=arn,
+            PolicyDocument=json.dumps(s3_policy),
+            SetAsDefault=True
+        )
 
 
 def get_region():
@@ -117,6 +325,7 @@ def set_region(region='us-east-1'):
     clients['batch'] = session.client('batch', region_name=region)
     clients['ecr'] = session.client('ecr', region_name=region)
     clients['ecs'] = session.client('ecs', region_name=region)
+    clients['s3'] = session.client('s3', region_name=region)
 
 
 def list_profiles():
@@ -254,9 +463,10 @@ def set_profile(profile_name):
     clients['batch'] = session.client('batch', region_name=get_region())
     clients['ecr'] = session.client('ecr', region_name=get_region())
     clients['ecs'] = session.client('ecs', region_name=get_region())
+    clients['s3'] = session.client('s3', region_name=get_region())
 
 
-#: module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, and ECS.
+#: module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, ECS, S3.
 clients = {
     'iam': boto3.Session(profile_name=get_profile(fallback=None)).client(
         'iam', region_name=get_region()
@@ -272,9 +482,12 @@ clients = {
     ),
     'ecs': boto3.Session(profile_name=get_profile(fallback=None)).client(
         'ecs', region_name=get_region()
+    ),
+    's3': boto3.Session(profile_name=get_profile(fallback=None)).client(
+        's3', region_name=get_region()
     )
 }
-"""module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, and ECS.
+"""module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, ECS, S3.
 
 Storing the boto3 clients in a module-level dictionary allows us to change
 the region and profile and have those changes reflected globally.
@@ -293,6 +506,7 @@ def refresh_clients():
     clients['batch'] = session.client('batch', region_name=get_region())
     clients['ecr'] = session.client('ecr', region_name=get_region())
     clients['ecs'] = session.client('ecs', region_name=get_region())
+    clients['s3'] = session.client('s3', region_name=get_region())
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit

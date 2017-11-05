@@ -10,7 +10,7 @@ from .base_classes import NamedObject, ObjectWithArn, \
     ObjectWithUsernameAndMemory, clients, \
     ResourceExistsException, ResourceDoesNotExistException, \
     ResourceClobberedException, CannotDeleteResourceException, \
-    wait_for_job_queue
+    wait_for_job_queue, get_s3_bucket
 from .ec2 import Vpc, SecurityGroup
 from .ecr import DockerRepo
 from .iam import IamRole
@@ -312,7 +312,17 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             'memory': self.memory,
             'command': [],
             'jobRoleArn': self.job_role_arn,
-            'user': self.username
+            'user': self.username,
+            'environment': [
+                {
+                    'name': 'CLOUDKNOT_JOBS_S3_BUCKET',
+                    'value': get_s3_bucket()
+                },
+                {
+                    'name': 'CLOUDKNOT_S3_JOBDEF_KEY',
+                    'value': self.name
+                }
+            ],
         }
 
         # Register the job def
