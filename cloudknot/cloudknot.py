@@ -835,7 +835,7 @@ class Knot(aws.NamedObject):
         retries : int, optional
             number of times a job can be moved to 'RUNNABLE' status.
             May be between 1 and 10
-            Default: 3
+            Default: 1
 
         compute_environment_name : str
             Name for this knot's AWS Batch compute environment

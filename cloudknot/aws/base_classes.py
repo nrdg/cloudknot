@@ -17,6 +17,7 @@ __all__ = [
     "ResourceDoesNotExistException", "ResourceClobberedException",
     "ResourceExistsException", "CannotDeleteResourceException",
     "CannotCreateResourceException", "RegionException", "ProfileException",
+    "BatchJobFailedError",
     "NamedObject", "ObjectWithArn", "ObjectWithUsernameAndMemory",
     "clients", "refresh_clients",
     "wait_for_compute_environment", "wait_for_job_queue",
@@ -635,6 +636,23 @@ class ProfileException(Exception):
         )
         self.current_profile = get_profile()
         self.resource_profile = resource_profile
+
+
+# noinspection PyPropertyAccess,PyAttributeOutsideInit
+class BatchJobFailedError(Exception):
+    """Error indicating an AWS Batch job failed"""
+    def __init__(self, job_id):
+        """Initialize the Exception
+
+        Parameters
+        ----------
+        job_id : string
+            The AWS jobId of the failed job
+        """
+        super(BatchJobFailedError, self).__init__(
+            "AWS Batch job {job_id:s} has failed.".format(job_id=job_id)
+        )
+        self.job_id = job_id
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
