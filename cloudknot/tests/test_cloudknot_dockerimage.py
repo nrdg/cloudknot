@@ -762,7 +762,8 @@ def test_DockerImage(cleanup_repos):
 
     try:
         correct_pip_imports = set([
-            'clize', 'boto3', 'six', 'dask', 'docker', 'pytest', 'h5py'
+            'clize', 'boto3', 'six', 'dask', 'docker',
+            'pytest', 'h5py', 'cloudpickle'
         ])
 
         # First, test a DockerImage instance with `func` input

@@ -511,7 +511,7 @@ def test_IamRole():
         # Confirm that the instance has the right properties.
         assert role.service == service
         assert role.arn == arn
-        assert role.policies == (policy['name'],)
+        assert set(role.policies) == {policy['name']}
 
         # Confirm that the role is in the config file
         config = configparser.ConfigParser()
@@ -565,7 +565,9 @@ def test_IamRole():
             assert role.description == d
             assert role.service == s + '.amazonaws.com'
             p = (p,) if isinstance(p, six.string_types) else tuple(p)
-            assert set(role.policies) == set(p)
+            assert set(role.policies) == (
+                set(p) | {ck.aws.base_classes.get_s3_policy_name()}
+            )
             if i:
                 assert role.instance_profile_arn
             else:
@@ -1391,7 +1393,7 @@ def test_JobDefinition(pars):
             assert jd.docker_image == di
             v = v if v else 1
             assert jd.vcpus == v
-            r = r if r else 3
+            r = r if r else 1
             assert jd.retries == r
             m = m if m else 8000
             assert jd.memory == m
