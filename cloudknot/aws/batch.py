@@ -110,7 +110,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             self._vcpus = resource.vcpus
             self._retries = resource.retries
             self._arn = resource.arn
-            self._output_bucket = None
+            self._output_bucket = resource.output_bucket
 
             # Add to config file
             self._section_name = self._get_section_name('job-definitions')
@@ -242,14 +242,16 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         Returns
         -------
         namedtuple RoleExists
-            A namedtuple with fields ['exists', 'name', 'status', 'job_role',
+            A namedtuple with fields
+            ['exists', 'name', 'status', 'job_role', 'output_bucket',
             'docker_image', 'vcpus', 'memory', 'username', 'retries', 'arn']
         """
         # define a namedtuple for return value type
         ResourceExists = namedtuple(
             'ResourceExists',
             ['exists', 'name', 'status', 'job_role_arn', 'docker_image',
-             'vcpus', 'memory', 'username', 'retries', 'arn']
+             'vcpus', 'memory', 'username', 'retries', 'arn',
+             'output_bucket']
         )
         # make all but the first value default to None
         ResourceExists.__new__.__defaults__ = \
@@ -288,6 +290,15 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             vcpus = container_properties['vcpus']
             job_role_arn = container_properties['jobRoleArn']
             container_image = container_properties['image']
+            try:
+                environment = container_properties['environment']
+            except KeyError:  # pragma: nocover
+                environment = None
+
+            bucket_envs = [e for e in environment
+                           if e['name'] == 'CLOUDKNOT_JOBS_S3_BUCKET']
+
+            output_bucket = bucket_envs[0]['value'] if bucket_envs else None
 
             mod_logger.info('Job definition {name:s} already exists.'.format(
                 name=job_def_name
@@ -297,7 +308,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
                 exists=True, name=job_def_name, status=job_def_status,
                 job_role_arn=job_role_arn, docker_image=container_image,
                 vcpus=vcpus, memory=memory, username=username,
-                retries=retries, arn=job_def_arn
+                retries=retries, arn=job_def_arn, output_bucket=output_bucket
             )
         else:
             return ResourceExists(exists=False)
@@ -1745,7 +1756,7 @@ class BatchJob(NamedObject):
         def time_diff():
             return (datetime.now() - start_time).seconds
 
-        while not self.done and time_diff() < timeout:
+        while not self.done and (timeout is None or time_diff() < timeout):
             pass
 
         if not self.done:
