@@ -75,16 +75,7 @@ def set_s3_bucket(bucket):
     bucket : string
         Cloudknot S3 bucket name
     """
-    try:
-        clients['s3'].create_bucket(Bucket=bucket)
-    except clients['s3'].exceptions.BucketAlreadyOwnedByYou:
-        pass
-    except clients['s3'].exceptions.BucketAlreadyExists:
-        raise ValueError('The requested bucket name is not available.')
-
-    # Update the s3_policy with new bucket name
-    update_s3_policy(bucket)
-
+    # Update the config file
     config_file = get_config_file()
     config = configparser.ConfigParser()
     config.read(config_file)
@@ -95,6 +86,17 @@ def set_s3_bucket(bucket):
     config.set('aws', 's3-bucket', bucket)
     with open(config_file, 'w') as f:
         config.write(f)
+
+    # Create the bucket
+    try:
+        clients['s3'].create_bucket(Bucket=bucket)
+    except clients['s3'].exceptions.BucketAlreadyOwnedByYou:
+        pass
+    except clients['s3'].exceptions.BucketAlreadyExists:
+        raise ValueError('The requested bucket name is not available.')
+
+    # Update the s3_policy with new bucket name
+    update_s3_policy(bucket)
 
 
 def get_bucket_policy(bucket):
@@ -145,9 +147,6 @@ def get_s3_policy_name():
     config = configparser.ConfigParser()
     config.read(config_file)
 
-    bucket = get_s3_bucket()
-    s3_policy = get_bucket_policy(bucket)
-
     option = 's3-bucket-policy'
     if config.has_section('aws') and config.has_option('aws', option):
         # Get policy name from the config file
@@ -162,6 +161,9 @@ def get_s3_policy_name():
         config.set('aws', option, policy)
         with open(config_file, 'w') as f:
             config.write(f)
+
+    bucket = get_s3_bucket()
+    s3_policy = get_bucket_policy(bucket)
 
     try:
         # Create the policy
@@ -197,7 +199,7 @@ def update_s3_policy(bucket):
     )
 
     policy_dict = [p for p in response.get('Policies')
-                   if p['PolicyName'] == policy]
+                   if p['PolicyName'] == policy][0]
 
     arn = policy_dict['Arn']
 

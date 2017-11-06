@@ -48,7 +48,8 @@ def get_testing_name():
 
 @pytest.fixture(scope='module')
 def bucket_cleanup():
-    ck.set_s3_bucket(get_testing_name())
+    ck.set_s3_bucket('cloudknot-travis-build-45814031-351c-'
+                     '4b27-9a40-672c971f7e83')
     yield None
     bucket = ck.get_s3_bucket()
     bucket_policy = ck.aws.base_classes.get_s3_policy_name()
