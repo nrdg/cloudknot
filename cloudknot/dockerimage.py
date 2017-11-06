@@ -10,6 +10,7 @@ import six
 import subprocess
 import tempfile
 from pipreqs import pipreqs
+from string import Template
 
 from . import aws
 from . import config as ckconfig
@@ -336,22 +337,20 @@ class DockerImage(aws.NamedObject):
     def _write_script(self):
         """Write this instance's function to a script with a CLI.
 
-        Use clize.run to create CLI
+        Use the template file to insert the self.func source code and name
         """
         with open(self.script_path, 'w') as f:
-            header_path = os.path.abspath(os.path.join(
+            template_path = os.path.abspath(os.path.join(
                 os.path.dirname(__file__),
-                'header.py.txt'
+                'script.template'
             ))
 
-            with open(header_path) as header:
-                header_lines = header.readlines()
-                f.writelines(header_lines)
-
-            f.write(inspect.getsource(self.func))
-            f.write('\n\n')
-            f.write('if __name__ == "__main__":\n')
-            f.write('    run({func_name:s})\n'.format(func_name=self.name))
+            with open(template_path, 'r') as template:
+                s = Template(template.read())
+                f.write(s.substitute(
+                    func_source=inspect.getsource(self.func),
+                    func_name=self.func.__name__
+                ))
 
         mod_logger.info(
             'Wrote python function {func:s} to script {script:s}'.format(

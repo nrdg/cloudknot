@@ -24,3 +24,7 @@ def pickle_to_s3(f):
 
 
 @pickle_to_s3
+${func_source}
+
+if __name__ == "__main__":
+    run(${func_name})
