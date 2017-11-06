@@ -12,7 +12,7 @@ from .base_classes import NamedObject, ObjectWithArn, \
     ObjectWithUsernameAndMemory, clients, \
     ResourceExistsException, ResourceDoesNotExistException, \
     ResourceClobberedException, CannotDeleteResourceException, \
-    BatchJobFailedError, \
+    BatchJobFailedError, CKTimeoutError, \
     wait_for_job_queue, get_s3_bucket
 from .ec2 import Vpc, SecurityGroup
 from .ecr import DockerRepo
@@ -1744,14 +1744,11 @@ class BatchJob(NamedObject):
             pass
 
         if not self.done:
-            raise TimeoutError(
-                'The job with job-id {jid:s} did not finish within the '
-                'timeout period'.format(jid=self.job_id)
-            )
+            raise CKTimeoutError(self.job_id)
 
         status = self.status
         if status['status'] == 'FAILED':
-            raise BatchJobFailedError
+            raise BatchJobFailedError(self.job_id)
         else:
             bucket = self.job_definition.output_bucket
             key = '/'.join([

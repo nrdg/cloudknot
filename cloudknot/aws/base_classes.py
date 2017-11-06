@@ -17,7 +17,7 @@ __all__ = [
     "ResourceDoesNotExistException", "ResourceClobberedException",
     "ResourceExistsException", "CannotDeleteResourceException",
     "CannotCreateResourceException", "RegionException", "ProfileException",
-    "BatchJobFailedError",
+    "BatchJobFailedError", "CKTimeoutError",
     "NamedObject", "ObjectWithArn", "ObjectWithUsernameAndMemory",
     "clients", "refresh_clients",
     "wait_for_compute_environment", "wait_for_job_queue",
@@ -638,6 +638,22 @@ class ProfileException(Exception):
         )
         self.current_profile = get_profile()
         self.resource_profile = resource_profile
+
+
+# noinspection PyPropertyAccess,PyAttributeOutsideInit
+class CKTimeoutError(Exception):
+    """Cloudknot timeout error for AWS Batch job results
+
+    Error indicating an AWS Batch job failed to return results within
+    the requested time period
+    """
+    def __init__(self, job_id):
+        """Initialize the Exception"""
+        super(CKTimeoutError, self).__init__(
+            'The job with job-id {jid:s} did not finish within the '
+            'requested timeout period'.format(jid=job_id)
+        )
+        self.job_id = job_id
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
