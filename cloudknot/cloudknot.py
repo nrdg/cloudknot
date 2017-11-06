@@ -1456,7 +1456,7 @@ class Knot(aws.NamedObject):
             config.write(f)
 
         with ThreadPoolExecutor(len(commands)) as ex:
-            return [ex.submit(lambda j: j.result(), job) for job in these_jobs]
+            return [ex.submit(lambda j: j.result(), jb) for jb in these_jobs]
 
     def get_jobs(self):
         """Return a list of dictionaries containing job instances and info
