@@ -64,7 +64,7 @@ def bucket_cleanup():
     )
 
     policy_dict = [p for p in response.get('Policies')
-                   if p['PolicyName'] == bucket_policy]
+                   if p['PolicyName'] == bucket_policy][0]
 
     arn = policy_dict['Arn']
 
