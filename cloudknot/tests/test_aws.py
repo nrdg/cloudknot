@@ -88,11 +88,7 @@ def bucket_cleanup():
 
 @pytest.fixture(scope='module')
 def pars(bucket_cleanup):
-    p = None
-    try:
-        p = ck.Pars(name='unit-test')
-    except ck.aws.CannotCreateResourceException:
-        p = ck.Pars(name='unit-test', use_default_vpc=False)
+    p = ck.Pars(name='unit-test')
     yield p
     p.clobber()
 
@@ -1201,7 +1197,7 @@ def test_SecurityGroup(bucket_cleanup):
 
             retry = tenacity.Retrying(
                 wait=tenacity.wait_exponential(max=16),
-                stop=tenacity.stop_after_delay(120),
+                stop=tenacity.stop_after_delay(300),
                 retry=tenacity.retry_unless_exception_type(
                     ec2.exceptions.ClientError
                 )

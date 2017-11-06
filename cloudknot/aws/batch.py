@@ -1724,7 +1724,7 @@ class BatchJob(NamedObject):
 
         If the call hasn't yet completed then this method will wait up to
         timeout seconds. If the call hasn't completed in timeout seconds,
-        then a TimeoutError is raised. If the batch job is in FAILED status
+        then a CKTimeoutError is raised. If the batch job is in FAILED status
         then a BatchJobFailedError is raised.
 
         Parameters
@@ -1733,6 +1733,11 @@ class BatchJob(NamedObject):
             timeout time in seconds. If timeout is not specified or None,
             there is no limit to the wait time.
             Default: None
+
+        Returns
+        -------
+        result:
+            The result of the AWS Batch job
         """
         # Set start time for timeout period
         start_time = datetime.now()

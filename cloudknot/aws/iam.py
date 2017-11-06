@@ -471,10 +471,13 @@ class IamRole(ObjectWithArn):
             policy_arn = policy_filter[0]['Arn']
 
             # Detach the policy from this role
-            clients['iam'].detach_role_policy(
-                RoleName=self.name,
-                PolicyArn=policy_arn
-            )
+            try:
+                clients['iam'].detach_role_policy(
+                    RoleName=self.name,
+                    PolicyArn=policy_arn
+                )
+            except clients['iam'].exceptions.NoSuchEntityException:
+                pass
 
         # Delete role from AWS
         clients['iam'].delete_role(RoleName=self.name)
