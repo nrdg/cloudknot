@@ -14,8 +14,9 @@ For more detail, you can familiarize yourself with the `components of AWS Batch
 <http://docs.aws.amazon.com/batch/latest/userguide/what-is-batch.html>`_.
 `Knot` instantiation creates the required AWS resources. You can build a `Knot`
 on top of a customized `Pars` (see below) or just use the default `Pars`
-(default behavior). You can submit and view jobs using the `submit`, `get_jobs`
-and `view_jobs` methods. To see `Knot` in action, see :ref:`eg-label`.
+(default behavior). You can submit and view jobs using the `map`, `get_jobs`
+and `view_jobs` methods. In particular, `map` returns a list of futures for
+each submitted job's results. To see `Knot` in action, see :ref:`eg-label`.
 
 .. container:: toggle
 

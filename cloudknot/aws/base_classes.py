@@ -38,7 +38,7 @@ def get_s3_bucket():
 
     Returns
     -------
-    region : string
+    bucket : string
         Cloudknot S3 bucket name
     """
     config_file = get_config_file()

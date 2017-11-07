@@ -71,8 +71,10 @@ or in the AWS config file, e.g.:
 .. literalinclude:: example_config.txt
    :language: none
 
-Then you can use the cloudknot functions :func:`cloudknot.aws.set_profile`,
-:func:`cloudknot.aws.get_profile`, and :func:`cloudknot.aws.list_profiles`
+Then you can use the cloudknot functions
+:func:`cloudknot.set_profile <cloudknot.aws.set_profile>`,
+:func:`cloudknot.get_profile <cloudknot.aws.get_profile>`, and
+:func:`cloudknot.list_profiles <cloudknot.aws.list_profiles>`
 to interact with your various AWS profiles.
 
 
@@ -95,6 +97,19 @@ Examples
 See the `examples directory
 <https://github.com/richford/cloudknot/tree/master/examples>`_ on github for
 (you guessed it) examples of how to use cloudknot.
+
+
+Cloudknot S3 Bucket
+-------------------
+
+Cloudknot has some methods to return the results of AWS Batch jobs to the
+user. See, for example, :func:`cloudknot.Knot.map`,
+:func:`cloudknot.BatchJob.done <cloudknot.aws.BatchJob.done>`, and
+:func:`cloudknot.BatchJob.result <cloudknot.aws.BatchJob.result>`. Under
+the hood, these methods pass results through an Amazon S3 bucket. You can get
+and set the name of this S3 bucket using
+:func:`cloudknot.get_s3_bucket <cloudknot.aws.get_s3_bucket>` and
+:func:`cloudknot.set_s3_bucket <cloudknot.aws.set_s3_bucket>`.
 
 
 AWS resource limitations
@@ -137,3 +152,9 @@ user's home directory in the path returned by
 
     import os.path as op
     op.join(op.expanduser('~'), '.cloudknot', 'cloudknot.log')
+
+If something goes wrong with an AWS Batch job, you might want to inspect the
+job's log on Amazon CloudWatch. You can get a URL for each job attempt's
+CloudWatch log using the
+:func:`cloudknot.BatchJob.log_urls <cloudknot.aws.BatchJob.log_urls>`
+parameter.
