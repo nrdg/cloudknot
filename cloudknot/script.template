@@ -1,0 +1,30 @@
+import boto3
+import cloudpickle
+import os
+from clize import run
+from functools import wraps
+
+
+def pickle_to_s3(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        s3 = boto3.client("s3")
+        bucket = os.environ.get("CLOUDKNOT_JOBS_S3_BUCKET")
+        key = '/'.join([
+            'cloudknot.jobs',
+            os.environ.get("CLOUDKNOT_S3_JOBDEF_KEY"),
+            os.environ.get("AWS_BATCH_JOB_ID"),
+            '{0:3d}'.format(int(os.environ.get("AWS_BATCH_JOB_ATTEMPT"))),
+            'output.pickle'
+        ])
+        pickled_result = cloudpickle.dumps(f(*args, **kwargs))
+        s3.put_object(Bucket=bucket, Body=pickled_result, Key=key)
+
+    return wrapper
+
+
+@pickle_to_s3
+${func_source}
+
+if __name__ == "__main__":
+    run(${func_name})

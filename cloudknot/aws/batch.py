@@ -1,7 +1,9 @@
 from __future__ import absolute_import, division, print_function
 
 import cloudknot.config
+from datetime import datetime
 import logging
+import pickle
 import six
 import tenacity
 from collections import namedtuple
@@ -10,7 +12,8 @@ from .base_classes import NamedObject, ObjectWithArn, \
     ObjectWithUsernameAndMemory, clients, \
     ResourceExistsException, ResourceDoesNotExistException, \
     ResourceClobberedException, CannotDeleteResourceException, \
-    wait_for_job_queue
+    BatchJobFailedError, CKTimeoutError, \
+    wait_for_job_queue, get_s3_bucket
 from .ec2 import Vpc, SecurityGroup
 from .ecr import DockerRepo
 from .iam import IamRole
@@ -60,7 +63,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         retries : int
             number of times a job can be moved to 'RUNNABLE' status.
             May be between 1 and 10
-            Default: 3
+            Default: 1
         """
         # Validate for minimum input
         if not (arn or name):
@@ -107,6 +110,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             self._vcpus = resource.vcpus
             self._retries = resource.retries
             self._arn = resource.arn
+            self._output_bucket = resource.output_bucket
 
             # Add to config file
             self._section_name = self._get_section_name('job-definitions')
@@ -159,6 +163,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
                     'or a string'
                 )
             self._docker_image = docker_image
+            self._output_bucket = get_s3_bucket()
 
             # Validate vcpus input
             if vcpus:
@@ -180,7 +185,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
                 else:
                     self._retries = retries_int
             else:
-                self._retries = 3
+                self._retries = 1
 
             self._arn = self._create()
 
@@ -213,6 +218,11 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         return self._docker_image
 
     @property
+    def output_bucket(self):
+        """Amazon S3 bucket where output will be stored"""
+        return self._output_bucket
+
+    @property
     def vcpus(self):
         """The number of vCPUS for this job definition."""
         return self._vcpus
@@ -232,14 +242,16 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         Returns
         -------
         namedtuple RoleExists
-            A namedtuple with fields ['exists', 'name', 'status', 'job_role',
+            A namedtuple with fields
+            ['exists', 'name', 'status', 'job_role', 'output_bucket',
             'docker_image', 'vcpus', 'memory', 'username', 'retries', 'arn']
         """
         # define a namedtuple for return value type
         ResourceExists = namedtuple(
             'ResourceExists',
             ['exists', 'name', 'status', 'job_role_arn', 'docker_image',
-             'vcpus', 'memory', 'username', 'retries', 'arn']
+             'vcpus', 'memory', 'username', 'retries', 'arn',
+             'output_bucket']
         )
         # make all but the first value default to None
         ResourceExists.__new__.__defaults__ = \
@@ -278,6 +290,15 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             vcpus = container_properties['vcpus']
             job_role_arn = container_properties['jobRoleArn']
             container_image = container_properties['image']
+            try:
+                environment = container_properties['environment']
+            except KeyError:  # pragma: nocover
+                environment = None
+
+            bucket_envs = [e for e in environment
+                           if e['name'] == 'CLOUDKNOT_JOBS_S3_BUCKET']
+
+            output_bucket = bucket_envs[0]['value'] if bucket_envs else None
 
             mod_logger.info('Job definition {name:s} already exists.'.format(
                 name=job_def_name
@@ -287,7 +308,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
                 exists=True, name=job_def_name, status=job_def_status,
                 job_role_arn=job_role_arn, docker_image=container_image,
                 vcpus=vcpus, memory=memory, username=username,
-                retries=retries, arn=job_def_arn
+                retries=retries, arn=job_def_arn, output_bucket=output_bucket
             )
         else:
             return ResourceExists(exists=False)
@@ -312,7 +333,17 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             'memory': self.memory,
             'command': [],
             'jobRoleArn': self.job_role_arn,
-            'user': self.username
+            'user': self.username,
+            'environment': [
+                {
+                    'name': 'CLOUDKNOT_JOBS_S3_BUCKET',
+                    'value': self.output_bucket
+                },
+                {
+                    'name': 'CLOUDKNOT_S3_JOBDEF_KEY',
+                    'value': self.name
+                }
+            ],
         }
 
         # Register the job def
@@ -1636,6 +1667,14 @@ class BatchJob(NamedObject):
 
         job_id = response['jobId']
 
+        bucket = self.job_definition.output_bucket
+        key = '/'.join([
+            'cloudknot.jobs', self.job_definition.name, job_id, 'input.pickle'
+        ])
+
+        pickled_input = pickle.dumps(container_overrides)
+        clients['s3'].put_object(Bucket=bucket, Body=pickled_input, Key=key)
+
         # Add this job to the list of jobs in the config file
         self._section_name = self._get_section_name('batch-jobs')
         cloudknot.config.add_resource(
@@ -1676,6 +1715,90 @@ class BatchJob(NamedObject):
                   for k in ('status', 'statusReason', 'attempts')}
 
         return status
+
+    @ property
+    def log_urls(self):
+        """Return the urls of the batch job logs on AWS Cloudwatch
+
+        Returns
+        -------
+        log_urls : list
+            A list of log urls for each attempt number. If the job has
+            not yet run, this will return an empty list
+        """
+        attempts = sorted(self.status['attempts'],
+                          key=lambda a: a['startedAt'])
+
+        log_stream_names = [a['container']['logStreamName'] for a in attempts]
+
+        def log_name2url(log_name):
+            return 'https://console.aws.amazon.com/cloudwatch/home?region=' \
+                   '{region:s}#logEventViewer:group=/aws/batch/job;' \
+                   'stream={log_name:s}'.format(region=self.region,
+                                                log_name=log_name)
+
+        log_urls = [log_name2url(log) for log in log_stream_names]
+
+        return log_urls
+
+    @property
+    def done(self):
+        """Return True if the job is done.
+
+        In this case, "done" means the job status is SUCCEEDED or that it is
+        FAILED and the job has exceeded the max number of retry attempts
+        """
+        stat = self.status
+        done = (stat['status'] == 'SUCCEEDED'
+                or (stat['status'] == 'FAILED'
+                    and len(stat['attempts']) >= self.job_definition.retries))
+
+        return done
+
+    def result(self, timeout=None):
+        """Return the result of the latest attempt
+
+        If the call hasn't yet completed then this method will wait up to
+        timeout seconds. If the call hasn't completed in timeout seconds,
+        then a CKTimeoutError is raised. If the batch job is in FAILED status
+        then a BatchJobFailedError is raised.
+
+        Parameters
+        ----------
+        timeout: int or float
+            timeout time in seconds. If timeout is not specified or None,
+            there is no limit to the wait time.
+            Default: None
+
+        Returns
+        -------
+        result:
+            The result of the AWS Batch job
+        """
+        # Set start time for timeout period
+        start_time = datetime.now()
+
+        def time_diff():
+            return (datetime.now() - start_time).seconds
+
+        while not self.done and (timeout is None or time_diff() < timeout):
+            pass
+
+        if not self.done:
+            raise CKTimeoutError(self.job_id)
+
+        status = self.status
+        if status['status'] == 'FAILED':
+            raise BatchJobFailedError(self.job_id)
+        else:
+            bucket = self.job_definition.output_bucket
+            key = '/'.join([
+                'cloudknot.jobs', self.job_definition.name, self.job_id,
+                '{0:3d}'.format(len(status['attempts'])), 'output.pickle'
+            ])
+
+            response = clients['s3'].get_object(Bucket=bucket, Key=key)
+            return pickle.loads(response.get('Body').read())
 
     def terminate(self, reason):
         """Kill AWS batch job using instance parameter `self.job_id`

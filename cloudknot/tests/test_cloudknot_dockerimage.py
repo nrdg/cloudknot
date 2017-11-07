@@ -16,8 +16,54 @@ UNIT_TEST_PREFIX = 'cloudknot-unit-test'
 data_path = op.join(ck.__path__[0], 'data')
 
 
+def get_testing_name():
+    u = str(uuid.uuid4()).replace('-', '')[:8]
+    name = UNIT_TEST_PREFIX + '-' + u
+    return name
+
+
 @pytest.fixture(scope='module')
-def cleanup():
+def bucket_cleanup():
+    ck.set_s3_bucket('cloudknot-travis-build-45814031-351c-'
+                     '4b27-9a40-672c971f7e83')
+    yield None
+    bucket = ck.get_s3_bucket()
+    bucket_policy = ck.aws.base_classes.get_s3_policy_name()
+
+    s3 = ck.aws.clients['s3']
+    s3.delete_bucket(Bucket=bucket)
+
+    iam = ck.aws.clients['iam']
+    response = iam.list_policies(
+        Scope='Local',
+        PathPrefix='/cloudknot/'
+    )
+
+    policy_dict = [p for p in response.get('Policies')
+                   if p['PolicyName'] == bucket_policy][0]
+
+    arn = policy_dict['Arn']
+
+    response = iam.list_policy_versions(
+        PolicyArn=arn
+    )
+
+    # Get non-default versions
+    versions = [v for v in response.get('Versions')
+                if not v['IsDefaultVersion']]
+
+    # Get the oldest version and delete it
+    for v in versions:
+        iam.delete_policy_version(
+            PolicyArn=arn,
+            VersionId=v['VersionId']
+        )
+
+    iam.delete_policy(PolicyArn=arn)
+
+
+@pytest.fixture(scope='module')
+def cleanup(bucket_cleanup):
     """Use this fixture to delete all unit testing resources
     regardless of of the failure or success of the test"""
     yield None
@@ -454,7 +500,7 @@ def cleanup():
 
 
 @pytest.fixture(scope='module')
-def cleanup_repos():
+def cleanup_repos(bucket_cleanup):
     yield None
     ecr = ck.aws.clients['ecr']
     config_file = ck.config.get_config_file()
@@ -489,13 +535,7 @@ def cleanup_repos():
         config.write(f)
 
 
-def get_testing_name():
-    u = str(uuid.uuid4()).replace('-', '')[:8]
-    name = UNIT_TEST_PREFIX + '-' + u
-    return name
-
-
-def test_Pars():
+def test_Pars(bucket_cleanup):
     config_file = ck.config.get_config_file()
     p = None
 
@@ -762,7 +802,8 @@ def test_DockerImage(cleanup_repos):
 
     try:
         correct_pip_imports = set([
-            'clize', 'boto3', 'six', 'dask', 'docker', 'pytest', 'h5py'
+            'clize', 'boto3', 'six', 'dask', 'docker',
+            'pytest', 'h5py', 'cloudpickle'
         ])
 
         # First, test a DockerImage instance with `func` input

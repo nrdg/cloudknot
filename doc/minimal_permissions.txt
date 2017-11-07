@@ -8,14 +8,18 @@
                 "iam:AddRoleToInstanceProfile",
                 "iam:AttachRolePolicy",
                 "iam:CreateInstanceProfile",
+                "iam:CreatePolicy",
+                "iam:CreatePolicyVersion",
                 "iam:CreateRole",
                 "iam:DeleteInstanceProfile",
+                "iam:DeletePolicyVersion",
                 "iam:DeleteRole",
                 "iam:DetachRolePolicy",
                 "iam:GetRole",
                 "iam:ListAttachedRolePolicies",
                 "iam:ListInstanceProfilesForRole",
                 "iam:ListPolicies",
+                "iam:ListPolicyVersions",
                 "iam:ListRoles",
                 "iam:PassRole",
                 "iam:RemoveRoleFromInstanceProfile",
@@ -129,6 +133,19 @@
                 "ecs:DeleteCluster",
                 "ecs:DeregisterContainerInstance",
                 "ecs:ListContainerInstances"
+            ],
+            "Resource": [
+                "*"
+            ]
+        },
+        {
+            "Sid": "Stmt1509807738000",
+            "Effect": "Allow",
+            "Action": [
+                "s3:CreateBucket",
+                "s3:GetObject",
+                "s3:ListBucket",
+                "s3:PutObject"
             ],
             "Resource": [
                 "*"

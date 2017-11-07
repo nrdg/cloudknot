@@ -4,6 +4,7 @@ import configparser
 import logging
 import operator
 import six
+from concurrent.futures import ThreadPoolExecutor
 
 from . import aws
 from .config import get_config_file
@@ -835,7 +836,7 @@ class Knot(aws.NamedObject):
         retries : int, optional
             number of times a job can be moved to 'RUNNABLE' status.
             May be between 1 and 10
-            Default: 3
+            Default: 1
 
         compute_environment_name : str
             Name for this knot's AWS Batch compute environment
@@ -1367,8 +1368,11 @@ class Knot(aws.NamedObject):
         """List of batch job IDs that this knot has launched"""
         return self._job_ids
 
-    def submit(self, commands=None, env_vars=None):
+    def map(self, commands=None, env_vars=None):
         """Submit batch jobs for a range of commands and environment vars
+
+        map returns a list of futures, which can return their result when
+        the jobs are complete.
 
         Parameters
         ----------
@@ -1383,6 +1387,11 @@ class Knot(aws.NamedObject):
         env_vars : sequence of sequence of strings
             Sequence of environment variables. This method will submit one
             batch job for each environment variable set in the sequence
+
+        Returns
+        -------
+        map : list of futures
+            A list of futures for each job
         """
         if self.clobbered:
             raise aws.ResourceClobberedException(
@@ -1424,6 +1433,8 @@ class Knot(aws.NamedObject):
         elif not env_vars:
             env_vars = [None] * len(commands)
 
+        these_jobs = []
+
         for command, env in zip(commands, env_vars):
             job = aws.BatchJob(
                 name='{n:s}-{i:d}'.format(n=self.name, i=len(self.job_ids)),
@@ -1433,6 +1444,7 @@ class Knot(aws.NamedObject):
                 environment_variables=env
             )
 
+            these_jobs.append(job)
             self._jobs.append(job)
             self._job_ids.append(job.job_id)
 
@@ -1442,6 +1454,9 @@ class Knot(aws.NamedObject):
         # Save config to file
         with open(get_config_file(), 'w') as f:
             config.write(f)
+
+        with ThreadPoolExecutor(len(commands)) as ex:
+            return [ex.submit(lambda j: j.result(), jb) for jb in these_jobs]
 
     def get_jobs(self):
         """Return a list of dictionaries containing job instances and info

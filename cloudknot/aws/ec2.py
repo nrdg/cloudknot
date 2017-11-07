@@ -471,17 +471,21 @@ class Vpc(NamedObject):
             )
         )
         retry.call(wait_for_subnet.wait, SubnetIds=subnet_ids)
-        clients['ec2'].create_tags(
+
+        retry = tenacity.Retrying(
+            wait=tenacity.wait_exponential(max=16),
+            stop=tenacity.stop_after_delay(120),
+            retry=tenacity.retry_if_exception_type(
+                clients['ec2'].exceptions.ClientError
+            )
+        )
+
+        retry.call(
+            clients['ec2'].create_tags,
             Resources=subnet_ids,
             Tags=[
-                {
-                    'Key': 'owner',
-                    'Value': 'cloudknot'
-                },
-                {
-                    'Key': 'vpc-name',
-                    'Value': self.name
-                }
+                {'Key': 'owner', 'Value': 'cloudknot'},
+                {'Key': 'vpc-name', 'Value': self.name}
             ]
         )
 
@@ -822,12 +826,7 @@ class SecurityGroup(NamedObject):
         retry.call(
             clients['ec2'].create_tags,
             Resources=[group_id],
-            Tags=[
-                {
-                    'Key': 'owner',
-                    'Value': 'cloudknot'
-                }
-            ]
+            Tags=[{'Key': 'owner', 'Value': 'cloudknot'}]
         )
 
         # Add this security group to the config file

@@ -40,21 +40,57 @@ UNIT_TEST_PREFIX = 'cloudknot-unit-test'
 data_path = op.join(ck.__path__[0], 'data')
 
 
-@pytest.fixture(scope='module')
-def pars():
-    p = None
-    try:
-        p = ck.Pars(name='unit-test')
-    except ck.aws.CannotCreateResourceException:
-        p = ck.Pars(name='unit-test', use_default_vpc=False)
-    yield p
-    p.clobber()
-
-
 def get_testing_name():
     u = str(uuid.uuid4()).replace('-', '')[:8]
     name = UNIT_TEST_PREFIX + '-' + u
     return name
+
+
+@pytest.fixture(scope='module')
+def bucket_cleanup():
+    ck.set_s3_bucket('cloudknot-travis-build-45814031-351c-'
+                     '4b27-9a40-672c971f7e83')
+    yield None
+    bucket = ck.get_s3_bucket()
+    bucket_policy = ck.aws.base_classes.get_s3_policy_name()
+
+    s3 = ck.aws.clients['s3']
+    s3.delete_bucket(Bucket=bucket)
+
+    iam = ck.aws.clients['iam']
+    response = iam.list_policies(
+        Scope='Local',
+        PathPrefix='/cloudknot/'
+    )
+
+    policy_dict = [p for p in response.get('Policies')
+                   if p['PolicyName'] == bucket_policy][0]
+
+    arn = policy_dict['Arn']
+
+    response = iam.list_policy_versions(
+        PolicyArn=arn
+    )
+
+    # Get non-default versions
+    versions = [v for v in response.get('Versions')
+                if not v['IsDefaultVersion']]
+
+    # Get the oldest version and delete it
+    for v in versions:
+        iam.delete_policy_version(
+            PolicyArn=arn,
+            VersionId=v['VersionId']
+        )
+
+    iam.delete_policy(PolicyArn=arn)
+
+
+@pytest.fixture(scope='module')
+def pars(bucket_cleanup):
+    p = ck.Pars(name='unit-test')
+    yield p
+    p.clobber()
 
 
 def test_wait_for_compute_environment(pars):
@@ -110,7 +146,7 @@ def test_wait_for_job_queue(pars):
             ce.clobber()
 
 
-def test_get_region():
+def test_get_region(bucket_cleanup):
     # Save environment variables for restoration later
     try:
         old_region_env = os.environ['AWS_DEFAULT_REGION']
@@ -229,7 +265,7 @@ def test_get_region():
         ck.refresh_clients()
 
 
-def test_set_region():
+def test_set_region(bucket_cleanup):
     with pytest.raises(ValueError):
         ck.set_region(region='not a valid region name')
 
@@ -267,7 +303,7 @@ def test_set_region():
         ck.refresh_clients()
 
 
-def test_list_profiles():
+def test_list_profiles(bucket_cleanup):
     try:
         old_credentials_file = os.environ['AWS_SHARED_CREDENTIALS_FILE']
     except KeyError:
@@ -310,7 +346,7 @@ def test_list_profiles():
                 pass
 
 
-def test_get_profile():
+def test_get_profile(bucket_cleanup):
     try:
         old_credentials_file = os.environ['AWS_SHARED_CREDENTIALS_FILE']
     except KeyError:
@@ -384,7 +420,7 @@ def test_get_profile():
         ck.refresh_clients()
 
 
-def test_set_profile():
+def test_set_profile(bucket_cleanup):
     try:
         old_credentials_file = os.environ['AWS_SHARED_CREDENTIALS_FILE']
     except KeyError:
@@ -448,7 +484,7 @@ def test_set_profile():
         ck.refresh_clients()
 
 
-def test_ObjectWithUsernameAndMemory():
+def test_ObjectWithUsernameAndMemory(bucket_cleanup):
     for mem in [-42, 'not-an-int']:
         with pytest.raises(ValueError):
             ck.aws.base_classes.ObjectWithUsernameAndMemory(
@@ -457,7 +493,7 @@ def test_ObjectWithUsernameAndMemory():
             )
 
 
-def test_IamRole():
+def test_IamRole(bucket_cleanup):
     iam = ck.aws.clients['iam']
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
@@ -511,7 +547,7 @@ def test_IamRole():
         # Confirm that the instance has the right properties.
         assert role.service == service
         assert role.arn == arn
-        assert role.policies == (policy['name'],)
+        assert set(role.policies) == {policy['name']}
 
         # Confirm that the role is in the config file
         config = configparser.ConfigParser()
@@ -565,7 +601,9 @@ def test_IamRole():
             assert role.description == d
             assert role.service == s + '.amazonaws.com'
             p = (p,) if isinstance(p, six.string_types) else tuple(p)
-            assert set(role.policies) == set(p)
+            assert set(role.policies) == (
+                set(p) | {ck.aws.base_classes.get_s3_policy_name()}
+            )
             if i:
                 assert role.instance_profile_arn
             else:
@@ -664,7 +702,7 @@ def test_IamRole():
         raise e
 
 
-def test_DockerRepo():
+def test_DockerRepo(bucket_cleanup):
     ecr = ck.aws.clients['ecr']
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
@@ -776,7 +814,7 @@ def test_DockerRepo():
         raise e
 
 
-def test_Vpc():
+def test_Vpc(bucket_cleanup):
     ec2 = ck.aws.clients['ec2']
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
@@ -1026,7 +1064,7 @@ def test_Vpc():
         raise e
 
 
-def test_SecurityGroup():
+def test_SecurityGroup(bucket_cleanup):
     ec2 = ck.aws.clients['ec2']
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
@@ -1159,7 +1197,7 @@ def test_SecurityGroup():
 
             retry = tenacity.Retrying(
                 wait=tenacity.wait_exponential(max=16),
-                stop=tenacity.stop_after_delay(120),
+                stop=tenacity.stop_after_delay(300),
                 retry=tenacity.retry_unless_exception_type(
                     ec2.exceptions.ClientError
                 )
@@ -1391,7 +1429,7 @@ def test_JobDefinition(pars):
             assert jd.docker_image == di
             v = v if v else 1
             assert jd.vcpus == v
-            r = r if r else 3
+            r = r if r else 1
             assert jd.retries == r
             m = m if m else 8000
             assert jd.memory == m
