@@ -28,7 +28,7 @@ def bucket_cleanup():
                      '4b27-9a40-672c971f7e83')
     yield None
     bucket = ck.get_s3_bucket()
-    bucket_policy = ck.aws.base_classes.get_s3_policy_name()
+    bucket_policy = ck.aws.base_classes.get_s3_policy_name(bucket)
 
     s3 = ck.aws.clients['s3']
     s3.delete_bucket(Bucket=bucket)
@@ -802,7 +802,7 @@ def test_DockerImage(cleanup_repos):
 
     try:
         correct_pip_imports = set([
-            'clize', 'boto3', 'six', 'dask', 'docker',
+            'boto3', 'six', 'dask', 'docker',
             'pytest', 'h5py', 'cloudpickle'
         ])
 

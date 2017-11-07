@@ -7,7 +7,8 @@ import six
 import tenacity
 from collections import namedtuple
 
-from .base_classes import ObjectWithArn, clients, get_s3_policy_name, \
+from .base_classes import ObjectWithArn, clients, \
+    get_s3_bucket, get_s3_policy_name, \
     ResourceExistsException, ResourceDoesNotExistException, \
     ResourceClobberedException, CannotDeleteResourceException
 
@@ -142,7 +143,10 @@ class IamRole(ObjectWithArn):
                 )
 
             # Add the cloudknot s3 policy if not already in input_policies
-            self._policies = tuple(input_policies | {get_s3_policy_name()})
+            bucket = get_s3_bucket()
+            self._policies = tuple(
+                input_policies | {get_s3_policy_name(bucket)}
+            )
 
             if not isinstance(add_instance_profile, bool):
                 raise ValueError('add_instance_profile is a boolean input')
