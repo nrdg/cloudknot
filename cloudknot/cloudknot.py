@@ -4,6 +4,7 @@ import configparser
 import logging
 import operator
 import six
+from collections import Iterable
 from concurrent.futures import ThreadPoolExecutor
 
 from . import aws
@@ -1368,25 +1369,38 @@ class Knot(aws.NamedObject):
         """List of batch job IDs that this knot has launched"""
         return self._job_ids
 
-    def map(self, commands=None, env_vars=None):
+    def map(self, iterdata, env_vars=None, max_threads=64, starmap=False):
         """Submit batch jobs for a range of commands and environment vars
+
+        Each item of `iterdata` is assumed to be a single input for the
+        python function in this knot's docker image. If your function takes
+        multiple arguments, pre-zip the arguments into a tuple, so that
+        iterdata is an iterable of tuples, and set `starmap=True`.
 
         map returns a list of futures, which can return their result when
         the jobs are complete.
 
         Parameters
         ----------
-        commands : sequence of sequence of strings
-            Sequence of commands. This method will submit one batch job for
-            each command in the sequence. Each individual command must be a
-            sequence of strings since the command eventaully becomes arguments
-            to the `docker run` command. For example, if you wanted to pass
-            the commands `echo 1`, `echo 2`, `echo 3`, then then you would use
-            `submit(commands=[["echo", "1"], ["echo", "2"], ["echo", "3"]])`
+        iterdata :
+            An iteratable of input data
 
-        env_vars : sequence of sequence of strings
-            Sequence of environment variables. This method will submit one
-            batch job for each environment variable set in the sequence
+        env_vars : sequence of dicts
+            Additional environment variables for the Batch environment
+            Each dict must have only 'name' and 'value' keys. The same
+            environment variables are applied for each item in `iterdata`.
+            Default: None
+
+        max_threads : int
+            Maximum number of threads used to invoke.
+            Default: 64
+
+        starmap : bool
+            If True, assume argument parameters are already grouped in
+            tuples from a single iterable. This behavior is similar to
+            `itertools.starmap()`. If False, assume argument parameters
+            have not been "pre-zipped". Then the behavior is similar to
+            python's built-in `map()` method.
 
         Returns
         -------
@@ -1401,52 +1415,37 @@ class Knot(aws.NamedObject):
 
         self.check_profile_and_region()
 
-        # User must supply either commands or env_vars
-        if not (commands or env_vars):
-            raise ValueError('You must supply either commands or env_vars.')
-
-        # commands should be a sequence of sequences of strings
-        if commands and not all(all(isinstance(s, six.string_types)
-                                    for s in sublist)
-                                for sublist in commands):
-            raise ValueError('commands must be a sequence of '
-                             'sequences of strings')
+        if not isinstance(iterdata, Iterable):
+            raise TypeError('iterdata must be an iterable.')
 
         # env_vars should be a sequence of sequences of dicts
-        if env_vars and not all(all(isinstance(s, dict) for s in sublist)
-                                for sublist in env_vars):
-            raise ValueError('env_vars must be a sequence of '
-                             'sequences of dicts')
+        if env_vars and not all(isinstance(s, dict) for s in env_vars):
+            raise ValueError('env_vars must be a sequences of dicts')
 
         # and each dict should have only 'name' and 'value' keys
-        if env_vars and not all(all(set(d.keys()) == {'name', 'value'}
-                                    for d in sublist)
-                                for sublist in env_vars):
+        if env_vars and not all(set(d.keys()) == {'name', 'value'}
+                                for d in env_vars):
             raise ValueError('each dict in env_vars must have keys "name" '
                              'and "value"')
 
-        if commands and env_vars and len(commands) != len(env_vars):
-            raise ValueError('commands and env_vars must be the same length')
-
-        if not commands:
-            commands = [None] * len(env_vars)
-        elif not env_vars:
-            env_vars = [None] * len(commands)
-
         these_jobs = []
 
-        for command, env in zip(commands, env_vars):
+        for input in iterdata:
             job = aws.BatchJob(
+                input=input,
+                starmap=starmap,
                 name='{n:s}-{i:d}'.format(n=self.name, i=len(self.job_ids)),
                 job_queue=self.job_queue,
                 job_definition=self.job_definition,
-                commands=command,
-                environment_variables=env
+                environment_variables=env_vars
             )
 
             these_jobs.append(job)
             self._jobs.append(job)
             self._job_ids.append(job.job_id)
+
+        if not these_jobs:
+            return []
 
         config = configparser.ConfigParser()
         config.read(get_config_file())
@@ -1455,39 +1454,14 @@ class Knot(aws.NamedObject):
         with open(get_config_file(), 'w') as f:
             config.write(f)
 
-        with ThreadPoolExecutor(len(commands)) as ex:
-            return [ex.submit(lambda j: j.result(), jb) for jb in these_jobs]
+        executor = ThreadPoolExecutor(min(len(these_jobs), max_threads))
+        futures = [executor.submit(lambda j: j.result(), jb)
+                   for jb in these_jobs]
 
-    def get_jobs(self):
-        """Return a list of dictionaries containing job instances and info
+        # Shutdown the executor but do not wait to return the futures
+        executor.shutdown(wait=False)
 
-        Returns
-        -------
-        jobs_info: list
-            A list of dicts [{'job': BatchJob instance, 'name': BatchJob.name,
-            'status': BatchJob.status, 'id': BatchJob.job_id},]
-        """
-        if self.clobbered:
-            raise aws.ResourceClobberedException(
-                'This Knot has already been clobbered.',
-                self.name
-            )
-
-        self.check_profile_and_region()
-
-        jobs_info = [
-            {
-                'job': job,
-                'name': job.name,
-                'status': job.status['status'],
-                'attempts': job.status['attempts'],
-                'status-reason': job.status['statusReason'],
-                'id': job.job_id
-            }
-            for job in self.jobs
-        ]
-
-        return jobs_info
+        return futures
 
     def view_jobs(self):
         """Print the job_id, name, and status of all jobs in self.jobs"""
@@ -1501,14 +1475,17 @@ class Knot(aws.NamedObject):
 
         order = {'SUBMITTED': 0, 'PENDING': 1, 'RUNNABLE': 2, 'STARTING': 3,
                  'RUNNING': 4, 'FAILED': 5, 'SUCCEEDED': 6}
-        job_info = sorted(self.get_jobs(), key=lambda j: order[j['status']])
 
-        fmt = '{id:12s}        {name:20s}        {status:9s}'
-        header = fmt.format(id='Job ID', name='Name', status='Status')
+        response = aws.clients['batch'].describe_jobs(jobs=self.job_ids)
+        sorted_jobs = sorted(response.get('jobs'),
+                             key=lambda j: order[j['status']])
+
+        fmt = '{jobId:12s}        {jobName:20s}        {status:9s}'
+        header = fmt.format(jobId='Job ID', jobName='Name', status='Status')
         print(header)
         print('-' * len(header))
 
-        for job in job_info:
+        for job in sorted_jobs:
             print(fmt.format(**job))
 
     def clobber(self, clobber_pars=False, clobber_repo=False,

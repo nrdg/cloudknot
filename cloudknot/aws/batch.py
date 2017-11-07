@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
 import cloudknot.config
+import cloudpickle
 from datetime import datetime
 import logging
 import pickle
@@ -1448,7 +1449,7 @@ class JobQueue(ObjectWithArn):
 class BatchJob(NamedObject):
     """Class for defining AWS Batch Job"""
     def __init__(self, job_id=None, name=None, job_queue=None,
-                 job_definition=None, commands=None,
+                 job_definition=None, input=None, starmap=False,
                  environment_variables=None):
         """Initialize an AWS Batch Job object.
 
@@ -1472,22 +1473,28 @@ class BatchJob(NamedObject):
             JobDefinition instance specifying the job definition on which
             to base this job
 
-        commands : string or sequence of strings
-            command sent to the container for this job.
-            Split multi-word commands on spaces.
-            e.g. `echo hello` becomes ['echo', 'hello']
+        input :
+            The input to be pickled and sent to the batch job via S3
+
+        starmap : bool
+            If True, assume input is already grouped in
+            tuples from a single iterable.
 
         environment_variables : list of dict
             list of key/value pairs representing environment variables
             sent to the container
         """
-        if not (job_id or all([name, job_queue, job_definition])):
+        has_input = input is not None
+        if not (job_id or all([name, job_queue, has_input, job_definition])):
             raise ValueError('You must supply either job_id or (name, '
-                             'job_queue, and job_definition).')
+                             'input, job_queue, and job_definition).')
 
-        if job_id and any([name, job_queue, job_definition]):
+        if job_id and any([name, job_queue, has_input, job_definition]):
             raise ValueError('You may supply either job_id or (name, '
-                             'job_queue, and job_definition), not both.')
+                             'input, job_queue, and job_definition), '
+                             'not both.')
+
+        self._starmap = starmap
 
         if job_id:
             job = self._exists_already(job_id=job_id)
@@ -1501,11 +1508,25 @@ class BatchJob(NamedObject):
 
             self._job_queue = None
             self._job_queue_arn = job.job_queue_arn
-            self._job_definition = None
             self._job_definition_arn = job.job_definition_arn
-            self._commands = job.commands
+            self._job_definition = JobDefinition(arn=self._job_definition_arn)
             self._environment_variables = job.environment_variables
             self._job_id = job.job_id
+
+            bucket = self._job_definition.output_bucket
+            key = '/'.join([
+                'cloudknot.jobs',
+                self._job_definition.name,
+                self._job_id,
+                'input.pickle'
+            ])
+
+            try:
+                response = clients['s3'].get_object(Bucket=bucket, Key=key)
+                self._input = pickle.loads(response.get('Body').read())
+            except (clients['s3'].exceptions.NoSuchBucket,
+                    clients['s3'].exceptions.NoSuchKey):
+                self._input = None
 
             self._section_name = self._get_section_name('batch-jobs')
             cloudknot.config.add_resource(
@@ -1528,17 +1549,6 @@ class BatchJob(NamedObject):
             self._job_definition = job_definition
             self._job_definition_arn = job_definition.arn
 
-            if commands:
-                if isinstance(commands, six.string_types):
-                    self._commands = [commands]
-                elif all(isinstance(x, six.string_types) for x in commands):
-                    self._commands = list(commands)
-                else:
-                    raise ValueError('if provided, commands must be a string '
-                                     'or a sequence of strings.')
-            else:
-                self._commands = None
-
             if environment_variables:
                 if not isinstance(environment_variables, dict):
                     raise ValueError('if provided, environment_variables must '
@@ -1547,6 +1557,7 @@ class BatchJob(NamedObject):
             else:
                 self._environment_variables = None
 
+            self._input = input
             self._job_id = self._create()
 
     @property
@@ -1570,17 +1581,19 @@ class BatchJob(NamedObject):
         return self._job_definition_arn
 
     @property
-    def commands(self):
-        """command sent to the container for this job.
-
-        Multi-word commands are split on spaces.
-        e.g. `echo hello` becomes ['echo', 'hello']"""
-        return self._commands
-
-    @property
     def environment_variables(self):
         """Key/value pairs for environment variables sent to the container"""
         return self._environment_variables
+
+    @property
+    def input(self):
+        """The input to be pickled and sent to the batch job via S3"""
+        return self._input
+
+    @property
+    def starmap(self):
+        """Boolean flag to indicate whether input was 'pre-zipped'"""
+        return self._starmap
 
     @property
     def job_id(self):
@@ -1599,13 +1612,13 @@ class BatchJob(NamedObject):
         namedtuple JobExists
             A namedtuple with fields
             ['exists', 'name', 'job_id', 'job_queue_arn',
-             'job_definition_arn', 'commands', 'environment_variables']
+             'job_definition_arn', 'environment_variables']
         """
         # define a namedtuple for return value type
         JobExists = namedtuple(
             'JobExists',
             ['exists', 'name', 'job_id', 'job_queue_arn',
-             'job_definition_arn', 'commands', 'environment_variables']
+             'job_definition_arn', 'environment_variables']
         )
         # make all but the first value default to None
         JobExists.__new__.__defaults__ = \
@@ -1618,7 +1631,6 @@ class BatchJob(NamedObject):
             name = job['jobName']
             job_queue_arn = job['jobQueue']
             job_definition_arn = job['jobDefinition']
-            commands = job['container']['command']
             environment_variables = job['container']['environment']
 
             mod_logger.info('Job {id:s} exists.'.format(id=job_id))
@@ -1627,7 +1639,7 @@ class BatchJob(NamedObject):
                 exists=True, name=name, job_id=job_id,
                 job_queue_arn=job_queue_arn,
                 job_definition_arn=job_definition_arn,
-                commands=commands, environment_variables=environment_variables
+                environment_variables=environment_variables
             )
         else:
             return JobExists(exists=False)
@@ -1642,22 +1654,25 @@ class BatchJob(NamedObject):
         """
         # no coverage since actually submitting a batch job for
         # unit testing would be expensive
-        if self.environment_variables and self.commands:
+        bucket = self.job_definition.output_bucket
+        pickled_input = cloudpickle.dumps(self.input)
+
+        command = [self.job_definition.output_bucket]
+        if self.starmap:
+            command = ['--starmap'] + command
+
+        if self.environment_variables:
             container_overrides = {
                 'environment': self.environment_variables,
-                'command': self.commands
-            }
-        elif self.commands:
-            container_overrides = {
-                'command': self.commands
-            }
-        elif self.environment_variables:
-            container_overrides = {
-                'environment': self.environment_variables,
+                'command': command
             }
         else:
-            container_overrides = {}
+            container_overrides = {
+                'command': command
+            }
 
+        # We have to submit before uploading the input in order to get the
+        # jobID first.
         response = clients['batch'].submit_job(
             jobName=self.name,
             jobQueue=self.job_queue_arn,
@@ -1666,13 +1681,11 @@ class BatchJob(NamedObject):
         )
 
         job_id = response['jobId']
-
-        bucket = self.job_definition.output_bucket
         key = '/'.join([
             'cloudknot.jobs', self.job_definition.name, job_id, 'input.pickle'
         ])
 
-        pickled_input = pickle.dumps(container_overrides)
+        # Upload the input pickle
         clients['s3'].put_object(Bucket=bucket, Body=pickled_input, Key=key)
 
         # Add this job to the list of jobs in the config file

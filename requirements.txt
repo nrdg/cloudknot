@@ -1,5 +1,6 @@
 awscli
 boto3
+cloudpickle
 docker>=2.0.0
 pipreqs
 six

@@ -52,7 +52,7 @@ def bucket_cleanup():
                      '4b27-9a40-672c971f7e83')
     yield None
     bucket = ck.get_s3_bucket()
-    bucket_policy = ck.aws.base_classes.get_s3_policy_name()
+    bucket_policy = ck.aws.base_classes.get_s3_policy_name(bucket)
 
     s3 = ck.aws.clients['s3']
     s3.delete_bucket(Bucket=bucket)
@@ -601,8 +601,9 @@ def test_IamRole(bucket_cleanup):
             assert role.description == d
             assert role.service == s + '.amazonaws.com'
             p = (p,) if isinstance(p, six.string_types) else tuple(p)
+            bucket = ck.get_s3_bucket()
             assert set(role.policies) == (
-                set(p) | {ck.aws.base_classes.get_s3_policy_name()}
+                set(p) | {ck.aws.base_classes.get_s3_policy_name(bucket)}
             )
             if i:
                 assert role.instance_profile_arn

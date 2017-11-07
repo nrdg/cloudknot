@@ -47,7 +47,7 @@ def get_s3_bucket():
 
     option = 's3-bucket'
     if config.has_section('aws') and config.has_option('aws', option):
-        return config.get('aws', option)
+        bucket = config.get('aws', option)
     else:
         # Set `bucket`, the fallback bucket in case the cloudknot
         # bucket environment variable is not set
@@ -58,11 +58,11 @@ def get_s3_bucket():
             bucket = ('cloudknot-' + getpass.getuser().lower()
                       + '-' + str(uuid.uuid4()))
 
-        # Use set_s3_bucket to check for name availability
-        # and write to config file
-        set_s3_bucket(bucket)
+    # Use set_s3_bucket to check for name availability
+    # and write to config file
+    set_s3_bucket(bucket)
 
-        return bucket
+    return bucket
 
 
 def set_s3_bucket(bucket):
@@ -123,16 +123,16 @@ def get_bucket_policy(bucket):
             },
             {
                 "Effect": "Allow",
-                "Action": ["s3:PutObject"],
+                "Action": ["s3:PutObject", "s3:GetObject"],
                 "Resource": ["arn:aws:s3:::{0:s}/*".format(bucket)]
-            }
+            },
         ]
     }
 
     return s3_policy
 
 
-def get_s3_policy_name():
+def get_s3_policy_name(bucket):
     """Get the policy that grants access to the cloudknot S3 bucket
 
     First, check the cloudknot config file for the bucket-policy option.
@@ -162,7 +162,6 @@ def get_s3_policy_name():
         with open(config_file, 'w') as f:
             config.write(f)
 
-    bucket = get_s3_bucket()
     s3_policy = get_bucket_policy(bucket)
 
     try:
@@ -189,7 +188,7 @@ def update_s3_policy(bucket):
         Amazon S3 bucket name
     """
     s3_policy = get_bucket_policy(bucket)
-    policy = get_s3_policy_name()
+    policy = get_s3_policy_name(bucket)
 
     # After calling get_s3_policy_name(), the policy already exists
     # Get the ARN
