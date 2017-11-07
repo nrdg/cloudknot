@@ -102,8 +102,9 @@ AWS Batch resources and has methods for interacting with AWS Batch components.
 For more detail, you can familiarize yourself with the <a class="reference external" href="http://docs.aws.amazon.com/batch/latest/userguide/what-is-batch.html">components of AWS Batch</a>.
 <cite>Knot</cite> instantiation creates the required AWS resources. You can build a <cite>Knot</cite>
 on top of a customized <cite>Pars</cite> (see below) or just use the default <cite>Pars</cite>
-(default behavior). You can submit and view jobs using the <cite>submit</cite>, <cite>get_jobs</cite>
-and <cite>view_jobs</cite> methods. To see <cite>Knot</cite> in action, see <a class="reference internal" href="getting_started.html#eg-label"><span class="std std-ref">Examples</span></a>.</p>
+(default behavior). You can submit and view jobs using the <cite>map</cite>, <cite>get_jobs</cite>
+and <cite>view_jobs</cite> methods. In particular, <cite>map</cite> returns a list of futures for
+each submitted job’s results. To see <cite>Knot</cite> in action, see <a class="reference internal" href="getting_started.html#eg-label"><span class="std std-ref">Examples</span></a>.</p>
 <div class="toggle docutils container">
 <div class="header docutils container">
 cloudknot.Knot</div>
@@ -151,7 +152,7 @@ Default: 1</li>
 Default: 8000</li>
 <li><strong>retries</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em>) – number of times a job can be moved to ‘RUNNABLE’ status.
 May be between 1 and 10
-Default: 3</li>
+Default: 1</li>
 <li><strong>compute_environment_name</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Name for this knot’s AWS Batch compute environment
 Default: name + ‘-cloudknot-compute-environment’</li>
 <li><strong>instance_types</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a><em> or </em><em>sequence of strings</em><em>, </em><em>optional</em>) – Compute environment instance types
@@ -290,6 +291,35 @@ Default: False</li>
 <dd><p>The section name for this knot in the cloudknot config file</p>
 </dd></dl>
 
+<dl class="method">
+<dt id="cloudknot.Knot.map">
+<code class="descname">map</code><span class="sig-paren">(</span><em>commands=None</em>, <em>env_vars=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cloudknot/cloudknot.html#Knot.map"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.Knot.map" title="Permalink to this definition">¶</a></dt>
+<dd><p>Submit batch jobs for a range of commands and environment vars</p>
+<p>map returns a list of futures, which can return their result when
+the jobs are complete.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>commands</strong> (<em>sequence of sequence of strings</em>) – Sequence of commands. This method will submit one batch job for
+each command in the sequence. Each individual command must be a
+sequence of strings since the command eventaully becomes arguments
+to the <cite>docker run</cite> command. For example, if you wanted to pass
+the commands <cite>echo 1</cite>, <cite>echo 2</cite>, <cite>echo 3</cite>, then then you would use
+<cite>submit(commands=[[“echo”, “1”], [“echo”, “2”], [“echo”, “3”]])</cite></li>
+<li><strong>env_vars</strong> (<em>sequence of sequence of strings</em>) – Sequence of environment variables. This method will submit one
+batch job for each environment variable set in the sequence</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><strong>map</strong> (<em>list of futures</em>) – A list of futures for each job</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <dl class="attribute">
 <dt id="cloudknot.Knot.name">
 <code class="descname">name</code><a class="headerlink" href="#cloudknot.Knot.name" title="Permalink to this definition">¶</a></dt>
@@ -312,30 +342,6 @@ Default: False</li>
 <dt id="cloudknot.Knot.region">
 <code class="descname">region</code><a class="headerlink" href="#cloudknot.Knot.region" title="Permalink to this definition">¶</a></dt>
 <dd><p>The AWS region in which this resource was created</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="cloudknot.Knot.submit">
-<code class="descname">submit</code><span class="sig-paren">(</span><em>commands=None</em>, <em>env_vars=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cloudknot/cloudknot.html#Knot.submit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.Knot.submit" title="Permalink to this definition">¶</a></dt>
-<dd><p>Submit batch jobs for a range of commands and environment vars</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>commands</strong> (<em>sequence of sequence of strings</em>) – Sequence of commands. This method will submit one batch job for
-each command in the sequence. Each individual command must be a
-sequence of strings since the command eventaully becomes arguments
-to the <cite>docker run</cite> command. For example, if you wanted to pass
-the commands <cite>echo 1</cite>, <cite>echo 2</cite>, <cite>echo 3</cite>, then then you would use
-<cite>submit(commands=[[“echo”, “1”], [“echo”, “2”], [“echo”, “3”]])</cite></li>
-<li><strong>env_vars</strong> (<em>sequence of sequence of strings</em>) – Sequence of environment variables. This method will submit one
-batch job for each environment variable set in the sequence</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
 </dd></dl>
 
 <dl class="method">

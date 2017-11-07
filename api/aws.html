@@ -84,6 +84,8 @@
 <li class="toctree-l5"><a class="reference internal" href="_autosummary/cloudknot.aws.set_profile.html">cloudknot.aws.set_profile</a></li>
 <li class="toctree-l5"><a class="reference internal" href="_autosummary/cloudknot.aws.list_profiles.html">cloudknot.aws.list_profiles</a></li>
 <li class="toctree-l5"><a class="reference internal" href="_autosummary/cloudknot.aws.refresh_clients.html">cloudknot.aws.refresh_clients</a></li>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/cloudknot.aws.get_s3_bucket.html">cloudknot.aws.get_s3_bucket</a></li>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/cloudknot.aws.set_s3_bucket.html">cloudknot.aws.set_s3_bucket</a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="#clients">Clients</a></li>
@@ -206,6 +208,12 @@ or specify parameters to create a new resource on AWS. Higher level resources
 <tr class="row-even"><td><a class="reference internal" href="_autosummary/cloudknot.aws.refresh_clients.html#cloudknot.aws.refresh_clients" title="cloudknot.aws.refresh_clients"><code class="xref py py-obj docutils literal"><span class="pre">cloudknot.aws.refresh_clients</span></code></a>()</td>
 <td>Refresh the boto3 clients dictionary</td>
 </tr>
+<tr class="row-odd"><td><a class="reference internal" href="_autosummary/cloudknot.aws.get_s3_bucket.html#cloudknot.aws.get_s3_bucket" title="cloudknot.aws.get_s3_bucket"><code class="xref py py-obj docutils literal"><span class="pre">cloudknot.aws.get_s3_bucket</span></code></a>()</td>
+<td>Get the cloudknot S3 bucket</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="_autosummary/cloudknot.aws.set_s3_bucket.html#cloudknot.aws.set_s3_bucket" title="cloudknot.aws.set_s3_bucket"><code class="xref py py-obj docutils literal"><span class="pre">cloudknot.aws.set_s3_bucket</span></code></a>(bucket)</td>
+<td>Set the cloudknot S3 bucket</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -213,7 +221,7 @@ or specify parameters to create a new resource on AWS. Higher level resources
 <h2>Clients<a class="headerlink" href="#clients" title="Permalink to this headline">¶</a></h2>
 <dl class="attribute">
 <dt id="cloudknot.aws.clients">
-<code class="descclassname">aws.</code><code class="descname">clients</code><em class="property"> = {'iam': &lt;botocore.client.IAM object&gt;, 'ec2': &lt;botocore.client.EC2 object&gt;, 'batch': &lt;botocore.client.Batch object&gt;, 'ecr': &lt;botocore.client.ECR object&gt;, 'ecs': &lt;botocore.client.ECS object&gt;}</em><a class="headerlink" href="#cloudknot.aws.clients" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">aws.</code><code class="descname">clients</code><em class="property"> = {'iam': &lt;botocore.client.IAM object&gt;, 'ec2': &lt;botocore.client.EC2 object&gt;, 'batch': &lt;botocore.client.Batch object&gt;, 'ecr': &lt;botocore.client.ECR object&gt;, 'ecs': &lt;botocore.client.ECS object&gt;, 's3': &lt;botocore.client.S3 object&gt;}</em><a class="headerlink" href="#cloudknot.aws.clients" title="Permalink to this definition">¶</a></dt>
 <dd><p>Module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, and ECS.</p>
 <p>Storing the boto3 clients in a module-level dictionary allows us to change
 the region and profile and have those changes reflected globally.</p>

@@ -32,6 +32,8 @@ Functions
    cloudknot.aws.set_profile
    cloudknot.aws.list_profiles
    cloudknot.aws.refresh_clients
+   cloudknot.aws.get_s3_bucket
+   cloudknot.aws.set_s3_bucket
 
 Clients
 -------

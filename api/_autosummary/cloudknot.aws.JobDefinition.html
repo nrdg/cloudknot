@@ -137,7 +137,7 @@ Default: 8000</li>
 Default: cloudknot-user</li>
 <li><strong>retries</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – number of times a job can be moved to ‘RUNNABLE’ status.
 May be between 1 and 10
-Default: 3</li>
+Default: 1</li>
 </ul>
 </td>
 </tr>
@@ -203,6 +203,12 @@ Hub or other repository</p>
 <dt id="cloudknot.aws.JobDefinition.name">
 <code class="descname">name</code><a class="headerlink" href="#cloudknot.aws.JobDefinition.name" title="Permalink to this definition">¶</a></dt>
 <dd><p>The name of this AWS resource</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.JobDefinition.output_bucket">
+<code class="descname">output_bucket</code><a class="headerlink" href="#cloudknot.aws.JobDefinition.output_bucket" title="Permalink to this definition">¶</a></dt>
+<dd><p>Amazon S3 bucket where output will be stored</p>
 </dd></dl>
 
 <dl class="attribute">

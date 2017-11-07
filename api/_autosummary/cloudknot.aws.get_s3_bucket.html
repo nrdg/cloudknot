@@ -5,7 +5,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>cloudknot.aws.set_region &#8212; cloudknot 0.1 documentation</title>
+    <title>cloudknot.aws.get_s3_bucket &#8212; cloudknot 0.1 documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/collapsible.css" type="text/css" />
@@ -24,8 +24,8 @@
     <script type="text/javascript" src="../../_static/doctools.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="cloudknot.aws.get_profile" href="cloudknot.aws.get_profile.html" />
-    <link rel="prev" title="cloudknot.aws.get_region" href="cloudknot.aws.get_region.html" />
+    <link rel="next" title="cloudknot.aws.set_s3_bucket" href="cloudknot.aws.set_s3_bucket.html" />
+    <link rel="prev" title="cloudknot.aws.refresh_clients" href="cloudknot.aws.refresh_clients.html" />
    
   <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
   
@@ -69,12 +69,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../aws.html#classes">Classes</a></li>
 <li class="toctree-l4 current"><a class="reference internal" href="../aws.html#functions">Functions</a><ul class="current">
 <li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.get_region.html">cloudknot.aws.get_region</a></li>
-<li class="toctree-l5 current"><a class="current reference internal" href="#">cloudknot.aws.set_region</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.set_region.html">cloudknot.aws.set_region</a></li>
 <li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.get_profile.html">cloudknot.aws.get_profile</a></li>
 <li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.set_profile.html">cloudknot.aws.set_profile</a></li>
 <li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.list_profiles.html">cloudknot.aws.list_profiles</a></li>
 <li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.refresh_clients.html">cloudknot.aws.refresh_clients</a></li>
-<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.get_s3_bucket.html">cloudknot.aws.get_s3_bucket</a></li>
+<li class="toctree-l5 current"><a class="current reference internal" href="#">cloudknot.aws.get_s3_bucket</a></li>
 <li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.set_s3_bucket.html">cloudknot.aws.set_s3_bucket</a></li>
 </ul>
 </li>
@@ -109,19 +109,20 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="cloudknot-aws-set-region">
-<h1>cloudknot.aws.set_region<a class="headerlink" href="#cloudknot-aws-set-region" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="cloudknot-aws-get-s3-bucket">
+<h1>cloudknot.aws.get_s3_bucket<a class="headerlink" href="#cloudknot-aws-get-s3-bucket" title="Permalink to this headline">¶</a></h1>
 <dl class="function">
-<dt id="cloudknot.aws.set_region">
-<code class="descclassname">cloudknot.aws.</code><code class="descname">set_region</code><span class="sig-paren">(</span><em>region='us-east-1'</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cloudknot/aws/base_classes.html#set_region"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.aws.set_region" title="Permalink to this definition">¶</a></dt>
-<dd><p>Set the AWS region that cloudknot will use</p>
-<p>Set region by modifying the cloudknot config file and clients</p>
+<dt id="cloudknot.aws.get_s3_bucket">
+<code class="descclassname">cloudknot.aws.</code><code class="descname">get_s3_bucket</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cloudknot/aws/base_classes.html#get_s3_bucket"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.aws.get_s3_bucket" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the cloudknot S3 bucket</p>
+<p>First, check the cloudknot config file for the bucket option.
+If that fails, check for the CLOUDKNOT_S3_BUCKET environment variable.
+If that fails, use ‘cloudknot-‘ + getpass.getuser().lower() + ‘-‘ + uuid4()</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>region</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) – An AWS region.
-Default: ‘us-east-1’</td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><strong>bucket</strong> (<em>string</em>) – Cloudknot S3 bucket name</td>
 </tr>
 </tbody>
 </table>
@@ -144,7 +145,7 @@ Default: ‘us-east-1’</td>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
       
       |
-      <a href="../../_sources/api/_autosummary/cloudknot.aws.set_region.rst.txt"
+      <a href="../../_sources/api/_autosummary/cloudknot.aws.get_s3_bucket.rst.txt"
           rel="nofollow">Page source</a>
     </div>
 

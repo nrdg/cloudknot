@@ -87,6 +87,7 @@
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">operator</span>
 <span class="kn">import</span> <span class="nn">six</span>
+<span class="kn">from</span> <span class="nn">concurrent.futures</span> <span class="k">import</span> <span class="n">ThreadPoolExecutor</span>
 
 <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">aws</span>
 <span class="kn">from</span> <span class="nn">.config</span> <span class="k">import</span> <span class="n">get_config_file</span>
@@ -918,7 +919,7 @@
 <span class="sd">        retries : int, optional</span>
 <span class="sd">            number of times a job can be moved to &#39;RUNNABLE&#39; status.</span>
 <span class="sd">            May be between 1 and 10</span>
-<span class="sd">            Default: 3</span>
+<span class="sd">            Default: 1</span>
 
 <span class="sd">        compute_environment_name : str</span>
 <span class="sd">            Name for this knot&#39;s AWS Batch compute environment</span>
@@ -1450,8 +1451,11 @@
         <span class="sd">&quot;&quot;&quot;List of batch job IDs that this knot has launched&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_ids</span>
 
-<div class="viewcode-block" id="Knot.submit"><a class="viewcode-back" href="../../documentation.html#cloudknot.Knot.submit">[docs]</a>    <span class="k">def</span> <span class="nf">submit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">commands</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">env_vars</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Knot.map"><a class="viewcode-back" href="../../documentation.html#cloudknot.Knot.map">[docs]</a>    <span class="k">def</span> <span class="nf">map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">commands</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">env_vars</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Submit batch jobs for a range of commands and environment vars</span>
+
+<span class="sd">        map returns a list of futures, which can return their result when</span>
+<span class="sd">        the jobs are complete.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1466,6 +1470,11 @@
 <span class="sd">        env_vars : sequence of sequence of strings</span>
 <span class="sd">            Sequence of environment variables. This method will submit one</span>
 <span class="sd">            batch job for each environment variable set in the sequence</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        map : list of futures</span>
+<span class="sd">            A list of futures for each job</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">clobbered</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">ResourceClobberedException</span><span class="p">(</span>
@@ -1507,6 +1516,8 @@
         <span class="k">elif</span> <span class="ow">not</span> <span class="n">env_vars</span><span class="p">:</span>
             <span class="n">env_vars</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">commands</span><span class="p">)</span>
 
+        <span class="n">these_jobs</span> <span class="o">=</span> <span class="p">[]</span>
+
         <span class="k">for</span> <span class="n">command</span><span class="p">,</span> <span class="n">env</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">commands</span><span class="p">,</span> <span class="n">env_vars</span><span class="p">):</span>
             <span class="n">job</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">BatchJob</span><span class="p">(</span>
                 <span class="n">name</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{n:s}</span><span class="s1">-</span><span class="si">{i:d}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">job_ids</span><span class="p">)),</span>
@@ -1516,6 +1527,7 @@
                 <span class="n">environment_variables</span><span class="o">=</span><span class="n">env</span>
             <span class="p">)</span>
 
+            <span class="n">these_jobs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_jobs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_job_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">job_id</span><span class="p">)</span>
 
@@ -1524,7 +1536,10 @@
         <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span><span class="p">,</span> <span class="s1">&#39;job_ids&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">job_ids</span><span class="p">))</span>
         <span class="c1"># Save config to file</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">get_config_file</span><span class="p">(),</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="n">config</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span></div>
+            <span class="n">config</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">commands</span><span class="p">))</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">ex</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="k">lambda</span> <span class="n">j</span><span class="p">:</span> <span class="n">j</span><span class="o">.</span><span class="n">result</span><span class="p">(),</span> <span class="n">jb</span><span class="p">)</span> <span class="k">for</span> <span class="n">jb</span> <span class="ow">in</span> <span class="n">these_jobs</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="Knot.get_jobs"><a class="viewcode-back" href="../../documentation.html#cloudknot.Knot.get_jobs">[docs]</a>    <span class="k">def</span> <span class="nf">get_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return a list of dictionaries containing job instances and info</span>

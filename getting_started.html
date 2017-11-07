@@ -65,6 +65,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#using-multiple-aws-profiles">Using multiple AWS profiles</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#region-shopping">Region shopping</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#examples">Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#cloudknot-s3-bucket">Cloudknot S3 Bucket</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#aws-resource-limitations">AWS resource limitations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#debugging-and-logging">Debugging and logging</a></li>
 </ul>
@@ -136,14 +137,18 @@ for a cloudknot user should be contained in the following policy summary:</p>
                 &quot;iam:AddRoleToInstanceProfile&quot;,
                 &quot;iam:AttachRolePolicy&quot;,
                 &quot;iam:CreateInstanceProfile&quot;,
+                &quot;iam:CreatePolicy&quot;,
+                &quot;iam:CreatePolicyVersion&quot;,
                 &quot;iam:CreateRole&quot;,
                 &quot;iam:DeleteInstanceProfile&quot;,
+                &quot;iam:DeletePolicyVersion&quot;,
                 &quot;iam:DeleteRole&quot;,
                 &quot;iam:DetachRolePolicy&quot;,
                 &quot;iam:GetRole&quot;,
                 &quot;iam:ListAttachedRolePolicies&quot;,
                 &quot;iam:ListInstanceProfilesForRole&quot;,
                 &quot;iam:ListPolicies&quot;,
+                &quot;iam:ListPolicyVersions&quot;,
                 &quot;iam:ListRoles&quot;,
                 &quot;iam:PassRole&quot;,
                 &quot;iam:RemoveRoleFromInstanceProfile&quot;,
@@ -261,6 +266,19 @@ for a cloudknot user should be contained in the following policy summary:</p>
             &quot;Resource&quot;: [
                 &quot;*&quot;
             ]
+        },
+        {
+            &quot;Sid&quot;: &quot;Stmt1509807738000&quot;,
+            &quot;Effect&quot;: &quot;Allow&quot;,
+            &quot;Action&quot;: [
+                &quot;s3:CreateBucket&quot;,
+                &quot;s3:GetObject&quot;,
+                &quot;s3:ListBucket&quot;,
+                &quot;s3:PutObject&quot;
+            ],
+            &quot;Resource&quot;: [
+                &quot;*&quot;
+            ]
         }
     ]
 }
@@ -316,8 +334,10 @@ AWS_ACCESS_KEY_ID=AK*******************
 AWS_SECRET_ACCESS_KEY=****************************************
 </pre></div>
 </div>
-<p>Then you can use the cloudknot functions <a class="reference internal" href="api/_autosummary/cloudknot.aws.set_profile.html#cloudknot.aws.set_profile" title="cloudknot.aws.set_profile"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.aws.set_profile()</span></code></a>,
-<a class="reference internal" href="api/_autosummary/cloudknot.aws.get_profile.html#cloudknot.aws.get_profile" title="cloudknot.aws.get_profile"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.aws.get_profile()</span></code></a>, and <a class="reference internal" href="api/_autosummary/cloudknot.aws.list_profiles.html#cloudknot.aws.list_profiles" title="cloudknot.aws.list_profiles"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.aws.list_profiles()</span></code></a>
+<p>Then you can use the cloudknot functions
+<a class="reference internal" href="api/_autosummary/cloudknot.aws.set_profile.html#cloudknot.aws.set_profile" title="cloudknot.aws.set_profile"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.set_profile</span></code></a>,
+<a class="reference internal" href="api/_autosummary/cloudknot.aws.get_profile.html#cloudknot.aws.get_profile" title="cloudknot.aws.get_profile"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.get_profile</span></code></a>, and
+<a class="reference internal" href="api/_autosummary/cloudknot.aws.list_profiles.html#cloudknot.aws.list_profiles" title="cloudknot.aws.list_profiles"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.list_profiles</span></code></a>
 to interact with your various AWS profiles.</p>
 </div>
 <div class="section" id="region-shopping">
@@ -332,6 +352,17 @@ resources reside and in which you will launch your AWS Batch jobs by using the
 <span id="eg-label"></span><h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h2>
 <p>See the <a class="reference external" href="https://github.com/richford/cloudknot/tree/master/examples">examples directory</a> on github for
 (you guessed it) examples of how to use cloudknot.</p>
+</div>
+<div class="section" id="cloudknot-s3-bucket">
+<h2>Cloudknot S3 Bucket<a class="headerlink" href="#cloudknot-s3-bucket" title="Permalink to this headline">¶</a></h2>
+<p>Cloudknot has some methods to return the results of AWS Batch jobs to the
+user. See, for example, <a class="reference internal" href="documentation.html#cloudknot.Knot.map" title="cloudknot.Knot.map"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.Knot.map()</span></code></a>,
+<a class="reference internal" href="api/_autosummary/cloudknot.aws.BatchJob.html#cloudknot.aws.BatchJob.done" title="cloudknot.aws.BatchJob.done"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.BatchJob.done</span></code></a>, and
+<a class="reference internal" href="api/_autosummary/cloudknot.aws.BatchJob.html#cloudknot.aws.BatchJob.result" title="cloudknot.aws.BatchJob.result"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.BatchJob.result</span></code></a>. Under
+the hood, these methods pass results through an Amazon S3 bucket. You can get
+and set the name of this S3 bucket using
+<a class="reference internal" href="api/_autosummary/cloudknot.aws.get_s3_bucket.html#cloudknot.aws.get_s3_bucket" title="cloudknot.aws.get_s3_bucket"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.get_s3_bucket</span></code></a> and
+<a class="reference internal" href="api/_autosummary/cloudknot.aws.set_s3_bucket.html#cloudknot.aws.set_s3_bucket" title="cloudknot.aws.set_s3_bucket"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.set_s3_bucket</span></code></a>.</p>
 </div>
 <div class="section" id="aws-resource-limitations">
 <h2>AWS resource limitations<a class="headerlink" href="#aws-resource-limitations" title="Permalink to this headline">¶</a></h2>
@@ -364,6 +395,11 @@ user’s home directory in the path returned by</p>
 <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s1">&#39;~&#39;</span><span class="p">),</span> <span class="s1">&#39;.cloudknot&#39;</span><span class="p">,</span> <span class="s1">&#39;cloudknot.log&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>If something goes wrong with an AWS Batch job, you might want to inspect the
+job’s log on Amazon CloudWatch. You can get a URL for each job attempt’s
+CloudWatch log using the
+<a class="reference internal" href="api/_autosummary/cloudknot.aws.BatchJob.html#cloudknot.aws.BatchJob.log_urls" title="cloudknot.aws.BatchJob.log_urls"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.BatchJob.log_urls</span></code></a>
+parameter.</p>
 </div>
 </div>
 

@@ -90,7 +90,7 @@
 <span class="kn">import</span> <span class="nn">tenacity</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">namedtuple</span>
 
-<span class="kn">from</span> <span class="nn">.base_classes</span> <span class="k">import</span> <span class="n">ObjectWithArn</span><span class="p">,</span> <span class="n">clients</span><span class="p">,</span> \
+<span class="kn">from</span> <span class="nn">.base_classes</span> <span class="k">import</span> <span class="n">ObjectWithArn</span><span class="p">,</span> <span class="n">clients</span><span class="p">,</span> <span class="n">get_s3_policy_name</span><span class="p">,</span> \
     <span class="n">ResourceExistsException</span><span class="p">,</span> <span class="n">ResourceDoesNotExistException</span><span class="p">,</span> \
     <span class="n">ResourceClobberedException</span><span class="p">,</span> <span class="n">CannotDeleteResourceException</span>
 
@@ -181,12 +181,11 @@
             <span class="n">role_policy</span> <span class="o">=</span> <span class="p">{</span>
                 <span class="s2">&quot;Statement&quot;</span><span class="p">:</span> <span class="p">[{</span>
                     <span class="s2">&quot;Effect&quot;</span><span class="p">:</span> <span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;Principal&quot;</span><span class="p">:</span> <span class="p">{</span>
-                        <span class="s2">&quot;Service&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_service</span>
-                    <span class="p">},</span>
+                    <span class="s2">&quot;Principal&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;Service&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_service</span><span class="p">},</span>
                     <span class="s2">&quot;Action&quot;</span><span class="p">:</span> <span class="s2">&quot;sts:AssumeRole&quot;</span>
                 <span class="p">}]</span>
             <span class="p">}</span>
+
             <span class="bp">self</span><span class="o">.</span><span class="n">_role_policy_document</span> <span class="o">=</span> <span class="n">role_policy</span>
 
             <span class="c1"># Check the user supplied policies against the available policies</span>
@@ -225,7 +224,8 @@
                     <span class="s1">&#39;AWS.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bad_policies</span><span class="o">=</span><span class="n">bad_policies</span><span class="p">)</span>
                 <span class="p">)</span>
 
-            <span class="bp">self</span><span class="o">.</span><span class="n">_policies</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">input_policies</span><span class="p">)</span>
+            <span class="c1"># Add the cloudknot s3 policy if not already in input_policies</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_policies</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">input_policies</span> <span class="o">|</span> <span class="p">{</span><span class="n">get_s3_policy_name</span><span class="p">()})</span>
 
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">add_instance_profile</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;add_instance_profile is a boolean input&#39;</span><span class="p">)</span>
@@ -554,10 +554,13 @@
             <span class="n">policy_arn</span> <span class="o">=</span> <span class="n">policy_filter</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;Arn&#39;</span><span class="p">]</span>
 
             <span class="c1"># Detach the policy from this role</span>
-            <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">detach_role_policy</span><span class="p">(</span>
-                <span class="n">RoleName</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                <span class="n">PolicyArn</span><span class="o">=</span><span class="n">policy_arn</span>
-            <span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">detach_role_policy</span><span class="p">(</span>
+                    <span class="n">RoleName</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="n">PolicyArn</span><span class="o">=</span><span class="n">policy_arn</span>
+                <span class="p">)</span>
+            <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">NoSuchEntityException</span><span class="p">:</span>
+                <span class="k">pass</span>
 
         <span class="c1"># Delete role from AWS</span>
         <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">delete_role</span><span class="p">(</span><span class="n">RoleName</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>

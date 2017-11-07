@@ -84,7 +84,9 @@
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">cloudknot.config</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
 <span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">pickle</span>
 <span class="kn">import</span> <span class="nn">six</span>
 <span class="kn">import</span> <span class="nn">tenacity</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">namedtuple</span>
@@ -93,7 +95,8 @@
     <span class="n">ObjectWithUsernameAndMemory</span><span class="p">,</span> <span class="n">clients</span><span class="p">,</span> \
     <span class="n">ResourceExistsException</span><span class="p">,</span> <span class="n">ResourceDoesNotExistException</span><span class="p">,</span> \
     <span class="n">ResourceClobberedException</span><span class="p">,</span> <span class="n">CannotDeleteResourceException</span><span class="p">,</span> \
-    <span class="n">wait_for_job_queue</span>
+    <span class="n">BatchJobFailedError</span><span class="p">,</span> <span class="n">CKTimeoutError</span><span class="p">,</span> \
+    <span class="n">wait_for_job_queue</span><span class="p">,</span> <span class="n">get_s3_bucket</span>
 <span class="kn">from</span> <span class="nn">.ec2</span> <span class="k">import</span> <span class="n">Vpc</span><span class="p">,</span> <span class="n">SecurityGroup</span>
 <span class="kn">from</span> <span class="nn">.ecr</span> <span class="k">import</span> <span class="n">DockerRepo</span>
 <span class="kn">from</span> <span class="nn">.iam</span> <span class="k">import</span> <span class="n">IamRole</span>
@@ -143,7 +146,7 @@
 <span class="sd">        retries : int</span>
 <span class="sd">            number of times a job can be moved to &#39;RUNNABLE&#39; status.</span>
 <span class="sd">            May be between 1 and 10</span>
-<span class="sd">            Default: 3</span>
+<span class="sd">            Default: 1</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Validate for minimum input</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">arn</span> <span class="ow">or</span> <span class="n">name</span><span class="p">):</span>
@@ -190,6 +193,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_vcpus</span> <span class="o">=</span> <span class="n">resource</span><span class="o">.</span><span class="n">vcpus</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_retries</span> <span class="o">=</span> <span class="n">resource</span><span class="o">.</span><span class="n">retries</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_arn</span> <span class="o">=</span> <span class="n">resource</span><span class="o">.</span><span class="n">arn</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_output_bucket</span> <span class="o">=</span> <span class="n">resource</span><span class="o">.</span><span class="n">output_bucket</span>
 
             <span class="c1"># Add to config file</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_section_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_section_name</span><span class="p">(</span><span class="s1">&#39;job-definitions&#39;</span><span class="p">)</span>
@@ -242,6 +246,7 @@
                     <span class="s1">&#39;or a string&#39;</span>
                 <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_docker_image</span> <span class="o">=</span> <span class="n">docker_image</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_output_bucket</span> <span class="o">=</span> <span class="n">get_s3_bucket</span><span class="p">()</span>
 
             <span class="c1"># Validate vcpus input</span>
             <span class="k">if</span> <span class="n">vcpus</span><span class="p">:</span>
@@ -263,7 +268,7 @@
                 <span class="k">else</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_retries</span> <span class="o">=</span> <span class="n">retries_int</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_retries</span> <span class="o">=</span> <span class="mi">3</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_retries</span> <span class="o">=</span> <span class="mi">1</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">_arn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create</span><span class="p">()</span>
 
@@ -296,6 +301,11 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_docker_image</span>
 
     <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">output_bucket</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Amazon S3 bucket where output will be stored&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_bucket</span>
+
+    <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">vcpus</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;The number of vCPUS for this job definition.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vcpus</span>
@@ -315,14 +325,16 @@
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        namedtuple RoleExists</span>
-<span class="sd">            A namedtuple with fields [&#39;exists&#39;, &#39;name&#39;, &#39;status&#39;, &#39;job_role&#39;,</span>
+<span class="sd">            A namedtuple with fields</span>
+<span class="sd">            [&#39;exists&#39;, &#39;name&#39;, &#39;status&#39;, &#39;job_role&#39;, &#39;output_bucket&#39;,</span>
 <span class="sd">            &#39;docker_image&#39;, &#39;vcpus&#39;, &#39;memory&#39;, &#39;username&#39;, &#39;retries&#39;, &#39;arn&#39;]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># define a namedtuple for return value type</span>
         <span class="n">ResourceExists</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span>
             <span class="s1">&#39;ResourceExists&#39;</span><span class="p">,</span>
             <span class="p">[</span><span class="s1">&#39;exists&#39;</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;status&#39;</span><span class="p">,</span> <span class="s1">&#39;job_role_arn&#39;</span><span class="p">,</span> <span class="s1">&#39;docker_image&#39;</span><span class="p">,</span>
-             <span class="s1">&#39;vcpus&#39;</span><span class="p">,</span> <span class="s1">&#39;memory&#39;</span><span class="p">,</span> <span class="s1">&#39;username&#39;</span><span class="p">,</span> <span class="s1">&#39;retries&#39;</span><span class="p">,</span> <span class="s1">&#39;arn&#39;</span><span class="p">]</span>
+             <span class="s1">&#39;vcpus&#39;</span><span class="p">,</span> <span class="s1">&#39;memory&#39;</span><span class="p">,</span> <span class="s1">&#39;username&#39;</span><span class="p">,</span> <span class="s1">&#39;retries&#39;</span><span class="p">,</span> <span class="s1">&#39;arn&#39;</span><span class="p">,</span>
+             <span class="s1">&#39;output_bucket&#39;</span><span class="p">]</span>
         <span class="p">)</span>
         <span class="c1"># make all but the first value default to None</span>
         <span class="n">ResourceExists</span><span class="o">.</span><span class="fm">__new__</span><span class="o">.</span><span class="vm">__defaults__</span> <span class="o">=</span> \
@@ -361,6 +373,15 @@
             <span class="n">vcpus</span> <span class="o">=</span> <span class="n">container_properties</span><span class="p">[</span><span class="s1">&#39;vcpus&#39;</span><span class="p">]</span>
             <span class="n">job_role_arn</span> <span class="o">=</span> <span class="n">container_properties</span><span class="p">[</span><span class="s1">&#39;jobRoleArn&#39;</span><span class="p">]</span>
             <span class="n">container_image</span> <span class="o">=</span> <span class="n">container_properties</span><span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">]</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">environment</span> <span class="o">=</span> <span class="n">container_properties</span><span class="p">[</span><span class="s1">&#39;environment&#39;</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>  <span class="c1"># pragma: nocover</span>
+                <span class="n">environment</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="n">bucket_envs</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">environment</span>
+                           <span class="k">if</span> <span class="n">e</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;CLOUDKNOT_JOBS_S3_BUCKET&#39;</span><span class="p">]</span>
+
+            <span class="n">output_bucket</span> <span class="o">=</span> <span class="n">bucket_envs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="n">bucket_envs</span> <span class="k">else</span> <span class="kc">None</span>
 
             <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Job definition </span><span class="si">{name:s}</span><span class="s1"> already exists.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                 <span class="n">name</span><span class="o">=</span><span class="n">job_def_name</span>
@@ -370,7 +391,7 @@
                 <span class="n">exists</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">job_def_name</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="n">job_def_status</span><span class="p">,</span>
                 <span class="n">job_role_arn</span><span class="o">=</span><span class="n">job_role_arn</span><span class="p">,</span> <span class="n">docker_image</span><span class="o">=</span><span class="n">container_image</span><span class="p">,</span>
                 <span class="n">vcpus</span><span class="o">=</span><span class="n">vcpus</span><span class="p">,</span> <span class="n">memory</span><span class="o">=</span><span class="n">memory</span><span class="p">,</span> <span class="n">username</span><span class="o">=</span><span class="n">username</span><span class="p">,</span>
-                <span class="n">retries</span><span class="o">=</span><span class="n">retries</span><span class="p">,</span> <span class="n">arn</span><span class="o">=</span><span class="n">job_def_arn</span>
+                <span class="n">retries</span><span class="o">=</span><span class="n">retries</span><span class="p">,</span> <span class="n">arn</span><span class="o">=</span><span class="n">job_def_arn</span><span class="p">,</span> <span class="n">output_bucket</span><span class="o">=</span><span class="n">output_bucket</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">ResourceExists</span><span class="p">(</span><span class="n">exists</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -395,7 +416,17 @@
             <span class="s1">&#39;memory&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">memory</span><span class="p">,</span>
             <span class="s1">&#39;command&#39;</span><span class="p">:</span> <span class="p">[],</span>
             <span class="s1">&#39;jobRoleArn&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_role_arn</span><span class="p">,</span>
-            <span class="s1">&#39;user&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">username</span>
+            <span class="s1">&#39;user&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">username</span><span class="p">,</span>
+            <span class="s1">&#39;environment&#39;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;CLOUDKNOT_JOBS_S3_BUCKET&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_bucket</span>
+                <span class="p">},</span>
+                <span class="p">{</span>
+                    <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;CLOUDKNOT_S3_JOBDEF_KEY&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+                <span class="p">}</span>
+            <span class="p">],</span>
         <span class="p">}</span>
 
         <span class="c1"># Register the job def</span>
@@ -1719,6 +1750,14 @@
 
         <span class="n">job_id</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s1">&#39;jobId&#39;</span><span class="p">]</span>
 
+        <span class="n">bucket</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">output_bucket</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;/&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+            <span class="s1">&#39;cloudknot.jobs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">job_id</span><span class="p">,</span> <span class="s1">&#39;input.pickle&#39;</span>
+        <span class="p">])</span>
+
+        <span class="n">pickled_input</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">container_overrides</span><span class="p">)</span>
+        <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">put_object</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">Body</span><span class="o">=</span><span class="n">pickled_input</span><span class="p">,</span> <span class="n">Key</span><span class="o">=</span><span class="n">key</span><span class="p">)</span>
+
         <span class="c1"># Add this job to the list of jobs in the config file</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_section_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_section_name</span><span class="p">(</span><span class="s1">&#39;batch-jobs&#39;</span><span class="p">)</span>
         <span class="n">cloudknot</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">add_resource</span><span class="p">(</span>
@@ -1759,6 +1798,90 @@
                   <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;status&#39;</span><span class="p">,</span> <span class="s1">&#39;statusReason&#39;</span><span class="p">,</span> <span class="s1">&#39;attempts&#39;</span><span class="p">)}</span>
 
         <span class="k">return</span> <span class="n">status</span>
+
+    <span class="o">@</span> <span class="nb">property</span>
+    <span class="k">def</span> <span class="nf">log_urls</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the urls of the batch job logs on AWS Cloudwatch</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        log_urls : list</span>
+<span class="sd">            A list of log urls for each attempt number. If the job has</span>
+<span class="sd">            not yet run, this will return an empty list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">attempts</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">status</span><span class="p">[</span><span class="s1">&#39;attempts&#39;</span><span class="p">],</span>
+                          <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">a</span><span class="p">:</span> <span class="n">a</span><span class="p">[</span><span class="s1">&#39;startedAt&#39;</span><span class="p">])</span>
+
+        <span class="n">log_stream_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="p">[</span><span class="s1">&#39;container&#39;</span><span class="p">][</span><span class="s1">&#39;logStreamName&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">attempts</span><span class="p">]</span>
+
+        <span class="k">def</span> <span class="nf">log_name2url</span><span class="p">(</span><span class="n">log_name</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s1">&#39;https://console.aws.amazon.com/cloudwatch/home?region=&#39;</span> \
+                   <span class="s1">&#39;</span><span class="si">{region:s}</span><span class="s1">#logEventViewer:group=/aws/batch/job;&#39;</span> \
+                   <span class="s1">&#39;stream=</span><span class="si">{log_name:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">region</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">region</span><span class="p">,</span>
+                                                <span class="n">log_name</span><span class="o">=</span><span class="n">log_name</span><span class="p">)</span>
+
+        <span class="n">log_urls</span> <span class="o">=</span> <span class="p">[</span><span class="n">log_name2url</span><span class="p">(</span><span class="n">log</span><span class="p">)</span> <span class="k">for</span> <span class="n">log</span> <span class="ow">in</span> <span class="n">log_stream_names</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">log_urls</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">done</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return True if the job is done.</span>
+
+<span class="sd">        In this case, &quot;done&quot; means the job status is SUCCEEDED or that it is</span>
+<span class="sd">        FAILED and the job has exceeded the max number of retry attempts</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">stat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">status</span>
+        <span class="n">done</span> <span class="o">=</span> <span class="p">(</span><span class="n">stat</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;SUCCEEDED&#39;</span>
+                <span class="ow">or</span> <span class="p">(</span><span class="n">stat</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;FAILED&#39;</span>
+                    <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">stat</span><span class="p">[</span><span class="s1">&#39;attempts&#39;</span><span class="p">])</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">retries</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">done</span>
+
+<div class="viewcode-block" id="BatchJob.result"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.BatchJob.html#cloudknot.aws.BatchJob.result">[docs]</a>    <span class="k">def</span> <span class="nf">result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the result of the latest attempt</span>
+
+<span class="sd">        If the call hasn&#39;t yet completed then this method will wait up to</span>
+<span class="sd">        timeout seconds. If the call hasn&#39;t completed in timeout seconds,</span>
+<span class="sd">        then a CKTimeoutError is raised. If the batch job is in FAILED status</span>
+<span class="sd">        then a BatchJobFailedError is raised.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        timeout: int or float</span>
+<span class="sd">            timeout time in seconds. If timeout is not specified or None,</span>
+<span class="sd">            there is no limit to the wait time.</span>
+<span class="sd">            Default: None</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        result:</span>
+<span class="sd">            The result of the AWS Batch job</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Set start time for timeout period</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+
+        <span class="k">def</span> <span class="nf">time_diff</span><span class="p">():</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span><span class="o">.</span><span class="n">seconds</span>
+
+        <span class="k">while</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">done</span> <span class="ow">and</span> <span class="p">(</span><span class="n">timeout</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">time_diff</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">timeout</span><span class="p">):</span>
+            <span class="k">pass</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">done</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">CKTimeoutError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">job_id</span><span class="p">)</span>
+
+        <span class="n">status</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">status</span>
+        <span class="k">if</span> <span class="n">status</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;FAILED&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">BatchJobFailedError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">job_id</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">bucket</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">output_bucket</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;/&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+                <span class="s1">&#39;cloudknot.jobs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_id</span><span class="p">,</span>
+                <span class="s1">&#39;</span><span class="si">{0:3d}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">status</span><span class="p">[</span><span class="s1">&#39;attempts&#39;</span><span class="p">])),</span> <span class="s1">&#39;output.pickle&#39;</span>
+            <span class="p">])</span>
+
+            <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get_object</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">Key</span><span class="o">=</span><span class="n">key</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">pickle</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Body&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">())</span></div>
 
 <div class="viewcode-block" id="BatchJob.terminate"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.BatchJob.html#cloudknot.aws.BatchJob.terminate">[docs]</a>    <span class="k">def</span> <span class="nf">terminate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reason</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Kill AWS batch job using instance parameter `self.job_id`</span>

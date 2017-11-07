@@ -173,6 +173,14 @@ e.g. <cite>echo hello</cite> becomes [‘echo’, ‘hello’]</p>
 </dd></dl>
 
 <dl class="attribute">
+<dt id="cloudknot.aws.BatchJob.done">
+<code class="descname">done</code><a class="headerlink" href="#cloudknot.aws.BatchJob.done" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return True if the job is done.</p>
+<p>In this case, “done” means the job status is SUCCEEDED or that it is
+FAILED and the job has exceeded the max number of retry attempts</p>
+</dd></dl>
+
+<dl class="attribute">
 <dt id="cloudknot.aws.BatchJob.environment_variables">
 <code class="descname">environment_variables</code><a class="headerlink" href="#cloudknot.aws.BatchJob.environment_variables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Key/value pairs for environment variables sent to the container</p>
@@ -209,6 +217,21 @@ e.g. <cite>echo hello</cite> becomes [‘echo’, ‘hello’]</p>
 </dd></dl>
 
 <dl class="attribute">
+<dt id="cloudknot.aws.BatchJob.log_urls">
+<code class="descname">log_urls</code><a class="headerlink" href="#cloudknot.aws.BatchJob.log_urls" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the urls of the batch job logs on AWS Cloudwatch</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><strong>log_urls</strong> (<em>list</em>) – A list of log urls for each attempt number. If the job has
+not yet run, this will return an empty list</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
 <dt id="cloudknot.aws.BatchJob.name">
 <code class="descname">name</code><a class="headerlink" href="#cloudknot.aws.BatchJob.name" title="Permalink to this definition">¶</a></dt>
 <dd><p>The name of this AWS resource</p>
@@ -224,6 +247,28 @@ e.g. <cite>echo hello</cite> becomes [‘echo’, ‘hello’]</p>
 <dt id="cloudknot.aws.BatchJob.region">
 <code class="descname">region</code><a class="headerlink" href="#cloudknot.aws.BatchJob.region" title="Permalink to this definition">¶</a></dt>
 <dd><p>The AWS region in which this resource was created</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudknot.aws.BatchJob.result">
+<code class="descname">result</code><span class="sig-paren">(</span><em>timeout=None</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cloudknot/aws/batch.html#BatchJob.result"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.aws.BatchJob.result" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the result of the latest attempt</p>
+<p>If the call hasn’t yet completed then this method will wait up to
+timeout seconds. If the call hasn’t completed in timeout seconds,
+then a CKTimeoutError is raised. If the batch job is in FAILED status
+then a BatchJobFailedError is raised.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>timeout</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – timeout time in seconds. If timeout is not specified or None,
+there is no limit to the wait time.
+Default: None</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><em>result</em> – The result of the AWS Batch job</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="attribute">

@@ -85,10 +85,13 @@
 
 <span class="kn">import</span> <span class="nn">boto3</span>
 <span class="kn">import</span> <span class="nn">configparser</span>
+<span class="kn">import</span> <span class="nn">getpass</span>
+<span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">uuid</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">namedtuple</span>
 
 <span class="kn">from</span> <span class="nn">..config</span> <span class="k">import</span> <span class="n">get_config_file</span>
@@ -97,14 +100,222 @@
     <span class="s2">&quot;ResourceDoesNotExistException&quot;</span><span class="p">,</span> <span class="s2">&quot;ResourceClobberedException&quot;</span><span class="p">,</span>
     <span class="s2">&quot;ResourceExistsException&quot;</span><span class="p">,</span> <span class="s2">&quot;CannotDeleteResourceException&quot;</span><span class="p">,</span>
     <span class="s2">&quot;CannotCreateResourceException&quot;</span><span class="p">,</span> <span class="s2">&quot;RegionException&quot;</span><span class="p">,</span> <span class="s2">&quot;ProfileException&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;BatchJobFailedError&quot;</span><span class="p">,</span> <span class="s2">&quot;CKTimeoutError&quot;</span><span class="p">,</span>
     <span class="s2">&quot;NamedObject&quot;</span><span class="p">,</span> <span class="s2">&quot;ObjectWithArn&quot;</span><span class="p">,</span> <span class="s2">&quot;ObjectWithUsernameAndMemory&quot;</span><span class="p">,</span>
     <span class="s2">&quot;clients&quot;</span><span class="p">,</span> <span class="s2">&quot;refresh_clients&quot;</span><span class="p">,</span>
     <span class="s2">&quot;wait_for_compute_environment&quot;</span><span class="p">,</span> <span class="s2">&quot;wait_for_job_queue&quot;</span><span class="p">,</span>
     <span class="s2">&quot;get_region&quot;</span><span class="p">,</span> <span class="s2">&quot;set_region&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;get_s3_bucket&quot;</span><span class="p">,</span> <span class="s2">&quot;set_s3_bucket&quot;</span><span class="p">,</span> <span class="s2">&quot;get_s3_policy_name&quot;</span><span class="p">,</span>
     <span class="s2">&quot;get_profile&quot;</span><span class="p">,</span> <span class="s2">&quot;set_profile&quot;</span><span class="p">,</span> <span class="s2">&quot;list_profiles&quot;</span><span class="p">,</span>
 <span class="p">]</span>
 
 <span class="n">mod_logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_s3_bucket"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.get_s3_bucket.html#cloudknot.aws.get_s3_bucket">[docs]</a><span class="k">def</span> <span class="nf">get_s3_bucket</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Get the cloudknot S3 bucket</span>
+
+<span class="sd">    First, check the cloudknot config file for the bucket option.</span>
+<span class="sd">    If that fails, check for the CLOUDKNOT_S3_BUCKET environment variable.</span>
+<span class="sd">    If that fails, use &#39;cloudknot-&#39; + getpass.getuser().lower() + &#39;-&#39; + uuid4()</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    bucket : string</span>
+<span class="sd">        Cloudknot S3 bucket name</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">config_file</span> <span class="o">=</span> <span class="n">get_config_file</span><span class="p">()</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
+    <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+
+    <span class="n">option</span> <span class="o">=</span> <span class="s1">&#39;s3-bucket&#39;</span>
+    <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">has_section</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">config</span><span class="o">.</span><span class="n">has_option</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="n">option</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="n">option</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Set `bucket`, the fallback bucket in case the cloudknot</span>
+        <span class="c1"># bucket environment variable is not set</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Get the region from an environment variable</span>
+            <span class="n">bucket</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;CLOUDKNOT_S3_BUCKET&#39;</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="n">bucket</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;cloudknot-&#39;</span> <span class="o">+</span> <span class="n">getpass</span><span class="o">.</span><span class="n">getuser</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                      <span class="o">+</span> <span class="s1">&#39;-&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()))</span>
+
+        <span class="c1"># Use set_s3_bucket to check for name availability</span>
+        <span class="c1"># and write to config file</span>
+        <span class="n">set_s3_bucket</span><span class="p">(</span><span class="n">bucket</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">bucket</span></div>
+
+
+<div class="viewcode-block" id="set_s3_bucket"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.set_s3_bucket.html#cloudknot.aws.set_s3_bucket">[docs]</a><span class="k">def</span> <span class="nf">set_s3_bucket</span><span class="p">(</span><span class="n">bucket</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Set the cloudknot S3 bucket</span>
+
+<span class="sd">    Set bucket by modifying the cloudknot config file</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    bucket : string</span>
+<span class="sd">        Cloudknot S3 bucket name</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Update the config file</span>
+    <span class="n">config_file</span> <span class="o">=</span> <span class="n">get_config_file</span><span class="p">()</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
+    <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">config</span><span class="o">.</span><span class="n">has_section</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">):</span>  <span class="c1"># pragma: nocover</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">add_section</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">)</span>
+
+    <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="s1">&#39;s3-bucket&#39;</span><span class="p">,</span> <span class="n">bucket</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+    <span class="c1"># Create the bucket</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">create_bucket</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">BucketAlreadyOwnedByYou</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">BucketAlreadyExists</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The requested bucket name is not available.&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Update the s3_policy with new bucket name</span>
+    <span class="n">update_s3_policy</span><span class="p">(</span><span class="n">bucket</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">get_bucket_policy</span><span class="p">(</span><span class="n">bucket</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the policy document to access an S3 bucket</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    bucket: string</span>
+<span class="sd">        An Amazon S3 bucket name</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    s3_policy: dict</span>
+<span class="sd">        A dictionary containing the AWS policy document</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Add policy statements to access to cloudknot S3 bucket</span>
+    <span class="n">s3_policy</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;Version&quot;</span><span class="p">:</span> <span class="s2">&quot;2012-10-17&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Statement&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;Effect&quot;</span><span class="p">:</span> <span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Action&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;s3:ListBucket&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;Resource&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;arn:aws:s3:::</span><span class="si">{0:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bucket</span><span class="p">)]</span>
+            <span class="p">},</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;Effect&quot;</span><span class="p">:</span> <span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Action&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;s3:PutObject&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;Resource&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;arn:aws:s3:::</span><span class="si">{0:s}</span><span class="s2">/*&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bucket</span><span class="p">)]</span>
+            <span class="p">}</span>
+        <span class="p">]</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">s3_policy</span>
+
+
+<span class="k">def</span> <span class="nf">get_s3_policy_name</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Get the policy that grants access to the cloudknot S3 bucket</span>
+
+<span class="sd">    First, check the cloudknot config file for the bucket-policy option.</span>
+<span class="sd">    If that fails, use &#39;cloudknot-bucket-access-&#39; + uuid4()</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    policy : string</span>
+<span class="sd">        Cloudknot S3 bucket access policy name</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">config_file</span> <span class="o">=</span> <span class="n">get_config_file</span><span class="p">()</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
+    <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+
+    <span class="n">option</span> <span class="o">=</span> <span class="s1">&#39;s3-bucket-policy&#39;</span>
+    <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">has_section</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">config</span><span class="o">.</span><span class="n">has_option</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="n">option</span><span class="p">):</span>
+        <span class="c1"># Get policy name from the config file</span>
+        <span class="n">policy</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="n">option</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># or create new one if it doesn&#39;t exist</span>
+        <span class="n">policy</span> <span class="o">=</span> <span class="s1">&#39;cloudknot-bucket-access-&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">config</span><span class="o">.</span><span class="n">has_section</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">):</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">add_section</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">)</span>
+
+        <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="n">option</span><span class="p">,</span> <span class="n">policy</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+    <span class="n">bucket</span> <span class="o">=</span> <span class="n">get_s3_bucket</span><span class="p">()</span>
+    <span class="n">s3_policy</span> <span class="o">=</span> <span class="n">get_bucket_policy</span><span class="p">(</span><span class="n">bucket</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Create the policy</span>
+        <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">create_policy</span><span class="p">(</span>
+            <span class="n">PolicyName</span><span class="o">=</span><span class="n">policy</span><span class="p">,</span>
+            <span class="n">Path</span><span class="o">=</span><span class="s1">&#39;/cloudknot/&#39;</span><span class="p">,</span>
+            <span class="n">PolicyDocument</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">s3_policy</span><span class="p">),</span>
+            <span class="n">Description</span><span class="o">=</span><span class="s1">&#39;Grants access to S3 bucket </span><span class="si">{0:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bucket</span><span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">EntityAlreadyExistsException</span><span class="p">:</span>
+        <span class="c1"># Policy already exists, do nothing</span>
+        <span class="k">pass</span>
+
+    <span class="k">return</span> <span class="n">policy</span>
+
+
+<span class="k">def</span> <span class="nf">update_s3_policy</span><span class="p">(</span><span class="n">bucket</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Update the cloudknot S3 access policy with new bucket name</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    bucket: string</span>
+<span class="sd">        Amazon S3 bucket name</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">s3_policy</span> <span class="o">=</span> <span class="n">get_bucket_policy</span><span class="p">(</span><span class="n">bucket</span><span class="p">)</span>
+    <span class="n">policy</span> <span class="o">=</span> <span class="n">get_s3_policy_name</span><span class="p">()</span>
+
+    <span class="c1"># After calling get_s3_policy_name(), the policy already exists</span>
+    <span class="c1"># Get the ARN</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">list_policies</span><span class="p">(</span>
+        <span class="n">Scope</span><span class="o">=</span><span class="s1">&#39;Local&#39;</span><span class="p">,</span>
+        <span class="n">PathPrefix</span><span class="o">=</span><span class="s1">&#39;/cloudknot/&#39;</span>
+    <span class="p">)</span>
+
+    <span class="n">policy_dict</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Policies&#39;</span><span class="p">)</span>
+                   <span class="k">if</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;PolicyName&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">policy</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">arn</span> <span class="o">=</span> <span class="n">policy_dict</span><span class="p">[</span><span class="s1">&#39;Arn&#39;</span><span class="p">]</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Update the policy</span>
+        <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">create_policy_version</span><span class="p">(</span>
+            <span class="n">PolicyArn</span><span class="o">=</span><span class="n">arn</span><span class="p">,</span>
+            <span class="n">PolicyDocument</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">s3_policy</span><span class="p">),</span>
+            <span class="n">SetAsDefault</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+    <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">LimitExceededException</span><span class="p">:</span>
+        <span class="c1"># Too many policy versions. List policy versions and delete oldest</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">list_policy_versions</span><span class="p">(</span>
+            <span class="n">PolicyArn</span><span class="o">=</span><span class="n">arn</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Get non-default versions</span>
+        <span class="n">versions</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Versions&#39;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">v</span><span class="p">[</span><span class="s1">&#39;IsDefaultVersion&#39;</span><span class="p">]]</span>
+
+        <span class="c1"># Get the oldest version and delete it</span>
+        <span class="n">oldest</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">versions</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">ver</span><span class="p">:</span> <span class="n">ver</span><span class="p">[</span><span class="s1">&#39;CreateDate&#39;</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">delete_policy_version</span><span class="p">(</span>
+            <span class="n">PolicyArn</span><span class="o">=</span><span class="n">arn</span><span class="p">,</span>
+            <span class="n">VersionId</span><span class="o">=</span><span class="n">oldest</span><span class="p">[</span><span class="s1">&#39;VersionId&#39;</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Update the policy not that there&#39;s room for another version</span>
+        <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">create_policy_version</span><span class="p">(</span>
+            <span class="n">PolicyArn</span><span class="o">=</span><span class="n">arn</span><span class="p">,</span>
+            <span class="n">PolicyDocument</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">s3_policy</span><span class="p">),</span>
+            <span class="n">SetAsDefault</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
 
 
 <div class="viewcode-block" id="get_region"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.get_region.html#cloudknot.aws.get_region">[docs]</a><span class="k">def</span> <span class="nf">get_region</span><span class="p">():</span>
@@ -199,7 +410,8 @@
     <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ec2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ec2&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">)</span>
     <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;batch&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;batch&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">)</span>
     <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ecr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ecr&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">)</span>
-    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ecs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ecs&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">)</span></div>
+    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ecs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ecs&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">)</span>
+    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;s3&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="list_profiles"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.list_profiles.html#cloudknot.aws.list_profiles">[docs]</a><span class="k">def</span> <span class="nf">list_profiles</span><span class="p">():</span>
@@ -336,10 +548,11 @@
     <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ec2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ec2&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">())</span>
     <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;batch&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;batch&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">())</span>
     <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ecr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ecr&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">())</span>
-    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ecs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ecs&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">())</span></div>
+    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ecs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ecs&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">())</span>
+    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;s3&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">())</span></div>
 
 
-<span class="c1">#: module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, and ECS.</span>
+<span class="c1">#: module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, ECS, S3.</span>
 <span class="n">clients</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s1">&#39;iam&#39;</span><span class="p">:</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
         <span class="s1">&#39;iam&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
@@ -355,9 +568,12 @@
     <span class="p">),</span>
     <span class="s1">&#39;ecs&#39;</span><span class="p">:</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
         <span class="s1">&#39;ecs&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
+    <span class="p">),</span>
+    <span class="s1">&#39;s3&#39;</span><span class="p">:</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
+        <span class="s1">&#39;s3&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
     <span class="p">)</span>
 <span class="p">}</span>
-<span class="sd">&quot;&quot;&quot;module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, and ECS.</span>
+<span class="sd">&quot;&quot;&quot;module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, ECS, S3.</span>
 
 <span class="sd">Storing the boto3 clients in a module-level dictionary allows us to change</span>
 <span class="sd">the region and profile and have those changes reflected globally.</span>
@@ -375,7 +591,8 @@
     <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ec2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ec2&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">())</span>
     <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;batch&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;batch&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">())</span>
     <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ecr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ecr&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">())</span>
-    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ecs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ecs&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">())</span></div>
+    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ecs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ecs&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">())</span>
+    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;s3&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">())</span></div>
 
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
@@ -504,6 +721,39 @@
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">current_profile</span> <span class="o">=</span> <span class="n">get_profile</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">resource_profile</span> <span class="o">=</span> <span class="n">resource_profile</span>
+
+
+<span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
+<span class="k">class</span> <span class="nc">CKTimeoutError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Cloudknot timeout error for AWS Batch job results</span>
+
+<span class="sd">    Error indicating an AWS Batch job failed to return results within</span>
+<span class="sd">    the requested time period</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize the Exception&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">CKTimeoutError</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="s1">&#39;The job with job-id </span><span class="si">{jid:s}</span><span class="s1"> did not finish within the &#39;</span>
+            <span class="s1">&#39;requested timeout period&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">jid</span><span class="o">=</span><span class="n">job_id</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">job_id</span> <span class="o">=</span> <span class="n">job_id</span>
+
+
+<span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
+<span class="k">class</span> <span class="nc">BatchJobFailedError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Error indicating an AWS Batch job failed&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        job_id : string</span>
+<span class="sd">            The AWS jobId of the failed job</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BatchJobFailedError</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="s2">&quot;AWS Batch job </span><span class="si">{job_id:s}</span><span class="s2"> has failed.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">job_id</span><span class="o">=</span><span class="n">job_id</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">job_id</span> <span class="o">=</span> <span class="n">job_id</span>
 
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>

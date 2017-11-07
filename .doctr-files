@@ -23,10 +23,12 @@
 ./_sources/api/_autosummary/cloudknot.aws.Vpc.rst.txt
 ./_sources/api/_autosummary/cloudknot.aws.get_profile.rst.txt
 ./_sources/api/_autosummary/cloudknot.aws.get_region.rst.txt
+./_sources/api/_autosummary/cloudknot.aws.get_s3_bucket.rst.txt
 ./_sources/api/_autosummary/cloudknot.aws.list_profiles.rst.txt
 ./_sources/api/_autosummary/cloudknot.aws.refresh_clients.rst.txt
 ./_sources/api/_autosummary/cloudknot.aws.set_profile.rst.txt
 ./_sources/api/_autosummary/cloudknot.aws.set_region.rst.txt
+./_sources/api/_autosummary/cloudknot.aws.set_s3_bucket.rst.txt
 ./_sources/api/aws.rst.txt
 ./_sources/api/config.rst.txt
 ./_sources/documentation.rst.txt
@@ -73,10 +75,12 @@
 ./api/_autosummary/cloudknot.aws.Vpc.html
 ./api/_autosummary/cloudknot.aws.get_profile.html
 ./api/_autosummary/cloudknot.aws.get_region.html
+./api/_autosummary/cloudknot.aws.get_s3_bucket.html
 ./api/_autosummary/cloudknot.aws.list_profiles.html
 ./api/_autosummary/cloudknot.aws.refresh_clients.html
 ./api/_autosummary/cloudknot.aws.set_profile.html
 ./api/_autosummary/cloudknot.aws.set_region.html
+./api/_autosummary/cloudknot.aws.set_s3_bucket.html
 ./api/aws.html
 ./api/config.html
 ./documentation.html
