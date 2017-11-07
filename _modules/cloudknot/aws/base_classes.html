@@ -130,7 +130,7 @@
 
     <span class="n">option</span> <span class="o">=</span> <span class="s1">&#39;s3-bucket&#39;</span>
     <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">has_section</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">config</span><span class="o">.</span><span class="n">has_option</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="n">option</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="n">option</span><span class="p">)</span>
+        <span class="n">bucket</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="n">option</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="c1"># Set `bucket`, the fallback bucket in case the cloudknot</span>
         <span class="c1"># bucket environment variable is not set</span>
@@ -141,11 +141,11 @@
             <span class="n">bucket</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;cloudknot-&#39;</span> <span class="o">+</span> <span class="n">getpass</span><span class="o">.</span><span class="n">getuser</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
                       <span class="o">+</span> <span class="s1">&#39;-&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()))</span>
 
-        <span class="c1"># Use set_s3_bucket to check for name availability</span>
-        <span class="c1"># and write to config file</span>
-        <span class="n">set_s3_bucket</span><span class="p">(</span><span class="n">bucket</span><span class="p">)</span>
+    <span class="c1"># Use set_s3_bucket to check for name availability</span>
+    <span class="c1"># and write to config file</span>
+    <span class="n">set_s3_bucket</span><span class="p">(</span><span class="n">bucket</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">bucket</span></div>
+    <span class="k">return</span> <span class="n">bucket</span></div>
 
 
 <div class="viewcode-block" id="set_s3_bucket"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.set_s3_bucket.html#cloudknot.aws.set_s3_bucket">[docs]</a><span class="k">def</span> <span class="nf">set_s3_bucket</span><span class="p">(</span><span class="n">bucket</span><span class="p">):</span>
@@ -206,16 +206,16 @@
             <span class="p">},</span>
             <span class="p">{</span>
                 <span class="s2">&quot;Effect&quot;</span><span class="p">:</span> <span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;Action&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;s3:PutObject&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;Action&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;s3:PutObject&quot;</span><span class="p">,</span> <span class="s2">&quot;s3:GetObject&quot;</span><span class="p">],</span>
                 <span class="s2">&quot;Resource&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;arn:aws:s3:::</span><span class="si">{0:s}</span><span class="s2">/*&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bucket</span><span class="p">)]</span>
-            <span class="p">}</span>
+            <span class="p">},</span>
         <span class="p">]</span>
     <span class="p">}</span>
 
     <span class="k">return</span> <span class="n">s3_policy</span>
 
 
-<span class="k">def</span> <span class="nf">get_s3_policy_name</span><span class="p">():</span>
+<span class="k">def</span> <span class="nf">get_s3_policy_name</span><span class="p">(</span><span class="n">bucket</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Get the policy that grants access to the cloudknot S3 bucket</span>
 
 <span class="sd">    First, check the cloudknot config file for the bucket-policy option.</span>
@@ -245,7 +245,6 @@
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">config</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 
-    <span class="n">bucket</span> <span class="o">=</span> <span class="n">get_s3_bucket</span><span class="p">()</span>
     <span class="n">s3_policy</span> <span class="o">=</span> <span class="n">get_bucket_policy</span><span class="p">(</span><span class="n">bucket</span><span class="p">)</span>
 
     <span class="k">try</span><span class="p">:</span>
@@ -272,7 +271,7 @@
 <span class="sd">        Amazon S3 bucket name</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">s3_policy</span> <span class="o">=</span> <span class="n">get_bucket_policy</span><span class="p">(</span><span class="n">bucket</span><span class="p">)</span>
-    <span class="n">policy</span> <span class="o">=</span> <span class="n">get_s3_policy_name</span><span class="p">()</span>
+    <span class="n">policy</span> <span class="o">=</span> <span class="n">get_s3_policy_name</span><span class="p">(</span><span class="n">bucket</span><span class="p">)</span>
 
     <span class="c1"># After calling get_s3_policy_name(), the policy already exists</span>
     <span class="c1"># Get the ARN</span>

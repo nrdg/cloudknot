@@ -87,6 +87,7 @@
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">operator</span>
 <span class="kn">import</span> <span class="nn">six</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">Iterable</span>
 <span class="kn">from</span> <span class="nn">concurrent.futures</span> <span class="k">import</span> <span class="n">ThreadPoolExecutor</span>
 
 <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">aws</span>
@@ -1451,25 +1452,38 @@
         <span class="sd">&quot;&quot;&quot;List of batch job IDs that this knot has launched&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_ids</span>
 
-<div class="viewcode-block" id="Knot.map"><a class="viewcode-back" href="../../documentation.html#cloudknot.Knot.map">[docs]</a>    <span class="k">def</span> <span class="nf">map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">commands</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">env_vars</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Knot.map"><a class="viewcode-back" href="../../documentation.html#cloudknot.Knot.map">[docs]</a>    <span class="k">def</span> <span class="nf">map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iterdata</span><span class="p">,</span> <span class="n">env_vars</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_threads</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">starmap</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Submit batch jobs for a range of commands and environment vars</span>
+
+<span class="sd">        Each item of `iterdata` is assumed to be a single input for the</span>
+<span class="sd">        python function in this knot&#39;s docker image. If your function takes</span>
+<span class="sd">        multiple arguments, pre-zip the arguments into a tuple, so that</span>
+<span class="sd">        iterdata is an iterable of tuples, and set `starmap=True`.</span>
 
 <span class="sd">        map returns a list of futures, which can return their result when</span>
 <span class="sd">        the jobs are complete.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        commands : sequence of sequence of strings</span>
-<span class="sd">            Sequence of commands. This method will submit one batch job for</span>
-<span class="sd">            each command in the sequence. Each individual command must be a</span>
-<span class="sd">            sequence of strings since the command eventaully becomes arguments</span>
-<span class="sd">            to the `docker run` command. For example, if you wanted to pass</span>
-<span class="sd">            the commands `echo 1`, `echo 2`, `echo 3`, then then you would use</span>
-<span class="sd">            `submit(commands=[[&quot;echo&quot;, &quot;1&quot;], [&quot;echo&quot;, &quot;2&quot;], [&quot;echo&quot;, &quot;3&quot;]])`</span>
+<span class="sd">        iterdata :</span>
+<span class="sd">            An iteratable of input data</span>
 
-<span class="sd">        env_vars : sequence of sequence of strings</span>
-<span class="sd">            Sequence of environment variables. This method will submit one</span>
-<span class="sd">            batch job for each environment variable set in the sequence</span>
+<span class="sd">        env_vars : sequence of dicts</span>
+<span class="sd">            Additional environment variables for the Batch environment</span>
+<span class="sd">            Each dict must have only &#39;name&#39; and &#39;value&#39; keys. The same</span>
+<span class="sd">            environment variables are applied for each item in `iterdata`.</span>
+<span class="sd">            Default: None</span>
+
+<span class="sd">        max_threads : int</span>
+<span class="sd">            Maximum number of threads used to invoke.</span>
+<span class="sd">            Default: 64</span>
+
+<span class="sd">        starmap : bool</span>
+<span class="sd">            If True, assume argument parameters are already grouped in</span>
+<span class="sd">            tuples from a single iterable. This behavior is similar to</span>
+<span class="sd">            `itertools.starmap()`. If False, assume argument parameters</span>
+<span class="sd">            have not been &quot;pre-zipped&quot;. Then the behavior is similar to</span>
+<span class="sd">            python&#39;s built-in `map()` method.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1484,52 +1498,37 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">check_profile_and_region</span><span class="p">()</span>
 
-        <span class="c1"># User must supply either commands or env_vars</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">commands</span> <span class="ow">or</span> <span class="n">env_vars</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;You must supply either commands or env_vars.&#39;</span><span class="p">)</span>
-
-        <span class="c1"># commands should be a sequence of sequences of strings</span>
-        <span class="k">if</span> <span class="n">commands</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">)</span>
-                                    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sublist</span><span class="p">)</span>
-                                <span class="k">for</span> <span class="n">sublist</span> <span class="ow">in</span> <span class="n">commands</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;commands must be a sequence of &#39;</span>
-                             <span class="s1">&#39;sequences of strings&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">iterdata</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;iterdata must be an iterable.&#39;</span><span class="p">)</span>
 
         <span class="c1"># env_vars should be a sequence of sequences of dicts</span>
-        <span class="k">if</span> <span class="n">env_vars</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sublist</span><span class="p">)</span>
-                                <span class="k">for</span> <span class="n">sublist</span> <span class="ow">in</span> <span class="n">env_vars</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;env_vars must be a sequence of &#39;</span>
-                             <span class="s1">&#39;sequences of dicts&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">env_vars</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">env_vars</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;env_vars must be a sequences of dicts&#39;</span><span class="p">)</span>
 
         <span class="c1"># and each dict should have only &#39;name&#39; and &#39;value&#39; keys</span>
-        <span class="k">if</span> <span class="n">env_vars</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">all</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">}</span>
-                                    <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">sublist</span><span class="p">)</span>
-                                <span class="k">for</span> <span class="n">sublist</span> <span class="ow">in</span> <span class="n">env_vars</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">env_vars</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">}</span>
+                                <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">env_vars</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;each dict in env_vars must have keys &quot;name&quot; &#39;</span>
                              <span class="s1">&#39;and &quot;value&quot;&#39;</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">commands</span> <span class="ow">and</span> <span class="n">env_vars</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">commands</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">env_vars</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;commands and env_vars must be the same length&#39;</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">commands</span><span class="p">:</span>
-            <span class="n">commands</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">env_vars</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="ow">not</span> <span class="n">env_vars</span><span class="p">:</span>
-            <span class="n">env_vars</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">commands</span><span class="p">)</span>
-
         <span class="n">these_jobs</span> <span class="o">=</span> <span class="p">[]</span>
 
-        <span class="k">for</span> <span class="n">command</span><span class="p">,</span> <span class="n">env</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">commands</span><span class="p">,</span> <span class="n">env_vars</span><span class="p">):</span>
+        <span class="k">for</span> <span class="nb">input</span> <span class="ow">in</span> <span class="n">iterdata</span><span class="p">:</span>
             <span class="n">job</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">BatchJob</span><span class="p">(</span>
+                <span class="nb">input</span><span class="o">=</span><span class="nb">input</span><span class="p">,</span>
+                <span class="n">starmap</span><span class="o">=</span><span class="n">starmap</span><span class="p">,</span>
                 <span class="n">name</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{n:s}</span><span class="s1">-</span><span class="si">{i:d}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">job_ids</span><span class="p">)),</span>
                 <span class="n">job_queue</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">job_queue</span><span class="p">,</span>
                 <span class="n">job_definition</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="p">,</span>
-                <span class="n">commands</span><span class="o">=</span><span class="n">command</span><span class="p">,</span>
-                <span class="n">environment_variables</span><span class="o">=</span><span class="n">env</span>
+                <span class="n">environment_variables</span><span class="o">=</span><span class="n">env_vars</span>
             <span class="p">)</span>
 
             <span class="n">these_jobs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_jobs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_job_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">job_id</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">these_jobs</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
 
         <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
         <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">get_config_file</span><span class="p">())</span>
@@ -1538,39 +1537,14 @@
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">get_config_file</span><span class="p">(),</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">config</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 
-        <span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">commands</span><span class="p">))</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">[</span><span class="n">ex</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="k">lambda</span> <span class="n">j</span><span class="p">:</span> <span class="n">j</span><span class="o">.</span><span class="n">result</span><span class="p">(),</span> <span class="n">jb</span><span class="p">)</span> <span class="k">for</span> <span class="n">jb</span> <span class="ow">in</span> <span class="n">these_jobs</span><span class="p">]</span></div>
+        <span class="n">executor</span> <span class="o">=</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">these_jobs</span><span class="p">),</span> <span class="n">max_threads</span><span class="p">))</span>
+        <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span><span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="k">lambda</span> <span class="n">j</span><span class="p">:</span> <span class="n">j</span><span class="o">.</span><span class="n">result</span><span class="p">(),</span> <span class="n">jb</span><span class="p">)</span>
+                   <span class="k">for</span> <span class="n">jb</span> <span class="ow">in</span> <span class="n">these_jobs</span><span class="p">]</span>
 
-<div class="viewcode-block" id="Knot.get_jobs"><a class="viewcode-back" href="../../documentation.html#cloudknot.Knot.get_jobs">[docs]</a>    <span class="k">def</span> <span class="nf">get_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return a list of dictionaries containing job instances and info</span>
+        <span class="c1"># Shutdown the executor but do not wait to return the futures</span>
+        <span class="n">executor</span><span class="o">.</span><span class="n">shutdown</span><span class="p">(</span><span class="n">wait</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        jobs_info: list</span>
-<span class="sd">            A list of dicts [{&#39;job&#39;: BatchJob instance, &#39;name&#39;: BatchJob.name,</span>
-<span class="sd">            &#39;status&#39;: BatchJob.status, &#39;id&#39;: BatchJob.job_id},]</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">clobbered</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">ResourceClobberedException</span><span class="p">(</span>
-                <span class="s1">&#39;This Knot has already been clobbered.&#39;</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
-            <span class="p">)</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">check_profile_and_region</span><span class="p">()</span>
-
-        <span class="n">jobs_info</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="p">{</span>
-                <span class="s1">&#39;job&#39;</span><span class="p">:</span> <span class="n">job</span><span class="p">,</span>
-                <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">job</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                <span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="n">job</span><span class="o">.</span><span class="n">status</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">],</span>
-                <span class="s1">&#39;attempts&#39;</span><span class="p">:</span> <span class="n">job</span><span class="o">.</span><span class="n">status</span><span class="p">[</span><span class="s1">&#39;attempts&#39;</span><span class="p">],</span>
-                <span class="s1">&#39;status-reason&#39;</span><span class="p">:</span> <span class="n">job</span><span class="o">.</span><span class="n">status</span><span class="p">[</span><span class="s1">&#39;statusReason&#39;</span><span class="p">],</span>
-                <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">job</span><span class="o">.</span><span class="n">job_id</span>
-            <span class="p">}</span>
-            <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">jobs</span>
-        <span class="p">]</span>
-
-        <span class="k">return</span> <span class="n">jobs_info</span></div>
+        <span class="k">return</span> <span class="n">futures</span></div>
 
 <div class="viewcode-block" id="Knot.view_jobs"><a class="viewcode-back" href="../../documentation.html#cloudknot.Knot.view_jobs">[docs]</a>    <span class="k">def</span> <span class="nf">view_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Print the job_id, name, and status of all jobs in self.jobs&quot;&quot;&quot;</span>
@@ -1584,14 +1558,17 @@
 
         <span class="n">order</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;SUBMITTED&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;PENDING&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;RUNNABLE&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;STARTING&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
                  <span class="s1">&#39;RUNNING&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s1">&#39;FAILED&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s1">&#39;SUCCEEDED&#39;</span><span class="p">:</span> <span class="mi">6</span><span class="p">}</span>
-        <span class="n">job_info</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_jobs</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">j</span><span class="p">:</span> <span class="n">order</span><span class="p">[</span><span class="n">j</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]])</span>
 
-        <span class="n">fmt</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{id:12s}</span><span class="s1">        </span><span class="si">{name:20s}</span><span class="s1">        </span><span class="si">{status:9s}</span><span class="s1">&#39;</span>
-        <span class="n">header</span> <span class="o">=</span> <span class="n">fmt</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s1">&#39;Job ID&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Name&#39;</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="s1">&#39;Status&#39;</span><span class="p">)</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">clients</span><span class="p">[</span><span class="s1">&#39;batch&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">describe_jobs</span><span class="p">(</span><span class="n">jobs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">job_ids</span><span class="p">)</span>
+        <span class="n">sorted_jobs</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;jobs&#39;</span><span class="p">),</span>
+                             <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">j</span><span class="p">:</span> <span class="n">order</span><span class="p">[</span><span class="n">j</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]])</span>
+
+        <span class="n">fmt</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{jobId:12s}</span><span class="s1">        </span><span class="si">{jobName:20s}</span><span class="s1">        </span><span class="si">{status:9s}</span><span class="s1">&#39;</span>
+        <span class="n">header</span> <span class="o">=</span> <span class="n">fmt</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">jobId</span><span class="o">=</span><span class="s1">&#39;Job ID&#39;</span><span class="p">,</span> <span class="n">jobName</span><span class="o">=</span><span class="s1">&#39;Name&#39;</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="s1">&#39;Status&#39;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">header</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">header</span><span class="p">))</span>
 
-        <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="n">job_info</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="n">sorted_jobs</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="n">fmt</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="n">job</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="Knot.clobber"><a class="viewcode-back" href="../../documentation.html#cloudknot.Knot.clobber">[docs]</a>    <span class="k">def</span> <span class="nf">clobber</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clobber_pars</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">clobber_repo</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>

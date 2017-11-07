@@ -84,6 +84,7 @@
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">cloudknot.config</span>
+<span class="kn">import</span> <span class="nn">cloudpickle</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">pickle</span>
@@ -1531,7 +1532,7 @@
 <div class="viewcode-block" id="BatchJob"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.BatchJob.html#cloudknot.aws.BatchJob">[docs]</a><span class="k">class</span> <span class="nc">BatchJob</span><span class="p">(</span><span class="n">NamedObject</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Class for defining AWS Batch Job&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">job_queue</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">job_definition</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">commands</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">job_definition</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">input</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">starmap</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                  <span class="n">environment_variables</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize an AWS Batch Job object.</span>
 
@@ -1555,22 +1556,28 @@
 <span class="sd">            JobDefinition instance specifying the job definition on which</span>
 <span class="sd">            to base this job</span>
 
-<span class="sd">        commands : string or sequence of strings</span>
-<span class="sd">            command sent to the container for this job.</span>
-<span class="sd">            Split multi-word commands on spaces.</span>
-<span class="sd">            e.g. `echo hello` becomes [&#39;echo&#39;, &#39;hello&#39;]</span>
+<span class="sd">        input :</span>
+<span class="sd">            The input to be pickled and sent to the batch job via S3</span>
+
+<span class="sd">        starmap : bool</span>
+<span class="sd">            If True, assume input is already grouped in</span>
+<span class="sd">            tuples from a single iterable.</span>
 
 <span class="sd">        environment_variables : list of dict</span>
 <span class="sd">            list of key/value pairs representing environment variables</span>
 <span class="sd">            sent to the container</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">job_id</span> <span class="ow">or</span> <span class="nb">all</span><span class="p">([</span><span class="n">name</span><span class="p">,</span> <span class="n">job_queue</span><span class="p">,</span> <span class="n">job_definition</span><span class="p">])):</span>
+        <span class="n">has_input</span> <span class="o">=</span> <span class="nb">input</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">job_id</span> <span class="ow">or</span> <span class="nb">all</span><span class="p">([</span><span class="n">name</span><span class="p">,</span> <span class="n">job_queue</span><span class="p">,</span> <span class="n">has_input</span><span class="p">,</span> <span class="n">job_definition</span><span class="p">])):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;You must supply either job_id or (name, &#39;</span>
-                             <span class="s1">&#39;job_queue, and job_definition).&#39;</span><span class="p">)</span>
+                             <span class="s1">&#39;input, job_queue, and job_definition).&#39;</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">job_id</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">([</span><span class="n">name</span><span class="p">,</span> <span class="n">job_queue</span><span class="p">,</span> <span class="n">job_definition</span><span class="p">]):</span>
+        <span class="k">if</span> <span class="n">job_id</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">([</span><span class="n">name</span><span class="p">,</span> <span class="n">job_queue</span><span class="p">,</span> <span class="n">has_input</span><span class="p">,</span> <span class="n">job_definition</span><span class="p">]):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;You may supply either job_id or (name, &#39;</span>
-                             <span class="s1">&#39;job_queue, and job_definition), not both.&#39;</span><span class="p">)</span>
+                             <span class="s1">&#39;input, job_queue, and job_definition), &#39;</span>
+                             <span class="s1">&#39;not both.&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_starmap</span> <span class="o">=</span> <span class="n">starmap</span>
 
         <span class="k">if</span> <span class="n">job_id</span><span class="p">:</span>
             <span class="n">job</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exists_already</span><span class="p">(</span><span class="n">job_id</span><span class="o">=</span><span class="n">job_id</span><span class="p">)</span>
@@ -1584,11 +1591,25 @@
 
             <span class="bp">self</span><span class="o">.</span><span class="n">_job_queue</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_job_queue_arn</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">job_queue_arn</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_job_definition</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_job_definition_arn</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">job_definition_arn</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_commands</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">commands</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_job_definition</span> <span class="o">=</span> <span class="n">JobDefinition</span><span class="p">(</span><span class="n">arn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_definition_arn</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_environment_variables</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">environment_variables</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_job_id</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">job_id</span>
+
+            <span class="n">bucket</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_definition</span><span class="o">.</span><span class="n">output_bucket</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;/&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+                <span class="s1">&#39;cloudknot.jobs&#39;</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_job_definition</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_job_id</span><span class="p">,</span>
+                <span class="s1">&#39;input.pickle&#39;</span>
+            <span class="p">])</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get_object</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">Key</span><span class="o">=</span><span class="n">key</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_input</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Body&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+            <span class="k">except</span> <span class="p">(</span><span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">NoSuchBucket</span><span class="p">,</span>
+                    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">NoSuchKey</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_input</span> <span class="o">=</span> <span class="kc">None</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">_section_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_section_name</span><span class="p">(</span><span class="s1">&#39;batch-jobs&#39;</span><span class="p">)</span>
             <span class="n">cloudknot</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">add_resource</span><span class="p">(</span>
@@ -1611,17 +1632,6 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_job_definition</span> <span class="o">=</span> <span class="n">job_definition</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_job_definition_arn</span> <span class="o">=</span> <span class="n">job_definition</span><span class="o">.</span><span class="n">arn</span>
 
-            <span class="k">if</span> <span class="n">commands</span><span class="p">:</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">commands</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_commands</span> <span class="o">=</span> <span class="p">[</span><span class="n">commands</span><span class="p">]</span>
-                <span class="k">elif</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">commands</span><span class="p">):</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_commands</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">commands</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;if provided, commands must be a string &#39;</span>
-                                     <span class="s1">&#39;or a sequence of strings.&#39;</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_commands</span> <span class="o">=</span> <span class="kc">None</span>
-
             <span class="k">if</span> <span class="n">environment_variables</span><span class="p">:</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">environment_variables</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;if provided, environment_variables must &#39;</span>
@@ -1630,6 +1640,7 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_environment_variables</span> <span class="o">=</span> <span class="kc">None</span>
 
+            <span class="bp">self</span><span class="o">.</span><span class="n">_input</span> <span class="o">=</span> <span class="nb">input</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_job_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create</span><span class="p">()</span>
 
     <span class="nd">@property</span>
@@ -1653,17 +1664,19 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_definition_arn</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">commands</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;command sent to the container for this job.</span>
-
-<span class="sd">        Multi-word commands are split on spaces.</span>
-<span class="sd">        e.g. `echo hello` becomes [&#39;echo&#39;, &#39;hello&#39;]&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_commands</span>
-
-    <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">environment_variables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Key/value pairs for environment variables sent to the container&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_environment_variables</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">input</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The input to be pickled and sent to the batch job via S3&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">starmap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Boolean flag to indicate whether input was &#39;pre-zipped&#39;&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_starmap</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">job_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1682,13 +1695,13 @@
 <span class="sd">        namedtuple JobExists</span>
 <span class="sd">            A namedtuple with fields</span>
 <span class="sd">            [&#39;exists&#39;, &#39;name&#39;, &#39;job_id&#39;, &#39;job_queue_arn&#39;,</span>
-<span class="sd">             &#39;job_definition_arn&#39;, &#39;commands&#39;, &#39;environment_variables&#39;]</span>
+<span class="sd">             &#39;job_definition_arn&#39;, &#39;environment_variables&#39;]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># define a namedtuple for return value type</span>
         <span class="n">JobExists</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span>
             <span class="s1">&#39;JobExists&#39;</span><span class="p">,</span>
             <span class="p">[</span><span class="s1">&#39;exists&#39;</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;job_id&#39;</span><span class="p">,</span> <span class="s1">&#39;job_queue_arn&#39;</span><span class="p">,</span>
-             <span class="s1">&#39;job_definition_arn&#39;</span><span class="p">,</span> <span class="s1">&#39;commands&#39;</span><span class="p">,</span> <span class="s1">&#39;environment_variables&#39;</span><span class="p">]</span>
+             <span class="s1">&#39;job_definition_arn&#39;</span><span class="p">,</span> <span class="s1">&#39;environment_variables&#39;</span><span class="p">]</span>
         <span class="p">)</span>
         <span class="c1"># make all but the first value default to None</span>
         <span class="n">JobExists</span><span class="o">.</span><span class="fm">__new__</span><span class="o">.</span><span class="vm">__defaults__</span> <span class="o">=</span> \
@@ -1701,7 +1714,6 @@
             <span class="n">name</span> <span class="o">=</span> <span class="n">job</span><span class="p">[</span><span class="s1">&#39;jobName&#39;</span><span class="p">]</span>
             <span class="n">job_queue_arn</span> <span class="o">=</span> <span class="n">job</span><span class="p">[</span><span class="s1">&#39;jobQueue&#39;</span><span class="p">]</span>
             <span class="n">job_definition_arn</span> <span class="o">=</span> <span class="n">job</span><span class="p">[</span><span class="s1">&#39;jobDefinition&#39;</span><span class="p">]</span>
-            <span class="n">commands</span> <span class="o">=</span> <span class="n">job</span><span class="p">[</span><span class="s1">&#39;container&#39;</span><span class="p">][</span><span class="s1">&#39;command&#39;</span><span class="p">]</span>
             <span class="n">environment_variables</span> <span class="o">=</span> <span class="n">job</span><span class="p">[</span><span class="s1">&#39;container&#39;</span><span class="p">][</span><span class="s1">&#39;environment&#39;</span><span class="p">]</span>
 
             <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Job </span><span class="si">{id:s}</span><span class="s1"> exists.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">job_id</span><span class="p">))</span>
@@ -1710,7 +1722,7 @@
                 <span class="n">exists</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">job_id</span><span class="o">=</span><span class="n">job_id</span><span class="p">,</span>
                 <span class="n">job_queue_arn</span><span class="o">=</span><span class="n">job_queue_arn</span><span class="p">,</span>
                 <span class="n">job_definition_arn</span><span class="o">=</span><span class="n">job_definition_arn</span><span class="p">,</span>
-                <span class="n">commands</span><span class="o">=</span><span class="n">commands</span><span class="p">,</span> <span class="n">environment_variables</span><span class="o">=</span><span class="n">environment_variables</span>
+                <span class="n">environment_variables</span><span class="o">=</span><span class="n">environment_variables</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">JobExists</span><span class="p">(</span><span class="n">exists</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -1725,22 +1737,25 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># no coverage since actually submitting a batch job for</span>
         <span class="c1"># unit testing would be expensive</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">environment_variables</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">commands</span><span class="p">:</span>
+        <span class="n">bucket</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">output_bucket</span>
+        <span class="n">pickled_input</span> <span class="o">=</span> <span class="n">cloudpickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">)</span>
+
+        <span class="n">command</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">output_bucket</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">starmap</span><span class="p">:</span>
+            <span class="n">command</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;--starmap&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">command</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">environment_variables</span><span class="p">:</span>
             <span class="n">container_overrides</span> <span class="o">=</span> <span class="p">{</span>
                 <span class="s1">&#39;environment&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">environment_variables</span><span class="p">,</span>
-                <span class="s1">&#39;command&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">commands</span>
-            <span class="p">}</span>
-        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">commands</span><span class="p">:</span>
-            <span class="n">container_overrides</span> <span class="o">=</span> <span class="p">{</span>
-                <span class="s1">&#39;command&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">commands</span>
-            <span class="p">}</span>
-        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">environment_variables</span><span class="p">:</span>
-            <span class="n">container_overrides</span> <span class="o">=</span> <span class="p">{</span>
-                <span class="s1">&#39;environment&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">environment_variables</span><span class="p">,</span>
+                <span class="s1">&#39;command&#39;</span><span class="p">:</span> <span class="n">command</span>
             <span class="p">}</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">container_overrides</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">container_overrides</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;command&#39;</span><span class="p">:</span> <span class="n">command</span>
+            <span class="p">}</span>
 
+        <span class="c1"># We have to submit before uploading the input in order to get the</span>
+        <span class="c1"># jobID first.</span>
         <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;batch&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">submit_job</span><span class="p">(</span>
             <span class="n">jobName</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
             <span class="n">jobQueue</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">job_queue_arn</span><span class="p">,</span>
@@ -1749,13 +1764,11 @@
         <span class="p">)</span>
 
         <span class="n">job_id</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s1">&#39;jobId&#39;</span><span class="p">]</span>
-
-        <span class="n">bucket</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">output_bucket</span>
         <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;/&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
             <span class="s1">&#39;cloudknot.jobs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">job_id</span><span class="p">,</span> <span class="s1">&#39;input.pickle&#39;</span>
         <span class="p">])</span>
 
-        <span class="n">pickled_input</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">container_overrides</span><span class="p">)</span>
+        <span class="c1"># Upload the input pickle</span>
         <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">put_object</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">Body</span><span class="o">=</span><span class="n">pickled_input</span><span class="p">,</span> <span class="n">Key</span><span class="o">=</span><span class="n">key</span><span class="p">)</span>
 
         <span class="c1"># Add this job to the list of jobs in the config file</span>
