@@ -802,7 +802,7 @@ def test_DockerImage(cleanup_repos):
 
     try:
         correct_pip_imports = set([
-            'clize', 'boto3', 'six', 'dask', 'docker',
+            'boto3', 'six', 'dask', 'docker',
             'pytest', 'h5py', 'cloudpickle'
         ])
 

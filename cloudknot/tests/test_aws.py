@@ -2500,6 +2500,7 @@ def test_BatchJob(pars):
         with pytest.raises(ValueError):
             ck.aws.BatchJob(
                 name=get_testing_name(),
+                input=42,
                 job_queue=42
             )
 
@@ -2507,23 +2508,16 @@ def test_BatchJob(pars):
         with pytest.raises(ValueError):
             ck.aws.BatchJob(
                 name=get_testing_name(),
+                input=42,
                 job_queue=job_queue,
                 job_definition=42
             )
 
-        # Assert ValueError on invalid commands
+        # Assert ValueError on invalid environment variable
         with pytest.raises(ValueError):
             ck.aws.BatchJob(
                 name=get_testing_name(),
-                job_queue=job_queue,
-                job_definition=job_def,
-                commands=[42, 42]
-            )
-
-        # Assert ValueError on invalid commands
-        with pytest.raises(ValueError):
-            ck.aws.BatchJob(
-                name=get_testing_name(),
+                input=42,
                 job_queue=job_queue,
                 job_definition=job_def,
                 environment_variables=42

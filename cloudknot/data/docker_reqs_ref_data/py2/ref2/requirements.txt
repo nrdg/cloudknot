@@ -1,4 +1,3 @@
-clize==4.0.1
 boto3==1.4.7
 cloudpickle==0.4.1
 six==1.11.0
