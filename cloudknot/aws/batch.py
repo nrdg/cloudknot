@@ -1716,6 +1716,31 @@ class BatchJob(NamedObject):
 
         return status
 
+    @ property
+    def log_urls(self):
+        """Return the urls of the batch job logs on AWS Cloudwatch
+
+        Returns
+        -------
+        log_urls : list
+            A list of log urls for each attempt number. If the job has
+            not yet run, this will return an empty list
+        """
+        attempts = sorted(self.status['attempts'],
+                          key=lambda a: a['startedAt'])
+
+        log_stream_names = [a['container']['logStreamName'] for a in attempts]
+
+        def log_name2url(log_name):
+            return 'https://console.aws.amazon.com/cloudwatch/home?region=' \
+                   '{region:s}#logEventViewer:group=/aws/batch/job;' \
+                   'stream={log_name:s}'.format(region=self.region,
+                                                log_name=log_name)
+
+        log_urls = [log_name2url(log) for log in log_stream_names]
+
+        return log_urls
+
     @property
     def done(self):
         """Return True if the job is done.
