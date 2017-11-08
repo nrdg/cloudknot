@@ -1124,7 +1124,7 @@ class Knot(aws.NamedObject):
 
                     mod_logger.info(
                         'knot {name:s} adopted job definition {jd:s}'.format(
-                            name=self.name, jd=self.job_definition.name
+                            name=self.name, jd=jd.name
                         )
                     )
 
@@ -1227,7 +1227,7 @@ class Knot(aws.NamedObject):
                     mod_logger.info(
                         'knot {name:s} adopted compute environment {ce:s}'
                         ''.format(
-                            name=self.name, ce=self.compute_environment.name
+                            name=self.name, ce=ce.name
                         )
                     )
 
@@ -1279,7 +1279,7 @@ class Knot(aws.NamedObject):
 
                     mod_logger.info(
                         'knot {name:s} adopted job queue '
-                        '{jq:s}'.format(name=self.name, jq=self.job_queue.name)
+                        '{jq:s}'.format(name=self.name, jq=jq.name)
                     )
 
                 return jq, jq_cleanup
