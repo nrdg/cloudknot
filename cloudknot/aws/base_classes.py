@@ -11,7 +11,7 @@ import time
 import uuid
 from collections import namedtuple
 
-from ..config import get_config_file
+from ..config import get_config_file, rlock
 
 __all__ = [
     "ResourceDoesNotExistException", "ResourceClobberedException",
@@ -43,24 +43,26 @@ def get_s3_bucket():
     """
     config_file = get_config_file()
     config = configparser.ConfigParser()
-    config.read(config_file)
 
-    option = 's3-bucket'
-    if config.has_section('aws') and config.has_option('aws', option):
-        bucket = config.get('aws', option)
-    else:
-        # Set `bucket`, the fallback bucket in case the cloudknot
-        # bucket environment variable is not set
-        try:
-            # Get the region from an environment variable
-            bucket = os.environ['CLOUDKNOT_S3_BUCKET']
-        except KeyError:
-            bucket = ('cloudknot-' + getpass.getuser().lower()
-                      + '-' + str(uuid.uuid4()))
+    with rlock:
+        config.read(config_file)
 
-    # Use set_s3_bucket to check for name availability
-    # and write to config file
-    set_s3_bucket(bucket)
+        option = 's3-bucket'
+        if config.has_section('aws') and config.has_option('aws', option):
+            bucket = config.get('aws', option)
+        else:
+            # Set `bucket`, the fallback bucket in case the cloudknot
+            # bucket environment variable is not set
+            try:
+                # Get the region from an environment variable
+                bucket = os.environ['CLOUDKNOT_S3_BUCKET']
+            except KeyError:
+                bucket = ('cloudknot-' + getpass.getuser().lower()
+                          + '-' + str(uuid.uuid4()))
+
+        # Use set_s3_bucket to check for name availability
+        # and write to config file
+        set_s3_bucket(bucket)
 
     return bucket
 
@@ -78,25 +80,27 @@ def set_s3_bucket(bucket):
     # Update the config file
     config_file = get_config_file()
     config = configparser.ConfigParser()
-    config.read(config_file)
 
-    if not config.has_section('aws'):  # pragma: nocover
-        config.add_section('aws')
+    with rlock:
+        config.read(config_file)
 
-    config.set('aws', 's3-bucket', bucket)
-    with open(config_file, 'w') as f:
-        config.write(f)
+        if not config.has_section('aws'):  # pragma: nocover
+            config.add_section('aws')
 
-    # Create the bucket
-    try:
-        clients['s3'].create_bucket(Bucket=bucket)
-    except clients['s3'].exceptions.BucketAlreadyOwnedByYou:
-        pass
-    except clients['s3'].exceptions.BucketAlreadyExists:
-        raise ValueError('The requested bucket name is not available.')
+        config.set('aws', 's3-bucket', bucket)
+        with open(config_file, 'w') as f:
+            config.write(f)
 
-    # Update the s3_policy with new bucket name
-    update_s3_policy(bucket)
+        # Create the bucket
+        try:
+            clients['s3'].create_bucket(Bucket=bucket)
+        except clients['s3'].exceptions.BucketAlreadyOwnedByYou:
+            pass
+        except clients['s3'].exceptions.BucketAlreadyExists:
+            raise ValueError('The requested bucket name is not available.')
+
+        # Update the s3_policy with new bucket name
+        update_s3_policy(bucket)
 
 
 def get_bucket_policy(bucket):
@@ -145,36 +149,38 @@ def get_s3_policy_name(bucket):
     """
     config_file = get_config_file()
     config = configparser.ConfigParser()
-    config.read(config_file)
 
-    option = 's3-bucket-policy'
-    if config.has_section('aws') and config.has_option('aws', option):
-        # Get policy name from the config file
-        policy = config.get('aws', option)
-    else:
-        # or create new one if it doesn't exist
-        policy = 'cloudknot-bucket-access-' + str(uuid.uuid4())
+    with rlock:
+        config.read(config_file)
 
-        if not config.has_section('aws'):
-            config.add_section('aws')
+        option = 's3-bucket-policy'
+        if config.has_section('aws') and config.has_option('aws', option):
+            # Get policy name from the config file
+            policy = config.get('aws', option)
+        else:
+            # or create new one if it doesn't exist
+            policy = 'cloudknot-bucket-access-' + str(uuid.uuid4())
 
-        config.set('aws', option, policy)
-        with open(config_file, 'w') as f:
-            config.write(f)
+            if not config.has_section('aws'):
+                config.add_section('aws')
 
-    s3_policy = get_bucket_policy(bucket)
+            config.set('aws', option, policy)
+            with open(config_file, 'w') as f:
+                config.write(f)
 
-    try:
-        # Create the policy
-        clients['iam'].create_policy(
-            PolicyName=policy,
-            Path='/cloudknot/',
-            PolicyDocument=json.dumps(s3_policy),
-            Description='Grants access to S3 bucket {0:s}'.format(bucket)
-        )
-    except clients['iam'].exceptions.EntityAlreadyExistsException:
-        # Policy already exists, do nothing
-        pass
+        s3_policy = get_bucket_policy(bucket)
+
+        try:
+            # Create the policy
+            clients['iam'].create_policy(
+                PolicyName=policy,
+                Path='/cloudknot/',
+                PolicyDocument=json.dumps(s3_policy),
+                Description='Grants access to S3 bucket {0:s}'.format(bucket)
+            )
+        except clients['iam'].exceptions.EntityAlreadyExistsException:
+            # Policy already exists, do nothing
+            pass
 
     return policy
 
@@ -202,36 +208,37 @@ def update_s3_policy(bucket):
 
     arn = policy_dict['Arn']
 
-    try:
-        # Update the policy
-        clients['iam'].create_policy_version(
-            PolicyArn=arn,
-            PolicyDocument=json.dumps(s3_policy),
-            SetAsDefault=True
-        )
-    except clients['iam'].exceptions.LimitExceededException:
-        # Too many policy versions. List policy versions and delete oldest
-        response = clients['iam'].list_policy_versions(
-            PolicyArn=arn
-        )
+    with rlock:
+        try:
+            # Update the policy
+            clients['iam'].create_policy_version(
+                PolicyArn=arn,
+                PolicyDocument=json.dumps(s3_policy),
+                SetAsDefault=True
+            )
+        except clients['iam'].exceptions.LimitExceededException:
+            # Too many policy versions. List policy versions and delete oldest
+            response = clients['iam'].list_policy_versions(
+                PolicyArn=arn
+            )
 
-        # Get non-default versions
-        versions = [v for v in response.get('Versions')
-                    if not v['IsDefaultVersion']]
+            # Get non-default versions
+            versions = [v for v in response.get('Versions')
+                        if not v['IsDefaultVersion']]
 
-        # Get the oldest version and delete it
-        oldest = sorted(versions, key=lambda ver: ver['CreateDate'])[0]
-        clients['iam'].delete_policy_version(
-            PolicyArn=arn,
-            VersionId=oldest['VersionId']
-        )
+            # Get the oldest version and delete it
+            oldest = sorted(versions, key=lambda ver: ver['CreateDate'])[0]
+            clients['iam'].delete_policy_version(
+                PolicyArn=arn,
+                VersionId=oldest['VersionId']
+            )
 
-        # Update the policy not that there's room for another version
-        clients['iam'].create_policy_version(
-            PolicyArn=arn,
-            PolicyDocument=json.dumps(s3_policy),
-            SetAsDefault=True
-        )
+            # Update the policy not that there's room for another version
+            clients['iam'].create_policy_version(
+                PolicyArn=arn,
+                PolicyDocument=json.dumps(s3_policy),
+                SetAsDefault=True
+            )
 
 
 def get_region():
@@ -249,44 +256,46 @@ def get_region():
     """
     config_file = get_config_file()
     config = configparser.ConfigParser()
-    config.read(config_file)
 
-    if config.has_section('aws') and config.has_option('aws', 'region'):
-        return config.get('aws', 'region')
-    else:
-        # Set `region`, the fallback region in case the cloudknot
-        # config file has no region set
-        try:
-            # Get the region from an environment variable
-            region = os.environ['AWS_DEFAULT_REGION']
-        except KeyError:
-            # Get the default region from the AWS config file
-            home = os.path.expanduser('~')
-            aws_config_file = os.path.join(home, '.aws', 'config')
+    with rlock:
+        config.read(config_file)
 
-            fallback_region = 'us-east-1'
-            if os.path.isfile(aws_config_file):
-                aws_config = configparser.ConfigParser()
-                aws_config.read(aws_config_file)
-                try:
-                    region = aws_config.get(
-                        'default', 'region', fallback=fallback_region
-                    )
-                except TypeError:  # pragma: nocover
-                    # python 2.7 compatibility
-                    region = aws_config.get('default', 'region')
-                    region = region if region else fallback_region
-            else:
-                region = fallback_region
+        if config.has_section('aws') and config.has_option('aws', 'region'):
+            return config.get('aws', 'region')
+        else:
+            # Set `region`, the fallback region in case the cloudknot
+            # config file has no region set
+            try:
+                # Get the region from an environment variable
+                region = os.environ['AWS_DEFAULT_REGION']
+            except KeyError:
+                # Get the default region from the AWS config file
+                home = os.path.expanduser('~')
+                aws_config_file = os.path.join(home, '.aws', 'config')
 
-        if not config.has_section('aws'):
-            config.add_section('aws')
+                fallback_region = 'us-east-1'
+                if os.path.isfile(aws_config_file):
+                    aws_config = configparser.ConfigParser()
+                    aws_config.read(aws_config_file)
+                    try:
+                        region = aws_config.get(
+                            'default', 'region', fallback=fallback_region
+                        )
+                    except TypeError:  # pragma: nocover
+                        # python 2.7 compatibility
+                        region = aws_config.get('default', 'region')
+                        region = region if region else fallback_region
+                else:
+                    region = fallback_region
 
-        config.set('aws', 'region', region)
-        with open(config_file, 'w') as f:
-            config.write(f)
+            if not config.has_section('aws'):
+                config.add_section('aws')
 
-        return region
+            config.set('aws', 'region', region)
+            with open(config_file, 'w') as f:
+                config.write(f)
+
+            return region
 
 
 def set_region(region='us-east-1'):
@@ -310,24 +319,26 @@ def set_region(region='us-east-1'):
 
     config_file = get_config_file()
     config = configparser.ConfigParser()
-    config.read(config_file)
 
-    if not config.has_section('aws'):  # pragma: nocover
-        config.add_section('aws')
+    with rlock:
+        config.read(config_file)
 
-    config.set('aws', 'region', region)
-    with open(config_file, 'w') as f:
-        config.write(f)
+        if not config.has_section('aws'):  # pragma: nocover
+            config.add_section('aws')
 
-    # Update the boto3 clients so that the region change is reflected
-    # throughout the package
-    session = boto3.Session(profile_name=get_profile(fallback=None))
-    clients['iam'] = session.client('iam', region_name=region)
-    clients['ec2'] = session.client('ec2', region_name=region)
-    clients['batch'] = session.client('batch', region_name=region)
-    clients['ecr'] = session.client('ecr', region_name=region)
-    clients['ecs'] = session.client('ecs', region_name=region)
-    clients['s3'] = session.client('s3', region_name=region)
+        config.set('aws', 'region', region)
+        with open(config_file, 'w') as f:
+            config.write(f)
+
+        # Update the boto3 clients so that the region change is reflected
+        # throughout the package
+        session = boto3.Session(profile_name=get_profile(fallback=None))
+        clients['iam'] = session.client('iam', region_name=region)
+        clients['ec2'] = session.client('ec2', region_name=region)
+        clients['batch'] = session.client('batch', region_name=region)
+        clients['ecr'] = session.client('ecr', region_name=region)
+        clients['ecs'] = session.client('ecs', region_name=region)
+        clients['s3'] = session.client('s3', region_name=region)
 
 
 def list_profiles():
@@ -404,23 +415,26 @@ def get_profile(fallback='from-env'):
     """
     config_file = get_config_file()
     config = configparser.ConfigParser()
-    config.read(config_file)
 
-    if config.has_section('aws') and config.has_option('aws', 'profile'):
-        return config.get('aws', 'profile')
-    else:
-        if 'default' in list_profiles().profile_names:
-            # Set profile in cloudknot config to 'default' and return 'default'
-            if not config.has_section('aws'):
-                config.add_section('aws')
+    with rlock:
+        config.read(config_file)
 
-            config.set('aws', 'profile', 'default')
-            with open(config_file, 'w') as f:
-                config.write(f)
-
-            return 'default'
+        if config.has_section('aws') and config.has_option('aws', 'profile'):
+            return config.get('aws', 'profile')
         else:
-            return fallback
+            if 'default' in list_profiles().profile_names:
+                # Set profile in cloudknot config to 'default'
+                # and return 'default'
+                if not config.has_section('aws'):
+                    config.add_section('aws')
+
+                config.set('aws', 'profile', 'default')
+                with open(config_file, 'w') as f:
+                    config.write(f)
+
+                return 'default'
+            else:
+                return fallback
 
 
 def set_profile(profile_name):
@@ -448,24 +462,26 @@ def set_profile(profile_name):
 
     config_file = get_config_file()
     config = configparser.ConfigParser()
-    config.read(config_file)
 
-    if not config.has_section('aws'):  # pragma: nocover
-        config.add_section('aws')
+    with rlock:
+        config.read(config_file)
 
-    config.set('aws', 'profile', profile_name)
-    with open(config_file, 'w') as f:
-        config.write(f)
+        if not config.has_section('aws'):  # pragma: nocover
+            config.add_section('aws')
 
-    # Update the boto3 clients so that the profile change is reflected
-    # throughout the package
-    session = boto3.Session(profile_name=profile_name)
-    clients['iam'] = session.client('iam', region_name=get_region())
-    clients['ec2'] = session.client('ec2', region_name=get_region())
-    clients['batch'] = session.client('batch', region_name=get_region())
-    clients['ecr'] = session.client('ecr', region_name=get_region())
-    clients['ecs'] = session.client('ecs', region_name=get_region())
-    clients['s3'] = session.client('s3', region_name=get_region())
+        config.set('aws', 'profile', profile_name)
+        with open(config_file, 'w') as f:
+            config.write(f)
+
+        # Update the boto3 clients so that the profile change is reflected
+        # throughout the package
+        session = boto3.Session(profile_name=profile_name)
+        clients['iam'] = session.client('iam', region_name=get_region())
+        clients['ec2'] = session.client('ec2', region_name=get_region())
+        clients['batch'] = session.client('batch', region_name=get_region())
+        clients['ecr'] = session.client('ecr', region_name=get_region())
+        clients['ecs'] = session.client('ecs', region_name=get_region())
+        clients['s3'] = session.client('s3', region_name=get_region())
 
 
 #: module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, ECS, S3.
@@ -502,13 +518,14 @@ and region.
 
 def refresh_clients():
     """Refresh the boto3 clients dictionary"""
-    session = boto3.Session(profile_name=get_profile(fallback=None))
-    clients['iam'] = session.client('iam', region_name=get_region())
-    clients['ec2'] = session.client('ec2', region_name=get_region())
-    clients['batch'] = session.client('batch', region_name=get_region())
-    clients['ecr'] = session.client('ecr', region_name=get_region())
-    clients['ecs'] = session.client('ecs', region_name=get_region())
-    clients['s3'] = session.client('s3', region_name=get_region())
+    with rlock:
+        session = boto3.Session(profile_name=get_profile(fallback=None))
+        clients['iam'] = session.client('iam', region_name=get_region())
+        clients['ec2'] = session.client('ec2', region_name=get_region())
+        clients['batch'] = session.client('batch', region_name=get_region())
+        clients['ecr'] = session.client('ecr', region_name=get_region())
+        clients['ecs'] = session.client('ecs', region_name=get_region())
+        clients['s3'] = session.client('s3', region_name=get_region())
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit

@@ -16,7 +16,7 @@ from . import aws
 from . import config as ckconfig
 from .aws.base_classes import get_region, \
     ResourceDoesNotExistException, ResourceClobberedException
-from .config import get_config_file
+from .config import get_config_file, rlock
 
 __all__ = ["DockerImage"]
 
@@ -362,53 +362,28 @@ class DockerImage(aws.NamedObject):
     def _write_dockerfile(self):
         """Write Dockerfile to containerize this instance's python function"""
         with open(self.docker_path, 'w') as f:
-            py_version_str = '3' if six.PY3 else '2'
-            home_dir = '/home/{username:s}'.format(username=self.username)
-
-            f.write('#' * 79 + '\n')
-            f.write('# Dockerfile to build ' + self.name)
-            f.write(' application container\n')
-            f.write('# Based on python ' + py_version_str + '\n')
-            f.write('#' * 79 + '\n\n')
-
-            f.write('# Use official python base image\n')
-            f.write('FROM python:' + py_version_str + '\n\n')
-
-            f.write('# Install python dependencies\n')
-            f.write('COPY requirements.txt /tmp/\n')
-            f.write('RUN pip install -r /tmp/requirements.txt')
-            for install in self.github_installs:
-                f.write(' \\\n    && pip install git+' + install)
-
-            f.write('\n\n')
-
-            f.write('# Create a default user. Available via runtime flag ')
-            f.write('`--user {user:s}`.\n'.format(user=self.username))
-            f.write('# Add user to "staff" group.\n')
-            f.write('# Give user a home directory.\n')
-            f.write(
-                'RUN useradd {user:s} \\\n'
-                '    && addgroup {user:s} staff \\\n'
-                '    && mkdir {home:s} \\\n'
-                '    && chown -R {user:s}:staff {home:s}\n\n'.format(
-                    user=self.username, home=home_dir)
-            )
-
-            f.write('ENV HOME {home:s}\n\n'.format(home=home_dir))
-
-            f.write('# Copy the python script\n')
-            f.write('COPY {py_script:s} {home:s}/\n\n'.format(
-                py_script=os.path.basename(self.script_path),
-                home=home_dir
+            template_path = os.path.abspath(os.path.join(
+                os.path.dirname(__file__),
+                'Dockerfile.template'
             ))
 
-            f.write('# Set working directory\n')
-            f.write('WORKDIR {home:s}\n\n'.format(home=home_dir))
+            if self.github_installs:
+                github_installs_string = ''.join([
+                    ' \\\n    && pip install git+' + install
+                    for install in self.github_installs
+                ])
+            else:
+                github_installs_string = ''
 
-            f.write('# Set entrypoint\n')
-            f.write('ENTRYPOINT ["python", "{py_script:s}"]\n'.format(
-                py_script=home_dir + '/' + os.path.basename(self.script_path)
-            ))
+            with open(template_path, 'r') as template:
+                s = Template(template.read())
+                f.write(s.substitute(
+                    app_name=self.name,
+                    username=self.username,
+                    py_version='3' if six.PY3 else '2',
+                    script_base_name=os.path.basename(self.script_path),
+                    github_installs_string=github_installs_string
+                ))
 
         mod_logger.info(
             'Wrote Dockerfile {path:s}'.format(path=self.docker_path)
@@ -662,10 +637,12 @@ class DockerImage(aws.NamedObject):
         # Remove from the config file
         config_file = get_config_file()
         config = configparser.ConfigParser()
-        config.read(config_file)
-        config.remove_section('docker-image ' + self.name)
-        with open(config_file, 'w') as f:
-            config.write(f)
+
+        with rlock:
+            config.read(config_file)
+            config.remove_section('docker-image ' + self.name)
+            with open(config_file, 'w') as f:
+                config.write(f)
 
         self._clobbered = True
 
