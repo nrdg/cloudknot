@@ -14,11 +14,13 @@ import cloudknot.aws
 import configparser
 import logging
 import os
+from threading import RLock
 
 __all__ = ["get_config_file", "add_resource", "remove_resource",
            "verify_sections", "prune"]
 
 mod_logger = logging.getLogger(__name__)
+ck_lock = RLock()
 
 
 def get_config_file():
@@ -42,16 +44,17 @@ def get_config_file():
         home = os.path.expanduser('~')
         config_file = os.path.join(home, '.aws', 'cloudknot')
 
-    if not os.path.isfile(config_file):
-        # If the config file does not exist, create it
-        with open(config_file, 'w') as f:
-            f.write('# cloudknot configuration file')
+    with ck_lock:
+        if not os.path.isfile(config_file):
+            # If the config file does not exist, create it
+            with open(config_file, 'w') as f:
+                f.write('# cloudknot configuration file')
 
-        mod_logger.info(
-            'Created new cloudknot config file at {path:s}'.format(
-                path=config_file
+            mod_logger.info(
+                'Created new cloudknot config file at {path:s}'.format(
+                    path=config_file
+                )
             )
-        )
 
     mod_logger.debug('Using cloudknot config file {path:s}'.format(
         path=config_file
@@ -76,12 +79,14 @@ def add_resource(section, option, value):
     """
     config_file = get_config_file()
     config = configparser.ConfigParser()
-    config.read(config_file)
-    if section not in config.sections():
-        config.add_section(section)
-    config.set(section=section, option=option, value=value)
-    with open(config_file, 'w') as f:
-        config.write(f)
+
+    with ck_lock:
+        config.read(config_file)
+        if section not in config.sections():
+            config.add_section(section)
+        config.set(section=section, option=option, value=value)
+        with open(config_file, 'w') as f:
+            config.write(f)
 
 
 def remove_resource(section, option):
@@ -97,13 +102,15 @@ def remove_resource(section, option):
     """
     config_file = get_config_file()
     config = configparser.ConfigParser()
-    config.read(config_file)
-    try:
-        config.remove_option(section, option)
-    except configparser.NoSectionError:
-        pass
-    with open(config_file, 'w') as f:
-        config.write(f)
+
+    with ck_lock:
+        config.read(config_file)
+        try:
+            config.remove_option(section, option)
+        except configparser.NoSectionError:
+            pass
+        with open(config_file, 'w') as f:
+            config.write(f)
 
 
 def verify_sections():

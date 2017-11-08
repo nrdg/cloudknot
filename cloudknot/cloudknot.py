@@ -8,7 +8,7 @@ from collections import Iterable
 from concurrent.futures import ThreadPoolExecutor
 
 from . import aws
-from .config import get_config_file
+from .config import get_config_file, ck_lock
 from . import dockerimage
 
 __all__ = ["Pars", "Knot"]
@@ -125,299 +125,347 @@ class Pars(aws.NamedObject):
 
             mod_logger.info('Found PARS {name:s} in config'.format(name=name))
 
-            def set_role(name, pars_name, option_name, pars_obj, role_attr,
+            def set_role(name, pars_name, option_name,
                          service, policies, add_instance_profile):
                 role_name = config.get(pars_name, option_name)
                 try:
                     # Use config values to adopt role if it exists already
-                    setattr(pars_obj, role_attr, aws.IamRole(name=role_name))
+                    role = aws.IamRole(name=role_name)
                     mod_logger.info('PARS {name:s} adopted role {role:s}'
                                     ''.format(name=name, role=role_name))
                 except aws.ResourceDoesNotExistException:
                     # Otherwise create the new role
-                    setattr(pars_obj, role_attr, aws.IamRole(
+                    role = aws.IamRole(
                         name=role_name,
                         description='This role was automatically generated '
                                     'by cloudknot.',
                         service=service,
                         policies=policies,
                         add_instance_profile=add_instance_profile
-                    ))
+                    )
                     mod_logger.info('PARS {name:s} created role {role:s}'
                                     ''.format(name=name, role=role_name))
 
-            set_role(name=name, pars_name=self._pars_name,
-                     option_name='batch-service-role', pars_obj=self,
-                     role_attr='_batch_service_role', service='batch',
-                     policies=('AWSBatchServiceRole',) + policies,
-                     add_instance_profile=False)
+                return role
 
-            pols = ('AmazonEC2ContainerServiceforEC2Role',) + policies
-            set_role(name=name, pars_name=self._pars_name,
-                     option_name='ecs-instance-role', pars_obj=self,
-                     role_attr='_ecs_instance_role', service='ec2',
-                     policies=pols,
-                     add_instance_profile=True)
+            executor = ThreadPoolExecutor(5)
+            futures = []
 
-            set_role(name=name, pars_name=self._pars_name,
-                     option_name='ecs-task-role', pars_obj=self,
-                     role_attr='_ecs_task_role', service='ecs-tasks',
-                     policies=policies,
-                     add_instance_profile=False)
+            futures.append(executor.submit(
+                set_role, name=name, pars_name=self._pars_name,
+                option_name='batch-service-role', service='batch',
+                policies=('AWSBatchServiceRole',) + policies,
+                add_instance_profile=False
+            ))
 
-            set_role(name=name, pars_name=self._pars_name,
-                     option_name='spot-fleet-role', pars_obj=self,
-                     role_attr='_spot_fleet_role', service='spotfleet',
-                     policies=('AmazonEC2SpotFleetRole',) + policies,
-                     add_instance_profile=False)
+            futures.append(executor.submit(
+                set_role, name=name, pars_name=self._pars_name,
+                option_name='ecs-instance-role', service='ec2',
+                policies=('AmazonEC2ContainerServiceforEC2Role',) + policies,
+                add_instance_profile=True
+            ))
 
-            try:
-                # Use config values to adopt VPC if it exists already
-                vpcid = config.get(self._pars_name, 'vpc')
-                self._vpc = aws.Vpc(vpc_id=vpcid)
-                mod_logger.info('PARS {name:s} adopted VPC {vpcid:s}'.format(
-                    name=name, vpcid=vpcid
-                ))
-            except aws.ResourceDoesNotExistException:
-                # Otherwise create the new VPC
-                if use_default_vpc:
-                    try:
-                        self._vpc = aws.Vpc(use_default_vpc=True)
-                    except aws.CannotCreateResourceException:
-                        self._vpc = aws.Vpc(name=vpc_name)
-                else:
-                    self._vpc = aws.Vpc(name=vpc_name)
-                config = configparser.ConfigParser()
-                config.read(get_config_file())
-                config.set(self._pars_name, 'vpc', self.vpc.vpc_id)
-                with open(get_config_file(), 'w') as f:
-                    config.write(f)
-                mod_logger.info('PARS {name:s} created VPC {vpcid:s}'.format(
-                    name=name, vpcid=self.vpc.vpc_id
-                ))
+            futures.append(executor.submit(
+                set_role, name=name, pars_name=self._pars_name,
+                option_name='ecs-task-role', service='ecs-tasks',
+                policies=policies,
+                add_instance_profile=False
+            ))
 
-            try:
-                # Use config values to adopt security group if it exists
-                sgid = config.get(self._pars_name, 'security-group')
-                self._security_group = aws.SecurityGroup(
-                    security_group_id=sgid
-                )
-                mod_logger.info(
-                    'PARS {name:s} adopted security group {sgid:s}'.format(
-                        name=name, sgid=sgid
+            futures.append(executor.submit(
+                set_role, name=name, pars_name=self._pars_name,
+                option_name='spot-fleet-role', service='spotfleet',
+                policies=('AmazonEC2SpotFleetRole',) + policies,
+                add_instance_profile=False
+            ))
+
+            def set_vpc_and_security_group():
+                try:
+                    # Use config values to adopt VPC if it exists already
+                    config = configparser.ConfigParser()
+                    config.read(get_config_file())
+                    vpcid = config.get(self._pars_name, 'vpc')
+                    vpc = aws.Vpc(vpc_id=vpcid)
+                    mod_logger.info('PARS {name:s} adopted VPC {vpcid:s}'
+                                    ''.format(name=name, vpcid=vpcid))
+                except aws.ResourceDoesNotExistException:
+                    # Otherwise create the new VPC
+                    if use_default_vpc:
+                        try:
+                            vpc = aws.Vpc(use_default_vpc=True)
+                        except aws.CannotCreateResourceException:
+                            vpc = aws.Vpc(name=vpc_name)
+                    else:
+                        vpc = aws.Vpc(name=vpc_name)
+
+                    config = configparser.ConfigParser()
+
+                    with ck_lock:
+                        config.read(get_config_file())
+                        config.set(self._pars_name, 'vpc', vpc.vpc_id)
+                        with open(get_config_file(), 'w') as f:
+                            config.write(f)
+
+                    mod_logger.info('PARS {name:s} created VPC {vpcid:s}'
+                                    ''.format(name=name, vpcid=vpc.vpc_id))
+
+                try:
+                    # Use config values to adopt security group if it exists
+                    sgid = config.get(self._pars_name, 'security-group')
+                    security_group = aws.SecurityGroup(
+                        security_group_id=sgid
                     )
-                )
-            except aws.ResourceDoesNotExistException:
-                # Otherwise create the new security group
-                self._security_group = aws.SecurityGroup(
-                    name=security_group_name,
-                    vpc=self._vpc
-                )
-                config = configparser.ConfigParser()
-                config.read(get_config_file())
-                config.set(
-                    self._pars_name,
-                    'security-group', self.security_group.security_group_id
-                )
-                with open(get_config_file(), 'w') as f:
-                    config.write(f)
-                mod_logger.info(
-                    'PARS {name:s} created security group {sgid:s}'.format(
-                        name=name, sgid=self.security_group.security_group_id
+                    mod_logger.info(
+                        'PARS {name:s} adopted security group {sgid:s}'.format(
+                            name=name, sgid=sgid
+                        )
                     )
-                )
+                except aws.ResourceDoesNotExistException:
+                    # Otherwise create the new security group
+                    security_group = aws.SecurityGroup(
+                        name=security_group_name,
+                        vpc=vpc
+                    )
+                    config = configparser.ConfigParser()
+
+                    with ck_lock:
+                        config.read(get_config_file())
+                        config.set(
+                            self._pars_name,
+                            'security-group', security_group.security_group_id
+                        )
+                        with open(get_config_file(), 'w') as f:
+                            config.write(f)
+
+                    mod_logger.info(
+                        'PARS {name:s} created security group {sgid:s}'.format(
+                            name=name, sgid=security_group.security_group_id
+                        )
+                    )
+
+                return vpc, security_group
+
+            futures.append(executor.submit(set_vpc_and_security_group))
+
+            executor.shutdown()
+
+            self._batch_service_role = futures[0].result()
+            self._ecs_instance_role = futures[1].result()
+            self._ecs_task_role = futures[2].result()
+            self._spot_fleet_role = futures[3].result()
+            self._vpc, self._security_group = futures[4].result()
 
             config = configparser.ConfigParser()
-            config.read(get_config_file())
-            config.set(self._pars_name, 'region', self.region)
-            config.set(self._pars_name, 'profile', self.profile)
 
-            # Save config to file
-            with open(get_config_file(), 'w') as f:
-                config.write(f)
+            with ck_lock:
+                config.read(get_config_file())
+                config.set(self._pars_name, 'region', self.region)
+                config.set(self._pars_name, 'profile', self.profile)
+
+                # Save config to file
+                with open(get_config_file(), 'w') as f:
+                    config.write(f)
         else:
             # Pars doesn't exist, use input names to adopt/create resources
-            def set_role(pars_obj, role_attr, pars_name, role_name, service,
-                         policies, add_instance_profile, resources_cleanup):
+            def validated_name(role_name, fallback_suffix):
                 # Validate role name input
                 if role_name:
                     if not isinstance(role_name, six.string_types):
-                        for resource in resources_cleanup:
-                            resource.clobber()
                         raise ValueError('if provided, role names must '
                                          'be strings.')
                 else:
                     role_name = (
-                        pars_name + '-cloudknot-batch-service-role'
+                        name + '-cloudknot-' + fallback_suffix
                     )
 
+                return role_name
+
+            batch_service_role_name = validated_name(batch_service_role_name,
+                                                     'batch-service-role')
+            ecs_instance_role_name = validated_name(ecs_instance_role_name,
+                                                    'ecs-instance-role')
+            ecs_task_role_name = validated_name(ecs_task_role_name,
+                                                'ecs-task-role')
+            spot_fleet_role_name = validated_name(spot_fleet_role_name,
+                                                  'spot-fleet-role')
+
+            # Validate vpc_id input
+            if vpc_id and not isinstance(vpc_id, six.string_types):
+                raise ValueError('if provided, vpc_id must be a string')
+
+            # Validate security_group_id input
+            if security_group_id and not isinstance(security_group_id,
+                                                    six.string_types):
+                raise ValueError('if provided, security_group_id '
+                                 'must be a string')
+
+            def set_role(pars_name, role_name, service, policies,
+                         add_instance_profile):
                 try:
                     # Create new role
-                    setattr(pars_obj, role_attr, aws.IamRole(
+                    role = aws.IamRole(
                         name=role_name,
                         description='This IAM role was automatically '
                                     'generated by cloudknot.',
                         service=service,
                         policies=policies,
                         add_instance_profile=add_instance_profile
-                    ))
-                    mod_logger.info('PARS {name:s} created role {role:s}'.format(
-                        name=pars_name, role=role_name
-                    ))
+                    )
+                    mod_logger.info('PARS {name:s} created role {role:s}'
+                                    ''.format(name=pars_name, role=role_name))
                 except aws.ResourceExistsException as e:
                     # If it already exists, simply adopt it
-                    setattr(pars_obj, role_attr,
-                            aws.IamRole(name=e.resource_id))
-                    mod_logger.info('PARS {name:s} adopted role {role:s}'.format(
-                        name=pars_name, role=e.resource_id
-                    ))
-
-            set_role(pars_obj=self, role_attr='_batch_service_role',
-                     pars_name=name, role_name=batch_service_role_name,
-                     service='batch',
-                     policies=('AWSBatchServiceRole',) + policies,
-                     add_instance_profile=False, resources_cleanup=[])
-
-            pols = ('AmazonEC2ContainerServiceforEC2Role',) + policies
-            set_role(pars_obj=self, role_attr='_ecs_instance_role',
-                     pars_name=name, role_name=ecs_instance_role_name,
-                     service='ec2',
-                     policies=pols,
-                     add_instance_profile=True,
-                     resources_cleanup=[self.batch_service_role])
-
-            set_role(pars_obj=self, role_attr='_ecs_task_role',
-                     pars_name=name, role_name=ecs_task_role_name,
-                     service='ecs-tasks',
-                     policies=policies,
-                     add_instance_profile=False,
-                     resources_cleanup=[self.batch_service_role,
-                                        self.ecs_instance_role])
-
-            set_role(pars_obj=self, role_attr='_spot_fleet_role',
-                     pars_name=name, role_name=spot_fleet_role_name,
-                     service='spotfleet',
-                     policies=('AmazonEC2SpotFleetRole',) + policies,
-                     add_instance_profile=False,
-                     resources_cleanup=[self.batch_service_role,
-                                        self.ecs_instance_role,
-                                        self.ecs_task_role])
-
-            if vpc_id:
-                # Validate vpc_id input
-                if not isinstance(vpc_id, six.string_types):
-                    # Clean up after ourselves and raise ValueError
-                    self.batch_service_role.clobber()
-                    self.ecs_instance_role.clobber()
-                    self.ecs_task_role.clobber()
-                    self.spot_fleet_role.clobber()
-                    raise ValueError('if provided, vpc_id must be a string')
-
-                # Adopt the VPC
-                self._vpc = aws.Vpc(vpc_id=vpc_id)
-                mod_logger.info('PARS {name:s} adopted VPC {vpcid:s}'.format(
-                    name=name, vpcid=vpc_id
-                ))
-            else:
-                try:
-                    if use_default_vpc:
-                        try:
-                            self._vpc = aws.Vpc(use_default_vpc=True)
-                        except aws.CannotCreateResourceException:
-                            self._vpc = aws.Vpc(name=vpc_name)
-                    else:
-                        self._vpc = aws.Vpc(name=vpc_name)
-
+                    role = aws.IamRole(name=e.resource_id)
                     mod_logger.info(
-                        'PARS {name:s} created VPC {vpcid:s}'.format(
-                            name=name, vpcid=self.vpc.vpc_id
-                        )
-                    )
-                except aws.ResourceExistsException as e:
-                    # If it already exists, simply adopt it
-                    self._vpc = aws.Vpc(vpc_id=e.resource_id)
-                    mod_logger.info(
-                        'PARS {name:s} adopted VPC {vpcid:s}'.format(
-                            name=name, vpcid=e.resource_id
-                        )
+                        'PARS {name:s} adopted role {role:s}'
+                        ''.format(name=pars_name, role=e.resource_id)
                     )
 
-            if security_group_id:
-                # Validate security_group_id input
-                if not isinstance(security_group_id, six.string_types):
-                    # Clean up after ourselves and raise ValueError
-                    self.batch_service_role.clobber()
-                    self.ecs_instance_role.clobber()
-                    self.ecs_task_role.clobber()
-                    self.spot_fleet_role.clobber()
-                    self.vpc.clobber()
-                    raise ValueError('if provided, security_group_id must '
-                                     'be a string')
+                return role
 
-                # Adopt the security group
-                self._security_group = aws.SecurityGroup(
-                    security_group_id=security_group_id
-                )
-                mod_logger.info(
-                    'PARS {name:s} adopted security group {sgid:s}'.format(
-                        name=name, sgid=security_group_id
-                    )
-                )
-            else:
-                try:
-                    # Create new security group
-                    self._security_group = aws.SecurityGroup(
-                        name=security_group_name,
-                        vpc=self.vpc
+            executor = ThreadPoolExecutor(5)
+
+            futures = {}
+
+            futures['batch_service_role'] = executor.submit(
+                set_role,
+                pars_name=name, role_name=batch_service_role_name,
+                service='batch',
+                policies=('AWSBatchServiceRole',) + policies,
+                add_instance_profile=False
+            )
+
+            futures['ecs_instance_role'] = executor.submit(
+                set_role,
+                pars_name=name, role_name=ecs_instance_role_name,
+                service='ec2',
+                policies=('AmazonEC2ContainerServiceforEC2Role',) + policies,
+                add_instance_profile=True
+            )
+
+            futures['ecs_task_role'] = executor.submit(
+                set_role,
+                pars_name=name, role_name=ecs_task_role_name,
+                service='ecs-tasks',
+                policies=policies,
+                add_instance_profile=False
+            )
+
+            futures['spot_fleet_role'] = executor.submit(
+                set_role,
+                pars_name=name, role_name=spot_fleet_role_name,
+                service='spotfleet',
+                policies=('AmazonEC2SpotFleetRole',) + policies,
+                add_instance_profile=False
+            )
+
+            def set_vpc_and_security_group():
+                if vpc_id:
+                    # Adopt the VPC
+                    vpc = aws.Vpc(vpc_id=vpc_id)
+                    mod_logger.info('PARS {name:s} adopted VPC {vpcid:s}'
+                                    ''.format(name=name, vpcid=vpc_id))
+                else:
+                    try:
+                        if use_default_vpc:
+                            try:
+                                vpc = aws.Vpc(use_default_vpc=True)
+                            except aws.CannotCreateResourceException:
+                                vpc = aws.Vpc(name=vpc_name)
+                        else:
+                            vpc = aws.Vpc(name=vpc_name)
+
+                        mod_logger.info(
+                            'PARS {name:s} created VPC {vpcid:s}'
+                            ''.format(name=name, vpcid=vpc.vpc_id)
+                        )
+                    except aws.ResourceExistsException as e:
+                        # If it already exists, simply adopt it
+                        vpc = aws.Vpc(vpc_id=e.resource_id)
+                        mod_logger.info(
+                            'PARS {name:s} adopted VPC {vpcid:s}'
+                            ''.format(name=name, vpcid=e.resource_id)
+                        )
+
+                if security_group_id:
+                    # Adopt the security group
+                    security_group = aws.SecurityGroup(
+                        security_group_id=security_group_id
                     )
                     mod_logger.info(
-                        'PARS {name:s} created security group {sgid:s}'.format(
-                            name=name,
-                            sgid=self.security_group.security_group_id
+                        'PARS {name:s} adopted security group {sgid:s}'
+                        ''.format(name=name, sgid=security_group_id)
+                    )
+                else:
+                    try:
+                        # Create new security group
+                        security_group = aws.SecurityGroup(
+                            name=security_group_name,
+                            vpc=vpc
                         )
-                    )
-                except aws.ResourceExistsException as e:
-                    # If it already exists, simply adopt it
-                    self._security_group = aws.SecurityGroup(
-                        security_group_id=e.resource_id
-                    )
-                    mod_logger.info(
-                        'PARS {name:s} adopted security group {sgid:s}'.format(
-                            name=name, sgid=e.resource_id
+                        mod_logger.info(
+                            'PARS {name:s} created security group {sgid:s}'
+                            ''.format(
+                                name=name,
+                                sgid=security_group.security_group_id
+                            )
                         )
-                    )
+                    except aws.ResourceExistsException as e:
+                        # If it already exists, simply adopt it
+                        security_group = aws.SecurityGroup(
+                            security_group_id=e.resource_id
+                        )
+                        mod_logger.info(
+                            'PARS {name:s} adopted security group {sgid:s}'
+                            ''.format(name=name, sgid=e.resource_id)
+                        )
+
+                return vpc, security_group
+
+            futures['vpc'] = executor.submit(set_vpc_and_security_group)
+
+            executor.shutdown()
+
+            self._batch_service_role = futures['batch_service_role'].result()
+            self._ecs_instance_role = futures['ecs_instance_role'].result()
+            self._ecs_task_role = futures['ecs_task_role'].result()
+            self._spot_fleet_role = futures['spot_fleet_role'].result()
+            self._vpc, self._security_group = futures['vpc'].result()
 
             # Save the new pars resources in config object
             # Use config.set() for python 2.7 compatibility
             config = configparser.ConfigParser()
-            config.read(get_config_file())
-            config.add_section(self._pars_name)
-            config.set(self._pars_name, 'region', self.region)
-            config.set(self._pars_name, 'profile', self.profile)
-            config.set(
-                self._pars_name,
-                'batch-service-role', self._batch_service_role.name
-            )
-            config.set(
-                self._pars_name,
-                'ecs-instance-role', self._ecs_instance_role.name
-            )
-            config.set(
-                self._pars_name,
-                'ecs-task-role', self._ecs_task_role.name
-            )
-            config.set(
-                self._pars_name, 'spot-fleet-role', self._spot_fleet_role.name
-            )
-            config.set(self._pars_name, 'vpc', self._vpc.vpc_id)
-            config.set(
-                self._pars_name,
-                'security-group', self._security_group.security_group_id
-            )
 
-            # Save config to file
-            with open(get_config_file(), 'w') as f:
-                config.write(f)
+            with ck_lock:
+                config.read(get_config_file())
+                config.add_section(self._pars_name)
+                config.set(self._pars_name, 'region', self.region)
+                config.set(self._pars_name, 'profile', self.profile)
+                config.set(
+                    self._pars_name,
+                    'batch-service-role', self._batch_service_role.name
+                )
+                config.set(
+                    self._pars_name,
+                    'ecs-instance-role', self._ecs_instance_role.name
+                )
+                config.set(
+                    self._pars_name,
+                    'ecs-task-role', self._ecs_task_role.name
+                )
+                config.set(
+                    self._pars_name, 'spot-fleet-role',
+                    self._spot_fleet_role.name
+                )
+                config.set(self._pars_name, 'vpc', self._vpc.vpc_id)
+                config.set(
+                    self._pars_name,
+                    'security-group', self._security_group.security_group_id
+                )
+
+                # Save config to file
+                with open(get_config_file(), 'w') as f:
+                    config.write(f)
 
     @property
     def pars_name(self):
@@ -471,11 +519,13 @@ class Pars(aws.NamedObject):
 
             # Replace the appropriate line in the config file
             config = configparser.ConfigParser()
-            config.read(get_config_file())
-            field_name = attr.lstrip('_').replace('_', '-')
-            config.set(self._pars_name, field_name, new_role.name)
-            with open(get_config_file(), 'w') as f:
-                config.write(f)
+
+            with ck_lock:
+                config.read(get_config_file())
+                field_name = attr.lstrip('_').replace('_', '-')
+                config.set(self._pars_name, field_name, new_role.name)
+                with open(get_config_file(), 'w') as f:
+                    config.write(f)
 
             mod_logger.info(
                 'PARS {name:s} adopted new role {role_name:s}'.format(
@@ -563,10 +613,12 @@ class Pars(aws.NamedObject):
 
         # Replace the appropriate line in the config file
         config = configparser.ConfigParser()
-        config.read(get_config_file())
-        config.set(self._pars_name, 'vpc', v.vpc_id)
-        with open(get_config_file(), 'w') as f:
-            config.write(f)
+
+        with ck_lock:
+            config.read(get_config_file())
+            config.set(self._pars_name, 'vpc', v.vpc_id)
+            with open(get_config_file(), 'w') as f:
+                config.write(f)
 
         mod_logger.info(
             'PARS {name:s} adopted new VPC {vpcid:s}'.format(
@@ -622,10 +674,12 @@ class Pars(aws.NamedObject):
 
         # Replace the appropriate line in the config file
         config = configparser.ConfigParser()
-        config.read(get_config_file())
-        config.set(self._pars_name, 'security-group', sg.security_group_id)
-        with open(get_config_file(), 'w') as f:
-            config.write(f)
+
+        with ck_lock:
+            config.read(get_config_file())
+            config.set(self._pars_name, 'security-group', sg.security_group_id)
+            with open(get_config_file(), 'w') as f:
+                config.write(f)
 
         mod_logger.info(
             'PARS {name:s} adopted new security group {sgid:s}'.format(
@@ -641,19 +695,25 @@ class Pars(aws.NamedObject):
         self.check_profile_and_region()
 
         # Delete all associated AWS resources
-        self._security_group.clobber()
-        self._vpc.clobber()
-        self._spot_fleet_role.clobber()
-        self._ecs_task_role.clobber()
-        self._ecs_instance_role.clobber()
-        self._batch_service_role.clobber()
+        def clobber_sg_then_vpc(sg, vpc):
+            sg.clobber()
+            vpc.clobber()
+
+        with ThreadPoolExecutor(5) as e:
+            e.submit(clobber_sg_then_vpc, self._security_group, self._vpc)
+            e.submit(self._spot_fleet_role.clobber)
+            e.submit(self._ecs_task_role.clobber)
+            e.submit(self._ecs_instance_role.clobber)
+            e.submit(self._batch_service_role.clobber)
 
         # Remove this section from the config file
         config = configparser.ConfigParser()
-        config.read(get_config_file())
-        config.remove_section(self._pars_name)
-        with open(get_config_file(), 'w') as f:
-            config.write(f)
+
+        with ck_lock:
+            config.read(get_config_file())
+            config.remove_section(self._pars_name)
+            with open(get_config_file(), 'w') as f:
+                config.write(f)
 
         # Set the clobbered parameter to True,
         # preventing subsequent method calls
@@ -1208,24 +1268,29 @@ class Knot(aws.NamedObject):
             # Save the new Knot resources in config object
             # Use config.set() for python 2.7 compatibility
             config = configparser.ConfigParser()
-            config.read(get_config_file())
-            config.add_section(self._knot_name)
-            config.set(self._knot_name, 'region', self.region)
-            config.set(self._knot_name, 'profile', self.profile)
-            config.set(self._knot_name, 'pars', self.pars.name)
-            config.set(self._knot_name, 'docker-image', self.docker_image.name)
-            config.set(self._knot_name, 'docker-repo',
-                       self.docker_repo.name if self.docker_repo else 'None')
-            config.set(self._knot_name, 'job-definition',
-                       self.job_definition.name)
-            config.set(self._knot_name, 'compute-environment',
-                       self.compute_environment.name)
-            config.set(self._knot_name, 'job-queue', self.job_queue.name)
-            config.set(self._knot_name, 'job_ids', '')
 
-            # Save config to file
-            with open(get_config_file(), 'w') as f:
-                config.write(f)
+            with ck_lock:
+                config.read(get_config_file())
+                config.add_section(self._knot_name)
+                config.set(self._knot_name, 'region', self.region)
+                config.set(self._knot_name, 'profile', self.profile)
+                config.set(self._knot_name, 'pars', self.pars.name)
+                config.set(self._knot_name, 'docker-image',
+                           self.docker_image.name)
+                config.set(
+                    self._knot_name, 'docker-repo',
+                    self.docker_repo.name if self.docker_repo else 'None'
+                )
+                config.set(self._knot_name, 'job-definition',
+                           self.job_definition.name)
+                config.set(self._knot_name, 'compute-environment',
+                           self.compute_environment.name)
+                config.set(self._knot_name, 'job-queue', self.job_queue.name)
+                config.set(self._knot_name, 'job_ids', '')
+
+                # Save config to file
+                with open(get_config_file(), 'w') as f:
+                    config.write(f)
 
     # Declare read-only properties
     @property
@@ -1352,11 +1417,13 @@ class Knot(aws.NamedObject):
             return []
 
         config = configparser.ConfigParser()
-        config.read(get_config_file())
-        config.set(self._knot_name, 'job_ids', ' '.join(self.job_ids))
-        # Save config to file
-        with open(get_config_file(), 'w') as f:
-            config.write(f)
+
+        with ck_lock:
+            config.read(get_config_file())
+            config.set(self._knot_name, 'job_ids', ' '.join(self.job_ids))
+            # Save config to file
+            with open(get_config_file(), 'w') as f:
+                config.write(f)
 
         executor = ThreadPoolExecutor(min(len(these_jobs), max_threads))
         futures = [executor.submit(lambda j: j.result(), jb)
@@ -1440,10 +1507,12 @@ class Knot(aws.NamedObject):
 
         # Remove this section from the config file
         config = configparser.ConfigParser()
-        config.read(get_config_file())
-        config.remove_section(self._knot_name)
-        with open(get_config_file(), 'w') as f:
-            config.write(f)
+
+        with ck_lock:
+            config.read(get_config_file())
+            config.remove_section(self._knot_name)
+            with open(get_config_file(), 'w') as f:
+                config.write(f)
 
         # Set the clobbered parameter to True,
         # preventing subsequent method calls
