@@ -735,7 +735,8 @@ class Knot(aws.NamedObject):
     """
     def __init__(self, name='default', pars=None, pars_policies=(),
                  docker_image=None, func=None, image_script_path=None,
-                 image_work_dir=None, username=None, repo_name=None,
+                 image_work_dir=None, image_github_installs=(),
+                 username=None, repo_name=None,
                  image_tags=None, job_definition_name=None,
                  job_def_vcpus=None, memory=None,
                  retries=None, compute_environment_name=None,
@@ -774,6 +775,12 @@ class Knot(aws.NamedObject):
             Default: parent directory of script if `script_path` is provided
             else DockerImage creates a new directory, accessible by the
             `docker_image.build_path` property.
+
+        image_github_installs : string or sequence of strings
+            Github addresses for packages to install from github rather than
+            PyPI (e.g. git://github.com/richford/cloudknot.git or
+            git://github.com/richford/cloudknot.git@newfeaturebranch)
+            Default: ()
 
         username : string
             default username created in Dockerfile and in batch job definition
@@ -986,6 +993,7 @@ class Knot(aws.NamedObject):
                     func=func,
                     script_path=image_script_path,
                     dir_name=image_work_dir,
+                    github_installs=image_github_installs,
                     username=username
                 )
 
