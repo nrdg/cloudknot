@@ -344,6 +344,7 @@ class DockerImage(aws.NamedObject):
         with open(self.script_path, 'w') as f:
             template_path = os.path.abspath(os.path.join(
                 os.path.dirname(__file__),
+                'templates',
                 'script.template'
             ))
 
@@ -366,12 +367,13 @@ class DockerImage(aws.NamedObject):
         with open(self.docker_path, 'w') as f:
             template_path = os.path.abspath(os.path.join(
                 os.path.dirname(__file__),
+                'templates',
                 'Dockerfile.template'
             ))
 
             if self.github_installs:
                 github_installs_string = ''.join([
-                    ' \\\n    && pip install git+' + install
+                    ' \\\n    && pip install --no-cache-dir git+' + install
                     for install in self.github_installs
                 ])
             else:

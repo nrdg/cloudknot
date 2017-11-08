@@ -8,7 +8,7 @@ FROM python:3
 
 # Install python dependencies
 COPY requirements.txt /tmp/
-RUN pip install -r /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 # Create a default user. Available via runtime flag `--user cloudknot-user`.
 # Add user to "staff" group.

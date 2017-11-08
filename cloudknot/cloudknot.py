@@ -328,7 +328,6 @@ class Pars(aws.NamedObject):
                 return role
 
             executor = ThreadPoolExecutor(5)
-
             futures = {}
 
             futures['batch_service_role'] = executor.submit(
@@ -1284,33 +1283,28 @@ class Knot(aws.NamedObject):
 
                 return jq, jq_cleanup
 
-            self._pars, pars_cleanup = set_pars(
+            executor = ThreadPoolExecutor(10)
+            futures = {}
+
+            futures['pars'] = executor.submit(
+                set_pars,
                 knot_name=self.name, input_pars=pars,
                 pars_policies=pars_policies
             )
 
-            self._docker_image, self._docker_repo, repo_cleanup = \
-                set_dockerimage(
-                    knot_name=self.name, input_docker_image=docker_image,
-                    func=func, script_path=image_script_path,
-                    work_dir=image_work_dir,
-                    github_installs=image_github_installs, username=username,
-                    tags=image_tags, repo_name=repo_name
-                )
-
-            self._job_definition, jd_cleanup = set_job_def(
-                knot_name=self.name, job_definition_name=job_definition_name,
-                pars=self.pars, docker_image=self.docker_image,
-                job_def_vcpus=job_def_vcpus, memory=memory, username=username,
-                retries=retries
+            futures['docker-image'] = executor.submit(
+                set_dockerimage,
+                knot_name=self.name, input_docker_image=docker_image,
+                func=func, script_path=image_script_path,
+                work_dir=image_work_dir,
+                github_installs=image_github_installs, username=username,
+                tags=image_tags, repo_name=repo_name
             )
 
-            if self.job_definition.username != self.docker_image.username:
-                raise ValueError("The username for this knot's job definition "
-                                 "does not match the username for this knot's "
-                                 "Docker image.")
+            self._pars, pars_cleanup = futures['pars'].result()
 
-            self._compute_environment, ce_cleanup = set_compute_env(
+            futures['compute-environment'] = executor.submit(
+                set_compute_env,
                 knot_name=self.name,
                 compute_environment_name=compute_environment_name,
                 pars=self.pars, instance_types=instance_types,
@@ -1320,10 +1314,71 @@ class Knot(aws.NamedObject):
                 bid_percentage=bid_percentage
             )
 
-            self._job_queue, jq_cleanup = set_job_queue(
+            try:
+                self._compute_environment, ce_cleanup = \
+                    futures['compute-environment'].result()
+            except ValueError as e:
+                if pars_cleanup:
+                    self.pars.clobber()
+                raise e
+
+            futures['job-queue'] = executor.submit(
+                set_job_queue,
                 knot_name=self.name, job_queue_name=job_queue_name,
                 compute_environment=self.compute_environment, priority=priority
             )
+
+            try:
+                self._job_queue, jq_cleanup = futures['job-queue'].result()
+            except ValueError as e:
+                if ce_cleanup:
+                    self.compute_environment.clobber()
+                if pars_cleanup:
+                    self.pars.clobber()
+                raise e
+
+            self._docker_image, self._docker_repo, repo_cleanup = \
+                futures['docker-image'].result()
+
+            futures['job-definition'] = executor.submit(
+                set_job_def,
+                knot_name=self.name, job_definition_name=job_definition_name,
+                pars=self.pars, docker_image=self.docker_image,
+                job_def_vcpus=job_def_vcpus, memory=memory, username=username,
+                retries=retries
+            )
+
+            try:
+                self._job_definition, jd_cleanup = \
+                    futures['job-definition'].result()
+            except ValueError as e:
+                if jq_cleanup:
+                    self.job_queue.clobber()
+                if ce_cleanup:
+                    self.compute_environment.clobber()
+                if repo_cleanup:
+                    self.docker_repo.clobber()
+                if pars_cleanup:
+                    self.pars.clobber()
+                raise e
+
+            if self.job_definition.username != self.docker_image.username:
+                if jq_cleanup:
+                    self.job_queue.clobber()
+                if ce_cleanup:
+                    self.compute_environment.clobber()
+                if jd_cleanup:
+                    self.job_definition.clobber()
+                if repo_cleanup:
+                    self.docker_repo.clobber()
+                if pars_cleanup:
+                    self.pars.clobber()
+
+                raise ValueError("The username for this knot's job definition "
+                                 "does not match the username for this knot's "
+                                 "Docker image.")
+
+            executor.shutdown()
 
             self._jobs = []
             self._job_ids = []
@@ -1546,27 +1601,25 @@ class Knot(aws.NamedObject):
         self.check_profile_and_region()
 
         # Delete all associated AWS resources
-        # Iterate over copy of self.jobs since we are removing from
-        # the list while iterating
-        for job in list(self.jobs):
-            job.clobber()
-            self._jobs.remove(job)
+        def clobber_jq_then_ce(jq, ce):
+            jq.clobber()
+            ce.clobber()
 
-        self.job_queue.clobber()
-        self.compute_environment.clobber()
-        self.job_definition.clobber()
-
-        if clobber_repo and self.docker_repo:
-            self.docker_repo.clobber()
-
-        if clobber_image:
-            self.docker_image.clobber()
-
-        if clobber_pars:
-            self.pars.clobber()
-            mod_logger.info('Knot {name:s} clobbered PARS {pars:s}'.format(
-                name=self.name, pars=self.pars.name
-            ))
+        with ThreadPoolExecutor(32) as e:
+            # Iterate over copy of self.jobs since we are
+            # removing from the list while iterating
+            for job in list(self.jobs):
+                e.submit(job.clobber)
+                self._jobs.remove(job)
+            e.submit(clobber_jq_then_ce,
+                     self.job_queue, self.compute_environment)
+            e.submit(self.job_definition.clobber)
+            if clobber_repo and self.docker_repo:
+                e.submit(self.docker_repo.clobber)
+            if clobber_image:
+                e.submit(self.docker_image.clobber)
+            if clobber_pars:
+                e.submit(self.pars.clobber)
 
         # Remove this section from the config file
         config = configparser.ConfigParser()

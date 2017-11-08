@@ -8,7 +8,7 @@ FROM python:2
 
 # Install python dependencies
 COPY requirements.txt /tmp/
-RUN pip install -r /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 # Create a default user. Available via runtime flag `--user unit-test-username`.
 # Add user to "staff" group.
