@@ -105,7 +105,9 @@ class DockerImage(aws.NamedObject):
 
             config_file = get_config_file()
             config = configparser.ConfigParser()
-            config.read(config_file)
+
+            with rlock:
+                config.read(config_file)
 
             if section_name not in config.sections():
                 raise ResourceDoesNotExistException(
@@ -465,7 +467,8 @@ class DockerImage(aws.NamedObject):
         # Update the config file images list
         config_file = get_config_file()
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with rlock:
+            config.read(config_file)
 
         # Get list of images in config file
         section_name = 'docker-image ' + self.name

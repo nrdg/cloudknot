@@ -551,7 +551,9 @@ def test_IamRole(bucket_cleanup):
 
         # Confirm that the role is in the config file
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
+
         assert name in config.options(role_section_name)
 
         # Clobber the role
@@ -567,7 +569,9 @@ def test_IamRole(bucket_cleanup):
         # intersection of the two with the file values. So we must clear
         # config and then re-read the file
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
+
         assert name not in config.options(role_section_name)
 
         # Assert that reading the instance_profile_arn property raises error
@@ -612,7 +616,9 @@ def test_IamRole(bucket_cleanup):
 
             # Confirm that they exist in the config file
             config = configparser.ConfigParser()
-            config.read(config_file)
+            with ck.config.rlock:
+                config.read(config_file)
+
             assert n in config.options(role_section_name)
 
             # Clobber roles and use boto3 to confirm that they don't exist
@@ -626,7 +632,9 @@ def test_IamRole(bucket_cleanup):
             # intersection of the two with the file values. So we must clear
             # config and then re-read the file
             config = configparser.ConfigParser()
-            config.read(config_file)
+            with ck.config.rlock:
+                config.read(config_file)
+
             assert n not in config.options(role_section_name)
 
         # Test for correct handling of incorrect input
@@ -692,12 +700,13 @@ def test_IamRole(bucket_cleanup):
 
         # Clean up config file
         config = configparser.ConfigParser()
-        config.read(config_file)
-        for role_name in config.options(role_section_name):
-            if UNIT_TEST_PREFIX in role_name:
-                config.remove_option(role_section_name, role_name)
-        with open(config_file, 'w') as f:
-            config.write(f)
+        with ck.config.rlock:
+            config.read(config_file)
+            for role_name in config.options(role_section_name):
+                if UNIT_TEST_PREFIX in role_name:
+                    config.remove_option(role_section_name, role_name)
+            with open(config_file, 'w') as f:
+                config.write(f)
 
         # Pass the exception through
         raise e
@@ -729,7 +738,9 @@ def test_DockerRepo(bucket_cleanup):
 
         # Confirm that the docker repo is in the config file
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
+
         assert name in config.options(repo_section_name)
 
         # Clobber the docker repo
@@ -745,7 +756,9 @@ def test_DockerRepo(bucket_cleanup):
         # intersection of the two with the file values. So we must clear
         # config and then re-read the file
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
+
         assert name not in config.options(repo_section_name)
 
         # Now create a new repo using only cloudknot
@@ -765,7 +778,9 @@ def test_DockerRepo(bucket_cleanup):
 
         # Confirm that the docker repo is in the config file
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
+
         assert name in config.options(repo_section_name)
 
         # Delete the repo from AWS before clobbering
@@ -786,7 +801,9 @@ def test_DockerRepo(bucket_cleanup):
         # intersection of the two with the file values. So we must clear
         # config and then re-read the file
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
+
         assert name not in config.options(repo_section_name)
     except Exception as e:
         response = ecr.describe_repositories()
@@ -805,12 +822,13 @@ def test_DockerRepo(bucket_cleanup):
 
         # Clean up config file
         config = configparser.ConfigParser()
-        config.read(config_file)
-        for name in config.options(repo_section_name):
-            if UNIT_TEST_PREFIX in name:
-                config.remove_option(repo_section_name, name)
-        with open(config_file, 'w') as f:
-            config.write(f)
+        with ck.config.rlock:
+            config.read(config_file)
+            for name in config.options(repo_section_name):
+                if UNIT_TEST_PREFIX in name:
+                    config.remove_option(repo_section_name, name)
+            with open(config_file, 'w') as f:
+                config.write(f)
 
         raise e
 
@@ -878,7 +896,9 @@ def test_Vpc(bucket_cleanup):
 
         # Confirm that the VPC is in the config file
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
+
         assert vpc_id in config.options(vpc_section_name)
 
         # Clobber the VPC
@@ -904,7 +924,9 @@ def test_Vpc(bucket_cleanup):
         # intersection of the two with the file values. So we must set
         # config to None and then re-read the file
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
+
         assert vpc_id not in config.options(vpc_section_name)
 
         # Try to retrieve a VPC that does not exist
@@ -933,7 +955,9 @@ def test_Vpc(bucket_cleanup):
 
             # Confirm that they exist in the config file
             config = configparser.ConfigParser()
-            config.read(config_file)
+            with ck.config.rlock:
+                config.read(config_file)
+
             assert vpc.vpc_id in config.options(vpc_section_name)
 
             # Clobber the VPC
@@ -945,7 +969,9 @@ def test_Vpc(bucket_cleanup):
             # intersection of the two with the file values. So we must clear
             # config and then re-read the file
             config = configparser.ConfigParser()
-            config.read(config_file)
+            with ck.config.rlock:
+                config.read(config_file)
+
             assert vpc.vpc_id not in config.options(vpc_section_name)
 
             retry = tenacity.Retrying(
@@ -1019,47 +1045,48 @@ def test_Vpc(bucket_cleanup):
     except Exception as e:  # pragma: nocover
         # Clean up VPCs from AWS
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
 
-        # Find all VPCs with a Name tag key
-        response = ec2.describe_vpcs(
-            Filters=[{
-                'Name': 'tag-key',
-                'Values': ['Name']
-            }]
-        )
+            # Find all VPCs with a Name tag key
+            response = ec2.describe_vpcs(
+                Filters=[{
+                    'Name': 'tag-key',
+                    'Values': ['Name']
+                }]
+            )
 
-        for vpc in response.get('Vpcs'):
-            # Test if the unit-test prefix is in the name
-            if UNIT_TEST_PREFIX in [
-                d for d in vpc['Tags'] if d['Key'] == 'Name'
-            ][0]['Value']:
-                # Retrieve and delete subnets
-                response = ec2.describe_subnets(
-                    Filters=[
-                        {
-                            'Name': 'vpc-id',
-                            'Values': [vpc['VpcId']]
-                        }
-                    ]
-                )
+            for vpc in response.get('Vpcs'):
+                # Test if the unit-test prefix is in the name
+                if UNIT_TEST_PREFIX in [
+                    d for d in vpc['Tags'] if d['Key'] == 'Name'
+                ][0]['Value']:
+                    # Retrieve and delete subnets
+                    response = ec2.describe_subnets(
+                        Filters=[
+                            {
+                                'Name': 'vpc-id',
+                                'Values': [vpc['VpcId']]
+                            }
+                        ]
+                    )
 
-                subnets = [d['SubnetId'] for d in response.get('Subnets')]
+                    subnets = [d['SubnetId'] for d in response.get('Subnets')]
 
-                for subnet_id in subnets:
-                    ec2.delete_subnet(SubnetId=subnet_id)
+                    for subnet_id in subnets:
+                        ec2.delete_subnet(SubnetId=subnet_id)
 
-                # delete the VPC
-                ec2.delete_vpc(VpcId=vpc['VpcId'])
+                    # delete the VPC
+                    ec2.delete_vpc(VpcId=vpc['VpcId'])
 
-                # Clean up config file
-                try:
-                    config.remove_option(vpc_section_name, vpc['VpcId'])
-                except configparser.NoSectionError:
-                    pass
+                    # Clean up config file
+                    try:
+                        config.remove_option(vpc_section_name, vpc['VpcId'])
+                    except configparser.NoSectionError:
+                        pass
 
-        with open(config_file, 'w') as f:
-            config.write(f)
+            with open(config_file, 'w') as f:
+                config.write(f)
 
         # Pass the exception through
         raise e
@@ -1131,7 +1158,9 @@ def test_SecurityGroup(bucket_cleanup):
 
         # Confirm that the role is in the config file
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
+
         assert group_id in config.options(sg_section_name)
 
         # Clobber the role
@@ -1143,7 +1172,9 @@ def test_SecurityGroup(bucket_cleanup):
         # intersection of the two with the file values. So we must clear
         # config and then re-read the file
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
+
         assert group_id not in config.options(sg_section_name)
 
         retry = tenacity.Retrying(
@@ -1190,7 +1221,9 @@ def test_SecurityGroup(bucket_cleanup):
 
             # Confirm that they exist in the config file
             config = configparser.ConfigParser()
-            config.read(config_file)
+            with ck.config.rlock:
+                config.read(config_file)
+
             assert sg.security_group_id in config.options(sg_section_name)
 
             # Clobber security group
@@ -1218,7 +1251,9 @@ def test_SecurityGroup(bucket_cleanup):
             # intersection of the two with the file values. So we must clear
             # config and then re-read the file
             config = configparser.ConfigParser()
-            config.read(config_file)
+            with ck.config.rlock:
+                config.read(config_file)
+
             assert sg.security_group_id not in config.options(sg_section_name)
 
         # Test for correct handling of incorrect input
@@ -1254,37 +1289,39 @@ def test_SecurityGroup(bucket_cleanup):
         )
 
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
 
-        for sg in unit_test_sgs:
-            # Delete role
-            ec2.delete_security_group(GroupId=sg['id'])
+            for sg in unit_test_sgs:
+                # Delete role
+                ec2.delete_security_group(GroupId=sg['id'])
 
-            # Clean up config file
-            try:
-                config.remove_option(sg_section_name, sg['id'])
-            except configparser.NoSectionError:
-                pass
+                # Clean up config file
+                try:
+                    config.remove_option(sg_section_name, sg['id'])
+                except configparser.NoSectionError:
+                    pass
 
-        # Find all VPCs with tag owner = 'cloudknot-security-group-unit-test
-        response = ec2.describe_vpcs(
-            Filters=[{
-                'Name': 'tag:owner',
-                'Values': ['cloudknot-security-group-unit-test']
-            }]
-        )
+            # Find all VPCs with tag
+            # owner = 'cloudknot-security-group-unit-test'
+            response = ec2.describe_vpcs(
+                Filters=[{
+                    'Name': 'tag:owner',
+                    'Values': ['cloudknot-security-group-unit-test']
+                }]
+            )
 
-        for vpc in response.get('Vpcs'):
-            ec2.delete_vpc(VpcId=vpc['VpcId'])
+            for vpc in response.get('Vpcs'):
+                ec2.delete_vpc(VpcId=vpc['VpcId'])
 
-            # Clean up config file
-            try:
-                config.remove_option(vpc_section_name, vpc['VpcId'])
-            except configparser.NoSectionError:
-                pass
+                # Clean up config file
+                try:
+                    config.remove_option(vpc_section_name, vpc['VpcId'])
+                except configparser.NoSectionError:
+                    pass
 
-        with open(config_file, 'w') as f:
-            config.write(f)
+            with open(config_file, 'w') as f:
+                config.write(f)
 
         # Pass the exception through
         raise e
@@ -1353,7 +1390,9 @@ def test_JobDefinition(pars):
 
         # Confirm that the role is in the config file
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
+
         assert name in config.options(jd_section_name)
 
         # Assert that clobber raises RegionException if we change the region
@@ -1382,7 +1421,9 @@ def test_JobDefinition(pars):
         # intersection of the two with the file values. So we must clear
         # config and then re-read the file
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
+
         assert name not in config.options(jd_section_name)
 
         # The previous job def should be INACTIVE, so try to retrieve it
@@ -1439,7 +1480,9 @@ def test_JobDefinition(pars):
 
             # Confirm that they exist in the config file
             config = configparser.ConfigParser()
-            config.read(config_file)
+            with ck.config.rlock:
+                config.read(config_file)
+
             assert jd.name in config.options(jd_section_name)
 
             # Clobber the job definition
@@ -1456,7 +1499,9 @@ def test_JobDefinition(pars):
             # intersection of the two with the file values. So we must clear
             # config and then re-read the file
             config = configparser.ConfigParser()
-            config.read(config_file)
+            with ck.config.rlock:
+                config.read(config_file)
+
             assert jd.name not in config.options(jd_section_name)
 
         # Test for correct handling of incorrect input
@@ -1528,20 +1573,21 @@ def test_JobDefinition(pars):
             ))
 
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
 
-        for jd in unit_test_jds:
-            # Deregister the job definition
-            batch.deregister_job_definition(jobDefinition=jd['arn'])
+            for jd in unit_test_jds:
+                # Deregister the job definition
+                batch.deregister_job_definition(jobDefinition=jd['arn'])
 
-            # Clean up config file
-            try:
-                config.remove_option(jd_section_name, jd['name'])
-            except configparser.NoSectionError:
-                pass
+                # Clean up config file
+                try:
+                    config.remove_option(jd_section_name, jd['name'])
+                except configparser.NoSectionError:
+                    pass
 
-        with open(config_file, 'w') as f:
-            config.write(f)
+            with open(config_file, 'w') as f:
+                config.write(f)
 
         # Pass the exception through
         raise e
@@ -1630,7 +1676,9 @@ def test_ComputeEnvironment(pars):
 
         # Confirm that the role is in the config file
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
+
         assert name in config.options(ce_section_name)
 
         # Before clobbering, associate this compute environment with a
@@ -1681,7 +1729,9 @@ def test_ComputeEnvironment(pars):
         # intersection of the two with the file values. So we must clear
         # config and then re-read the file
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
+
         assert name not in config.options(ce_section_name)
 
         # Try to retrieve a compute environment that does not exist
@@ -1766,7 +1816,9 @@ def test_ComputeEnvironment(pars):
 
             # Confirm that they exist in the config file
             config = configparser.ConfigParser()
-            config.read(config_file)
+            with ck.config.rlock:
+                config.read(config_file)
+
             assert ce.name in config.options(ce_section_name)
 
             # Clobber compute environment
@@ -1785,7 +1837,9 @@ def test_ComputeEnvironment(pars):
             # intersection of the two with the file values. So we must clear
             # config and then re-read the file
             config = configparser.ConfigParser()
-            config.read(config_file)
+            with ck.config.rlock:
+                config.read(config_file)
+
             assert ce.name not in config.options(ce_section_name)
 
         # Test for correct handling of incorrect input
@@ -2006,71 +2060,72 @@ def test_ComputeEnvironment(pars):
             )
 
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
 
-        for ce in unit_test_CEs:
-            # Then disassociate from any job queues
-            response = batch.describe_job_queues()
-            associated_queues = list(filter(
-                lambda q: ce['arn'] in [
-                    c['computeEnvironment'] for c
-                    in q['computeEnvironmentOrder']
-                ],
-                response.get('jobQueues')
+            for ce in unit_test_CEs:
+                # Then disassociate from any job queues
+                response = batch.describe_job_queues()
+                associated_queues = list(filter(
+                    lambda q: ce['arn'] in [
+                        c['computeEnvironment'] for c
+                        in q['computeEnvironmentOrder']
+                    ],
+                    response.get('jobQueues')
+                ))
+
+                for queue in associated_queues:
+                    arn = queue['jobQueueArn']
+                    name = queue['jobQueueName']
+
+                    # Disable submissions to the queue
+                    ck.aws.wait_for_job_queue(
+                        name=name, log=True, max_wait_time=180
+                    )
+                    retry = tenacity.Retrying(
+                        wait=tenacity.wait_exponential(max=16),
+                        stop=tenacity.stop_after_delay(120),
+                        retry=tenacity.retry_if_exception_type(
+                            batch.exceptions.ClientException
+                        )
+                    )
+                    retry.call(
+                        batch.update_job_queue, jobQueue=arn, state='DISABLED'
+                    )
+
+                    # Delete the job queue
+                    ck.aws.wait_for_job_queue(
+                        name=name, log=True, max_wait_time=180
+                    )
+                    batch.delete_job_queue(jobQueue=arn)
+
+                    # Clean up config file
+                    try:
+                        config.remove_option(jq_section_name, name)
+                    except configparser.NoSectionError:
+                        pass
+
+            requires_deletion = list(filter(
+                lambda d: d['status'] not in ['DELETED', 'DELETING'],
+                unit_test_CEs
             ))
 
-            for queue in associated_queues:
-                arn = queue['jobQueueArn']
-                name = queue['jobQueueName']
-
-                # Disable submissions to the queue
-                ck.aws.wait_for_job_queue(
-                    name=name, log=True, max_wait_time=180
-                )
-                retry = tenacity.Retrying(
-                    wait=tenacity.wait_exponential(max=16),
-                    stop=tenacity.stop_after_delay(120),
-                    retry=tenacity.retry_if_exception_type(
-                        batch.exceptions.ClientException
-                    )
-                )
-                retry.call(
-                    batch.update_job_queue, jobQueue=arn, state='DISABLED'
+            for ce in requires_deletion:
+                ck.aws.wait_for_compute_environment(
+                    arn=ce['arn'], name=ce['name'], log=False
                 )
 
-                # Delete the job queue
-                ck.aws.wait_for_job_queue(
-                    name=name, log=True, max_wait_time=180
-                )
-                batch.delete_job_queue(jobQueue=arn)
+                # Delete the compute environment
+                batch.delete_compute_environment(computeEnvironment=ce['arn'])
 
                 # Clean up config file
                 try:
-                    config.remove_option(jq_section_name, name)
+                    config.remove_option(ce_section_name, ce['name'])
                 except configparser.NoSectionError:
                     pass
 
-        requires_deletion = list(filter(
-            lambda d: d['status'] not in ['DELETED', 'DELETING'],
-            unit_test_CEs
-        ))
-
-        for ce in requires_deletion:
-            ck.aws.wait_for_compute_environment(
-                arn=ce['arn'], name=ce['name'], log=False
-            )
-
-            # Delete the compute environment
-            batch.delete_compute_environment(computeEnvironment=ce['arn'])
-
-            # Clean up config file
-            try:
-                config.remove_option(ce_section_name, ce['name'])
-            except configparser.NoSectionError:
-                pass
-
-        with open(config_file, 'w') as f:
-            config.write(f)
+            with open(config_file, 'w') as f:
+                config.write(f)
 
         # Pass the exception through
         raise e
@@ -2151,7 +2206,9 @@ def test_JobQueue(pars):
 
         # Confirm that the role is in the config file
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
+
         assert name in config.options(jq_section_name)
 
         # Assert ValueError on invalid status in get_jobs() method
@@ -2194,7 +2251,9 @@ def test_JobQueue(pars):
         # intersection of the two with the file values. So we must clear
         # config and then re-read the file
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
+
         assert name not in config.options(jq_section_name)
 
         # Try to retrieve a job queue that does not exist
@@ -2234,7 +2293,9 @@ def test_JobQueue(pars):
 
             # Confirm that they exist in the config file
             config = configparser.ConfigParser()
-            config.read(config_file)
+            with ck.config.rlock:
+                config.read(config_file)
+
             assert jq.name in config.options(jq_section_name)
 
             # Clobber job queue
@@ -2253,7 +2314,9 @@ def test_JobQueue(pars):
             # intersection of the two with the file values. So we must clear
             # config and then re-read the file
             config = configparser.ConfigParser()
-            config.read(config_file)
+            with ck.config.rlock:
+                config.read(config_file)
+
             assert jq.name not in config.options(jq_section_name)
 
         ce.clobber()
@@ -2330,62 +2393,63 @@ def test_JobQueue(pars):
             )
 
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
 
-        for ce in unit_test_CEs:
-            # Then disassociate from any job queues
-            response = batch.describe_job_queues()
-            associated_queues = list(filter(
-                lambda q: ce['arn'] in [
-                    c['computeEnvironment'] for c
-                    in q['computeEnvironmentOrder']
-                ],
-                response.get('jobQueues')
+            for ce in unit_test_CEs:
+                # Then disassociate from any job queues
+                response = batch.describe_job_queues()
+                associated_queues = list(filter(
+                    lambda q: ce['arn'] in [
+                        c['computeEnvironment'] for c
+                        in q['computeEnvironmentOrder']
+                    ],
+                    response.get('jobQueues')
+                ))
+
+                for queue in associated_queues:
+                    arn = queue['jobQueueArn']
+                    name = queue['jobQueueName']
+
+                    # Disable submissions to the queue
+                    ck.aws.wait_for_job_queue(
+                        name=name, log=True, max_wait_time=180
+                    )
+                    batch.update_job_queue(jobQueue=arn, state='DISABLED')
+
+                    # Delete the job queue
+                    ck.aws.wait_for_job_queue(
+                        name=name, log=True, max_wait_time=180
+                    )
+                    batch.delete_job_queue(jobQueue=arn)
+
+                    # Clean up config file
+                    try:
+                        config.remove_option(jq_section_name, name)
+                    except configparser.NoSectionError:
+                        pass
+
+            requires_deletion = list(filter(
+                lambda d: d['status'] not in ['DELETED', 'DELETING'],
+                unit_test_CEs
             ))
 
-            for queue in associated_queues:
-                arn = queue['jobQueueArn']
-                name = queue['jobQueueName']
-
-                # Disable submissions to the queue
-                ck.aws.wait_for_job_queue(
-                    name=name, log=True, max_wait_time=180
+            for ce in requires_deletion:
+                ck.aws.wait_for_compute_environment(
+                    arn=ce['arn'], name=ce['name'], log=False
                 )
-                batch.update_job_queue(jobQueue=arn, state='DISABLED')
 
-                # Delete the job queue
-                ck.aws.wait_for_job_queue(
-                    name=name, log=True, max_wait_time=180
-                )
-                batch.delete_job_queue(jobQueue=arn)
+                # Delete the compute environment
+                batch.delete_compute_environment(computeEnvironment=ce['arn'])
 
                 # Clean up config file
                 try:
-                    config.remove_option(jq_section_name, name)
+                    config.remove_option(ce_section_name, ce['name'])
                 except configparser.NoSectionError:
                     pass
 
-        requires_deletion = list(filter(
-            lambda d: d['status'] not in ['DELETED', 'DELETING'],
-            unit_test_CEs
-        ))
-
-        for ce in requires_deletion:
-            ck.aws.wait_for_compute_environment(
-                arn=ce['arn'], name=ce['name'], log=False
-            )
-
-            # Delete the compute environment
-            batch.delete_compute_environment(computeEnvironment=ce['arn'])
-
-            # Clean up config file
-            try:
-                config.remove_option(ce_section_name, ce['name'])
-            except configparser.NoSectionError:
-                pass
-
-        with open(config_file, 'w') as f:
-            config.write(f)
+            with open(config_file, 'w') as f:
+                config.write(f)
 
         # Find all unit testing job queues
         response = batch.describe_job_queues()
@@ -2426,27 +2490,28 @@ def test_JobQueue(pars):
             batch.update_job_queue(jobQueue=jq['arn'], state='DISABLED')
 
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
 
-        requires_deletion = list(filter(
-            lambda d: d['status'] not in ['DELETED', 'DELETING'],
-            unit_test_JQs
-        ))
+            requires_deletion = list(filter(
+                lambda d: d['status'] not in ['DELETED', 'DELETING'],
+                unit_test_JQs
+            ))
 
-        for jq in requires_deletion:
-            ck.aws.wait_for_job_queue(name=jq['name'], max_wait_time=180)
+            for jq in requires_deletion:
+                ck.aws.wait_for_job_queue(name=jq['name'], max_wait_time=180)
 
-            # Finally, delete the job queue
-            batch.delete_job_queue(jobQueue=jq['arn'])
+                # Finally, delete the job queue
+                batch.delete_job_queue(jobQueue=jq['arn'])
 
-            # Clean up config file
-            try:
-                config.remove_option(jq_section_name, jq['name'])
-            except configparser.NoSectionError:
-                pass
+                # Clean up config file
+                try:
+                    config.remove_option(jq_section_name, jq['name'])
+                except configparser.NoSectionError:
+                    pass
 
-        with open(config_file, 'w') as f:
-            config.write(f)
+            with open(config_file, 'w') as f:
+                config.write(f)
 
         # Pass the exception through
         raise e

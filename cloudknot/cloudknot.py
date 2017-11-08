@@ -109,7 +109,9 @@ class Pars(aws.NamedObject):
 
         # Check for existence of this pars in the config file
         config = configparser.ConfigParser()
-        config.read(get_config_file())
+        with rlock:
+            config.read(get_config_file())
+
         self._pars_name = 'pars ' + self.name
         if self._pars_name in config.sections():
             self._region = config.get(self._pars_name, 'region')
@@ -183,7 +185,9 @@ class Pars(aws.NamedObject):
                 try:
                     # Use config values to adopt VPC if it exists already
                     config = configparser.ConfigParser()
-                    config.read(get_config_file())
+                    with rlock:
+                        config.read(get_config_file())
+
                     vpcid = config.get(self._pars_name, 'vpc')
                     vpc = aws.Vpc(vpc_id=vpcid)
                     mod_logger.info('PARS {name:s} adopted VPC {vpcid:s}'
@@ -876,7 +880,10 @@ class Knot(aws.NamedObject):
 
         # Check for existence of this knot in the config file
         config = configparser.ConfigParser()
-        config.read(get_config_file())
+
+        with rlock:
+            config.read(get_config_file())
+
         if self._knot_name in config.sections():
             if any([
                 pars, pars_policies, docker_image, func, image_script_path,
@@ -955,320 +962,368 @@ class Knot(aws.NamedObject):
             job_queue_name = job_queue_name if job_queue_name \
                 else name + '-cloudknot-job-queue'
 
-            # Validate and set the PARS
-            if pars:
-                if not isinstance(pars, Pars):
-                    raise ValueError('pars must be a Pars instance.')
-                self._pars = pars
-                mod_logger.info('knot {name:s} adopted PARS {p:s}'.format(
-                    name=self.name, p=self.pars.name
-                ))
-                pars_cleanup = False
-            else:
-                self._pars = Pars(name=self.name, policies=pars_policies)
-                mod_logger.info('knot {name:s} created PARS {p:s}'.format(
-                    name=self.name, p=self.pars.name
-                ))
-                pars_cleanup = True
+            if pars and not isinstance(pars, Pars):
+                raise ValueError('if provided, pars must be a Pars instance.')
 
-            if docker_image:
-                if any([func, image_script_path, image_work_dir]):
-                    raise ValueError(
-                        'you gave redundant, possibly conflicting input: '
-                        '`docker_image` and one of [`func`, '
-                        '`image_script_path`, `image_work_dir`]'
-                    )
-
-                if not isinstance(docker_image, dockerimage.DockerImage):
-                    raise ValueError('docker_image must be a cloudknot '
-                                     'DockerImage instance.')
-
-                self._docker_image = docker_image
-                mod_logger.info('Knot {name:s} adopted docker image {i:s}'
-                                ''.format(name=self.name, i=docker_image.name))
-
-            else:
-                # Create and build the docker image
-                self._docker_image = dockerimage.DockerImage(
-                    func=func,
-                    script_path=image_script_path,
-                    dir_name=image_work_dir,
-                    github_installs=image_github_installs,
-                    username=username
+            if docker_image and any([func, image_script_path, image_work_dir,
+                                     image_github_installs]):
+                raise ValueError(
+                    'you gave redundant, possibly conflicting input: '
+                    '`docker_image` and one of [`func`, '
+                    '`image_script_path`, `image_work_dir`]'
                 )
 
-            if not self.docker_image.images:
-                self.docker_image.build(tags=image_tags)
-                mod_logger.info(
-                    'knot {name:s} built docker image {i!s}'
-                    ''.format(name=self.name, i=self.docker_image.images)
-                )
+            if docker_image and not isinstance(docker_image,
+                                               dockerimage.DockerImage):
+                raise ValueError('docker_image must be a cloudknot '
+                                 'DockerImage instance.')
 
-            if self.docker_image.repo_uri is None:
-                # Create the remote repo
-                repo_name = (repo_name if repo_name
-                             else self.docker_image.images[0]['name'])
+            def set_pars(knot_name, input_pars, pars_policies):
+                # Validate and set the PARS
+                if input_pars:
+                    pars = input_pars
 
-                # Later in __init__, we may abort this init because of
-                # inconsistent job def, compute env, or job queue parameters
-                # If we do that, we don't want to leave a bunch of newly
-                # created resources around so keep track of whether this repo
-                # was created or adopted.
-                if config.has_option('docker-repos', repo_name):
-                    # Pre-existing repo, no cleanup necessary
-                    repo_cleanup = False
+                    mod_logger.info('knot {name:s} adopted PARS {p:s}'.format(
+                        name=knot_name, p=pars.name
+                    ))
+                    pars_cleanup = False
                 else:
-                    # Freshly created repo, cleanup necessary
-                    repo_cleanup = True
+                    pars = Pars(name=knot_name, policies=pars_policies)
 
-                self._docker_repo = aws.DockerRepo(name=repo_name)
+                    mod_logger.info('knot {name:s} created PARS {p:s}'.format(
+                        name=knot_name, p=pars.name
+                    ))
+                    pars_cleanup = True
 
-                mod_logger.info(
-                    'knot {name:s} created/adopted docker repo '
-                    '{r:s}'.format(name=self.name, r=self.docker_repo.name)
-                )
+                return pars, pars_cleanup
 
-                # Push to remote repo
-                self.docker_image.push(repo=self.docker_repo)
+            def set_dockerimage(knot_name, input_docker_image, func,
+                                script_path, work_dir, github_installs,
+                                username, tags, repo_name):
+                if input_docker_image:
+                    di = input_docker_image
 
-                mod_logger.info(
-                    "knot {name:s} pushed it's docker image to the repo "
-                    "{r:s}".format(name=self.name, r=self.docker_repo.name)
-                )
-            else:
-                repo_cleanup = False
-                self._docker_repo = None
-
-            try:
-                # Create job definition
-                self._job_definition = aws.JobDefinition(
-                    name=job_definition_name,
-                    job_role=self.pars.ecs_task_role,
-                    docker_image=self.docker_image.repo_uri,
-                    vcpus=job_def_vcpus,
-                    memory=memory,
-                    username=username,
-                    retries=retries
-                )
-
-                mod_logger.info(
-                    'knot {name:s} created job definition {jd:s}'.format(
-                        name=self.name, jd=self.job_definition.name
+                    mod_logger.info(
+                        'Knot {name:s} adopted docker image {i:s}'
+                        ''.format(name=knot_name, i=docker_image.name)
                     )
-                )
-
-                # Later in __init__, we may abort this init because of
-                # inconsistent compute env, or job queue parameters
-                # If we do that, we don't want to leave a bunch of newly
-                # created resources around so keep track of whether this job
-                # def was created or adopted. Here, we created it, so cleanup
-                # is needed
-                jd_cleanup = True
-            except aws.ResourceExistsException as e:
-                # Job def already exists, retrieve it
-                jd = aws.JobDefinition(arn=e.resource_id)
-
-                # But confirm that all of the properties match the input
-                # or that the input was unspecified (i.e. is None)
-                eq_role = jd.job_role_arn == self.pars.ecs_task_role.arn
-                eq_image = jd.docker_image == self.docker_image.repo_uri
-                eq_vcpus = job_def_vcpus is None or jd.vcpus == job_def_vcpus
-                eq_retries = retries is None or jd.retries == retries
-                eq_mem = memory is None or jd.memory == memory
-                eq_user = username is None or jd.username == username
-
-                matches = {
-                    'job role matches': eq_role,
-                    'docker image matches': eq_image,
-                    'VCPUs match': eq_vcpus,
-                    'retries match': eq_retries,
-                    'memory matches': eq_mem,
-                    'username matches': eq_user
-                }
-
-                if not all(matches.values()):
-                    if repo_cleanup:
-                        self.docker_repo.clobber()
-
-                    if pars_cleanup:
-                        self.pars.clobber()
-
-                    raise ValueError(
-                        'The requested job definition already exists but '
-                        'does not match the input parameters. '
-                        '{matches!s}'.format(matches=matches)
+                else:
+                    # Create and build the docker image
+                    di = dockerimage.DockerImage(
+                        func=func,
+                        script_path=script_path,
+                        dir_name=work_dir,
+                        github_installs=github_installs,
+                        username=username
                     )
 
-                self._job_definition = jd
-                # jd_cleanup description is same as above. Here, we adopted it,
-                # so cleanup isn't needed
-                jd_cleanup = False
-
-                mod_logger.info(
-                    'knot {name:s} adopted job definition {jd:s}'.format(
-                        name=self.name, jd=self.job_definition.name
+                if not di.images:
+                    di.build(tags=tags)
+                    mod_logger.info(
+                        'knot {name:s} built docker image {i!s}'
+                        ''.format(name=knot_name, i=di.images)
                     )
+
+                if di.repo_uri is None:
+                    # Create the remote repo
+                    repo_name = (repo_name if repo_name
+                                 else di.images[0]['name'])
+
+                    # Later in __init__, we may abort this init because of
+                    # inconsistent job def, compute env, or job queue
+                    # parameters. If we do that, we don't want to leave a
+                    # bunch of newly created resources around so keep track of
+                    # whether this repo was created or adopted.
+                    if config.has_option('docker-repos', repo_name):
+                        # Pre-existing repo, no cleanup necessary
+                        repo_cleanup = False
+                    else:
+                        # Freshly created repo, cleanup necessary
+                        repo_cleanup = True
+
+                    dr = aws.DockerRepo(name=repo_name)
+
+                    mod_logger.info(
+                        'knot {name:s} created/adopted docker repo '
+                        '{r:s}'.format(name=knot_name, r=dr.name)
+                    )
+
+                    # Push to remote repo
+                    di.push(repo=dr)
+
+                    mod_logger.info(
+                        "knot {name:s} pushed it's docker image to the repo "
+                        "{r:s}".format(name=knot_name, r=dr.name)
+                    )
+                else:
+                    repo_cleanup = False
+                    dr = None
+
+                return di, dr, repo_cleanup
+
+            def set_job_def(knot_name, job_definition_name, pars, docker_image,
+                            job_def_vcpus, memory, username, retries):
+                try:
+                    # Create job definition
+                    jd = aws.JobDefinition(
+                        name=job_definition_name,
+                        job_role=pars.ecs_task_role,
+                        docker_image=docker_image.repo_uri,
+                        vcpus=job_def_vcpus,
+                        memory=memory,
+                        username=username,
+                        retries=retries
+                    )
+
+                    mod_logger.info(
+                        'knot {name:s} created job definition {jd:s}'.format(
+                            name=knot_name, jd=jd.name
+                        )
+                    )
+                    # Later in __init__, we may abort this init because of
+                    # inconsistent compute env, or job queue parameters
+                    # If we do that, we don't want to leave a bunch of newly
+                    # created resources around so keep track of whether this
+                    # job def was created or adopted. Here, we created it, so
+                    # cleanup is needed
+                    jd_cleanup = True
+                except aws.ResourceExistsException as e:
+                    # Job def already exists, retrieve it
+                    jd = aws.JobDefinition(arn=e.resource_id)
+
+                    # But confirm that all of the properties match the input
+                    # or that the input was unspecified (i.e. is None)
+                    eq_role = jd.job_role_arn == pars.ecs_task_role.arn
+                    eq_image = jd.docker_image == docker_image.repo_uri
+                    eq_vcpus = (job_def_vcpus is None
+                                or jd.vcpus == job_def_vcpus)
+                    eq_retries = retries is None or jd.retries == retries
+                    eq_mem = memory is None or jd.memory == memory
+                    eq_user = username is None or jd.username == username
+
+                    matches = {
+                        'job role matches': eq_role,
+                        'docker image matches': eq_image,
+                        'VCPUs match': eq_vcpus,
+                        'retries match': eq_retries,
+                        'memory matches': eq_mem,
+                        'username matches': eq_user
+                    }
+
+                    if not all(matches.values()):
+                        jd.clobber()
+                        raise ValueError(
+                            'The requested job definition already exists but '
+                            'does not match the input parameters. '
+                            '{matches!s}'.format(matches=matches)
+                        )
+
+                    # jd_cleanup description is same as above. Here, we
+                    # adopted it, so cleanup isn't needed
+                    jd_cleanup = False
+
+                    mod_logger.info(
+                        'knot {name:s} adopted job definition {jd:s}'.format(
+                            name=self.name, jd=self.job_definition.name
+                        )
+                    )
+
+                return jd, jd_cleanup
+
+            def set_compute_env(knot_name, compute_environment_name, pars,
+                                instance_types, resource_type, min_vcpus,
+                                max_vcpus, desired_vcpus, image_id,
+                                ec2_key_pair, ce_tags, bid_percentage):
+                try:
+                    # Create compute environment
+                    ce = aws.ComputeEnvironment(
+                        name=compute_environment_name,
+                        batch_service_role=pars.batch_service_role,
+                        instance_role=pars.ecs_instance_role,
+                        vpc=pars.vpc,
+                        security_group=pars.security_group,
+                        spot_fleet_role=pars.spot_fleet_role,
+                        instance_types=instance_types,
+                        resource_type=resource_type,
+                        min_vcpus=min_vcpus,
+                        max_vcpus=max_vcpus,
+                        desired_vcpus=desired_vcpus,
+                        image_id=image_id,
+                        ec2_key_pair=ec2_key_pair,
+                        tags=ce_tags,
+                        bid_percentage=bid_percentage
+                    )
+
+                    # ce_cleanup logic same as for jd_cleanup
+                    ce_cleanup = True
+
+                    mod_logger.info(
+                        'knot {name:s} created compute environment {ce:s}'
+                        ''.format(name=knot_name, ce=ce.name)
+                    )
+                except aws.ResourceExistsException as e:
+                    # Compute environment already exists, retrieve it
+                    ce = aws.ComputeEnvironment(arn=e.resource_id)
+
+                    # But confirm that all of the properties match the input
+                    # or that the input was unspecified (i.e. is None)
+                    eq_bsr = (ce.batch_service_role_arn
+                              == pars.batch_service_role.arn)
+                    eq_eir = (ce.instance_role_arn
+                              == pars.ecs_instance_role.instance_profile_arn)
+                    eq_vpc = set(ce.subnets) == set(pars.vpc.subnet_ids)
+                    eq_sg = (ce.security_group_ids
+                             == [pars.security_group.security_group_id])
+                    if resource_type == 'SPOT':
+                        eq_sfr = (ce.spot_fleet_role_arn
+                                  == pars.spot_fleet_role.arn)
+                    else:
+                        eq_sfr = ce.spot_fleet_role_arn is None
+                    eq_it = (instance_types is None
+                             or ce.instance_types == instance_types)
+                    eq_rt = (resource_type is None
+                             or ce.resource_type == resource_type)
+                    eq_min_vcpus = (min_vcpus is None
+                                    or ce.min_vcpus == min_vcpus)
+                    eq_max_vcpus = (max_vcpus is None
+                                    or ce.max_vcpus == max_vcpus)
+                    eq_des_vcpus = (desired_vcpus is None
+                                    or ce.desired_vcpus == desired_vcpus)
+                    eq_image_id = image_id is None or ce.image_id == image_id
+                    eq_kp = (ec2_key_pair is None
+                             or ce.ec2_key_pair == ec2_key_pair)
+                    eq_tags = ce_tags is None or ce.tags == ce_tags
+                    eq_bp = (bid_percentage is None
+                             or ce.bid_percentage == bid_percentage)
+
+                    matches = {
+                        'batch service role matches': eq_bsr,
+                        'instance profile matches': eq_eir,
+                        'subnets match': eq_vpc,
+                        'security groups match': eq_sg,
+                        'spot fleet role matches': eq_sfr,
+                        'instance types match': eq_it,
+                        'resource type matches': eq_rt,
+                        'min VCPUs match': eq_min_vcpus,
+                        'max VCPUs match': eq_max_vcpus,
+                        'desired VCPUs match': eq_des_vcpus,
+                        'image ID matches': eq_image_id,
+                        'EC2 key pair matches': eq_kp,
+                        'tags match': eq_tags,
+                        'bid percentage matches': eq_bp
+                    }
+
+                    if not all(matches.values()):
+                        ce.clobber()
+                        raise ValueError(
+                            'The requested compute environment already exists '
+                            'but does not match the input parameters. '
+                            '{matches!s}.'.format(matches=matches)
+                        )
+
+                    # ce_cleanup logic same as for jd_cleanup
+                    ce_cleanup = False
+
+                    mod_logger.info(
+                        'knot {name:s} adopted compute environment {ce:s}'
+                        ''.format(
+                            name=self.name, ce=self.compute_environment.name
+                        )
+                    )
+
+                return ce, ce_cleanup
+
+            def set_job_queue(knot_name, job_queue_name,
+                              compute_environment, priority):
+                try:
+                    # Create job queue
+                    jq = aws.JobQueue(
+                        name=job_queue_name,
+                        compute_environments=compute_environment,
+                        priority=priority
+                    )
+
+                    # jq_cleanup logic same as for jd_cleanup
+                    jq_cleanup = True
+
+                    mod_logger.info(
+                        'knot {name:s} created job queue '
+                        '{jq:s}'.format(name=knot_name, jq=jq.name)
+                    )
+                except aws.ResourceExistsException as e:
+                    # Job queue already exists, retrieve it
+                    jq = aws.JobQueue(arn=e.resource_id)
+
+                    # But confirm that all of the properties match the input
+                    # or that the input was unspecified (i.e. is None)
+                    ce_arns = [d['computeEnvironment']
+                               for d in jq.compute_environment_arns]
+                    eq_ce = ce_arns == [compute_environment.arn]
+                    eq_priority = priority is None or jq.priority == priority
+
+                    matches = {
+                        'compute environment ARNS match': eq_ce,
+                        'priority matches': eq_priority
+                    }
+
+                    if not all(matches.values()):
+                        jq.clobber()
+                        raise ValueError(
+                            'The requested job queue already exists '
+                            'but does not match the input parameters. '
+                            '{matches!s}'.format(matches=matches)
+                        )
+
+                    # jq_cleanup logic same as for jd_cleanup
+                    jq_cleanup = False
+
+                    mod_logger.info(
+                        'knot {name:s} adopted job queue '
+                        '{jq:s}'.format(name=self.name, jq=self.job_queue.name)
+                    )
+
+                return jq, jq_cleanup
+
+            self._pars, pars_cleanup = set_pars(
+                knot_name=self.name, input_pars=pars,
+                pars_policies=pars_policies
+            )
+
+            self._docker_image, self._docker_repo, repo_cleanup = \
+                set_dockerimage(
+                    knot_name=self.name, input_docker_image=docker_image,
+                    func=func, script_path=image_script_path,
+                    work_dir=image_work_dir,
+                    github_installs=image_github_installs, username=username,
+                    tags=image_tags, repo_name=repo_name
                 )
+
+            self._job_definition, jd_cleanup = set_job_def(
+                knot_name=self.name, job_definition_name=job_definition_name,
+                pars=self.pars, docker_image=self.docker_image,
+                job_def_vcpus=job_def_vcpus, memory=memory, username=username,
+                retries=retries
+            )
 
             if self.job_definition.username != self.docker_image.username:
                 raise ValueError("The username for this knot's job definition "
                                  "does not match the username for this knot's "
                                  "Docker image.")
 
-            try:
-                # Create compute environment
-                self._compute_environment = aws.ComputeEnvironment(
-                    name=compute_environment_name,
-                    batch_service_role=self.pars.batch_service_role,
-                    instance_role=self.pars.ecs_instance_role,
-                    vpc=self.pars.vpc,
-                    security_group=self.pars.security_group,
-                    spot_fleet_role=self.pars.spot_fleet_role,
-                    instance_types=instance_types,
-                    resource_type=resource_type,
-                    min_vcpus=min_vcpus,
-                    max_vcpus=max_vcpus,
-                    desired_vcpus=desired_vcpus,
-                    image_id=image_id,
-                    ec2_key_pair=ec2_key_pair,
-                    tags=ce_tags,
-                    bid_percentage=bid_percentage
-                )
+            self._compute_environment, ce_cleanup = set_compute_env(
+                knot_name=self.name,
+                compute_environment_name=compute_environment_name,
+                pars=self.pars, instance_types=instance_types,
+                resource_type=resource_type, min_vcpus=min_vcpus,
+                max_vcpus=max_vcpus, desired_vcpus=desired_vcpus,
+                image_id=image_id, ec2_key_pair=ec2_key_pair, ce_tags=ce_tags,
+                bid_percentage=bid_percentage
+            )
 
-                mod_logger.info(
-                    'knot {name:s} created compute environment {ce:s}'.format(
-                        name=self.name, ce=self.compute_environment.name
-                    )
-                )
-
-                # ce_cleanup logic same as for jd_cleanup
-                ce_cleanup = True
-            except aws.ResourceExistsException as e:
-                # Compute environment already exists, retrieve it
-                ce = aws.ComputeEnvironment(arn=e.resource_id)
-
-                # But confirm that all of the properties match the input
-                # or that the input was unspecified (i.e. is None)
-                eq_bsr = (ce.batch_service_role_arn
-                          == self.pars.batch_service_role.arn)
-                eq_eir = (ce.instance_role_arn
-                          == self.pars.ecs_instance_role.instance_profile_arn)
-                eq_vpc = set(ce.subnets) == set(self.pars.vpc.subnet_ids)
-                eq_sg = (ce.security_group_ids
-                         == [self.pars.security_group.security_group_id])
-                if resource_type == 'SPOT':
-                    eq_sfr = (ce.spot_fleet_role_arn
-                              == self.pars.spot_fleet_role.arn)
-                else:
-                    eq_sfr = ce.spot_fleet_role_arn is None
-                eq_it = (instance_types is None
-                         or ce.instance_types == instance_types)
-                eq_rt = (resource_type is None
-                         or ce.resource_type == resource_type)
-                eq_min_vcpus = min_vcpus is None or ce.min_vcpus == min_vcpus
-                eq_max_vcpus = max_vcpus is None or ce.max_vcpus == max_vcpus
-                eq_des_vcpus = (desired_vcpus is None
-                                or ce.desired_vcpus == desired_vcpus)
-                eq_image_id = image_id is None or ce.image_id == image_id
-                eq_kp = ec2_key_pair is None or ce.ec2_key_pair == ec2_key_pair
-                eq_tags = ce_tags is None or ce.tags == ce_tags
-                eq_bp = (bid_percentage is None
-                         or ce.bid_percentage == bid_percentage)
-
-                matches = {
-                    'batch service role matches': eq_bsr,
-                    'instance profile matches': eq_eir,
-                    'subnets match': eq_vpc,
-                    'security groups match': eq_sg,
-                    'spot fleet role matches': eq_sfr,
-                    'instance types match': eq_it,
-                    'resource type matches': eq_rt,
-                    'min VCPUs match': eq_min_vcpus,
-                    'max VCPUs match': eq_max_vcpus,
-                    'desired VCPUs match': eq_des_vcpus,
-                    'image ID matches': eq_image_id,
-                    'EC2 key pair matches': eq_kp,
-                    'tags match': eq_tags,
-                    'bid percentage matches': eq_bp
-                }
-
-                if not all(matches.values()):
-                    if repo_cleanup:
-                        self.docker_repo.clobber()
-
-                    if jd_cleanup:
-                        self.job_definition.clobber()
-
-                    if pars_cleanup:
-                        self.pars.clobber()
-
-                    raise ValueError(
-                        'The requested compute environment already exists '
-                        'but does not match the input parameters. '
-                        '{matches!s}.'.format(matches=matches)
-                    )
-
-                self._compute_environment = ce
-                # ce_cleanup logic same as for jd_cleanup
-                ce_cleanup = False
-                mod_logger.info(
-                    'knot {name:s} adopted compute environment {ce:s}'.format(
-                        name=self.name, ce=self.compute_environment.name
-                    )
-                )
-
-            try:
-                # Create job queue
-                self._job_queue = aws.JobQueue(
-                    name=job_queue_name,
-                    compute_environments=self.compute_environment,
-                    priority=priority
-                )
-
-                mod_logger.info(
-                    'knot {name:s} created job queue '
-                    '{jq:s}'.format(name=self.name, jq=self.job_queue.name)
-                )
-            except aws.ResourceExistsException as e:
-                # Job queue already exists, retrieve it
-                jq = aws.JobQueue(arn=e.resource_id)
-
-                # But confirm that all of the properties match the input
-                # or that the input was unspecified (i.e. is None)
-                ce_arns = [d['computeEnvironment']
-                           for d in jq.compute_environment_arns]
-                eq_ce = ce_arns == [self.compute_environment.arn]
-                eq_priority = priority is None or jq.priority == priority
-
-                matches = {
-                    'compute environment ARNS match': eq_ce,
-                    'priority matches': eq_priority
-                }
-
-                if not all(matches.values()):
-                    if repo_cleanup:
-                        self.docker_repo.clobber()
-
-                    if jd_cleanup:
-                        self.job_definition.clobber()
-
-                    if ce_cleanup:
-                        self.compute_environment.clobber()
-
-                    if pars_cleanup:
-                        self.pars.clobber()
-
-                    raise ValueError(
-                        'The requested job queue already exists '
-                        'but does not match the input parameters. '
-                        '{matches!s}'.format(matches=matches)
-                    )
-
-                self._job_queue = jq
-                mod_logger.info(
-                    'knot {name:s} adopted job queue '
-                    '{jq:s}'.format(name=self.name, jq=self.job_queue.name)
-                )
+            self._job_queue, jq_cleanup = set_job_queue(
+                knot_name=self.name, job_queue_name=job_queue_name,
+                compute_environment=self.compute_environment, priority=priority
+            )
 
             self._jobs = []
             self._job_ids = []
