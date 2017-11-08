@@ -11,7 +11,7 @@ import time
 import uuid
 from collections import namedtuple
 
-from ..config import get_config_file, ck_lock
+from ..config import get_config_file, rlock
 
 __all__ = [
     "ResourceDoesNotExistException", "ResourceClobberedException",
@@ -44,7 +44,7 @@ def get_s3_bucket():
     config_file = get_config_file()
     config = configparser.ConfigParser()
 
-    with ck_lock:
+    with rlock:
         config.read(config_file)
 
         option = 's3-bucket'
@@ -81,7 +81,7 @@ def set_s3_bucket(bucket):
     config_file = get_config_file()
     config = configparser.ConfigParser()
 
-    with ck_lock:
+    with rlock:
         config.read(config_file)
 
         if not config.has_section('aws'):  # pragma: nocover
@@ -150,7 +150,7 @@ def get_s3_policy_name(bucket):
     config_file = get_config_file()
     config = configparser.ConfigParser()
 
-    with ck_lock:
+    with rlock:
         config.read(config_file)
 
         option = 's3-bucket-policy'
@@ -208,7 +208,7 @@ def update_s3_policy(bucket):
 
     arn = policy_dict['Arn']
 
-    with ck_lock:
+    with rlock:
         try:
             # Update the policy
             clients['iam'].create_policy_version(
@@ -257,7 +257,7 @@ def get_region():
     config_file = get_config_file()
     config = configparser.ConfigParser()
 
-    with ck_lock:
+    with rlock:
         config.read(config_file)
 
         if config.has_section('aws') and config.has_option('aws', 'region'):
@@ -320,7 +320,7 @@ def set_region(region='us-east-1'):
     config_file = get_config_file()
     config = configparser.ConfigParser()
 
-    with ck_lock:
+    with rlock:
         config.read(config_file)
 
         if not config.has_section('aws'):  # pragma: nocover
@@ -416,7 +416,7 @@ def get_profile(fallback='from-env'):
     config_file = get_config_file()
     config = configparser.ConfigParser()
 
-    with ck_lock:
+    with rlock:
         config.read(config_file)
 
         if config.has_section('aws') and config.has_option('aws', 'profile'):
@@ -463,7 +463,7 @@ def set_profile(profile_name):
     config_file = get_config_file()
     config = configparser.ConfigParser()
 
-    with ck_lock:
+    with rlock:
         config.read(config_file)
 
         if not config.has_section('aws'):  # pragma: nocover
@@ -518,7 +518,7 @@ and region.
 
 def refresh_clients():
     """Refresh the boto3 clients dictionary"""
-    with ck_lock:
+    with rlock:
         session = boto3.Session(profile_name=get_profile(fallback=None))
         clients['iam'] = session.client('iam', region_name=get_region())
         clients['ec2'] = session.client('ec2', region_name=get_region())

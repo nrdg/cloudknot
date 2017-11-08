@@ -8,7 +8,7 @@ from collections import Iterable
 from concurrent.futures import ThreadPoolExecutor
 
 from . import aws
-from .config import get_config_file, ck_lock
+from .config import get_config_file, rlock
 from . import dockerimage
 
 __all__ = ["Pars", "Knot"]
@@ -200,7 +200,7 @@ class Pars(aws.NamedObject):
 
                     config = configparser.ConfigParser()
 
-                    with ck_lock:
+                    with rlock:
                         config.read(get_config_file())
                         config.set(self._pars_name, 'vpc', vpc.vpc_id)
                         with open(get_config_file(), 'w') as f:
@@ -228,7 +228,7 @@ class Pars(aws.NamedObject):
                     )
                     config = configparser.ConfigParser()
 
-                    with ck_lock:
+                    with rlock:
                         config.read(get_config_file())
                         config.set(
                             self._pars_name,
@@ -257,7 +257,7 @@ class Pars(aws.NamedObject):
 
             config = configparser.ConfigParser()
 
-            with ck_lock:
+            with rlock:
                 config.read(get_config_file())
                 config.set(self._pars_name, 'region', self.region)
                 config.set(self._pars_name, 'profile', self.profile)
@@ -436,7 +436,7 @@ class Pars(aws.NamedObject):
             # Use config.set() for python 2.7 compatibility
             config = configparser.ConfigParser()
 
-            with ck_lock:
+            with rlock:
                 config.read(get_config_file())
                 config.add_section(self._pars_name)
                 config.set(self._pars_name, 'region', self.region)
@@ -520,7 +520,7 @@ class Pars(aws.NamedObject):
             # Replace the appropriate line in the config file
             config = configparser.ConfigParser()
 
-            with ck_lock:
+            with rlock:
                 config.read(get_config_file())
                 field_name = attr.lstrip('_').replace('_', '-')
                 config.set(self._pars_name, field_name, new_role.name)
@@ -614,7 +614,7 @@ class Pars(aws.NamedObject):
         # Replace the appropriate line in the config file
         config = configparser.ConfigParser()
 
-        with ck_lock:
+        with rlock:
             config.read(get_config_file())
             config.set(self._pars_name, 'vpc', v.vpc_id)
             with open(get_config_file(), 'w') as f:
@@ -675,7 +675,7 @@ class Pars(aws.NamedObject):
         # Replace the appropriate line in the config file
         config = configparser.ConfigParser()
 
-        with ck_lock:
+        with rlock:
             config.read(get_config_file())
             config.set(self._pars_name, 'security-group', sg.security_group_id)
             with open(get_config_file(), 'w') as f:
@@ -709,7 +709,7 @@ class Pars(aws.NamedObject):
         # Remove this section from the config file
         config = configparser.ConfigParser()
 
-        with ck_lock:
+        with rlock:
             config.read(get_config_file())
             config.remove_section(self._pars_name)
             with open(get_config_file(), 'w') as f:
@@ -1269,7 +1269,7 @@ class Knot(aws.NamedObject):
             # Use config.set() for python 2.7 compatibility
             config = configparser.ConfigParser()
 
-            with ck_lock:
+            with rlock:
                 config.read(get_config_file())
                 config.add_section(self._knot_name)
                 config.set(self._knot_name, 'region', self.region)
@@ -1418,7 +1418,7 @@ class Knot(aws.NamedObject):
 
         config = configparser.ConfigParser()
 
-        with ck_lock:
+        with rlock:
             config.read(get_config_file())
             config.set(self._knot_name, 'job_ids', ' '.join(self.job_ids))
             # Save config to file
@@ -1508,7 +1508,7 @@ class Knot(aws.NamedObject):
         # Remove this section from the config file
         config = configparser.ConfigParser()
 
-        with ck_lock:
+        with rlock:
             config.read(get_config_file())
             config.remove_section(self._knot_name)
             with open(get_config_file(), 'w') as f:

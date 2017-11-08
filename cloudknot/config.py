@@ -20,7 +20,7 @@ __all__ = ["get_config_file", "add_resource", "remove_resource",
            "verify_sections", "prune"]
 
 mod_logger = logging.getLogger(__name__)
-ck_lock = RLock()
+rlock = RLock()
 
 
 def get_config_file():
@@ -44,7 +44,7 @@ def get_config_file():
         home = os.path.expanduser('~')
         config_file = os.path.join(home, '.aws', 'cloudknot')
 
-    with ck_lock:
+    with rlock:
         if not os.path.isfile(config_file):
             # If the config file does not exist, create it
             with open(config_file, 'w') as f:
@@ -80,7 +80,7 @@ def add_resource(section, option, value):
     config_file = get_config_file()
     config = configparser.ConfigParser()
 
-    with ck_lock:
+    with rlock:
         config.read(config_file)
         if section not in config.sections():
             config.add_section(section)
@@ -103,7 +103,7 @@ def remove_resource(section, option):
     config_file = get_config_file()
     config = configparser.ConfigParser()
 
-    with ck_lock:
+    with rlock:
         config.read(config_file)
         try:
             config.remove_option(section, option)

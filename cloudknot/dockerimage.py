@@ -16,7 +16,7 @@ from . import aws
 from . import config as ckconfig
 from .aws.base_classes import get_region, \
     ResourceDoesNotExistException, ResourceClobberedException
-from .config import get_config_file, ck_lock
+from .config import get_config_file, rlock
 
 __all__ = ["DockerImage"]
 
@@ -663,7 +663,7 @@ class DockerImage(aws.NamedObject):
         config_file = get_config_file()
         config = configparser.ConfigParser()
 
-        with ck_lock:
+        with rlock:
             config.read(config_file)
             config.remove_section('docker-image ' + self.name)
             with open(config_file, 'w') as f:
