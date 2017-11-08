@@ -80,25 +80,27 @@ def set_s3_bucket(bucket):
     # Update the config file
     config_file = get_config_file()
     config = configparser.ConfigParser()
-    config.read(config_file)
 
-    if not config.has_section('aws'):  # pragma: nocover
-        config.add_section('aws')
+    with ck_lock:
+        config.read(config_file)
 
-    config.set('aws', 's3-bucket', bucket)
-    with open(config_file, 'w') as f:
-        config.write(f)
+        if not config.has_section('aws'):  # pragma: nocover
+            config.add_section('aws')
 
-    # Create the bucket
-    try:
-        clients['s3'].create_bucket(Bucket=bucket)
-    except clients['s3'].exceptions.BucketAlreadyOwnedByYou:
-        pass
-    except clients['s3'].exceptions.BucketAlreadyExists:
-        raise ValueError('The requested bucket name is not available.')
+        config.set('aws', 's3-bucket', bucket)
+        with open(config_file, 'w') as f:
+            config.write(f)
 
-    # Update the s3_policy with new bucket name
-    update_s3_policy(bucket)
+        # Create the bucket
+        try:
+            clients['s3'].create_bucket(Bucket=bucket)
+        except clients['s3'].exceptions.BucketAlreadyOwnedByYou:
+            pass
+        except clients['s3'].exceptions.BucketAlreadyExists:
+            raise ValueError('The requested bucket name is not available.')
+
+        # Update the s3_policy with new bucket name
+        update_s3_policy(bucket)
 
 
 def get_bucket_policy(bucket):
@@ -147,36 +149,38 @@ def get_s3_policy_name(bucket):
     """
     config_file = get_config_file()
     config = configparser.ConfigParser()
-    config.read(config_file)
 
-    option = 's3-bucket-policy'
-    if config.has_section('aws') and config.has_option('aws', option):
-        # Get policy name from the config file
-        policy = config.get('aws', option)
-    else:
-        # or create new one if it doesn't exist
-        policy = 'cloudknot-bucket-access-' + str(uuid.uuid4())
+    with ck_lock:
+        config.read(config_file)
 
-        if not config.has_section('aws'):
-            config.add_section('aws')
+        option = 's3-bucket-policy'
+        if config.has_section('aws') and config.has_option('aws', option):
+            # Get policy name from the config file
+            policy = config.get('aws', option)
+        else:
+            # or create new one if it doesn't exist
+            policy = 'cloudknot-bucket-access-' + str(uuid.uuid4())
 
-        config.set('aws', option, policy)
-        with open(config_file, 'w') as f:
-            config.write(f)
+            if not config.has_section('aws'):
+                config.add_section('aws')
 
-    s3_policy = get_bucket_policy(bucket)
+            config.set('aws', option, policy)
+            with open(config_file, 'w') as f:
+                config.write(f)
 
-    try:
-        # Create the policy
-        clients['iam'].create_policy(
-            PolicyName=policy,
-            Path='/cloudknot/',
-            PolicyDocument=json.dumps(s3_policy),
-            Description='Grants access to S3 bucket {0:s}'.format(bucket)
-        )
-    except clients['iam'].exceptions.EntityAlreadyExistsException:
-        # Policy already exists, do nothing
-        pass
+        s3_policy = get_bucket_policy(bucket)
+
+        try:
+            # Create the policy
+            clients['iam'].create_policy(
+                PolicyName=policy,
+                Path='/cloudknot/',
+                PolicyDocument=json.dumps(s3_policy),
+                Description='Grants access to S3 bucket {0:s}'.format(bucket)
+            )
+        except clients['iam'].exceptions.EntityAlreadyExistsException:
+            # Policy already exists, do nothing
+            pass
 
     return policy
 

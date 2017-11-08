@@ -867,7 +867,7 @@ class Knot(aws.NamedObject):
 
         image_tags = image_tags if image_tags else ['cloudknot']
 
-        # Check for existence of this pars in the config file
+        # Check for existence of this knot in the config file
         config = configparser.ConfigParser()
         config.read(get_config_file())
         if self._knot_name in config.sections():
