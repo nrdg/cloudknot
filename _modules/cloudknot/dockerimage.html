@@ -99,7 +99,7 @@
 <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">config</span> <span class="k">as</span> <span class="n">ckconfig</span>
 <span class="kn">from</span> <span class="nn">.aws.base_classes</span> <span class="k">import</span> <span class="n">get_region</span><span class="p">,</span> \
     <span class="n">ResourceDoesNotExistException</span><span class="p">,</span> <span class="n">ResourceClobberedException</span>
-<span class="kn">from</span> <span class="nn">.config</span> <span class="k">import</span> <span class="n">get_config_file</span>
+<span class="kn">from</span> <span class="nn">.config</span> <span class="k">import</span> <span class="n">get_config_file</span><span class="p">,</span> <span class="n">rlock</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;DockerImage&quot;</span><span class="p">]</span>
 
@@ -445,53 +445,28 @@
     <span class="k">def</span> <span class="nf">_write_dockerfile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Write Dockerfile to containerize this instance&#39;s python function&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">docker_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="n">py_version_str</span> <span class="o">=</span> <span class="s1">&#39;3&#39;</span> <span class="k">if</span> <span class="n">six</span><span class="o">.</span><span class="n">PY3</span> <span class="k">else</span> <span class="s1">&#39;2&#39;</span>
-            <span class="n">home_dir</span> <span class="o">=</span> <span class="s1">&#39;/home/</span><span class="si">{username:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">username</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">username</span><span class="p">)</span>
-
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;#&#39;</span> <span class="o">*</span> <span class="mi">79</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;# Dockerfile to build &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39; application container</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;# Based on python &#39;</span> <span class="o">+</span> <span class="n">py_version_str</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;#&#39;</span> <span class="o">*</span> <span class="mi">79</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="p">)</span>
-
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;# Use official python base image</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;FROM python:&#39;</span> <span class="o">+</span> <span class="n">py_version_str</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="p">)</span>
-
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;# Install python dependencies</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;COPY requirements.txt /tmp/</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;RUN pip install -r /tmp/requirements.txt&#39;</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">install</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">github_installs</span><span class="p">:</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39; </span><span class="se">\\\n</span><span class="s1">    &amp;&amp; pip install git+&#39;</span> <span class="o">+</span> <span class="n">install</span><span class="p">)</span>
-
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="p">)</span>
-
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;# Create a default user. Available via runtime flag &#39;</span><span class="p">)</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;`--user </span><span class="si">{user:s}</span><span class="s1">`.</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">user</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">username</span><span class="p">))</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;# Add user to &quot;staff&quot; group.</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;# Give user a home directory.</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
-                <span class="s1">&#39;RUN useradd </span><span class="si">{user:s}</span><span class="s1"> </span><span class="se">\\\n</span><span class="s1">&#39;</span>
-                <span class="s1">&#39;    &amp;&amp; addgroup </span><span class="si">{user:s}</span><span class="s1"> staff </span><span class="se">\\\n</span><span class="s1">&#39;</span>
-                <span class="s1">&#39;    &amp;&amp; mkdir </span><span class="si">{home:s}</span><span class="s1"> </span><span class="se">\\\n</span><span class="s1">&#39;</span>
-                <span class="s1">&#39;    &amp;&amp; chown -R </span><span class="si">{user:s}</span><span class="s1">:staff </span><span class="si">{home:s}</span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                    <span class="n">user</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">username</span><span class="p">,</span> <span class="n">home</span><span class="o">=</span><span class="n">home_dir</span><span class="p">)</span>
-            <span class="p">)</span>
-
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;ENV HOME </span><span class="si">{home:s}</span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">home</span><span class="o">=</span><span class="n">home_dir</span><span class="p">))</span>
-
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;# Copy the python script</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;COPY </span><span class="si">{py_script:s}</span><span class="s1"> </span><span class="si">{home:s}</span><span class="s1">/</span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                <span class="n">py_script</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">script_path</span><span class="p">),</span>
-                <span class="n">home</span><span class="o">=</span><span class="n">home_dir</span>
+            <span class="n">template_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span>
+                <span class="s1">&#39;Dockerfile.template&#39;</span>
             <span class="p">))</span>
 
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;# Set working directory</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;WORKDIR </span><span class="si">{home:s}</span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">home</span><span class="o">=</span><span class="n">home_dir</span><span class="p">))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">github_installs</span><span class="p">:</span>
+                <span class="n">github_installs_string</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+                    <span class="s1">&#39; </span><span class="se">\\\n</span><span class="s1">    &amp;&amp; pip install git+&#39;</span> <span class="o">+</span> <span class="n">install</span>
+                    <span class="k">for</span> <span class="n">install</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">github_installs</span>
+                <span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">github_installs_string</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
 
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;# Set entrypoint</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;ENTRYPOINT [&quot;python&quot;, &quot;</span><span class="si">{py_script:s}</span><span class="s1">&quot;]</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                <span class="n">py_script</span><span class="o">=</span><span class="n">home_dir</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">script_path</span><span class="p">)</span>
-            <span class="p">))</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">template_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">template</span><span class="p">:</span>
+                <span class="n">s</span> <span class="o">=</span> <span class="n">Template</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">substitute</span><span class="p">(</span>
+                    <span class="n">app_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="n">username</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">username</span><span class="p">,</span>
+                    <span class="n">py_version</span><span class="o">=</span><span class="s1">&#39;3&#39;</span> <span class="k">if</span> <span class="n">six</span><span class="o">.</span><span class="n">PY3</span> <span class="k">else</span> <span class="s1">&#39;2&#39;</span><span class="p">,</span>
+                    <span class="n">script_base_name</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">script_path</span><span class="p">),</span>
+                    <span class="n">github_installs_string</span><span class="o">=</span><span class="n">github_installs_string</span>
+                <span class="p">))</span>
 
         <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
             <span class="s1">&#39;Wrote Dockerfile </span><span class="si">{path:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">docker_path</span><span class="p">)</span>
@@ -745,10 +720,12 @@
         <span class="c1"># Remove from the config file</span>
         <span class="n">config_file</span> <span class="o">=</span> <span class="n">get_config_file</span><span class="p">()</span>
         <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
-        <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
-        <span class="n">config</span><span class="o">.</span><span class="n">remove_section</span><span class="p">(</span><span class="s1">&#39;docker-image &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="n">config</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">rlock</span><span class="p">:</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">remove_section</span><span class="p">(</span><span class="s1">&#39;docker-image &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_clobbered</span> <span class="o">=</span> <span class="kc">True</span>
 

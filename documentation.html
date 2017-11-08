@@ -113,7 +113,7 @@ cloudknot.Knot</div>
 <div class="content docutils container">
 <dl class="class">
 <dt id="cloudknot.Knot">
-<em class="property">class </em><code class="descclassname">cloudknot.</code><code class="descname">Knot</code><span class="sig-paren">(</span><em>name='default'</em>, <em>pars=None</em>, <em>pars_policies=()</em>, <em>docker_image=None</em>, <em>func=None</em>, <em>image_script_path=None</em>, <em>image_work_dir=None</em>, <em>username=None</em>, <em>repo_name=None</em>, <em>image_tags=None</em>, <em>job_definition_name=None</em>, <em>job_def_vcpus=None</em>, <em>memory=None</em>, <em>retries=None</em>, <em>compute_environment_name=None</em>, <em>instance_types=None</em>, <em>resource_type=None</em>, <em>min_vcpus=None</em>, <em>max_vcpus=None</em>, <em>desired_vcpus=None</em>, <em>image_id=None</em>, <em>ec2_key_pair=None</em>, <em>ce_tags=None</em>, <em>bid_percentage=None</em>, <em>job_queue_name=None</em>, <em>priority=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cloudknot/cloudknot.html#Knot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.Knot" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">cloudknot.</code><code class="descname">Knot</code><span class="sig-paren">(</span><em>name='default'</em>, <em>pars=None</em>, <em>pars_policies=()</em>, <em>docker_image=None</em>, <em>func=None</em>, <em>image_script_path=None</em>, <em>image_work_dir=None</em>, <em>image_github_installs=()</em>, <em>username=None</em>, <em>repo_name=None</em>, <em>image_tags=None</em>, <em>job_definition_name=None</em>, <em>job_def_vcpus=None</em>, <em>memory=None</em>, <em>retries=None</em>, <em>compute_environment_name=None</em>, <em>instance_types=None</em>, <em>resource_type=None</em>, <em>min_vcpus=None</em>, <em>max_vcpus=None</em>, <em>desired_vcpus=None</em>, <em>image_id=None</em>, <em>ec2_key_pair=None</em>, <em>ce_tags=None</em>, <em>bid_percentage=None</em>, <em>job_queue_name=None</em>, <em>priority=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cloudknot/cloudknot.html#Knot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.Knot" title="Permalink to this definition">¶</a></dt>
 <dd><p>A collection of resources and methods to submit jobs to AWS Batch</p>
 <p>This object collects AWS resources that should be created once for each
 type of batch run. The resource set consists of a PARS; a docker image
@@ -141,6 +141,10 @@ script with CLI
 Default: parent directory of script if <cite>script_path</cite> is provided
 else DockerImage creates a new directory, accessible by the
 <cite>docker_image.build_path</cite> property.</li>
+<li><strong>image_github_installs</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a><em> or </em><em>sequence of strings</em>) – Github addresses for packages to install from github rather than
+PyPI (e.g. git://github.com/richford/cloudknot.git or
+git://github.com/richford/cloudknot.git&#64;newfeaturebranch)
+Default: ()</li>
 <li><strong>username</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) – default username created in Dockerfile and in batch job definition
 Default: ‘cloudknot-user’</li>
 <li><strong>repo_name</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em>) – Name of the AWS ECR repository to store the created Docker image
