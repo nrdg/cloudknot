@@ -1110,7 +1110,6 @@ class Knot(aws.NamedObject):
                     }
 
                     if not all(matches.values()):
-                        jd.clobber()
                         raise ValueError(
                             'The requested job definition already exists but '
                             'does not match the input parameters. '
@@ -1213,7 +1212,6 @@ class Knot(aws.NamedObject):
                     }
 
                     if not all(matches.values()):
-                        ce.clobber()
                         raise ValueError(
                             'The requested compute environment already exists '
                             'but does not match the input parameters. '
@@ -1266,7 +1264,6 @@ class Knot(aws.NamedObject):
                     }
 
                     if not all(matches.values()):
-                        jq.clobber()
                         raise ValueError(
                             'The requested job queue already exists '
                             'but does not match the input parameters. '
