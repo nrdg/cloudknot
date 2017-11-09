@@ -1125,7 +1125,7 @@ def test_Vpc(bucket_cleanup):
                                    InternetGatewayId=gid)
 
                     # delete the VPC
-                    ec2.delete_vpc(VpcId=vpc['VpcId'])
+                    retry.call(ec2.delete_vpc, VpcId=vpc['VpcId'])
 
                     # Clean up config file
                     try:

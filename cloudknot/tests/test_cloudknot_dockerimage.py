@@ -59,6 +59,18 @@ def bucket_cleanup():
             VersionId=v['VersionId']
         )
 
+    response = iam.list_entities_for_policy(
+        PolicyArn=arn,
+        EntityFilter='Role'
+    )
+
+    roles = response.get('PolicyRoles')
+    for role in roles:
+        iam.detach_role_policy(
+            RoleName=role['RoleName'],
+            PolicyArn=arn
+        )
+
     iam.delete_policy(PolicyArn=arn)
 
 
