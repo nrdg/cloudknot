@@ -1090,6 +1090,18 @@ class ComputeEnvironment(ObjectWithArn):
                 clients['batch'].delete_compute_environment,
                 computeEnvironment=self.arn
             )
+        except clients['batch'].exceptions.ClientException as error:
+            error_message = error.response['Error']['Message']
+            if error_message == 'Cannot delete, found existing ' \
+                                'JobQueue relationship':  # pragma: nocover
+                raise CannotDeleteResourceException(
+                    'Could not delete this compute environment '
+                    'because it has job queue(s) associated with it. '
+                    'If you want to delete this compute environment, '
+                    'first delete the job queues with the following '
+                    'ARNS: {queues!s}'.format(queues=associated_queues),
+                    resource_id=associated_queues
+                )
         except tenacity.RetryError as e:
             try:
                 e.reraise()
