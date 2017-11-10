@@ -858,8 +858,17 @@ def test_Vpc(bucket_cleanup):
         wait_for_vpc = ec2.get_waiter('vpc_available')
         wait_for_vpc.wait(VpcIds=[vpc_id])
 
+        retry = tenacity.Retrying(
+            wait=tenacity.wait_exponential(max=16),
+            stop=tenacity.stop_after_delay(120),
+            retry=tenacity.retry_unless_exception_type(
+                ec2.exceptions.ClientError
+            )
+        )
+
         # Tag the VPC
-        ec2.create_tags(
+        retry.call(
+            ec2.create_tags,
             Resources=[vpc_id],
             Tags=[
                 {
@@ -903,14 +912,6 @@ def test_Vpc(bucket_cleanup):
 
         # Clobber the VPC
         vpc.clobber()
-
-        retry = tenacity.Retrying(
-            wait=tenacity.wait_exponential(max=16),
-            stop=tenacity.stop_after_delay(120),
-            retry=tenacity.retry_unless_exception_type(
-                ec2.exceptions.ClientError
-            )
-        )
 
         # Assert that it was removed from AWS
         with pytest.raises(ec2.exceptions.ClientError) as e:
@@ -1164,8 +1165,17 @@ def test_SecurityGroup(bucket_cleanup):
         )
         group_id = response.get('GroupId')
 
+        retry = tenacity.Retrying(
+            wait=tenacity.wait_exponential(max=16),
+            stop=tenacity.stop_after_delay(120),
+            retry=tenacity.retry_unless_exception_type(
+                ec2.exceptions.ClientError
+            )
+        )
+
         # Tag the VPC and security group for easy cleanup later
-        ec2.create_tags(
+        retry.call(
+            ec2.create_tags,
             Resources=[vpc_id, group_id],
             Tags=[
                 {
@@ -1197,21 +1207,21 @@ def test_SecurityGroup(bucket_cleanup):
         # cloudknot retrieve that security group.
         sg = ck.aws.SecurityGroup(security_group_id=group_id)
 
-        # Confirm that the instance has the right properties.
+        # Confirm that the security group has the right properties.
         assert sg.pre_existing
         assert sg.vpc is None
         assert sg.vpc_id == vpc_id
         assert sg.description == description
         assert sg.security_group_id == group_id
 
-        # Confirm that the role is in the config file
+        # Confirm that the security group is in the config file
         config = configparser.ConfigParser()
         with ck.config.rlock:
             config.read(config_file)
 
         assert group_id in config.options(sg_section_name)
 
-        # Clobber the role
+        # Clobber the security group
         sg.clobber()
 
         # Assert that it was removed from the config file
@@ -1224,14 +1234,6 @@ def test_SecurityGroup(bucket_cleanup):
             config.read(config_file)
 
         assert group_id not in config.options(sg_section_name)
-
-        retry = tenacity.Retrying(
-            wait=tenacity.wait_exponential(max=16),
-            stop=tenacity.stop_after_delay(120),
-            retry=tenacity.retry_unless_exception_type(
-                ec2.exceptions.ClientError
-            )
-        )
 
         # Assert that it was removed from AWS
         with pytest.raises(ec2.exceptions.ClientError) as e:
