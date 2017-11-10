@@ -17,6 +17,7 @@
                 "iam:DetachRolePolicy",
                 "iam:GetRole",
                 "iam:ListAttachedRolePolicies",
+                "iam:ListEntitiesForPolicy",
                 "iam:ListInstanceProfilesForRole",
                 "iam:ListPolicies",
                 "iam:ListPolicyVersions",

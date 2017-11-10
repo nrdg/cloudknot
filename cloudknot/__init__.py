@@ -1,13 +1,16 @@
 from __future__ import absolute_import, division, print_function
 
+import docker
 import errno
 import logging
 import os
+import six
+from concurrent.futures import ThreadPoolExecutor
 
 from . import aws  # noqa
 from . import config  # noqa
-from .aws.base_classes import get_region, set_region  # noqa
 from .aws.base_classes import get_profile, set_profile, list_profiles  # noqa
+from .aws.base_classes import get_region, set_region  # noqa
 from .aws.base_classes import get_s3_bucket, set_s3_bucket  # noqa
 from .aws.base_classes import refresh_clients  # noqa
 from .cloudknot import *  # noqa
@@ -53,3 +56,10 @@ module_logger.info('Started new cloudknot session')
 logging.getLogger('boto').setLevel(logging.WARNING)
 logging.getLogger('boto3').setLevel(logging.WARNING)
 logging.getLogger('botocore').setLevel(logging.WARNING)
+
+# Build the python base image so that later build commands are faster
+cli = docker.from_env().images
+python_base = 'python:3' if six.PY3 else 'python:2'
+executor = ThreadPoolExecutor(2)
+executor.submit(cli.pull, python_base)
+executor.shutdown(wait=False)

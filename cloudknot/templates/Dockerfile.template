@@ -8,7 +8,7 @@ FROM python:${py_version}
 
 # Install python dependencies
 COPY requirements.txt /tmp/
-RUN pip install -r /tmp/requirements.txt${github_installs_string}
+RUN pip install --no-cache-dir -r /tmp/requirements.txt${github_installs_string}
 
 # Create a default user. Available via runtime flag `--user ${username}`.
 # Add user to "staff" group.

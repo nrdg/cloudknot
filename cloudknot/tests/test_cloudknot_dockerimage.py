@@ -59,6 +59,18 @@ def bucket_cleanup():
             VersionId=v['VersionId']
         )
 
+    response = iam.list_entities_for_policy(
+        PolicyArn=arn,
+        EntityFilter='Role'
+    )
+
+    roles = response.get('PolicyRoles')
+    for role in roles:
+        iam.detach_role_policy(
+            RoleName=role['RoleName'],
+            PolicyArn=arn
+        )
+
     iam.delete_policy(PolicyArn=arn)
 
 
@@ -130,7 +142,8 @@ def cleanup(bucket_cleanup):
                    jobQueue=jq['arn'], state='DISABLED')
 
     config = configparser.ConfigParser()
-    config.read(config_file)
+    with ck.config.rlock:
+        config.read(config_file)
 
     requires_deletion = list(filter(
         lambda d: d['status'] not in ['DELETED', 'DELETING'],
@@ -199,7 +212,8 @@ def cleanup(bucket_cleanup):
                    state='DISABLED')
 
     config = configparser.ConfigParser()
-    config.read(config_file)
+    with ck.config.rlock:
+        config.read(config_file)
 
     for ce in unit_test_CEs:
         # Then disassociate from any job queues
@@ -319,20 +333,22 @@ def cleanup(bucket_cleanup):
         ))
 
     config = configparser.ConfigParser()
-    config.read(config_file)
+    with ck.config.rlock:
+        config.read(config_file)
 
-    for jd in unit_test_jds:
-        # Deregister the job definition
-        retry.call(batch.deregister_job_definition, jobDefinition=jd['arn'])
+        for jd in unit_test_jds:
+            # Deregister the job definition
+            retry.call(batch.deregister_job_definition,
+                       jobDefinition=jd['arn'])
 
-        # Clean up config file
-        try:
-            config.remove_option(jd_section_name, jd['name'])
-        except configparser.NoSectionError:
-            pass
+            # Clean up config file
+            try:
+                config.remove_option(jd_section_name, jd['name'])
+            except configparser.NoSectionError:
+                pass
 
-    with open(config_file, 'w') as f:
-        config.write(f)
+        with open(config_file, 'w') as f:
+            config.write(f)
 
     # Clean up security_groups from AWS
     # ---------------------------------
@@ -356,105 +372,107 @@ def cleanup(bucket_cleanup):
     )
 
     config = configparser.ConfigParser()
-    config.read(config_file)
+    with ck.config.rlock:
+        config.read(config_file)
 
-    for sg in unit_test_sgs:
-        # Delete role
-        ec2_retry.call(ec2.delete_security_group, GroupId=sg['id'])
+        for sg in unit_test_sgs:
+            # Delete role
+            ec2_retry.call(ec2.delete_security_group, GroupId=sg['id'])
 
-        # Clean up config file
-        try:
-            config.remove_option(sg_section_name, sg['id'])
-        except configparser.NoSectionError:
-            pass
+            # Clean up config file
+            try:
+                config.remove_option(sg_section_name, sg['id'])
+            except configparser.NoSectionError:
+                pass
 
-    with open(config_file, 'w') as f:
-        config.write(f)
+        with open(config_file, 'w') as f:
+            config.write(f)
 
     # Clean up VPCs from AWS
     # ----------------------
     config = configparser.ConfigParser()
-    config.read(config_file)
+    with ck.config.rlock:
+        config.read(config_file)
 
-    # Find all VPCs with a Name tag key
-    response = ec2.describe_vpcs(
-        Filters=[{
-            'Name': 'tag-key',
-            'Values': ['Name']
-        }]
-    )
+        # Find all VPCs with a Name tag key
+        response = ec2.describe_vpcs(
+            Filters=[{
+                'Name': 'tag-key',
+                'Values': ['Name']
+            }]
+        )
 
-    for vpc in response.get('Vpcs'):
-        # Test if the unit-test prefix is in the name
-        if UNIT_TEST_PREFIX in [
-            d for d in vpc['Tags'] if d['Key'] == 'Name'
-        ][0]['Value']:
-            # Retrieve and delete subnets
-            response = ec2.describe_subnets(
-                Filters=[
-                    {
-                        'Name': 'vpc-id',
-                        'Values': [vpc['VpcId']]
-                    }
-                ]
-            )
+        for vpc in response.get('Vpcs'):
+            # Test if the unit-test prefix is in the name
+            if UNIT_TEST_PREFIX in [
+                d for d in vpc['Tags'] if d['Key'] == 'Name'
+            ][0]['Value']:
+                # Retrieve and delete subnets
+                response = ec2.describe_subnets(
+                    Filters=[
+                        {
+                            'Name': 'vpc-id',
+                            'Values': [vpc['VpcId']]
+                        }
+                    ]
+                )
 
-            subnets = [d['SubnetId'] for d in response.get('Subnets')]
+                subnets = [d['SubnetId'] for d in response.get('Subnets')]
 
-            for subnet_id in subnets:
-                ec2_retry.call(ec2.delete_subnet, SubnetId=subnet_id)
+                for subnet_id in subnets:
+                    ec2_retry.call(ec2.delete_subnet, SubnetId=subnet_id)
 
-            response = ec2.describe_network_acls(Filters=[
-                {'Name': 'vpc-id', 'Values': [vpc['VpcId']]},
-                {'Name': 'default', 'Values': ['false']}
-            ])
+                response = ec2.describe_network_acls(Filters=[
+                    {'Name': 'vpc-id', 'Values': [vpc['VpcId']]},
+                    {'Name': 'default', 'Values': ['false']}
+                ])
 
-            network_acl_ids = [n['NetworkAclId']
-                               for n in response.get('NetworkAcls')]
+                network_acl_ids = [n['NetworkAclId']
+                                   for n in response.get('NetworkAcls')]
 
-            # Delete the network ACL
-            for net_id in network_acl_ids:
-                ec2_retry.call(ec2.delete_network_acl, NetworkAclId=net_id)
+                # Delete the network ACL
+                for net_id in network_acl_ids:
+                    ec2_retry.call(ec2.delete_network_acl, NetworkAclId=net_id)
 
-            response = ec2.describe_route_tables(Filters=[
-                {'Name': 'vpc-id', 'Values': [vpc['VpcId']]},
-                {'Name': 'association.main', 'Values': ['false']}
-            ])
+                response = ec2.describe_route_tables(Filters=[
+                    {'Name': 'vpc-id', 'Values': [vpc['VpcId']]},
+                    {'Name': 'association.main', 'Values': ['false']}
+                ])
 
-            route_table_ids = [rt['RouteTableId']
-                               for rt in response.get('RouteTables')]
+                route_table_ids = [rt['RouteTableId']
+                                   for rt in response.get('RouteTables')]
 
-            # Delete the route table
-            for rt_id in route_table_ids:
-                ec2_retry.call(ec2.delete_route_table, RouteTableId=rt_id)
+                # Delete the route table
+                for rt_id in route_table_ids:
+                    ec2_retry.call(ec2.delete_route_table, RouteTableId=rt_id)
 
-            # Detach and delete the internet gateway
-            response = ec2.describe_internet_gateways(Filters=[{
-                'Name': 'attachment.vpc-id',
-                'Values': [vpc['VpcId']]
-            }])
+                # Detach and delete the internet gateway
+                response = ec2.describe_internet_gateways(Filters=[{
+                    'Name': 'attachment.vpc-id',
+                    'Values': [vpc['VpcId']]
+                }])
 
-            gateway_ids = [g['InternetGatewayId']
-                           for g in response.get('InternetGateways')]
+                gateway_ids = [g['InternetGatewayId']
+                               for g in response.get('InternetGateways')]
 
-            for gid in gateway_ids:
-                ec2_retry.call(ec2.detach_internet_gateway,
-                               InternetGatewayId=gid,
-                               VpcId=vpc['VpcId'])
-                ec2_retry.call(ec2.delete_internet_gateway,
-                               InternetGatewayId=gid)
+                for gid in gateway_ids:
+                    ec2_retry.call(ec2.detach_internet_gateway,
+                                   InternetGatewayId=gid,
+                                   VpcId=vpc['VpcId'])
+                    ec2_retry.call(ec2.delete_internet_gateway,
+                                   InternetGatewayId=gid)
 
-            # delete the VPC
-            ec2_retry.call(ec2.delete_vpc, VpcId=vpc['VpcId'])
+                # delete the VPC
+                ec2_retry.call(ec2.delete_vpc, VpcId=vpc['VpcId'])
 
-            # Clean up config file
-            try:
-                config.remove_option(vpc_section_name, vpc['VpcId'])
-            except configparser.NoSectionError:
-                pass
+                # Clean up config file
+                try:
+                    config.remove_option(vpc_section_name, vpc['VpcId'])
+                except configparser.NoSectionError:
+                    pass
 
-    with open(config_file, 'w') as f:
-        config.write(f)
+        with open(config_file, 'w') as f:
+            config.write(f)
 
     # Clean up roles from AWS
     # -----------------------
@@ -491,12 +509,13 @@ def cleanup(bucket_cleanup):
 
     # Clean up config file
     config = configparser.ConfigParser()
-    config.read(config_file)
-    for role_name in config.options(roles_section_name):
-        if UNIT_TEST_PREFIX in role_name:
-            config.remove_option(roles_section_name, role_name)
-    with open(config_file, 'w') as f:
-        config.write(f)
+    with ck.config.rlock:
+        config.read(config_file)
+        for role_name in config.options(roles_section_name):
+            if UNIT_TEST_PREFIX in role_name:
+                config.remove_option(roles_section_name, role_name)
+        with open(config_file, 'w') as f:
+            config.write(f)
 
 
 @pytest.fixture(scope='module')
@@ -527,12 +546,13 @@ def cleanup_repos(bucket_cleanup):
 
     # Clean up repos from config file
     config = configparser.ConfigParser()
-    config.read(config_file)
-    for repo_name in config.options(repos_section_name):
-        if UNIT_TEST_PREFIX in repo_name:
-            config.remove_option(repos_section_name, repo_name)
-    with open(config_file, 'w') as f:
-        config.write(f)
+    with ck.config.rlock:
+        config.read(config_file)
+        for repo_name in config.options(repos_section_name):
+            if UNIT_TEST_PREFIX in repo_name:
+                config.remove_option(repos_section_name, repo_name)
+        with open(config_file, 'w') as f:
+            config.write(f)
 
 
 def test_Pars(bucket_cleanup):
@@ -574,10 +594,11 @@ def test_Pars(bucket_cleanup):
 
         # Now remove the section from config file
         config = configparser.ConfigParser()
-        config.read(config_file)
-        config.remove_section('pars ' + name)
-        with open(config_file, 'w') as f:
-            config.write(f)
+        with ck.config.rlock:
+            config.read(config_file)
+            config.remove_section('pars ' + name)
+            with open(config_file, 'w') as f:
+                config.write(f)
 
         # And re-instantiate by supplying resource names
         p = ck.Pars(
@@ -600,10 +621,11 @@ def test_Pars(bucket_cleanup):
         # names instead of IDs
         # Remove the section from config file
         config = configparser.ConfigParser()
-        config.read(config_file)
-        config.remove_section('pars ' + name)
-        with open(config_file, 'w') as f:
-            config.write(f)
+        with ck.config.rlock:
+            config.read(config_file)
+            config.remove_section('pars ' + name)
+            with open(config_file, 'w') as f:
+                config.write(f)
 
         # And re-instantiate by supplying resource names
         p = ck.Pars(
@@ -639,7 +661,9 @@ def test_Pars(bucket_cleanup):
 
         # Assert config file changed
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
+
         assert config.get(p.pars_name, 'batch-service-role') == role.name
 
         # Test setting new ecs instance role
@@ -660,7 +684,9 @@ def test_Pars(bucket_cleanup):
 
         # Assert config file changed
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
+
         assert config.get(p.pars_name, 'ecs-instance-role') == role.name
 
         # Test setting new spot fleet role
@@ -680,7 +706,9 @@ def test_Pars(bucket_cleanup):
 
         # Assert config file changed
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
+
         assert config.get(p.pars_name, 'spot-fleet-role') == role.name
 
         # Test setting new security group
@@ -696,7 +724,9 @@ def test_Pars(bucket_cleanup):
 
         # Assert config file changed
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
+
         assert (config.get(p.pars_name, 'security-group') ==
                 sg.security_group_id)
 
@@ -713,13 +743,17 @@ def test_Pars(bucket_cleanup):
 
         # Assert config file changed
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
+
         assert config.get(p.pars_name, 'vpc') == vpc.vpc_id
 
         p.clobber()
 
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
+
         assert 'pars ' + name not in config.sections()
 
         # Test Exceptions on invalid input
@@ -840,7 +874,9 @@ def test_DockerImage(cleanup_repos):
 
         # Confirm that the docker image is in the config file
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
+
         assert 'docker-image ' + di.name in config.sections()
 
         # Next, retrieve another instance with the same name, confirm that it
@@ -870,7 +906,9 @@ def test_DockerImage(cleanup_repos):
         # intersection of the two with the file values. So we must clear
         # config and then re-read the file
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
+
         assert 'docker-image ' + di.name not in config.sections()
 
         # Second, test a DockerImage with a func and a dir_name
@@ -897,7 +935,9 @@ def test_DockerImage(cleanup_repos):
 
         # Confirm that the docker image is in the config file
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
+
         assert 'docker-image ' + di.name in config.sections()
 
         # Clobber and confirm that it deleted all the created files and dirs
@@ -913,7 +953,9 @@ def test_DockerImage(cleanup_repos):
         # intersection of the two with the file values. So we must clear
         # config and then re-read the file
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
+
         assert 'docker-image ' + di.name not in config.sections()
 
         # Third, test a DockerImage with script_path and dir_name input
@@ -960,7 +1002,9 @@ def test_DockerImage(cleanup_repos):
 
         # Confirm that the docker image is in the config file
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
+
         assert 'docker-image ' + di.name in config.sections()
 
         # Clobber and confirm that it deleted all the created files
@@ -984,7 +1028,9 @@ def test_DockerImage(cleanup_repos):
         # intersection of the two with the file values. So we must clear
         # config and then re-read the file
         config = configparser.ConfigParser()
-        config.read(config_file)
+        with ck.config.rlock:
+            config.read(config_file)
+
         assert 'docker-image ' + di.name not in config.sections()
 
         # Test for exception handling of incorrect input
@@ -1139,22 +1185,24 @@ def test_DockerImage(cleanup_repos):
 
         # Clean up config file
         config = configparser.ConfigParser()
-        config.read(config_file)
-        for name in config.sections():
-            if name in ['docker-image unit_testing_func',
-                        'docker-image test_func_input.py']:
-                config.remove_section(name)
+        with ck.config.rlock:
+            config.read(config_file)
 
-        try:
-            section_name = 'docker-repos' + ck.aws.get_region()
-            for option in config.options(section_name):
-                if UNIT_TEST_PREFIX in option:
-                    config.remove_option(section_name, option)
-        except configparser.NoSectionError:
-            pass
+            for name in config.sections():
+                if name in ['docker-image unit_testing_func',
+                            'docker-image test_func_input.py']:
+                    config.remove_section(name)
 
-        with open(config_file, 'w') as f:
-            config.write(f)
+            try:
+                section_name = 'docker-repos' + ck.aws.get_region()
+                for option in config.options(section_name):
+                    if UNIT_TEST_PREFIX in option:
+                        config.remove_option(section_name, option)
+            except configparser.NoSectionError:
+                pass
+
+            with open(config_file, 'w') as f:
+                config.write(f)
 
         raise e
 
@@ -1176,11 +1224,13 @@ def test_Knot(cleanup_repos):
         # Now remove the images and repo-uri from the docker-image
         # Forcing the next call to Knot to rebuild and re-push the image.
         config = configparser.ConfigParser()
-        config.read(config_file)
-        config.set('docker-image ' + knot.docker_image.name, 'images', '')
-        config.set('docker-image ' + knot.docker_image.name, 'repo-uri', '')
-        with open(config_file, 'w') as f:
-            config.write(f)
+        with ck.config.rlock:
+            config.read(config_file)
+            config.set('docker-image ' + knot.docker_image.name, 'images', '')
+            config.set('docker-image ' + knot.docker_image.name,
+                       'repo-uri', '')
+            with open(config_file, 'w') as f:
+                config.write(f)
 
         # Re-instantiate the knot so that it retrieves from config
         # with AWS resources that already exist
@@ -1199,10 +1249,11 @@ def test_Knot(cleanup_repos):
 
         # Now remove the knot section from config file
         config = configparser.ConfigParser()
-        config.read(config_file)
-        config.remove_section('knot ' + name)
-        with open(config_file, 'w') as f:
-            config.write(f)
+        with ck.config.rlock:
+            config.read(config_file)
+            config.remove_section('knot ' + name)
+            with open(config_file, 'w') as f:
+                config.write(f)
 
         # And re-instantiate by supplying resource names
         knot2 = ck.Knot(
@@ -1246,7 +1297,9 @@ def test_Knot(cleanup_repos):
     # config file, we shouldn't delete it when we're done.
     # Otherwise, clobber it
     config = configparser.ConfigParser()
-    config.read(config_file)
+    with ck.config.rlock:
+        config.read(config_file)
+
     clobber_pars = 'pars default' not in config.sections()
 
     try:

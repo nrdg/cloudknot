@@ -238,18 +238,9 @@ class Vpc(NamedObject):
             # Else check for the tag "Name: name"
             response = clients['ec2'].describe_tags(
                 Filters=[
-                    {
-                        'Name': 'resource-type',
-                        'Values': ['vpc']
-                    },
-                    {
-                        'Name': 'key',
-                        'Values': ['Name']
-                    },
-                    {
-                        'Name': 'value',
-                        'Values': [name]
-                    }
+                    {'Name': 'resource-type', 'Values': ['vpc']},
+                    {'Name': 'key', 'Values': ['Name']},
+                    {'Name': 'value', 'Values': [name]}
                 ]
             )
 
@@ -545,6 +536,31 @@ class Vpc(NamedObject):
             self._clobbered = True
 
             mod_logger.info('Deleted VPC {name:s}'.format(name=self.name))
+        except clients['ec2'].exceptions.ClientError as e:
+            # Check for dependency violation and pass exception to user
+            error_code = e.response['Error']['Code']
+            if error_code == 'DependencyViolation':
+                response = clients['ec2'].describe_security_groups(
+                    Filters=[{
+                        'Name': 'vpc-id',
+                        'Values': [self.vpc_id]
+                    }]
+                )
+
+                ids = [sg['GroupId']
+                       for sg in response.get('SecurityGroups')]
+
+                raise CannotDeleteResourceException(
+                    'Could not delete this VPC because it has '
+                    'dependencies. It may have security groups associated '
+                    'with it. If you still want to delete this VPC, you '
+                    'should first delete the security groups with the '
+                    'following IDs {sg_ids!s}'.format(sg_ids=ids),
+                    resource_id=ids
+                )
+            else:  # pragma: nocover
+                # I can't think of a test case to make this happen
+                raise e
         except tenacity.RetryError as error:
             try:
                 error.reraise()
