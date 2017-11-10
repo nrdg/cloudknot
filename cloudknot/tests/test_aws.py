@@ -860,8 +860,8 @@ def test_Vpc(bucket_cleanup):
 
         retry = tenacity.Retrying(
             wait=tenacity.wait_exponential(max=16),
-            stop=tenacity.stop_after_delay(120),
-            retry=tenacity.retry_unless_exception_type(
+            stop=tenacity.stop_after_delay(60),
+            retry=tenacity.retry_if_exception_type(
                 ec2.exceptions.ClientError
             )
         )
@@ -912,6 +912,14 @@ def test_Vpc(bucket_cleanup):
 
         # Clobber the VPC
         vpc.clobber()
+
+        retry = tenacity.Retrying(
+            wait=tenacity.wait_exponential(max=16),
+            stop=tenacity.stop_after_delay(120),
+            retry=tenacity.retry_unless_exception_type(
+                ec2.exceptions.ClientError
+            )
+        )
 
         # Assert that it was removed from AWS
         with pytest.raises(ec2.exceptions.ClientError) as e:
@@ -1167,8 +1175,8 @@ def test_SecurityGroup(bucket_cleanup):
 
         retry = tenacity.Retrying(
             wait=tenacity.wait_exponential(max=16),
-            stop=tenacity.stop_after_delay(120),
-            retry=tenacity.retry_unless_exception_type(
+            stop=tenacity.stop_after_delay(60),
+            retry=tenacity.retry_if_exception_type(
                 ec2.exceptions.ClientError
             )
         )
@@ -1234,6 +1242,14 @@ def test_SecurityGroup(bucket_cleanup):
             config.read(config_file)
 
         assert group_id not in config.options(sg_section_name)
+
+        retry = tenacity.Retrying(
+            wait=tenacity.wait_exponential(max=16),
+            stop=tenacity.stop_after_delay(120),
+            retry=tenacity.retry_unless_exception_type(
+                ec2.exceptions.ClientError
+            )
+        )
 
         # Assert that it was removed from AWS
         with pytest.raises(ec2.exceptions.ClientError) as e:
