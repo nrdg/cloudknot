@@ -708,11 +708,6 @@ class ComputeEnvironment(ObjectWithArn):
                     raise ValueError('if provided, image_id must be a string')
                 self._image_id = image_id
             else:
-                # response = clients['ec2'].describe_images(Filters=[{
-                #     'Name': 'name',
-                #     'Values': ['amzn-ami-2017.03.g-amazon-ecs-optimized']
-                # }])
-                # self._image_id = response.get('Images')[0]['ImageId']
                 self._image_id = None
 
             # Validate ec2_key_pair input
