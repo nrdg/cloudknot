@@ -243,6 +243,8 @@ class IamRole(ObjectWithArn):
                 exists=True, description=description,
                 role_policy_document=role_policy, policies=policies, arn=arn
             )
+        except clients['iam'].exceptions.NoSuchEntityException:
+            return RoleExists(exists=False)
         except tenacity.RetryError as e:
             try:
                 e.reraise()
