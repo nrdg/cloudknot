@@ -326,6 +326,8 @@
                 <span class="n">exists</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">,</span>
                 <span class="n">role_policy_document</span><span class="o">=</span><span class="n">role_policy</span><span class="p">,</span> <span class="n">policies</span><span class="o">=</span><span class="n">policies</span><span class="p">,</span> <span class="n">arn</span><span class="o">=</span><span class="n">arn</span>
             <span class="p">)</span>
+        <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">NoSuchEntityException</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">RoleExists</span><span class="p">(</span><span class="n">exists</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="k">except</span> <span class="n">tenacity</span><span class="o">.</span><span class="n">RetryError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">e</span><span class="o">.</span><span class="n">reraise</span><span class="p">()</span>

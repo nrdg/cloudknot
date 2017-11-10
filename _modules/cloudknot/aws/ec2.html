@@ -321,18 +321,9 @@
             <span class="c1"># Else check for the tag &quot;Name: name&quot;</span>
             <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ec2&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">describe_tags</span><span class="p">(</span>
                 <span class="n">Filters</span><span class="o">=</span><span class="p">[</span>
-                    <span class="p">{</span>
-                        <span class="s1">&#39;Name&#39;</span><span class="p">:</span> <span class="s1">&#39;resource-type&#39;</span><span class="p">,</span>
-                        <span class="s1">&#39;Values&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;vpc&#39;</span><span class="p">]</span>
-                    <span class="p">},</span>
-                    <span class="p">{</span>
-                        <span class="s1">&#39;Name&#39;</span><span class="p">:</span> <span class="s1">&#39;key&#39;</span><span class="p">,</span>
-                        <span class="s1">&#39;Values&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Name&#39;</span><span class="p">]</span>
-                    <span class="p">},</span>
-                    <span class="p">{</span>
-                        <span class="s1">&#39;Name&#39;</span><span class="p">:</span> <span class="s1">&#39;value&#39;</span><span class="p">,</span>
-                        <span class="s1">&#39;Values&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">name</span><span class="p">]</span>
-                    <span class="p">}</span>
+                    <span class="p">{</span><span class="s1">&#39;Name&#39;</span><span class="p">:</span> <span class="s1">&#39;resource-type&#39;</span><span class="p">,</span> <span class="s1">&#39;Values&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;vpc&#39;</span><span class="p">]},</span>
+                    <span class="p">{</span><span class="s1">&#39;Name&#39;</span><span class="p">:</span> <span class="s1">&#39;key&#39;</span><span class="p">,</span> <span class="s1">&#39;Values&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Name&#39;</span><span class="p">]},</span>
+                    <span class="p">{</span><span class="s1">&#39;Name&#39;</span><span class="p">:</span> <span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="s1">&#39;Values&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">name</span><span class="p">]}</span>
                 <span class="p">]</span>
             <span class="p">)</span>
 
@@ -628,6 +619,31 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_clobbered</span> <span class="o">=</span> <span class="kc">True</span>
 
             <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Deleted VPC </span><span class="si">{name:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+        <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ec2&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">ClientError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="c1"># Check for dependency violation and pass exception to user</span>
+            <span class="n">error_code</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">response</span><span class="p">[</span><span class="s1">&#39;Error&#39;</span><span class="p">][</span><span class="s1">&#39;Code&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">error_code</span> <span class="o">==</span> <span class="s1">&#39;DependencyViolation&#39;</span><span class="p">:</span>
+                <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ec2&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">describe_security_groups</span><span class="p">(</span>
+                    <span class="n">Filters</span><span class="o">=</span><span class="p">[{</span>
+                        <span class="s1">&#39;Name&#39;</span><span class="p">:</span> <span class="s1">&#39;vpc-id&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;Values&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">vpc_id</span><span class="p">]</span>
+                    <span class="p">}]</span>
+                <span class="p">)</span>
+
+                <span class="n">ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">sg</span><span class="p">[</span><span class="s1">&#39;GroupId&#39;</span><span class="p">]</span>
+                       <span class="k">for</span> <span class="n">sg</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;SecurityGroups&#39;</span><span class="p">)]</span>
+
+                <span class="k">raise</span> <span class="n">CannotDeleteResourceException</span><span class="p">(</span>
+                    <span class="s1">&#39;Could not delete this VPC because it has &#39;</span>
+                    <span class="s1">&#39;dependencies. It may have security groups associated &#39;</span>
+                    <span class="s1">&#39;with it. If you still want to delete this VPC, you &#39;</span>
+                    <span class="s1">&#39;should first delete the security groups with the &#39;</span>
+                    <span class="s1">&#39;following IDs </span><span class="si">{sg_ids!s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sg_ids</span><span class="o">=</span><span class="n">ids</span><span class="p">),</span>
+                    <span class="n">resource_id</span><span class="o">=</span><span class="n">ids</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># pragma: nocover</span>
+                <span class="c1"># I can&#39;t think of a test case to make this happen</span>
+                <span class="k">raise</span> <span class="n">e</span>
         <span class="k">except</span> <span class="n">tenacity</span><span class="o">.</span><span class="n">RetryError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">error</span><span class="o">.</span><span class="n">reraise</span><span class="p">()</span>

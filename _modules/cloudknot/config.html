@@ -200,22 +200,27 @@
     <span class="sd">&quot;&quot;&quot;Verify config sections, remove ones that don&#39;t belong&quot;&quot;&quot;</span>
     <span class="n">config_file</span> <span class="o">=</span> <span class="n">get_config_file</span><span class="p">()</span>
     <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
-    <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
-    <span class="n">approved_sections</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="s1">&#39;roles&#39;</span><span class="p">,</span> <span class="s1">&#39;vpc&#39;</span><span class="p">,</span> <span class="s1">&#39;security-groups&#39;</span><span class="p">,</span> <span class="s1">&#39;docker-repos&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;job-definitions&#39;</span><span class="p">,</span> <span class="s1">&#39;compute-environments&#39;</span><span class="p">,</span> <span class="s1">&#39;job-queues&#39;</span><span class="p">,</span> <span class="s1">&#39;batch-jobs&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;pars&#39;</span><span class="p">,</span> <span class="s1">&#39;knot&#39;</span><span class="p">,</span> <span class="s1">&#39;docker-image&#39;</span>
-    <span class="p">]</span>
+    <span class="k">with</span> <span class="n">rlock</span><span class="p">:</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">section_approved</span><span class="p">(</span><span class="n">sec</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">any</span><span class="p">([</span>
-            <span class="n">sec</span> <span class="ow">in</span> <span class="n">approved_sections</span><span class="p">,</span>
-            <span class="n">sec</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">approved_sections</span>
-        <span class="p">])</span>
+        <span class="n">approved_sections</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="s1">&#39;roles&#39;</span><span class="p">,</span> <span class="s1">&#39;vpc&#39;</span><span class="p">,</span> <span class="s1">&#39;security-groups&#39;</span><span class="p">,</span> <span class="s1">&#39;docker-repos&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;job-definitions&#39;</span><span class="p">,</span> <span class="s1">&#39;compute-environments&#39;</span><span class="p">,</span> <span class="s1">&#39;job-queues&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;batch-jobs&#39;</span><span class="p">,</span> <span class="s1">&#39;pars&#39;</span><span class="p">,</span> <span class="s1">&#39;knot&#39;</span><span class="p">,</span> <span class="s1">&#39;docker-image&#39;</span>
+        <span class="p">]</span>
 
-    <span class="k">for</span> <span class="n">section</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">sections</span><span class="p">():</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">section_approved</span><span class="p">(</span><span class="n">section</span><span class="p">):</span>
-            <span class="n">config</span><span class="o">.</span><span class="n">remove_section</span><span class="p">(</span><span class="n">section</span><span class="p">)</span></div>
+        <span class="k">def</span> <span class="nf">section_approved</span><span class="p">(</span><span class="n">sec</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">any</span><span class="p">([</span>
+                <span class="n">sec</span> <span class="ow">in</span> <span class="n">approved_sections</span><span class="p">,</span>
+                <span class="n">sec</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">approved_sections</span>
+            <span class="p">])</span>
+
+        <span class="k">for</span> <span class="n">section</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">sections</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">section_approved</span><span class="p">(</span><span class="n">section</span><span class="p">):</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">remove_section</span><span class="p">(</span><span class="n">section</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="prune"><a class="viewcode-back" href="../../api/config.html#cloudknot.config.prune">[docs]</a><span class="k">def</span> <span class="nf">prune</span><span class="p">():</span>
@@ -227,63 +232,67 @@
 
     <span class="n">config_file</span> <span class="o">=</span> <span class="n">get_config_file</span><span class="p">()</span>
     <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
-    <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
 
-    <span class="c1"># Prune roles</span>
-    <span class="k">for</span> <span class="n">role_name</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="s1">&#39;roles&#39;</span><span class="p">):</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">cloudknot</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">iam</span><span class="o">.</span><span class="n">IamRole</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">role_name</span><span class="p">)</span>
-        <span class="k">except</span> <span class="n">cloudknot</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">ResourceDoesNotExistException</span><span class="p">:</span>
-            <span class="n">config</span><span class="o">.</span><span class="n">remove_option</span><span class="p">(</span><span class="s1">&#39;roles&#39;</span><span class="p">,</span> <span class="n">role_name</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">rlock</span><span class="p">:</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
 
-    <span class="c1"># Prune VPCs</span>
-    <span class="k">for</span> <span class="n">vpc_id</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="s1">&#39;vpc&#39;</span><span class="p">):</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">cloudknot</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">ec2</span><span class="o">.</span><span class="n">Vpc</span><span class="p">(</span><span class="n">vpc_id</span><span class="o">=</span><span class="n">vpc_id</span><span class="p">)</span>
-        <span class="k">except</span> <span class="n">cloudknot</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">ResourceDoesNotExistException</span><span class="p">:</span>
-            <span class="n">config</span><span class="o">.</span><span class="n">remove_option</span><span class="p">(</span><span class="s1">&#39;vpc&#39;</span><span class="p">,</span> <span class="n">vpc_id</span><span class="p">)</span>
+        <span class="c1"># Prune roles</span>
+        <span class="k">for</span> <span class="n">role_name</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="s1">&#39;roles&#39;</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">cloudknot</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">iam</span><span class="o">.</span><span class="n">IamRole</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">role_name</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">cloudknot</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">ResourceDoesNotExistException</span><span class="p">:</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">remove_option</span><span class="p">(</span><span class="s1">&#39;roles&#39;</span><span class="p">,</span> <span class="n">role_name</span><span class="p">)</span>
 
-    <span class="c1"># Prune security groups</span>
-    <span class="k">for</span> <span class="n">sg_id</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="s1">&#39;security-groups&#39;</span><span class="p">):</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">cloudknot</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">ec2</span><span class="o">.</span><span class="n">SecurityGroup</span><span class="p">(</span><span class="n">security_group_id</span><span class="o">=</span><span class="n">sg_id</span><span class="p">)</span>
-        <span class="k">except</span> <span class="n">cloudknot</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">ResourceDoesNotExistException</span><span class="p">:</span>
-            <span class="n">config</span><span class="o">.</span><span class="n">remove_option</span><span class="p">(</span><span class="s1">&#39;security-groups&#39;</span><span class="p">,</span> <span class="n">sg_id</span><span class="p">)</span>
+        <span class="c1"># Prune VPCs</span>
+        <span class="k">for</span> <span class="n">vpc_id</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="s1">&#39;vpc&#39;</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">cloudknot</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">ec2</span><span class="o">.</span><span class="n">Vpc</span><span class="p">(</span><span class="n">vpc_id</span><span class="o">=</span><span class="n">vpc_id</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">cloudknot</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">ResourceDoesNotExistException</span><span class="p">:</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">remove_option</span><span class="p">(</span><span class="s1">&#39;vpc&#39;</span><span class="p">,</span> <span class="n">vpc_id</span><span class="p">)</span>
 
-    <span class="c1"># Prune docker containers</span>
-    <span class="k">for</span> <span class="n">repo</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="s1">&#39;docker-repos&#39;</span><span class="p">):</span>
-        <span class="k">pass</span>
+        <span class="c1"># Prune security groups</span>
+        <span class="k">for</span> <span class="n">sg_id</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="s1">&#39;security-groups&#39;</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">cloudknot</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">ec2</span><span class="o">.</span><span class="n">SecurityGroup</span><span class="p">(</span><span class="n">security_group_id</span><span class="o">=</span><span class="n">sg_id</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">cloudknot</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">ResourceDoesNotExistException</span><span class="p">:</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">remove_option</span><span class="p">(</span><span class="s1">&#39;security-groups&#39;</span><span class="p">,</span> <span class="n">sg_id</span><span class="p">)</span>
 
-    <span class="c1"># Prune job definitions</span>
-    <span class="k">for</span> <span class="n">job_def_name</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="s1">&#39;job-definitions&#39;</span><span class="p">):</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">cloudknot</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">iam</span><span class="o">.</span><span class="n">IamRole</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">job_def_name</span><span class="p">)</span>
-        <span class="k">except</span> <span class="n">cloudknot</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">ResourceDoesNotExistException</span><span class="p">:</span>
-            <span class="n">config</span><span class="o">.</span><span class="n">remove_option</span><span class="p">(</span><span class="s1">&#39;job-definitions&#39;</span><span class="p">,</span> <span class="n">job_def_name</span><span class="p">)</span>
+        <span class="c1"># Prune docker containers</span>
+        <span class="k">for</span> <span class="n">repo</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="s1">&#39;docker-repos&#39;</span><span class="p">):</span>
+            <span class="k">pass</span>
 
-    <span class="c1"># Prune compute environments</span>
-    <span class="k">for</span> <span class="n">ce_name</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="s1">&#39;compute-environments&#39;</span><span class="p">):</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">cloudknot</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">iam</span><span class="o">.</span><span class="n">IamRole</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">ce_name</span><span class="p">)</span>
-        <span class="k">except</span> <span class="n">cloudknot</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">ResourceDoesNotExistException</span><span class="p">:</span>
-            <span class="n">config</span><span class="o">.</span><span class="n">remove_option</span><span class="p">(</span><span class="s1">&#39;compute-environments&#39;</span><span class="p">,</span> <span class="n">ce_name</span><span class="p">)</span>
+        <span class="c1"># Prune job definitions</span>
+        <span class="k">for</span> <span class="n">job_def_name</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="s1">&#39;job-definitions&#39;</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">cloudknot</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">iam</span><span class="o">.</span><span class="n">IamRole</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">job_def_name</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">cloudknot</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">ResourceDoesNotExistException</span><span class="p">:</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">remove_option</span><span class="p">(</span><span class="s1">&#39;job-definitions&#39;</span><span class="p">,</span> <span class="n">job_def_name</span><span class="p">)</span>
 
-    <span class="c1"># Prune job queues</span>
-    <span class="k">for</span> <span class="n">queue_name</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="s1">&#39;job-queues&#39;</span><span class="p">):</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">cloudknot</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">iam</span><span class="o">.</span><span class="n">IamRole</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">queue_name</span><span class="p">)</span>
-        <span class="k">except</span> <span class="n">cloudknot</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">ResourceDoesNotExistException</span><span class="p">:</span>
-            <span class="n">config</span><span class="o">.</span><span class="n">remove_option</span><span class="p">(</span><span class="s1">&#39;job-queues&#39;</span><span class="p">,</span> <span class="n">queue_name</span><span class="p">)</span>
+        <span class="c1"># Prune compute environments</span>
+        <span class="k">for</span> <span class="n">ce_name</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="s1">&#39;compute-environments&#39;</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">cloudknot</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">iam</span><span class="o">.</span><span class="n">IamRole</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">ce_name</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">cloudknot</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">ResourceDoesNotExistException</span><span class="p">:</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">remove_option</span><span class="p">(</span><span class="s1">&#39;compute-environments&#39;</span><span class="p">,</span> <span class="n">ce_name</span><span class="p">)</span>
 
-    <span class="c1"># Prune batch jobs</span>
-    <span class="k">for</span> <span class="n">job_id</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="s1">&#39;jobs&#39;</span><span class="p">):</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">cloudknot</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">iam</span><span class="o">.</span><span class="n">IamRole</span><span class="p">(</span><span class="n">job_id</span><span class="o">=</span><span class="n">job_id</span><span class="p">)</span>
-        <span class="k">except</span> <span class="n">cloudknot</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">ResourceDoesNotExistException</span><span class="p">:</span>
-            <span class="n">config</span><span class="o">.</span><span class="n">remove_option</span><span class="p">(</span><span class="s1">&#39;jobs&#39;</span><span class="p">,</span> <span class="n">job_id</span><span class="p">)</span></div>
+        <span class="c1"># Prune job queues</span>
+        <span class="k">for</span> <span class="n">queue_name</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="s1">&#39;job-queues&#39;</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">cloudknot</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">iam</span><span class="o">.</span><span class="n">IamRole</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">queue_name</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">cloudknot</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">ResourceDoesNotExistException</span><span class="p">:</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">remove_option</span><span class="p">(</span><span class="s1">&#39;job-queues&#39;</span><span class="p">,</span> <span class="n">queue_name</span><span class="p">)</span>
 
-    <span class="c1"># Prune pars</span>
-    <span class="c1"># Prune knots</span>
+        <span class="c1"># Prune batch jobs</span>
+        <span class="k">for</span> <span class="n">job_id</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="s1">&#39;jobs&#39;</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">cloudknot</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">iam</span><span class="o">.</span><span class="n">IamRole</span><span class="p">(</span><span class="n">job_id</span><span class="o">=</span><span class="n">job_id</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">cloudknot</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">ResourceDoesNotExistException</span><span class="p">:</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">remove_option</span><span class="p">(</span><span class="s1">&#39;jobs&#39;</span><span class="p">,</span> <span class="n">job_id</span><span class="p">)</span>
+
+        <span class="c1"># Prune pars</span>
+        <span class="c1"># Prune knots</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span></div>
 </pre></div>
 
           </div>

@@ -188,7 +188,9 @@
 
             <span class="n">config_file</span> <span class="o">=</span> <span class="n">get_config_file</span><span class="p">()</span>
             <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
-            <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+
+            <span class="k">with</span> <span class="n">rlock</span><span class="p">:</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="n">section_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">sections</span><span class="p">():</span>
                 <span class="k">raise</span> <span class="n">ResourceDoesNotExistException</span><span class="p">(</span>
@@ -425,6 +427,7 @@
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">script_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">template_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
                 <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span>
+                <span class="s1">&#39;templates&#39;</span><span class="p">,</span>
                 <span class="s1">&#39;script.template&#39;</span>
             <span class="p">))</span>
 
@@ -447,12 +450,13 @@
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">docker_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">template_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
                 <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span>
+                <span class="s1">&#39;templates&#39;</span><span class="p">,</span>
                 <span class="s1">&#39;Dockerfile.template&#39;</span>
             <span class="p">))</span>
 
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">github_installs</span><span class="p">:</span>
                 <span class="n">github_installs_string</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
-                    <span class="s1">&#39; </span><span class="se">\\\n</span><span class="s1">    &amp;&amp; pip install git+&#39;</span> <span class="o">+</span> <span class="n">install</span>
+                    <span class="s1">&#39; </span><span class="se">\\\n</span><span class="s1">    &amp;&amp; pip install --no-cache-dir git+&#39;</span> <span class="o">+</span> <span class="n">install</span>
                     <span class="k">for</span> <span class="n">install</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">github_installs</span>
                 <span class="p">])</span>
             <span class="k">else</span><span class="p">:</span>
@@ -548,7 +552,8 @@
         <span class="c1"># Update the config file images list</span>
         <span class="n">config_file</span> <span class="o">=</span> <span class="n">get_config_file</span><span class="p">()</span>
         <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
-        <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">rlock</span><span class="p">:</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
 
         <span class="c1"># Get list of images in config file</span>
         <span class="n">section_name</span> <span class="o">=</span> <span class="s1">&#39;docker-image &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>

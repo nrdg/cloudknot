@@ -192,7 +192,9 @@
 
         <span class="c1"># Check for existence of this pars in the config file</span>
         <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
-        <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">get_config_file</span><span class="p">())</span>
+        <span class="k">with</span> <span class="n">rlock</span><span class="p">:</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">get_config_file</span><span class="p">())</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_pars_name</span> <span class="o">=</span> <span class="s1">&#39;pars &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pars_name</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">sections</span><span class="p">():</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_region</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pars_name</span><span class="p">,</span> <span class="s1">&#39;region&#39;</span><span class="p">)</span>
@@ -266,7 +268,9 @@
                 <span class="k">try</span><span class="p">:</span>
                     <span class="c1"># Use config values to adopt VPC if it exists already</span>
                     <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
-                    <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">get_config_file</span><span class="p">())</span>
+                    <span class="k">with</span> <span class="n">rlock</span><span class="p">:</span>
+                        <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">get_config_file</span><span class="p">())</span>
+
                     <span class="n">vpcid</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pars_name</span><span class="p">,</span> <span class="s1">&#39;vpc&#39;</span><span class="p">)</span>
                     <span class="n">vpc</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">Vpc</span><span class="p">(</span><span class="n">vpc_id</span><span class="o">=</span><span class="n">vpcid</span><span class="p">)</span>
                     <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;PARS </span><span class="si">{name:s}</span><span class="s1"> adopted VPC </span><span class="si">{vpcid:s}</span><span class="s1">&#39;</span>
@@ -407,7 +411,6 @@
                 <span class="k">return</span> <span class="n">role</span>
 
             <span class="n">executor</span> <span class="o">=</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
-
             <span class="n">futures</span> <span class="o">=</span> <span class="p">{}</span>
 
             <span class="n">futures</span><span class="p">[</span><span class="s1">&#39;batch_service_role&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
@@ -959,7 +962,10 @@
 
         <span class="c1"># Check for existence of this knot in the config file</span>
         <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
-        <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">get_config_file</span><span class="p">())</span>
+
+        <span class="k">with</span> <span class="n">rlock</span><span class="p">:</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">get_config_file</span><span class="p">())</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">sections</span><span class="p">():</span>
             <span class="k">if</span> <span class="nb">any</span><span class="p">([</span>
                 <span class="n">pars</span><span class="p">,</span> <span class="n">pars_policies</span><span class="p">,</span> <span class="n">docker_image</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">image_script_path</span><span class="p">,</span>
@@ -1038,320 +1044,421 @@
             <span class="n">job_queue_name</span> <span class="o">=</span> <span class="n">job_queue_name</span> <span class="k">if</span> <span class="n">job_queue_name</span> \
                 <span class="k">else</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;-cloudknot-job-queue&#39;</span>
 
-            <span class="c1"># Validate and set the PARS</span>
-            <span class="k">if</span> <span class="n">pars</span><span class="p">:</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pars</span><span class="p">,</span> <span class="n">Pars</span><span class="p">):</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;pars must be a Pars instance.&#39;</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_pars</span> <span class="o">=</span> <span class="n">pars</span>
-                <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;knot </span><span class="si">{name:s}</span><span class="s1"> adopted PARS </span><span class="si">{p:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                    <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">name</span>
-                <span class="p">))</span>
-                <span class="n">pars_cleanup</span> <span class="o">=</span> <span class="kc">False</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_pars</span> <span class="o">=</span> <span class="n">Pars</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">policies</span><span class="o">=</span><span class="n">pars_policies</span><span class="p">)</span>
-                <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;knot </span><span class="si">{name:s}</span><span class="s1"> created PARS </span><span class="si">{p:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                    <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">name</span>
-                <span class="p">))</span>
-                <span class="n">pars_cleanup</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">if</span> <span class="n">pars</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pars</span><span class="p">,</span> <span class="n">Pars</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;if provided, pars must be a Pars instance.&#39;</span><span class="p">)</span>
 
-            <span class="k">if</span> <span class="n">docker_image</span><span class="p">:</span>
-                <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">func</span><span class="p">,</span> <span class="n">image_script_path</span><span class="p">,</span> <span class="n">image_work_dir</span><span class="p">]):</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                        <span class="s1">&#39;you gave redundant, possibly conflicting input: &#39;</span>
-                        <span class="s1">&#39;`docker_image` and one of [`func`, &#39;</span>
-                        <span class="s1">&#39;`image_script_path`, `image_work_dir`]&#39;</span>
+            <span class="k">if</span> <span class="n">docker_image</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">([</span><span class="n">func</span><span class="p">,</span> <span class="n">image_script_path</span><span class="p">,</span> <span class="n">image_work_dir</span><span class="p">,</span>
+                                     <span class="n">image_github_installs</span><span class="p">]):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s1">&#39;you gave redundant, possibly conflicting input: &#39;</span>
+                    <span class="s1">&#39;`docker_image` and one of [`func`, &#39;</span>
+                    <span class="s1">&#39;`image_script_path`, `image_work_dir`]&#39;</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">docker_image</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">docker_image</span><span class="p">,</span>
+                                               <span class="n">dockerimage</span><span class="o">.</span><span class="n">DockerImage</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;docker_image must be a cloudknot &#39;</span>
+                                 <span class="s1">&#39;DockerImage instance.&#39;</span><span class="p">)</span>
+
+            <span class="k">def</span> <span class="nf">set_pars</span><span class="p">(</span><span class="n">knot_name</span><span class="p">,</span> <span class="n">input_pars</span><span class="p">,</span> <span class="n">pars_policies</span><span class="p">):</span>
+                <span class="c1"># Validate and set the PARS</span>
+                <span class="k">if</span> <span class="n">input_pars</span><span class="p">:</span>
+                    <span class="n">pars</span> <span class="o">=</span> <span class="n">input_pars</span>
+
+                    <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;knot </span><span class="si">{name:s}</span><span class="s1"> adopted PARS </span><span class="si">{p:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">name</span><span class="o">=</span><span class="n">knot_name</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">pars</span><span class="o">.</span><span class="n">name</span>
+                    <span class="p">))</span>
+                    <span class="n">pars_cleanup</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">pars</span> <span class="o">=</span> <span class="n">Pars</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">knot_name</span><span class="p">,</span> <span class="n">policies</span><span class="o">=</span><span class="n">pars_policies</span><span class="p">)</span>
+
+                    <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;knot </span><span class="si">{name:s}</span><span class="s1"> created PARS </span><span class="si">{p:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">name</span><span class="o">=</span><span class="n">knot_name</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">pars</span><span class="o">.</span><span class="n">name</span>
+                    <span class="p">))</span>
+                    <span class="n">pars_cleanup</span> <span class="o">=</span> <span class="kc">True</span>
+
+                <span class="k">return</span> <span class="n">pars</span><span class="p">,</span> <span class="n">pars_cleanup</span>
+
+            <span class="k">def</span> <span class="nf">set_dockerimage</span><span class="p">(</span><span class="n">knot_name</span><span class="p">,</span> <span class="n">input_docker_image</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span>
+                                <span class="n">script_path</span><span class="p">,</span> <span class="n">work_dir</span><span class="p">,</span> <span class="n">github_installs</span><span class="p">,</span>
+                                <span class="n">username</span><span class="p">,</span> <span class="n">tags</span><span class="p">,</span> <span class="n">repo_name</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">input_docker_image</span><span class="p">:</span>
+                    <span class="n">di</span> <span class="o">=</span> <span class="n">input_docker_image</span>
+
+                    <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="s1">&#39;Knot </span><span class="si">{name:s}</span><span class="s1"> adopted docker image </span><span class="si">{i:s}</span><span class="s1">&#39;</span>
+                        <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">knot_name</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="n">docker_image</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Create and build the docker image</span>
+                    <span class="n">di</span> <span class="o">=</span> <span class="n">dockerimage</span><span class="o">.</span><span class="n">DockerImage</span><span class="p">(</span>
+                        <span class="n">func</span><span class="o">=</span><span class="n">func</span><span class="p">,</span>
+                        <span class="n">script_path</span><span class="o">=</span><span class="n">script_path</span><span class="p">,</span>
+                        <span class="n">dir_name</span><span class="o">=</span><span class="n">work_dir</span><span class="p">,</span>
+                        <span class="n">github_installs</span><span class="o">=</span><span class="n">github_installs</span><span class="p">,</span>
+                        <span class="n">username</span><span class="o">=</span><span class="n">username</span>
                     <span class="p">)</span>
 
-                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">docker_image</span><span class="p">,</span> <span class="n">dockerimage</span><span class="o">.</span><span class="n">DockerImage</span><span class="p">):</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;docker_image must be a cloudknot &#39;</span>
-                                     <span class="s1">&#39;DockerImage instance.&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">di</span><span class="o">.</span><span class="n">images</span><span class="p">:</span>
+                    <span class="n">di</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">tags</span><span class="o">=</span><span class="n">tags</span><span class="p">)</span>
+                    <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="s1">&#39;knot </span><span class="si">{name:s}</span><span class="s1"> built docker image </span><span class="si">{i!s}</span><span class="s1">&#39;</span>
+                        <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">knot_name</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="n">di</span><span class="o">.</span><span class="n">images</span><span class="p">)</span>
+                    <span class="p">)</span>
 
-                <span class="bp">self</span><span class="o">.</span><span class="n">_docker_image</span> <span class="o">=</span> <span class="n">docker_image</span>
-                <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Knot </span><span class="si">{name:s}</span><span class="s1"> adopted docker image </span><span class="si">{i:s}</span><span class="s1">&#39;</span>
-                                <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="n">docker_image</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">di</span><span class="o">.</span><span class="n">repo_uri</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="c1"># Create the remote repo</span>
+                    <span class="n">repo_name</span> <span class="o">=</span> <span class="p">(</span><span class="n">repo_name</span> <span class="k">if</span> <span class="n">repo_name</span>
+                                 <span class="k">else</span> <span class="n">di</span><span class="o">.</span><span class="n">images</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">])</span>
 
-            <span class="k">else</span><span class="p">:</span>
-                <span class="c1"># Create and build the docker image</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_docker_image</span> <span class="o">=</span> <span class="n">dockerimage</span><span class="o">.</span><span class="n">DockerImage</span><span class="p">(</span>
-                    <span class="n">func</span><span class="o">=</span><span class="n">func</span><span class="p">,</span>
-                    <span class="n">script_path</span><span class="o">=</span><span class="n">image_script_path</span><span class="p">,</span>
-                    <span class="n">dir_name</span><span class="o">=</span><span class="n">image_work_dir</span><span class="p">,</span>
-                    <span class="n">github_installs</span><span class="o">=</span><span class="n">image_github_installs</span><span class="p">,</span>
-                    <span class="n">username</span><span class="o">=</span><span class="n">username</span>
-                <span class="p">)</span>
+                    <span class="c1"># Later in __init__, we may abort this init because of</span>
+                    <span class="c1"># inconsistent job def, compute env, or job queue</span>
+                    <span class="c1"># parameters. If we do that, we don&#39;t want to leave a</span>
+                    <span class="c1"># bunch of newly created resources around so keep track of</span>
+                    <span class="c1"># whether this repo was created or adopted.</span>
+                    <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">has_option</span><span class="p">(</span><span class="s1">&#39;docker-repos&#39;</span><span class="p">,</span> <span class="n">repo_name</span><span class="p">):</span>
+                        <span class="c1"># Pre-existing repo, no cleanup necessary</span>
+                        <span class="n">repo_cleanup</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># Freshly created repo, cleanup necessary</span>
+                        <span class="n">repo_cleanup</span> <span class="o">=</span> <span class="kc">True</span>
 
-            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">images</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">tags</span><span class="o">=</span><span class="n">image_tags</span><span class="p">)</span>
-                <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                    <span class="s1">&#39;knot </span><span class="si">{name:s}</span><span class="s1"> built docker image </span><span class="si">{i!s}</span><span class="s1">&#39;</span>
-                    <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">images</span><span class="p">)</span>
-                <span class="p">)</span>
+                    <span class="n">dr</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">DockerRepo</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">repo_name</span><span class="p">)</span>
 
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">repo_uri</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="c1"># Create the remote repo</span>
-                <span class="n">repo_name</span> <span class="o">=</span> <span class="p">(</span><span class="n">repo_name</span> <span class="k">if</span> <span class="n">repo_name</span>
-                             <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">images</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">])</span>
+                    <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="s1">&#39;knot </span><span class="si">{name:s}</span><span class="s1"> created/adopted docker repo &#39;</span>
+                        <span class="s1">&#39;</span><span class="si">{r:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">knot_name</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="n">dr</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                    <span class="p">)</span>
 
-                <span class="c1"># Later in __init__, we may abort this init because of</span>
-                <span class="c1"># inconsistent job def, compute env, or job queue parameters</span>
-                <span class="c1"># If we do that, we don&#39;t want to leave a bunch of newly</span>
-                <span class="c1"># created resources around so keep track of whether this repo</span>
-                <span class="c1"># was created or adopted.</span>
-                <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">has_option</span><span class="p">(</span><span class="s1">&#39;docker-repos&#39;</span><span class="p">,</span> <span class="n">repo_name</span><span class="p">):</span>
-                    <span class="c1"># Pre-existing repo, no cleanup necessary</span>
-                    <span class="n">repo_cleanup</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="c1"># Push to remote repo</span>
+                    <span class="n">di</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">repo</span><span class="o">=</span><span class="n">dr</span><span class="p">)</span>
+
+                    <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="s2">&quot;knot </span><span class="si">{name:s}</span><span class="s2"> pushed it&#39;s docker image to the repo &quot;</span>
+                        <span class="s2">&quot;</span><span class="si">{r:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">knot_name</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="n">dr</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                    <span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="c1"># Freshly created repo, cleanup necessary</span>
-                    <span class="n">repo_cleanup</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="n">repo_cleanup</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="n">dr</span> <span class="o">=</span> <span class="kc">None</span>
 
-                <span class="bp">self</span><span class="o">.</span><span class="n">_docker_repo</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">DockerRepo</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">repo_name</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">di</span><span class="p">,</span> <span class="n">dr</span><span class="p">,</span> <span class="n">repo_cleanup</span>
 
-                <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                    <span class="s1">&#39;knot </span><span class="si">{name:s}</span><span class="s1"> created/adopted docker repo &#39;</span>
-                    <span class="s1">&#39;</span><span class="si">{r:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">docker_repo</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-                <span class="p">)</span>
+            <span class="k">def</span> <span class="nf">set_job_def</span><span class="p">(</span><span class="n">knot_name</span><span class="p">,</span> <span class="n">job_definition_name</span><span class="p">,</span> <span class="n">pars</span><span class="p">,</span> <span class="n">docker_image</span><span class="p">,</span>
+                            <span class="n">job_def_vcpus</span><span class="p">,</span> <span class="n">memory</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">retries</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="c1"># Create job definition</span>
+                    <span class="n">jd</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">JobDefinition</span><span class="p">(</span>
+                        <span class="n">name</span><span class="o">=</span><span class="n">job_definition_name</span><span class="p">,</span>
+                        <span class="n">job_role</span><span class="o">=</span><span class="n">pars</span><span class="o">.</span><span class="n">ecs_task_role</span><span class="p">,</span>
+                        <span class="n">docker_image</span><span class="o">=</span><span class="n">docker_image</span><span class="o">.</span><span class="n">repo_uri</span><span class="p">,</span>
+                        <span class="n">vcpus</span><span class="o">=</span><span class="n">job_def_vcpus</span><span class="p">,</span>
+                        <span class="n">memory</span><span class="o">=</span><span class="n">memory</span><span class="p">,</span>
+                        <span class="n">username</span><span class="o">=</span><span class="n">username</span><span class="p">,</span>
+                        <span class="n">retries</span><span class="o">=</span><span class="n">retries</span>
+                    <span class="p">)</span>
 
-                <span class="c1"># Push to remote repo</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">repo</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">docker_repo</span><span class="p">)</span>
+                    <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="s1">&#39;knot </span><span class="si">{name:s}</span><span class="s1"> created job definition </span><span class="si">{jd:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">name</span><span class="o">=</span><span class="n">knot_name</span><span class="p">,</span> <span class="n">jd</span><span class="o">=</span><span class="n">jd</span><span class="o">.</span><span class="n">name</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="c1"># Later in __init__, we may abort this init because of</span>
+                    <span class="c1"># inconsistent compute env, or job queue parameters</span>
+                    <span class="c1"># If we do that, we don&#39;t want to leave a bunch of newly</span>
+                    <span class="c1"># created resources around so keep track of whether this</span>
+                    <span class="c1"># job def was created or adopted. Here, we created it, so</span>
+                    <span class="c1"># cleanup is needed</span>
+                    <span class="n">jd_cleanup</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">except</span> <span class="n">aws</span><span class="o">.</span><span class="n">ResourceExistsException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="c1"># Job def already exists, retrieve it</span>
+                    <span class="n">jd</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">JobDefinition</span><span class="p">(</span><span class="n">arn</span><span class="o">=</span><span class="n">e</span><span class="o">.</span><span class="n">resource_id</span><span class="p">)</span>
 
-                <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                    <span class="s2">&quot;knot </span><span class="si">{name:s}</span><span class="s2"> pushed it&#39;s docker image to the repo &quot;</span>
-                    <span class="s2">&quot;</span><span class="si">{r:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">docker_repo</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-                <span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">repo_cleanup</span> <span class="o">=</span> <span class="kc">False</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_docker_repo</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="c1"># But confirm that all of the properties match the input</span>
+                    <span class="c1"># or that the input was unspecified (i.e. is None)</span>
+                    <span class="n">eq_role</span> <span class="o">=</span> <span class="n">jd</span><span class="o">.</span><span class="n">job_role_arn</span> <span class="o">==</span> <span class="n">pars</span><span class="o">.</span><span class="n">ecs_task_role</span><span class="o">.</span><span class="n">arn</span>
+                    <span class="n">eq_image</span> <span class="o">=</span> <span class="n">jd</span><span class="o">.</span><span class="n">docker_image</span> <span class="o">==</span> <span class="n">docker_image</span><span class="o">.</span><span class="n">repo_uri</span>
+                    <span class="n">eq_vcpus</span> <span class="o">=</span> <span class="p">(</span><span class="n">job_def_vcpus</span> <span class="ow">is</span> <span class="kc">None</span>
+                                <span class="ow">or</span> <span class="n">jd</span><span class="o">.</span><span class="n">vcpus</span> <span class="o">==</span> <span class="n">job_def_vcpus</span><span class="p">)</span>
+                    <span class="n">eq_retries</span> <span class="o">=</span> <span class="n">retries</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">jd</span><span class="o">.</span><span class="n">retries</span> <span class="o">==</span> <span class="n">retries</span>
+                    <span class="n">eq_mem</span> <span class="o">=</span> <span class="n">memory</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">jd</span><span class="o">.</span><span class="n">memory</span> <span class="o">==</span> <span class="n">memory</span>
+                    <span class="n">eq_user</span> <span class="o">=</span> <span class="n">username</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">jd</span><span class="o">.</span><span class="n">username</span> <span class="o">==</span> <span class="n">username</span>
+
+                    <span class="n">matches</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="s1">&#39;job role matches&#39;</span><span class="p">:</span> <span class="n">eq_role</span><span class="p">,</span>
+                        <span class="s1">&#39;docker image matches&#39;</span><span class="p">:</span> <span class="n">eq_image</span><span class="p">,</span>
+                        <span class="s1">&#39;VCPUs match&#39;</span><span class="p">:</span> <span class="n">eq_vcpus</span><span class="p">,</span>
+                        <span class="s1">&#39;retries match&#39;</span><span class="p">:</span> <span class="n">eq_retries</span><span class="p">,</span>
+                        <span class="s1">&#39;memory matches&#39;</span><span class="p">:</span> <span class="n">eq_mem</span><span class="p">,</span>
+                        <span class="s1">&#39;username matches&#39;</span><span class="p">:</span> <span class="n">eq_user</span>
+                    <span class="p">}</span>
+
+                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">matches</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                            <span class="s1">&#39;The requested job definition already exists but &#39;</span>
+                            <span class="s1">&#39;does not match the input parameters. &#39;</span>
+                            <span class="s1">&#39;</span><span class="si">{matches!s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">matches</span><span class="o">=</span><span class="n">matches</span><span class="p">)</span>
+                        <span class="p">)</span>
+
+                    <span class="c1"># jd_cleanup description is same as above. Here, we</span>
+                    <span class="c1"># adopted it, so cleanup isn&#39;t needed</span>
+                    <span class="n">jd_cleanup</span> <span class="o">=</span> <span class="kc">False</span>
+
+                    <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="s1">&#39;knot </span><span class="si">{name:s}</span><span class="s1"> adopted job definition </span><span class="si">{jd:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">jd</span><span class="o">=</span><span class="n">jd</span><span class="o">.</span><span class="n">name</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+
+                <span class="k">return</span> <span class="n">jd</span><span class="p">,</span> <span class="n">jd_cleanup</span>
+
+            <span class="k">def</span> <span class="nf">set_compute_env</span><span class="p">(</span><span class="n">knot_name</span><span class="p">,</span> <span class="n">compute_environment_name</span><span class="p">,</span> <span class="n">pars</span><span class="p">,</span>
+                                <span class="n">instance_types</span><span class="p">,</span> <span class="n">resource_type</span><span class="p">,</span> <span class="n">min_vcpus</span><span class="p">,</span>
+                                <span class="n">max_vcpus</span><span class="p">,</span> <span class="n">desired_vcpus</span><span class="p">,</span> <span class="n">image_id</span><span class="p">,</span>
+                                <span class="n">ec2_key_pair</span><span class="p">,</span> <span class="n">ce_tags</span><span class="p">,</span> <span class="n">bid_percentage</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="c1"># Create compute environment</span>
+                    <span class="n">ce</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">ComputeEnvironment</span><span class="p">(</span>
+                        <span class="n">name</span><span class="o">=</span><span class="n">compute_environment_name</span><span class="p">,</span>
+                        <span class="n">batch_service_role</span><span class="o">=</span><span class="n">pars</span><span class="o">.</span><span class="n">batch_service_role</span><span class="p">,</span>
+                        <span class="n">instance_role</span><span class="o">=</span><span class="n">pars</span><span class="o">.</span><span class="n">ecs_instance_role</span><span class="p">,</span>
+                        <span class="n">vpc</span><span class="o">=</span><span class="n">pars</span><span class="o">.</span><span class="n">vpc</span><span class="p">,</span>
+                        <span class="n">security_group</span><span class="o">=</span><span class="n">pars</span><span class="o">.</span><span class="n">security_group</span><span class="p">,</span>
+                        <span class="n">spot_fleet_role</span><span class="o">=</span><span class="n">pars</span><span class="o">.</span><span class="n">spot_fleet_role</span><span class="p">,</span>
+                        <span class="n">instance_types</span><span class="o">=</span><span class="n">instance_types</span><span class="p">,</span>
+                        <span class="n">resource_type</span><span class="o">=</span><span class="n">resource_type</span><span class="p">,</span>
+                        <span class="n">min_vcpus</span><span class="o">=</span><span class="n">min_vcpus</span><span class="p">,</span>
+                        <span class="n">max_vcpus</span><span class="o">=</span><span class="n">max_vcpus</span><span class="p">,</span>
+                        <span class="n">desired_vcpus</span><span class="o">=</span><span class="n">desired_vcpus</span><span class="p">,</span>
+                        <span class="n">image_id</span><span class="o">=</span><span class="n">image_id</span><span class="p">,</span>
+                        <span class="n">ec2_key_pair</span><span class="o">=</span><span class="n">ec2_key_pair</span><span class="p">,</span>
+                        <span class="n">tags</span><span class="o">=</span><span class="n">ce_tags</span><span class="p">,</span>
+                        <span class="n">bid_percentage</span><span class="o">=</span><span class="n">bid_percentage</span>
+                    <span class="p">)</span>
+
+                    <span class="c1"># ce_cleanup logic same as for jd_cleanup</span>
+                    <span class="n">ce_cleanup</span> <span class="o">=</span> <span class="kc">True</span>
+
+                    <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="s1">&#39;knot </span><span class="si">{name:s}</span><span class="s1"> created compute environment </span><span class="si">{ce:s}</span><span class="s1">&#39;</span>
+                        <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">knot_name</span><span class="p">,</span> <span class="n">ce</span><span class="o">=</span><span class="n">ce</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="k">except</span> <span class="n">aws</span><span class="o">.</span><span class="n">ResourceExistsException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="c1"># Compute environment already exists, retrieve it</span>
+                    <span class="n">ce</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">ComputeEnvironment</span><span class="p">(</span><span class="n">arn</span><span class="o">=</span><span class="n">e</span><span class="o">.</span><span class="n">resource_id</span><span class="p">)</span>
+
+                    <span class="c1"># But confirm that all of the properties match the input</span>
+                    <span class="c1"># or that the input was unspecified (i.e. is None)</span>
+                    <span class="n">eq_bsr</span> <span class="o">=</span> <span class="p">(</span><span class="n">ce</span><span class="o">.</span><span class="n">batch_service_role_arn</span>
+                              <span class="o">==</span> <span class="n">pars</span><span class="o">.</span><span class="n">batch_service_role</span><span class="o">.</span><span class="n">arn</span><span class="p">)</span>
+                    <span class="n">eq_eir</span> <span class="o">=</span> <span class="p">(</span><span class="n">ce</span><span class="o">.</span><span class="n">instance_role_arn</span>
+                              <span class="o">==</span> <span class="n">pars</span><span class="o">.</span><span class="n">ecs_instance_role</span><span class="o">.</span><span class="n">instance_profile_arn</span><span class="p">)</span>
+                    <span class="n">eq_vpc</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">ce</span><span class="o">.</span><span class="n">subnets</span><span class="p">)</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span><span class="n">pars</span><span class="o">.</span><span class="n">vpc</span><span class="o">.</span><span class="n">subnet_ids</span><span class="p">)</span>
+                    <span class="n">eq_sg</span> <span class="o">=</span> <span class="p">(</span><span class="n">ce</span><span class="o">.</span><span class="n">security_group_ids</span>
+                             <span class="o">==</span> <span class="p">[</span><span class="n">pars</span><span class="o">.</span><span class="n">security_group</span><span class="o">.</span><span class="n">security_group_id</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="n">resource_type</span> <span class="o">==</span> <span class="s1">&#39;SPOT&#39;</span><span class="p">:</span>
+                        <span class="n">eq_sfr</span> <span class="o">=</span> <span class="p">(</span><span class="n">ce</span><span class="o">.</span><span class="n">spot_fleet_role_arn</span>
+                                  <span class="o">==</span> <span class="n">pars</span><span class="o">.</span><span class="n">spot_fleet_role</span><span class="o">.</span><span class="n">arn</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">eq_sfr</span> <span class="o">=</span> <span class="n">ce</span><span class="o">.</span><span class="n">spot_fleet_role_arn</span> <span class="ow">is</span> <span class="kc">None</span>
+                    <span class="n">eq_it</span> <span class="o">=</span> <span class="p">(</span><span class="n">instance_types</span> <span class="ow">is</span> <span class="kc">None</span>
+                             <span class="ow">or</span> <span class="n">ce</span><span class="o">.</span><span class="n">instance_types</span> <span class="o">==</span> <span class="n">instance_types</span><span class="p">)</span>
+                    <span class="n">eq_rt</span> <span class="o">=</span> <span class="p">(</span><span class="n">resource_type</span> <span class="ow">is</span> <span class="kc">None</span>
+                             <span class="ow">or</span> <span class="n">ce</span><span class="o">.</span><span class="n">resource_type</span> <span class="o">==</span> <span class="n">resource_type</span><span class="p">)</span>
+                    <span class="n">eq_min_vcpus</span> <span class="o">=</span> <span class="p">(</span><span class="n">min_vcpus</span> <span class="ow">is</span> <span class="kc">None</span>
+                                    <span class="ow">or</span> <span class="n">ce</span><span class="o">.</span><span class="n">min_vcpus</span> <span class="o">==</span> <span class="n">min_vcpus</span><span class="p">)</span>
+                    <span class="n">eq_max_vcpus</span> <span class="o">=</span> <span class="p">(</span><span class="n">max_vcpus</span> <span class="ow">is</span> <span class="kc">None</span>
+                                    <span class="ow">or</span> <span class="n">ce</span><span class="o">.</span><span class="n">max_vcpus</span> <span class="o">==</span> <span class="n">max_vcpus</span><span class="p">)</span>
+                    <span class="n">eq_des_vcpus</span> <span class="o">=</span> <span class="p">(</span><span class="n">desired_vcpus</span> <span class="ow">is</span> <span class="kc">None</span>
+                                    <span class="ow">or</span> <span class="n">ce</span><span class="o">.</span><span class="n">desired_vcpus</span> <span class="o">==</span> <span class="n">desired_vcpus</span><span class="p">)</span>
+                    <span class="n">eq_image_id</span> <span class="o">=</span> <span class="n">image_id</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">ce</span><span class="o">.</span><span class="n">image_id</span> <span class="o">==</span> <span class="n">image_id</span>
+                    <span class="n">eq_kp</span> <span class="o">=</span> <span class="p">(</span><span class="n">ec2_key_pair</span> <span class="ow">is</span> <span class="kc">None</span>
+                             <span class="ow">or</span> <span class="n">ce</span><span class="o">.</span><span class="n">ec2_key_pair</span> <span class="o">==</span> <span class="n">ec2_key_pair</span><span class="p">)</span>
+                    <span class="n">eq_tags</span> <span class="o">=</span> <span class="n">ce_tags</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">ce</span><span class="o">.</span><span class="n">tags</span> <span class="o">==</span> <span class="n">ce_tags</span>
+                    <span class="n">eq_bp</span> <span class="o">=</span> <span class="p">(</span><span class="n">bid_percentage</span> <span class="ow">is</span> <span class="kc">None</span>
+                             <span class="ow">or</span> <span class="n">ce</span><span class="o">.</span><span class="n">bid_percentage</span> <span class="o">==</span> <span class="n">bid_percentage</span><span class="p">)</span>
+
+                    <span class="n">matches</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="s1">&#39;batch service role matches&#39;</span><span class="p">:</span> <span class="n">eq_bsr</span><span class="p">,</span>
+                        <span class="s1">&#39;instance profile matches&#39;</span><span class="p">:</span> <span class="n">eq_eir</span><span class="p">,</span>
+                        <span class="s1">&#39;subnets match&#39;</span><span class="p">:</span> <span class="n">eq_vpc</span><span class="p">,</span>
+                        <span class="s1">&#39;security groups match&#39;</span><span class="p">:</span> <span class="n">eq_sg</span><span class="p">,</span>
+                        <span class="s1">&#39;spot fleet role matches&#39;</span><span class="p">:</span> <span class="n">eq_sfr</span><span class="p">,</span>
+                        <span class="s1">&#39;instance types match&#39;</span><span class="p">:</span> <span class="n">eq_it</span><span class="p">,</span>
+                        <span class="s1">&#39;resource type matches&#39;</span><span class="p">:</span> <span class="n">eq_rt</span><span class="p">,</span>
+                        <span class="s1">&#39;min VCPUs match&#39;</span><span class="p">:</span> <span class="n">eq_min_vcpus</span><span class="p">,</span>
+                        <span class="s1">&#39;max VCPUs match&#39;</span><span class="p">:</span> <span class="n">eq_max_vcpus</span><span class="p">,</span>
+                        <span class="s1">&#39;desired VCPUs match&#39;</span><span class="p">:</span> <span class="n">eq_des_vcpus</span><span class="p">,</span>
+                        <span class="s1">&#39;image ID matches&#39;</span><span class="p">:</span> <span class="n">eq_image_id</span><span class="p">,</span>
+                        <span class="s1">&#39;EC2 key pair matches&#39;</span><span class="p">:</span> <span class="n">eq_kp</span><span class="p">,</span>
+                        <span class="s1">&#39;tags match&#39;</span><span class="p">:</span> <span class="n">eq_tags</span><span class="p">,</span>
+                        <span class="s1">&#39;bid percentage matches&#39;</span><span class="p">:</span> <span class="n">eq_bp</span>
+                    <span class="p">}</span>
+
+                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">matches</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                            <span class="s1">&#39;The requested compute environment already exists &#39;</span>
+                            <span class="s1">&#39;but does not match the input parameters. &#39;</span>
+                            <span class="s1">&#39;</span><span class="si">{matches!s}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">matches</span><span class="o">=</span><span class="n">matches</span><span class="p">)</span>
+                        <span class="p">)</span>
+
+                    <span class="c1"># ce_cleanup logic same as for jd_cleanup</span>
+                    <span class="n">ce_cleanup</span> <span class="o">=</span> <span class="kc">False</span>
+
+                    <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="s1">&#39;knot </span><span class="si">{name:s}</span><span class="s1"> adopted compute environment </span><span class="si">{ce:s}</span><span class="s1">&#39;</span>
+                        <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">ce</span><span class="o">=</span><span class="n">ce</span><span class="o">.</span><span class="n">name</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+
+                <span class="k">return</span> <span class="n">ce</span><span class="p">,</span> <span class="n">ce_cleanup</span>
+
+            <span class="k">def</span> <span class="nf">set_job_queue</span><span class="p">(</span><span class="n">knot_name</span><span class="p">,</span> <span class="n">job_queue_name</span><span class="p">,</span>
+                              <span class="n">compute_environment</span><span class="p">,</span> <span class="n">priority</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="c1"># Create job queue</span>
+                    <span class="n">jq</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">JobQueue</span><span class="p">(</span>
+                        <span class="n">name</span><span class="o">=</span><span class="n">job_queue_name</span><span class="p">,</span>
+                        <span class="n">compute_environments</span><span class="o">=</span><span class="n">compute_environment</span><span class="p">,</span>
+                        <span class="n">priority</span><span class="o">=</span><span class="n">priority</span>
+                    <span class="p">)</span>
+
+                    <span class="c1"># jq_cleanup logic same as for jd_cleanup</span>
+                    <span class="n">jq_cleanup</span> <span class="o">=</span> <span class="kc">True</span>
+
+                    <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="s1">&#39;knot </span><span class="si">{name:s}</span><span class="s1"> created job queue &#39;</span>
+                        <span class="s1">&#39;</span><span class="si">{jq:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">knot_name</span><span class="p">,</span> <span class="n">jq</span><span class="o">=</span><span class="n">jq</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="k">except</span> <span class="n">aws</span><span class="o">.</span><span class="n">ResourceExistsException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="c1"># Job queue already exists, retrieve it</span>
+                    <span class="n">jq</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">JobQueue</span><span class="p">(</span><span class="n">arn</span><span class="o">=</span><span class="n">e</span><span class="o">.</span><span class="n">resource_id</span><span class="p">)</span>
+
+                    <span class="c1"># But confirm that all of the properties match the input</span>
+                    <span class="c1"># or that the input was unspecified (i.e. is None)</span>
+                    <span class="n">ce_arns</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;computeEnvironment&#39;</span><span class="p">]</span>
+                               <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">jq</span><span class="o">.</span><span class="n">compute_environment_arns</span><span class="p">]</span>
+                    <span class="n">eq_ce</span> <span class="o">=</span> <span class="n">ce_arns</span> <span class="o">==</span> <span class="p">[</span><span class="n">compute_environment</span><span class="o">.</span><span class="n">arn</span><span class="p">]</span>
+                    <span class="n">eq_priority</span> <span class="o">=</span> <span class="n">priority</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">jq</span><span class="o">.</span><span class="n">priority</span> <span class="o">==</span> <span class="n">priority</span>
+
+                    <span class="n">matches</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="s1">&#39;compute environment ARNS match&#39;</span><span class="p">:</span> <span class="n">eq_ce</span><span class="p">,</span>
+                        <span class="s1">&#39;priority matches&#39;</span><span class="p">:</span> <span class="n">eq_priority</span>
+                    <span class="p">}</span>
+
+                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">matches</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                            <span class="s1">&#39;The requested job queue already exists &#39;</span>
+                            <span class="s1">&#39;but does not match the input parameters. &#39;</span>
+                            <span class="s1">&#39;</span><span class="si">{matches!s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">matches</span><span class="o">=</span><span class="n">matches</span><span class="p">)</span>
+                        <span class="p">)</span>
+
+                    <span class="c1"># jq_cleanup logic same as for jd_cleanup</span>
+                    <span class="n">jq_cleanup</span> <span class="o">=</span> <span class="kc">False</span>
+
+                    <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="s1">&#39;knot </span><span class="si">{name:s}</span><span class="s1"> adopted job queue &#39;</span>
+                        <span class="s1">&#39;</span><span class="si">{jq:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">jq</span><span class="o">=</span><span class="n">jq</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                    <span class="p">)</span>
+
+                <span class="k">return</span> <span class="n">jq</span><span class="p">,</span> <span class="n">jq_cleanup</span>
+
+            <span class="n">executor</span> <span class="o">=</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+            <span class="n">futures</span> <span class="o">=</span> <span class="p">{}</span>
+
+            <span class="n">futures</span><span class="p">[</span><span class="s1">&#39;pars&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
+                <span class="n">set_pars</span><span class="p">,</span>
+                <span class="n">knot_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">input_pars</span><span class="o">=</span><span class="n">pars</span><span class="p">,</span>
+                <span class="n">pars_policies</span><span class="o">=</span><span class="n">pars_policies</span>
+            <span class="p">)</span>
+
+            <span class="n">futures</span><span class="p">[</span><span class="s1">&#39;docker-image&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
+                <span class="n">set_dockerimage</span><span class="p">,</span>
+                <span class="n">knot_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">input_docker_image</span><span class="o">=</span><span class="n">docker_image</span><span class="p">,</span>
+                <span class="n">func</span><span class="o">=</span><span class="n">func</span><span class="p">,</span> <span class="n">script_path</span><span class="o">=</span><span class="n">image_script_path</span><span class="p">,</span>
+                <span class="n">work_dir</span><span class="o">=</span><span class="n">image_work_dir</span><span class="p">,</span>
+                <span class="n">github_installs</span><span class="o">=</span><span class="n">image_github_installs</span><span class="p">,</span> <span class="n">username</span><span class="o">=</span><span class="n">username</span><span class="p">,</span>
+                <span class="n">tags</span><span class="o">=</span><span class="n">image_tags</span><span class="p">,</span> <span class="n">repo_name</span><span class="o">=</span><span class="n">repo_name</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pars</span><span class="p">,</span> <span class="n">pars_cleanup</span> <span class="o">=</span> <span class="n">futures</span><span class="p">[</span><span class="s1">&#39;pars&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+
+            <span class="n">futures</span><span class="p">[</span><span class="s1">&#39;compute-environment&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
+                <span class="n">set_compute_env</span><span class="p">,</span>
+                <span class="n">knot_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">compute_environment_name</span><span class="o">=</span><span class="n">compute_environment_name</span><span class="p">,</span>
+                <span class="n">pars</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="p">,</span> <span class="n">instance_types</span><span class="o">=</span><span class="n">instance_types</span><span class="p">,</span>
+                <span class="n">resource_type</span><span class="o">=</span><span class="n">resource_type</span><span class="p">,</span> <span class="n">min_vcpus</span><span class="o">=</span><span class="n">min_vcpus</span><span class="p">,</span>
+                <span class="n">max_vcpus</span><span class="o">=</span><span class="n">max_vcpus</span><span class="p">,</span> <span class="n">desired_vcpus</span><span class="o">=</span><span class="n">desired_vcpus</span><span class="p">,</span>
+                <span class="n">image_id</span><span class="o">=</span><span class="n">image_id</span><span class="p">,</span> <span class="n">ec2_key_pair</span><span class="o">=</span><span class="n">ec2_key_pair</span><span class="p">,</span> <span class="n">ce_tags</span><span class="o">=</span><span class="n">ce_tags</span><span class="p">,</span>
+                <span class="n">bid_percentage</span><span class="o">=</span><span class="n">bid_percentage</span>
+            <span class="p">)</span>
 
             <span class="k">try</span><span class="p">:</span>
-                <span class="c1"># Create job definition</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_job_definition</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">JobDefinition</span><span class="p">(</span>
-                    <span class="n">name</span><span class="o">=</span><span class="n">job_definition_name</span><span class="p">,</span>
-                    <span class="n">job_role</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">ecs_task_role</span><span class="p">,</span>
-                    <span class="n">docker_image</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">repo_uri</span><span class="p">,</span>
-                    <span class="n">vcpus</span><span class="o">=</span><span class="n">job_def_vcpus</span><span class="p">,</span>
-                    <span class="n">memory</span><span class="o">=</span><span class="n">memory</span><span class="p">,</span>
-                    <span class="n">username</span><span class="o">=</span><span class="n">username</span><span class="p">,</span>
-                    <span class="n">retries</span><span class="o">=</span><span class="n">retries</span>
-                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_compute_environment</span><span class="p">,</span> <span class="n">ce_cleanup</span> <span class="o">=</span> \
+                    <span class="n">futures</span><span class="p">[</span><span class="s1">&#39;compute-environment&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">pars_cleanup</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
+                <span class="k">raise</span> <span class="n">e</span>
 
-                <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                    <span class="s1">&#39;knot </span><span class="si">{name:s}</span><span class="s1"> created job definition </span><span class="si">{jd:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                        <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">jd</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">name</span>
-                    <span class="p">)</span>
-                <span class="p">)</span>
+            <span class="n">futures</span><span class="p">[</span><span class="s1">&#39;job-queue&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
+                <span class="n">set_job_queue</span><span class="p">,</span>
+                <span class="n">knot_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">job_queue_name</span><span class="o">=</span><span class="n">job_queue_name</span><span class="p">,</span>
+                <span class="n">compute_environment</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">compute_environment</span><span class="p">,</span> <span class="n">priority</span><span class="o">=</span><span class="n">priority</span>
+            <span class="p">)</span>
 
-                <span class="c1"># Later in __init__, we may abort this init because of</span>
-                <span class="c1"># inconsistent compute env, or job queue parameters</span>
-                <span class="c1"># If we do that, we don&#39;t want to leave a bunch of newly</span>
-                <span class="c1"># created resources around so keep track of whether this job</span>
-                <span class="c1"># def was created or adopted. Here, we created it, so cleanup</span>
-                <span class="c1"># is needed</span>
-                <span class="n">jd_cleanup</span> <span class="o">=</span> <span class="kc">True</span>
-            <span class="k">except</span> <span class="n">aws</span><span class="o">.</span><span class="n">ResourceExistsException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="c1"># Job def already exists, retrieve it</span>
-                <span class="n">jd</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">JobDefinition</span><span class="p">(</span><span class="n">arn</span><span class="o">=</span><span class="n">e</span><span class="o">.</span><span class="n">resource_id</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_job_queue</span><span class="p">,</span> <span class="n">jq_cleanup</span> <span class="o">=</span> <span class="n">futures</span><span class="p">[</span><span class="s1">&#39;job-queue&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">ce_cleanup</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">compute_environment</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">pars_cleanup</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
+                <span class="k">raise</span> <span class="n">e</span>
 
-                <span class="c1"># But confirm that all of the properties match the input</span>
-                <span class="c1"># or that the input was unspecified (i.e. is None)</span>
-                <span class="n">eq_role</span> <span class="o">=</span> <span class="n">jd</span><span class="o">.</span><span class="n">job_role_arn</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">ecs_task_role</span><span class="o">.</span><span class="n">arn</span>
-                <span class="n">eq_image</span> <span class="o">=</span> <span class="n">jd</span><span class="o">.</span><span class="n">docker_image</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">repo_uri</span>
-                <span class="n">eq_vcpus</span> <span class="o">=</span> <span class="n">job_def_vcpus</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">jd</span><span class="o">.</span><span class="n">vcpus</span> <span class="o">==</span> <span class="n">job_def_vcpus</span>
-                <span class="n">eq_retries</span> <span class="o">=</span> <span class="n">retries</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">jd</span><span class="o">.</span><span class="n">retries</span> <span class="o">==</span> <span class="n">retries</span>
-                <span class="n">eq_mem</span> <span class="o">=</span> <span class="n">memory</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">jd</span><span class="o">.</span><span class="n">memory</span> <span class="o">==</span> <span class="n">memory</span>
-                <span class="n">eq_user</span> <span class="o">=</span> <span class="n">username</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">jd</span><span class="o">.</span><span class="n">username</span> <span class="o">==</span> <span class="n">username</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_docker_image</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_docker_repo</span><span class="p">,</span> <span class="n">repo_cleanup</span> <span class="o">=</span> \
+                <span class="n">futures</span><span class="p">[</span><span class="s1">&#39;docker-image&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
 
-                <span class="n">matches</span> <span class="o">=</span> <span class="p">{</span>
-                    <span class="s1">&#39;job role matches&#39;</span><span class="p">:</span> <span class="n">eq_role</span><span class="p">,</span>
-                    <span class="s1">&#39;docker image matches&#39;</span><span class="p">:</span> <span class="n">eq_image</span><span class="p">,</span>
-                    <span class="s1">&#39;VCPUs match&#39;</span><span class="p">:</span> <span class="n">eq_vcpus</span><span class="p">,</span>
-                    <span class="s1">&#39;retries match&#39;</span><span class="p">:</span> <span class="n">eq_retries</span><span class="p">,</span>
-                    <span class="s1">&#39;memory matches&#39;</span><span class="p">:</span> <span class="n">eq_mem</span><span class="p">,</span>
-                    <span class="s1">&#39;username matches&#39;</span><span class="p">:</span> <span class="n">eq_user</span>
-                <span class="p">}</span>
+            <span class="n">futures</span><span class="p">[</span><span class="s1">&#39;job-definition&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
+                <span class="n">set_job_def</span><span class="p">,</span>
+                <span class="n">knot_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">job_definition_name</span><span class="o">=</span><span class="n">job_definition_name</span><span class="p">,</span>
+                <span class="n">pars</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="p">,</span> <span class="n">docker_image</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="p">,</span>
+                <span class="n">job_def_vcpus</span><span class="o">=</span><span class="n">job_def_vcpus</span><span class="p">,</span> <span class="n">memory</span><span class="o">=</span><span class="n">memory</span><span class="p">,</span> <span class="n">username</span><span class="o">=</span><span class="n">username</span><span class="p">,</span>
+                <span class="n">retries</span><span class="o">=</span><span class="n">retries</span>
+            <span class="p">)</span>
 
-                <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">matches</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
-                    <span class="k">if</span> <span class="n">repo_cleanup</span><span class="p">:</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">docker_repo</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
-
-                    <span class="k">if</span> <span class="n">pars_cleanup</span><span class="p">:</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
-
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                        <span class="s1">&#39;The requested job definition already exists but &#39;</span>
-                        <span class="s1">&#39;does not match the input parameters. &#39;</span>
-                        <span class="s1">&#39;</span><span class="si">{matches!s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">matches</span><span class="o">=</span><span class="n">matches</span><span class="p">)</span>
-                    <span class="p">)</span>
-
-                <span class="bp">self</span><span class="o">.</span><span class="n">_job_definition</span> <span class="o">=</span> <span class="n">jd</span>
-                <span class="c1"># jd_cleanup description is same as above. Here, we adopted it,</span>
-                <span class="c1"># so cleanup isn&#39;t needed</span>
-                <span class="n">jd_cleanup</span> <span class="o">=</span> <span class="kc">False</span>
-
-                <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                    <span class="s1">&#39;knot </span><span class="si">{name:s}</span><span class="s1"> adopted job definition </span><span class="si">{jd:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                        <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">jd</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">name</span>
-                    <span class="p">)</span>
-                <span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_job_definition</span><span class="p">,</span> <span class="n">jd_cleanup</span> <span class="o">=</span> \
+                    <span class="n">futures</span><span class="p">[</span><span class="s1">&#39;job-definition&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">jq_cleanup</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">job_queue</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">ce_cleanup</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">compute_environment</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">repo_cleanup</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">docker_repo</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">pars_cleanup</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
+                <span class="k">raise</span> <span class="n">e</span>
 
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">username</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">username</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">jq_cleanup</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">job_queue</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">ce_cleanup</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">compute_environment</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">jd_cleanup</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">repo_cleanup</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">docker_repo</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">pars_cleanup</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
+
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The username for this knot&#39;s job definition &quot;</span>
                                  <span class="s2">&quot;does not match the username for this knot&#39;s &quot;</span>
                                  <span class="s2">&quot;Docker image.&quot;</span><span class="p">)</span>
 
-            <span class="k">try</span><span class="p">:</span>
-                <span class="c1"># Create compute environment</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_compute_environment</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">ComputeEnvironment</span><span class="p">(</span>
-                    <span class="n">name</span><span class="o">=</span><span class="n">compute_environment_name</span><span class="p">,</span>
-                    <span class="n">batch_service_role</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">batch_service_role</span><span class="p">,</span>
-                    <span class="n">instance_role</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">ecs_instance_role</span><span class="p">,</span>
-                    <span class="n">vpc</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">vpc</span><span class="p">,</span>
-                    <span class="n">security_group</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">security_group</span><span class="p">,</span>
-                    <span class="n">spot_fleet_role</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">spot_fleet_role</span><span class="p">,</span>
-                    <span class="n">instance_types</span><span class="o">=</span><span class="n">instance_types</span><span class="p">,</span>
-                    <span class="n">resource_type</span><span class="o">=</span><span class="n">resource_type</span><span class="p">,</span>
-                    <span class="n">min_vcpus</span><span class="o">=</span><span class="n">min_vcpus</span><span class="p">,</span>
-                    <span class="n">max_vcpus</span><span class="o">=</span><span class="n">max_vcpus</span><span class="p">,</span>
-                    <span class="n">desired_vcpus</span><span class="o">=</span><span class="n">desired_vcpus</span><span class="p">,</span>
-                    <span class="n">image_id</span><span class="o">=</span><span class="n">image_id</span><span class="p">,</span>
-                    <span class="n">ec2_key_pair</span><span class="o">=</span><span class="n">ec2_key_pair</span><span class="p">,</span>
-                    <span class="n">tags</span><span class="o">=</span><span class="n">ce_tags</span><span class="p">,</span>
-                    <span class="n">bid_percentage</span><span class="o">=</span><span class="n">bid_percentage</span>
-                <span class="p">)</span>
-
-                <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                    <span class="s1">&#39;knot </span><span class="si">{name:s}</span><span class="s1"> created compute environment </span><span class="si">{ce:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                        <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">ce</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">compute_environment</span><span class="o">.</span><span class="n">name</span>
-                    <span class="p">)</span>
-                <span class="p">)</span>
-
-                <span class="c1"># ce_cleanup logic same as for jd_cleanup</span>
-                <span class="n">ce_cleanup</span> <span class="o">=</span> <span class="kc">True</span>
-            <span class="k">except</span> <span class="n">aws</span><span class="o">.</span><span class="n">ResourceExistsException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="c1"># Compute environment already exists, retrieve it</span>
-                <span class="n">ce</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">ComputeEnvironment</span><span class="p">(</span><span class="n">arn</span><span class="o">=</span><span class="n">e</span><span class="o">.</span><span class="n">resource_id</span><span class="p">)</span>
-
-                <span class="c1"># But confirm that all of the properties match the input</span>
-                <span class="c1"># or that the input was unspecified (i.e. is None)</span>
-                <span class="n">eq_bsr</span> <span class="o">=</span> <span class="p">(</span><span class="n">ce</span><span class="o">.</span><span class="n">batch_service_role_arn</span>
-                          <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">batch_service_role</span><span class="o">.</span><span class="n">arn</span><span class="p">)</span>
-                <span class="n">eq_eir</span> <span class="o">=</span> <span class="p">(</span><span class="n">ce</span><span class="o">.</span><span class="n">instance_role_arn</span>
-                          <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">ecs_instance_role</span><span class="o">.</span><span class="n">instance_profile_arn</span><span class="p">)</span>
-                <span class="n">eq_vpc</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">ce</span><span class="o">.</span><span class="n">subnets</span><span class="p">)</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">vpc</span><span class="o">.</span><span class="n">subnet_ids</span><span class="p">)</span>
-                <span class="n">eq_sg</span> <span class="o">=</span> <span class="p">(</span><span class="n">ce</span><span class="o">.</span><span class="n">security_group_ids</span>
-                         <span class="o">==</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">security_group</span><span class="o">.</span><span class="n">security_group_id</span><span class="p">])</span>
-                <span class="k">if</span> <span class="n">resource_type</span> <span class="o">==</span> <span class="s1">&#39;SPOT&#39;</span><span class="p">:</span>
-                    <span class="n">eq_sfr</span> <span class="o">=</span> <span class="p">(</span><span class="n">ce</span><span class="o">.</span><span class="n">spot_fleet_role_arn</span>
-                              <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">spot_fleet_role</span><span class="o">.</span><span class="n">arn</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">eq_sfr</span> <span class="o">=</span> <span class="n">ce</span><span class="o">.</span><span class="n">spot_fleet_role_arn</span> <span class="ow">is</span> <span class="kc">None</span>
-                <span class="n">eq_it</span> <span class="o">=</span> <span class="p">(</span><span class="n">instance_types</span> <span class="ow">is</span> <span class="kc">None</span>
-                         <span class="ow">or</span> <span class="n">ce</span><span class="o">.</span><span class="n">instance_types</span> <span class="o">==</span> <span class="n">instance_types</span><span class="p">)</span>
-                <span class="n">eq_rt</span> <span class="o">=</span> <span class="p">(</span><span class="n">resource_type</span> <span class="ow">is</span> <span class="kc">None</span>
-                         <span class="ow">or</span> <span class="n">ce</span><span class="o">.</span><span class="n">resource_type</span> <span class="o">==</span> <span class="n">resource_type</span><span class="p">)</span>
-                <span class="n">eq_min_vcpus</span> <span class="o">=</span> <span class="n">min_vcpus</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">ce</span><span class="o">.</span><span class="n">min_vcpus</span> <span class="o">==</span> <span class="n">min_vcpus</span>
-                <span class="n">eq_max_vcpus</span> <span class="o">=</span> <span class="n">max_vcpus</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">ce</span><span class="o">.</span><span class="n">max_vcpus</span> <span class="o">==</span> <span class="n">max_vcpus</span>
-                <span class="n">eq_des_vcpus</span> <span class="o">=</span> <span class="p">(</span><span class="n">desired_vcpus</span> <span class="ow">is</span> <span class="kc">None</span>
-                                <span class="ow">or</span> <span class="n">ce</span><span class="o">.</span><span class="n">desired_vcpus</span> <span class="o">==</span> <span class="n">desired_vcpus</span><span class="p">)</span>
-                <span class="n">eq_image_id</span> <span class="o">=</span> <span class="n">image_id</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">ce</span><span class="o">.</span><span class="n">image_id</span> <span class="o">==</span> <span class="n">image_id</span>
-                <span class="n">eq_kp</span> <span class="o">=</span> <span class="n">ec2_key_pair</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">ce</span><span class="o">.</span><span class="n">ec2_key_pair</span> <span class="o">==</span> <span class="n">ec2_key_pair</span>
-                <span class="n">eq_tags</span> <span class="o">=</span> <span class="n">ce_tags</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">ce</span><span class="o">.</span><span class="n">tags</span> <span class="o">==</span> <span class="n">ce_tags</span>
-                <span class="n">eq_bp</span> <span class="o">=</span> <span class="p">(</span><span class="n">bid_percentage</span> <span class="ow">is</span> <span class="kc">None</span>
-                         <span class="ow">or</span> <span class="n">ce</span><span class="o">.</span><span class="n">bid_percentage</span> <span class="o">==</span> <span class="n">bid_percentage</span><span class="p">)</span>
-
-                <span class="n">matches</span> <span class="o">=</span> <span class="p">{</span>
-                    <span class="s1">&#39;batch service role matches&#39;</span><span class="p">:</span> <span class="n">eq_bsr</span><span class="p">,</span>
-                    <span class="s1">&#39;instance profile matches&#39;</span><span class="p">:</span> <span class="n">eq_eir</span><span class="p">,</span>
-                    <span class="s1">&#39;subnets match&#39;</span><span class="p">:</span> <span class="n">eq_vpc</span><span class="p">,</span>
-                    <span class="s1">&#39;security groups match&#39;</span><span class="p">:</span> <span class="n">eq_sg</span><span class="p">,</span>
-                    <span class="s1">&#39;spot fleet role matches&#39;</span><span class="p">:</span> <span class="n">eq_sfr</span><span class="p">,</span>
-                    <span class="s1">&#39;instance types match&#39;</span><span class="p">:</span> <span class="n">eq_it</span><span class="p">,</span>
-                    <span class="s1">&#39;resource type matches&#39;</span><span class="p">:</span> <span class="n">eq_rt</span><span class="p">,</span>
-                    <span class="s1">&#39;min VCPUs match&#39;</span><span class="p">:</span> <span class="n">eq_min_vcpus</span><span class="p">,</span>
-                    <span class="s1">&#39;max VCPUs match&#39;</span><span class="p">:</span> <span class="n">eq_max_vcpus</span><span class="p">,</span>
-                    <span class="s1">&#39;desired VCPUs match&#39;</span><span class="p">:</span> <span class="n">eq_des_vcpus</span><span class="p">,</span>
-                    <span class="s1">&#39;image ID matches&#39;</span><span class="p">:</span> <span class="n">eq_image_id</span><span class="p">,</span>
-                    <span class="s1">&#39;EC2 key pair matches&#39;</span><span class="p">:</span> <span class="n">eq_kp</span><span class="p">,</span>
-                    <span class="s1">&#39;tags match&#39;</span><span class="p">:</span> <span class="n">eq_tags</span><span class="p">,</span>
-                    <span class="s1">&#39;bid percentage matches&#39;</span><span class="p">:</span> <span class="n">eq_bp</span>
-                <span class="p">}</span>
-
-                <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">matches</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
-                    <span class="k">if</span> <span class="n">repo_cleanup</span><span class="p">:</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">docker_repo</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
-
-                    <span class="k">if</span> <span class="n">jd_cleanup</span><span class="p">:</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
-
-                    <span class="k">if</span> <span class="n">pars_cleanup</span><span class="p">:</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
-
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                        <span class="s1">&#39;The requested compute environment already exists &#39;</span>
-                        <span class="s1">&#39;but does not match the input parameters. &#39;</span>
-                        <span class="s1">&#39;</span><span class="si">{matches!s}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">matches</span><span class="o">=</span><span class="n">matches</span><span class="p">)</span>
-                    <span class="p">)</span>
-
-                <span class="bp">self</span><span class="o">.</span><span class="n">_compute_environment</span> <span class="o">=</span> <span class="n">ce</span>
-                <span class="c1"># ce_cleanup logic same as for jd_cleanup</span>
-                <span class="n">ce_cleanup</span> <span class="o">=</span> <span class="kc">False</span>
-                <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                    <span class="s1">&#39;knot </span><span class="si">{name:s}</span><span class="s1"> adopted compute environment </span><span class="si">{ce:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                        <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">ce</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">compute_environment</span><span class="o">.</span><span class="n">name</span>
-                    <span class="p">)</span>
-                <span class="p">)</span>
-
-            <span class="k">try</span><span class="p">:</span>
-                <span class="c1"># Create job queue</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_job_queue</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">JobQueue</span><span class="p">(</span>
-                    <span class="n">name</span><span class="o">=</span><span class="n">job_queue_name</span><span class="p">,</span>
-                    <span class="n">compute_environments</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">compute_environment</span><span class="p">,</span>
-                    <span class="n">priority</span><span class="o">=</span><span class="n">priority</span>
-                <span class="p">)</span>
-
-                <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                    <span class="s1">&#39;knot </span><span class="si">{name:s}</span><span class="s1"> created job queue &#39;</span>
-                    <span class="s1">&#39;</span><span class="si">{jq:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">jq</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">job_queue</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-                <span class="p">)</span>
-            <span class="k">except</span> <span class="n">aws</span><span class="o">.</span><span class="n">ResourceExistsException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="c1"># Job queue already exists, retrieve it</span>
-                <span class="n">jq</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">JobQueue</span><span class="p">(</span><span class="n">arn</span><span class="o">=</span><span class="n">e</span><span class="o">.</span><span class="n">resource_id</span><span class="p">)</span>
-
-                <span class="c1"># But confirm that all of the properties match the input</span>
-                <span class="c1"># or that the input was unspecified (i.e. is None)</span>
-                <span class="n">ce_arns</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;computeEnvironment&#39;</span><span class="p">]</span>
-                           <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">jq</span><span class="o">.</span><span class="n">compute_environment_arns</span><span class="p">]</span>
-                <span class="n">eq_ce</span> <span class="o">=</span> <span class="n">ce_arns</span> <span class="o">==</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">compute_environment</span><span class="o">.</span><span class="n">arn</span><span class="p">]</span>
-                <span class="n">eq_priority</span> <span class="o">=</span> <span class="n">priority</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">jq</span><span class="o">.</span><span class="n">priority</span> <span class="o">==</span> <span class="n">priority</span>
-
-                <span class="n">matches</span> <span class="o">=</span> <span class="p">{</span>
-                    <span class="s1">&#39;compute environment ARNS match&#39;</span><span class="p">:</span> <span class="n">eq_ce</span><span class="p">,</span>
-                    <span class="s1">&#39;priority matches&#39;</span><span class="p">:</span> <span class="n">eq_priority</span>
-                <span class="p">}</span>
-
-                <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">matches</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
-                    <span class="k">if</span> <span class="n">repo_cleanup</span><span class="p">:</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">docker_repo</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
-
-                    <span class="k">if</span> <span class="n">jd_cleanup</span><span class="p">:</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
-
-                    <span class="k">if</span> <span class="n">ce_cleanup</span><span class="p">:</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">compute_environment</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
-
-                    <span class="k">if</span> <span class="n">pars_cleanup</span><span class="p">:</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
-
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                        <span class="s1">&#39;The requested job queue already exists &#39;</span>
-                        <span class="s1">&#39;but does not match the input parameters. &#39;</span>
-                        <span class="s1">&#39;</span><span class="si">{matches!s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">matches</span><span class="o">=</span><span class="n">matches</span><span class="p">)</span>
-                    <span class="p">)</span>
-
-                <span class="bp">self</span><span class="o">.</span><span class="n">_job_queue</span> <span class="o">=</span> <span class="n">jq</span>
-                <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                    <span class="s1">&#39;knot </span><span class="si">{name:s}</span><span class="s1"> adopted job queue &#39;</span>
-                    <span class="s1">&#39;</span><span class="si">{jq:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">jq</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">job_queue</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-                <span class="p">)</span>
+            <span class="n">executor</span><span class="o">.</span><span class="n">shutdown</span><span class="p">()</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">_jobs</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_job_ids</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1574,27 +1681,25 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">check_profile_and_region</span><span class="p">()</span>
 
         <span class="c1"># Delete all associated AWS resources</span>
-        <span class="c1"># Iterate over copy of self.jobs since we are removing from</span>
-        <span class="c1"># the list while iterating</span>
-        <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">jobs</span><span class="p">):</span>
-            <span class="n">job</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_jobs</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">clobber_jq_then_ce</span><span class="p">(</span><span class="n">jq</span><span class="p">,</span> <span class="n">ce</span><span class="p">):</span>
+            <span class="n">jq</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
+            <span class="n">ce</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">job_queue</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">compute_environment</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
-
-        <span class="k">if</span> <span class="n">clobber_repo</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">docker_repo</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">docker_repo</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
-
-        <span class="k">if</span> <span class="n">clobber_image</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
-
-        <span class="k">if</span> <span class="n">clobber_pars</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
-            <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Knot </span><span class="si">{name:s}</span><span class="s1"> clobbered PARS </span><span class="si">{pars:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">pars</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">name</span>
-            <span class="p">))</span>
+        <span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="mi">32</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="c1"># Iterate over copy of self.jobs since we are</span>
+            <span class="c1"># removing from the list while iterating</span>
+            <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">jobs</span><span class="p">):</span>
+                <span class="n">e</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">clobber</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_jobs</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+            <span class="n">e</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">clobber_jq_then_ce</span><span class="p">,</span>
+                     <span class="bp">self</span><span class="o">.</span><span class="n">job_queue</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_environment</span><span class="p">)</span>
+            <span class="n">e</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">clobber</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">clobber_repo</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">docker_repo</span><span class="p">:</span>
+                <span class="n">e</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">docker_repo</span><span class="o">.</span><span class="n">clobber</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">clobber_image</span><span class="p">:</span>
+                <span class="n">e</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">clobber</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">clobber_pars</span><span class="p">:</span>
+                <span class="n">e</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">clobber</span><span class="p">)</span>
 
         <span class="c1"># Remove this section from the config file</span>
         <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>

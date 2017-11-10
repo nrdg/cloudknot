@@ -791,11 +791,6 @@
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;if provided, image_id must be a string&#39;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_image_id</span> <span class="o">=</span> <span class="n">image_id</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="c1"># response = clients[&#39;ec2&#39;].describe_images(Filters=[{</span>
-                <span class="c1">#     &#39;Name&#39;: &#39;name&#39;,</span>
-                <span class="c1">#     &#39;Values&#39;: [&#39;amzn-ami-2017.03.g-amazon-ecs-optimized&#39;]</span>
-                <span class="c1"># }])</span>
-                <span class="c1"># self._image_id = response.get(&#39;Images&#39;)[0][&#39;ImageId&#39;]</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_image_id</span> <span class="o">=</span> <span class="kc">None</span>
 
             <span class="c1"># Validate ec2_key_pair input</span>
@@ -1173,6 +1168,18 @@
                 <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;batch&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">delete_compute_environment</span><span class="p">,</span>
                 <span class="n">computeEnvironment</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">arn</span>
             <span class="p">)</span>
+        <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;batch&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">ClientException</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">error_message</span> <span class="o">=</span> <span class="n">error</span><span class="o">.</span><span class="n">response</span><span class="p">[</span><span class="s1">&#39;Error&#39;</span><span class="p">][</span><span class="s1">&#39;Message&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">error_message</span> <span class="o">==</span> <span class="s1">&#39;Cannot delete, found existing &#39;</span> \
+                                <span class="s1">&#39;JobQueue relationship&#39;</span><span class="p">:</span>  <span class="c1"># pragma: nocover</span>
+                <span class="k">raise</span> <span class="n">CannotDeleteResourceException</span><span class="p">(</span>
+                    <span class="s1">&#39;Could not delete this compute environment &#39;</span>
+                    <span class="s1">&#39;because it has job queue(s) associated with it. &#39;</span>
+                    <span class="s1">&#39;If you want to delete this compute environment, &#39;</span>
+                    <span class="s1">&#39;first delete the job queues with the following &#39;</span>
+                    <span class="s1">&#39;ARNS: </span><span class="si">{queues!s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">queues</span><span class="o">=</span><span class="n">associated_queues</span><span class="p">),</span>
+                    <span class="n">resource_id</span><span class="o">=</span><span class="n">associated_queues</span>
+                <span class="p">)</span>
         <span class="k">except</span> <span class="n">tenacity</span><span class="o">.</span><span class="n">RetryError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">e</span><span class="o">.</span><span class="n">reraise</span><span class="p">()</span>
