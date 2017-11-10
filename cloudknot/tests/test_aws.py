@@ -746,9 +746,17 @@ def test_DockerRepo(bucket_cleanup):
         # Clobber the docker repo
         dr.clobber()
 
+        retry = tenacity.Retrying(
+            wait=tenacity.wait_exponential(max=16),
+            stop=tenacity.stop_after_delay(60),
+            retry=tenacity.retry_unless_exception_type(
+                ecr.exceptions.RepositoryNotFoundException
+            )
+        )
+
         # Assert that it was removed from AWS
         with pytest.raises(ecr.exceptions.RepositoryNotFoundException):
-            ecr.describe_repositories(repositoryNames=[name])
+            retry.call(ecr.describe_repositories, repositoryNames=[name])
 
         # Assert that it was removed from the config file
         # If we just re-read the config file, config will keep the union
@@ -766,7 +774,16 @@ def test_DockerRepo(bucket_cleanup):
         dr = ck.aws.DockerRepo(name=name)
 
         # Confirm that it exists on AWS and retrieve its properties
-        response = ecr.describe_repositories(repositoryNames=[name])
+        retry = tenacity.Retrying(
+            wait=tenacity.wait_exponential(max=16),
+            stop=tenacity.stop_after_delay(60),
+            retry=tenacity.retry_if_exception_type(
+                ecr.exceptions.RepositoryNotFoundException
+            )
+        )
+
+        response = retry.call(ecr.describe_repositories,
+                              repositoryNames=[name])
 
         repo_name = response['repositories'][0]['repositoryName']
         repo_uri = response['repositories'][0]['repositoryUri']
@@ -791,9 +808,17 @@ def test_DockerRepo(bucket_cleanup):
         # Clobber the docker repo
         dr.clobber()
 
+        retry = tenacity.Retrying(
+            wait=tenacity.wait_exponential(max=16),
+            stop=tenacity.stop_after_delay(60),
+            retry=tenacity.retry_unless_exception_type(
+                ecr.exceptions.RepositoryNotFoundException
+            )
+        )
+
         # Assert that it was removed from AWS
         with pytest.raises(ecr.exceptions.RepositoryNotFoundException):
-            ecr.describe_repositories(repositoryNames=[name])
+            retry.call(ecr.describe_repositories, repositoryNames=[name])
 
         # Assert that it was removed from the config file
         # If we just re-read the config file, config will keep the union
