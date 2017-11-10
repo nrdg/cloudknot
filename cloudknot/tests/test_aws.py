@@ -907,6 +907,27 @@ def test_Vpc(bucket_cleanup):
             ]
         )
 
+        def tag_does_not_yet_exist(res):
+            if res.get('Tags'):
+                return False
+            else:
+                return True
+
+        retry = tenacity.Retrying(
+            wait=tenacity.wait_exponential(max=16),
+            stop=tenacity.stop_after_delay(120),
+            retry=tenacity.retry_if_result(tag_does_not_yet_exist)
+        )
+
+        retry.call(
+            ec2.describe_tags,
+            Filters=[
+                {'Name': 'resource-type', 'Values': ['vpc']},
+                {'Name': 'key', 'Values': ['Name']},
+                {'Name': 'value', 'Values': [name]}
+            ]
+        )
+
         # Create a VPC with same name but different description.
         # Confirm that SecurityGroup raises a ResourceExistsException.
         with pytest.raises(ck.aws.ResourceExistsException) as e:

@@ -238,18 +238,9 @@ class Vpc(NamedObject):
             # Else check for the tag "Name: name"
             response = clients['ec2'].describe_tags(
                 Filters=[
-                    {
-                        'Name': 'resource-type',
-                        'Values': ['vpc']
-                    },
-                    {
-                        'Name': 'key',
-                        'Values': ['Name']
-                    },
-                    {
-                        'Name': 'value',
-                        'Values': [name]
-                    }
+                    {'Name': 'resource-type', 'Values': ['vpc']},
+                    {'Name': 'key', 'Values': ['Name']},
+                    {'Name': 'value', 'Values': [name]}
                 ]
             )
 
