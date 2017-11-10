@@ -1050,8 +1050,26 @@ def test_Vpc(bucket_cleanup):
             InstanceTenancy=instance_tenancy
         )
 
-        # Use cloudknot to retrieve this VPC
+        # Get the VPC ID
         vpc_id = response.get('Vpc')['VpcId']
+
+        # Wait for VPC to exist and be available
+        wait_for_vpc = ec2.get_waiter('vpc_exists')
+        wait_for_vpc.wait(VpcIds=[vpc_id])
+        wait_for_vpc = ec2.get_waiter('vpc_available')
+        wait_for_vpc.wait(VpcIds=[vpc_id])
+
+        # And wait for the VPC to show up via describe_vpcs call
+        retry = tenacity.Retrying(
+            wait=tenacity.wait_exponential(max=16),
+            stop=tenacity.stop_after_delay(120),
+            retry=tenacity.retry_if_exception_type(
+                ec2.exceptions.ClientError
+            )
+        )
+        retry.call(ec2.describe_vpcs, VpcIds=[vpc_id])
+
+        # Use cloudknot to retrieve this VPC
         vpc = ck.aws.Vpc(vpc_id=vpc_id)
 
         # And confirm that cloudknot filled in a Name tag
