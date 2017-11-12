@@ -1557,9 +1557,12 @@ class BatchJob(NamedObject):
             self._job_definition_arn = job_definition.arn
 
             if environment_variables:
-                if not isinstance(environment_variables, dict):
-                    raise ValueError('if provided, environment_variables must '
-                                     'be an instance of dict')
+                if not all(isinstance(s, dict) for s in environment_variables):
+                    raise ValueError('env_vars must be a sequence of dicts')
+                if not all(set(d.keys()) == {'name', 'value'}
+                           for d in environment_variables):
+                    raise ValueError('each dict in env_vars must have '
+                                     'keys "name" and "value"')
                 self._environment_variables = environment_variables
             else:
                 self._environment_variables = None
@@ -1749,7 +1752,8 @@ class BatchJob(NamedObject):
         attempts = sorted(self.status['attempts'],
                           key=lambda a: a['startedAt'])
 
-        log_stream_names = [a['container']['logStreamName'] for a in attempts]
+        log_stream_names = [a['container'].get('logStreamName')
+                            for a in attempts]
 
         def log_name2url(log_name):
             return 'https://console.aws.amazon.com/cloudwatch/home?region=' \

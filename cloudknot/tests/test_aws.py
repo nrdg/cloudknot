@@ -2715,7 +2715,7 @@ def test_BatchJob(pars):
                 input=42,
                 job_queue=job_queue,
                 job_definition=job_def,
-                environment_variables=42
+                environment_variables=[42]
             )
 
         job_queue.clobber()
