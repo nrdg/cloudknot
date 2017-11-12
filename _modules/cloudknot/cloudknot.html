@@ -1587,13 +1587,13 @@
 
         <span class="c1"># env_vars should be a sequence of sequences of dicts</span>
         <span class="k">if</span> <span class="n">env_vars</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">env_vars</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;env_vars must be a sequences of dicts&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;env_vars must be a sequence of dicts&#39;</span><span class="p">)</span>
 
         <span class="c1"># and each dict should have only &#39;name&#39; and &#39;value&#39; keys</span>
         <span class="k">if</span> <span class="n">env_vars</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">}</span>
                                 <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">env_vars</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;each dict in env_vars must have keys &quot;name&quot; &#39;</span>
-                             <span class="s1">&#39;and &quot;value&quot;&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;each dict in env_vars must have &#39;</span>
+                             <span class="s1">&#39;keys &quot;name&quot; and &quot;value&quot;&#39;</span><span class="p">)</span>
 
         <span class="n">these_jobs</span> <span class="o">=</span> <span class="p">[]</span>
 
