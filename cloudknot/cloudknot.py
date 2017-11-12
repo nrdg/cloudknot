@@ -1504,13 +1504,13 @@ class Knot(aws.NamedObject):
 
         # env_vars should be a sequence of sequences of dicts
         if env_vars and not all(isinstance(s, dict) for s in env_vars):
-            raise ValueError('env_vars must be a sequences of dicts')
+            raise ValueError('env_vars must be a sequence of dicts')
 
         # and each dict should have only 'name' and 'value' keys
         if env_vars and not all(set(d.keys()) == {'name', 'value'}
                                 for d in env_vars):
-            raise ValueError('each dict in env_vars must have keys "name" '
-                             'and "value"')
+            raise ValueError('each dict in env_vars must have '
+                             'keys "name" and "value"')
 
         these_jobs = []
 
