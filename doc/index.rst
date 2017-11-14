@@ -1,9 +1,33 @@
 Welcome to cloudknot
 ====================
 
-A knot is a collective noun for a group of snakes. `Cloudknot` is a python
+"Knot" is a collective noun for a group of snakes. `Cloudknot` is a python
 library designed to run your existing python code on
 `AWS Batch <https://aws.amazon.com/batch>`_.
+
+Usage
+-----
+
+.. code-block:: python
+
+   import cloudknot as ck
+
+   def random_mv_prod(b):
+      """Here is a function I want to run on AWS Batch"""
+      # Always import dependencies within the function
+      import numpy as np
+
+      x = np.random.normal(0, b, 1024)
+      A = np.random.normal(0, b, (1024, 1024))
+
+      return np.dot(A, x)
+
+   # Create a `Knot`, the primary object in cloudknot (read the docs)
+   knot = ck.Knot(name='random_mv_prod', func=random_mv_prod)
+
+   # Submit the jobs
+   import numpy as np
+   result_futures = knot.map(np.linspace(0.1, 100, 20))
 
 Motivation
 ----------
