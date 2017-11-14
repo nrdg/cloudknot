@@ -1217,10 +1217,6 @@ def test_Knot(cleanup_repos):
         name = get_testing_name()
         knot = ck.Knot(name=name, pars=pars, func=unit_testing_func)
 
-        # Assert ValueError for supplying kwargs to pre-existing knot
-        with pytest.raises(ValueError):
-            ck.Knot(name=name, func=unit_testing_func)
-
         # Now remove the images and repo-uri from the docker-image
         # Forcing the next call to Knot to rebuild and re-push the image.
         config = configparser.ConfigParser()
