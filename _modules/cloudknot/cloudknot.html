@@ -1623,6 +1623,10 @@
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">get_config_file</span><span class="p">(),</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
                 <span class="n">config</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 
+        <span class="c1"># Increase the max_pool_connections in the boto3 clients to prevent</span>
+        <span class="c1"># https://github.com/boto/botocore/issues/766</span>
+        <span class="n">aws</span><span class="o">.</span><span class="n">refresh_clients</span><span class="p">(</span><span class="n">max_pool</span><span class="o">=</span><span class="n">max_threads</span><span class="p">)</span>
+
         <span class="n">executor</span> <span class="o">=</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">these_jobs</span><span class="p">),</span> <span class="n">max_threads</span><span class="p">))</span>
         <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span><span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="k">lambda</span> <span class="n">j</span><span class="p">:</span> <span class="n">j</span><span class="o">.</span><span class="n">result</span><span class="p">(),</span> <span class="n">jb</span><span class="p">)</span>
                    <span class="k">for</span> <span class="n">jb</span> <span class="ow">in</span> <span class="n">these_jobs</span><span class="p">]</span>
