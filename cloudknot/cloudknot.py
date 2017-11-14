@@ -1540,6 +1540,10 @@ class Knot(aws.NamedObject):
             with open(get_config_file(), 'w') as f:
                 config.write(f)
 
+        # Increase the max_pool_connections in the boto3 clients to prevent
+        # https://github.com/boto/botocore/issues/766
+        aws.refresh_clients(max_pool=max_threads)
+
         executor = ThreadPoolExecutor(min(len(these_jobs), max_threads))
         futures = [executor.submit(lambda j: j.result(), jb)
                    for jb in these_jobs]

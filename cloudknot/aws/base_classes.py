@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
 import boto3
+import botocore
 import configparser
 import getpass
 import json
@@ -332,13 +333,21 @@ def set_region(region='us-east-1'):
 
         # Update the boto3 clients so that the region change is reflected
         # throughout the package
+        max_pool = clients['iam'].meta.config.max_pool_connections
+        boto_config = botocore.config.Config(max_pool_connections=max_pool)
         session = boto3.Session(profile_name=get_profile(fallback=None))
-        clients['iam'] = session.client('iam', region_name=region)
-        clients['ec2'] = session.client('ec2', region_name=region)
-        clients['batch'] = session.client('batch', region_name=region)
-        clients['ecr'] = session.client('ecr', region_name=region)
-        clients['ecs'] = session.client('ecs', region_name=region)
-        clients['s3'] = session.client('s3', region_name=region)
+        clients['iam'] = session.client('iam', region_name=region,
+                                        config=boto_config)
+        clients['ec2'] = session.client('ec2', region_name=region,
+                                        config=boto_config)
+        clients['batch'] = session.client('batch', region_name=region,
+                                          config=boto_config)
+        clients['ecr'] = session.client('ecr', region_name=region,
+                                        config=boto_config)
+        clients['ecs'] = session.client('ecs', region_name=region,
+                                        config=boto_config)
+        clients['s3'] = session.client('s3', region_name=region,
+                                       config=boto_config)
 
 
 def list_profiles():
@@ -475,13 +484,21 @@ def set_profile(profile_name):
 
         # Update the boto3 clients so that the profile change is reflected
         # throughout the package
+        max_pool = clients['iam'].meta.config.max_pool_connections
+        boto_config = botocore.config.Config(max_pool_connections=max_pool)
         session = boto3.Session(profile_name=profile_name)
-        clients['iam'] = session.client('iam', region_name=get_region())
-        clients['ec2'] = session.client('ec2', region_name=get_region())
-        clients['batch'] = session.client('batch', region_name=get_region())
-        clients['ecr'] = session.client('ecr', region_name=get_region())
-        clients['ecs'] = session.client('ecs', region_name=get_region())
-        clients['s3'] = session.client('s3', region_name=get_region())
+        clients['iam'] = session.client('iam', region_name=get_region(),
+                                        config=boto_config)
+        clients['ec2'] = session.client('ec2', region_name=get_region(),
+                                        config=boto_config)
+        clients['batch'] = session.client('batch', region_name=get_region(),
+                                          config=boto_config)
+        clients['ecr'] = session.client('ecr', region_name=get_region(),
+                                        config=boto_config)
+        clients['ecs'] = session.client('ecs', region_name=get_region(),
+                                        config=boto_config)
+        clients['s3'] = session.client('s3', region_name=get_region(),
+                                       config=boto_config)
 
 
 #: module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, ECS, S3.
@@ -516,16 +533,23 @@ and region.
 """
 
 
-def refresh_clients():
+def refresh_clients(max_pool=10):
     """Refresh the boto3 clients dictionary"""
     with rlock:
+        config = botocore.config.Config(max_pool_connections=max_pool)
         session = boto3.Session(profile_name=get_profile(fallback=None))
-        clients['iam'] = session.client('iam', region_name=get_region())
-        clients['ec2'] = session.client('ec2', region_name=get_region())
-        clients['batch'] = session.client('batch', region_name=get_region())
-        clients['ecr'] = session.client('ecr', region_name=get_region())
-        clients['ecs'] = session.client('ecs', region_name=get_region())
-        clients['s3'] = session.client('s3', region_name=get_region())
+        clients['iam'] = session.client('iam', region_name=get_region(),
+                                        config=config)
+        clients['ec2'] = session.client('ec2', region_name=get_region(),
+                                        config=config)
+        clients['batch'] = session.client('batch', region_name=get_region(),
+                                          config=config)
+        clients['ecr'] = session.client('ecr', region_name=get_region(),
+                                        config=config)
+        clients['ecs'] = session.client('ecs', region_name=get_region(),
+                                        config=config)
+        clients['s3'] = session.client('s3', region_name=get_region(),
+                                       config=config)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
