@@ -7,6 +7,7 @@ import logging
 import pickle
 import six
 import tenacity
+import time
 from collections import namedtuple
 
 from .base_classes import NamedObject, ObjectWithArn, \
@@ -1806,7 +1807,7 @@ class BatchJob(NamedObject):
             return (datetime.now() - start_time).seconds
 
         while not self.done and (timeout is None or time_diff() < timeout):
-            pass
+            time.sleep(5)
 
         if not self.done:
             raise CKTimeoutError(self.job_id)
