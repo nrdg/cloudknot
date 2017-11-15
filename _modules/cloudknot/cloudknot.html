@@ -975,10 +975,16 @@
                 <span class="n">desired_vcpus</span><span class="p">,</span> <span class="n">image_id</span><span class="p">,</span> <span class="n">ec2_key_pair</span><span class="p">,</span> <span class="n">ce_tags</span><span class="p">,</span> <span class="n">bid_percentage</span><span class="p">,</span>
                 <span class="n">job_queue_name</span><span class="p">,</span> <span class="n">priority</span>
             <span class="p">]):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;You specified configuration arguments for &#39;</span>
-                                 <span class="s1">&#39;a knot that already exists. To create a &#39;</span>
-                                 <span class="s1">&#39;new knot, please choose a new name or &#39;</span>
-                                 <span class="s1">&#39;clobber the pre-existing knot.&#39;</span><span class="p">)</span>
+                <span class="n">mod_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;You specified configuration arguments for a knot that &quot;</span>
+                    <span class="s2">&quot;already exists. Cloudknot has returned the pre-existing &quot;</span>
+                    <span class="s2">&quot;knot, ignoring all of your other input parameters, which &quot;</span>
+                    <span class="s2">&quot;may or may not be the same. You should proceed with &quot;</span>
+                    <span class="s2">&quot;caution and confirm that this knot&#39;s parameters are as &quot;</span>
+                    <span class="s2">&quot;expected. If you want to be extra-safe, choose a &quot;</span>
+                    <span class="s2">&quot;different name or clobber this pre-existing knot and &quot;</span>
+                    <span class="s2">&quot;instantiate a new one with your input arguments.&quot;</span>
+                <span class="p">)</span>
 
             <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Found knot </span><span class="si">{name:s}</span><span class="s1"> in config&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">))</span>
 
