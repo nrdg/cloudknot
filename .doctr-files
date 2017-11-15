@@ -32,6 +32,7 @@
 ./_sources/api/aws.rst.txt
 ./_sources/api/config.rst.txt
 ./_sources/documentation.rst.txt
+./_sources/faq.rst.txt
 ./_sources/getting_started.rst.txt
 ./_sources/index.rst.txt
 ./_static/ajax-loader.gif
@@ -84,6 +85,7 @@
 ./api/aws.html
 ./api/config.html
 ./documentation.html
+./faq.html
 ./genindex.html
 ./getting_started.html
 ./index.html

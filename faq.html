@@ -1,0 +1,163 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Frequently Asked Questions &#8212; cloudknot 0.1 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/collapsible.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="config Module" href="api/config.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">cloudknot</a></h1>
+
+
+
+<p class="blurb">Run your existing python code on AWS Batch</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=richford&repo=cloudknot&type=star&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="documentation.html">documentation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">faq</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/tree/master/examples">examples</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot">code</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/issues">bugs</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="frequently-asked-questions">
+<h1>Frequently Asked Questions<a class="headerlink" href="#frequently-asked-questions" title="Permalink to this headline">¶</a></h1>
+<div class="toggle docutils container">
+<div class="header docutils container">
+How much is this thing going to cost?</div>
+<div class="content docutils container">
+<p>EC2 and Spot instances launched from AWS Batch are <a class="reference external" href="https://aws.amazon.com/blogs/aws/new-per-second-billing-for-ec2-instances-and-ebs-volumes/">billed on a per-second basis</a>.
+So feel free to submit jobs that complete in less than an hour. You can
+minimize your cost by using the cheapest appropriate instance type (see <a class="reference external" href="https://aws.amazon.com/ec2/pricing/on-demand/">EC2 pricing</a>). You can specify the instance type
+by using <cite>Knot</cite>’s <cite>instance_type</cite> input argument. If you don’t specify an instance
+type, the default is <cite>optimal</cite>, meaning that AWS Batch will select the most appropriate
+instance type. You can help Batch select the cheapest viable instance by specifying
+the lowest required memory to <cite>Knot</cite>’s <cite>memory</cite> input argument.</p>
+<p>Another way to lower your expenses is to use spot instances by specifying <cite>Knot</cite>’s
+<cite>resource_type=”SPOT”</cite>. Then you can choose the cheapest region
+(see <a class="reference internal" href="getting_started.html#region-shopping-label"><span class="std std-ref">Region shopping</span></a>).</p>
+</div>
+</div>
+<div class="toggle docutils container">
+<div class="header docutils container">
+My Batch jobs finished but my <cite>future.result()</cite> returns an error or exception. What gives?</div>
+<div class="content docutils container">
+<p>First off, sorry about the error. Please submit a <a class="reference external" href="https://github.com/richford/cloudknot/issues">bug report</a> so that we can try to prevent this
+error from happening again. But fear not, if the job succeeded, your results are
+probably still there. In addition to the results futures returned by <cite>Knot.map()</cite>,
+you can also access the <cite>result()</cite> method of each job in <cite>Knot.jobs</cite>.</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="c1"># Some code up here that did awesome cloudknot stuff</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">results_futures</span> <span class="o">=</span> <span class="n">knot</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">input_args</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">r0</span> <span class="o">=</span> <span class="n">results_futures</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">r0</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+<span class="n">An</span> <span class="n">error</span> <span class="n">occured</span>
+
+<span class="c1"># Have no fear, results are still here</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">j0</span> <span class="o">=</span> <span class="n">knot</span><span class="o">.</span><span class="n">jobs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">j0</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+<span class="n">An</span> <span class="n">amazing</span> <span class="n">result</span>
+</pre></div>
+</div>
+<p>See <a class="reference internal" href="getting_started.html#eg-label"><span class="std std-ref">Examples</span></a> for more details.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    
+    <div class="footer">
+      &copy;2017, Adam Richie-Halford, Ariel Rokem.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/faq.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $(".toggle > *").hide();
+            $(".toggle .header").show();
+            $(".toggle .header").click(function() {
+                $(this).parent().children().not(".header").toggle(400);
+                $(this).parent().children(".header").toggleClass("open");
+            })
+        });
+    </script>
+
+  </body>
+</html>
