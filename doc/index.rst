@@ -49,9 +49,8 @@ existing python code on AWS Batch.
 
 Cloudknot takes as input a python function, Dockerizes it for use in an Amazon
 ECS instance, and creates all the necessary AWS Batch constituent resources to
-submit jobs. Users can then use cloudknot to submit and view jobs for a range
-of inputs. For more details, please see the cloudknot
-documentation [@cloudknotdocs].
+submit jobs. You can then use cloudknot to submit and view jobs for a range
+of inputs.
 
 Installation and getting started
 --------------------------------
