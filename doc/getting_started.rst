@@ -78,6 +78,8 @@ Then you can use the cloudknot functions
 to interact with your various AWS profiles.
 
 
+.. _region-shopping-label:
+
 Region shopping
 ---------------
 
