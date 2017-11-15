@@ -892,10 +892,16 @@ class Knot(aws.NamedObject):
                 desired_vcpus, image_id, ec2_key_pair, ce_tags, bid_percentage,
                 job_queue_name, priority
             ]):
-                raise ValueError('You specified configuration arguments for '
-                                 'a knot that already exists. To create a '
-                                 'new knot, please choose a new name or '
-                                 'clobber the pre-existing knot.')
+                mod_logger.warning(
+                    "You specified configuration arguments for a knot that "
+                    "already exists. Cloudknot has returned the pre-existing "
+                    "knot, ignoring all of your other input parameters, which "
+                    "may or may not be the same. You should proceed with "
+                    "caution and confirm that this knot's parameters are as "
+                    "expected. If you want to be extra-safe, choose a "
+                    "different name or clobber this pre-existing knot and "
+                    "instantiate a new one with your input arguments."
+                )
 
             mod_logger.info('Found knot {name:s} in config'.format(name=name))
 
