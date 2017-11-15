@@ -22,7 +22,7 @@ bibliography: paper.bib
 
 # Summary
 
-In the quest minimize time-to-first-result, many computational scientists are
+In the quest to minimize time-to-first-result, many computational scientists are
 turning to cloud-based distributed computing with commercial vendors like
 Amazon to run their computational workloads. Yet cloud computing remains
 inaccessible to many researchers. A number of python scientific libraries have
@@ -42,5 +42,12 @@ submit jobs. Users can then use cloudknot to submit and view jobs for a range
 of inputs. For more details and usage examples, please see the cloudknot
 documentation [@cloudknotdocs] and examples [@cloudknotexamples].
 
-# References
+# Acknowledgements
 
+Cloudknot development is supported through a grant from the
+[Gordon and Betty Moore Foundation](https://www.moore.org/) and from the
+[Alfred P. Sloan Foundation](https://sloan.org) to the
+[University of Washington eScience Institute](http://escience.washington.edu/)
+
+
+# References
