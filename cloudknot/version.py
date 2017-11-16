@@ -4,10 +4,10 @@ from os.path import join as pjoin
 
 # Format expected by setup.py and doc/source/conf.py: string of form "X.Y.Z"
 _version_major = 0
-_version_minor = 1
+_version_minor = 2
 _version_micro = ''  # use '' for first of series, number for 1 and above
-# _version_extra = 'dev'
-_version_extra = ''  # Uncomment this for full releases
+_version_extra = 'dev'
+# _version_extra = ''  # Uncomment this for full releases
 
 # Construct full version string from these.
 _ver = [_version_major, _version_minor]
@@ -27,23 +27,21 @@ CLASSIFIERS = ["Development Status :: 3 - Alpha",
                "Topic :: Scientific/Engineering"]
 
 # Description should be a one-liner:
-description = "cloudknot: a template for small scientific Python projects"
+description = "cloudknot: a python library designed to run your existing python code on AWS Batch"
 # Long description will go up on the pypi page
 long_description = """
 
 Cloudknot
 ========
-Cloudknot is a template project for small scientific Python projects.
+Cloudknot is a python library designed to run your existing python code on AWS Batch
 
-It contains software implementations of an analysis of some simple data, but
-more importantly, it contains infrastructure for testing, documentation,
-continuous integration and deployment, which can be easily adapted
-to use in other projects.
+Cloudknot takes as input a python function, Dockerizes it for use in an Amazon ECS
+instance, and creates all the necessary AWS Batch constituent resources to submit
+jobs. You can then use cloudknot to submit and view jobs for a range of inputs.
 
-To get started using these components in your own software, please go to the
-repository README_.
+To get started using cloudknot, please see the documentation_.
 
-.. _README: https://github.com/richford/cloudknot/blob/master/README.md
+.. _documentation: https://richford.github.io/cloudknot/
 
 License
 =======
@@ -53,8 +51,7 @@ for usage, and a DISCLAIMER OF ALL WARRANTIES.
 
 All trademarks referenced herein are property of their respective holders.
 
-Copyright (c) 2017--, Adam Richie-Halford, The University of Washington
-Department of Physics.
+Copyright (c) 2017--, Adam Richie-Halford, Ariel Rokem, The University of Washington
 """
 
 NAME = "cloudknot"
@@ -73,4 +70,4 @@ MINOR = _version_minor
 MICRO = _version_micro
 VERSION = __version__
 PACKAGE_DATA = {'cloudknot': [pjoin('data', '*')]}
-REQUIRES = ["numpy"]
+REQUIRES = ["awscli", "boto3", "cloudpickle", "docker", "pipreqs", "six", "tenacity"]
