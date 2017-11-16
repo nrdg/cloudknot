@@ -32,7 +32,7 @@ Usage
 Motivation
 ----------
 
-In the quest minimize time-to-first-result, many computational scientists are
+In the quest to minimize time-to-first-result, many computational scientists are
 turning to cloud-based distributed computing with commercial vendors like
 Amazon to run their computational workloads. Yet cloud computing remains
 inaccessible to many researchers. A number of python scientific libraries have
@@ -98,6 +98,14 @@ License
 
 The project is licensed under the `MIT license
 <https://github.com/richford/cloudknot/blob/master/LICENSE>`_.
+
+Acknowledgements
+----------------
+
+Cloudknot development is supported through a grant from the
+`Gordon and Betty Moore Foundation <https://www.moore.org/>`_ and from the
+`Alfred P. Sloan Foundation <https://sloan.org/>`_ to the
+`University of Washington eScience Institute <http://escience.washington.edu/>`_.
 
 .. toctree::
    :hidden:
