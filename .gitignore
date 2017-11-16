@@ -4,3 +4,6 @@
 _build/
 auto_examples/
 gen_api/
+doc/api/_autosummary
+*.ipynb_checkpoints
+.coverage
