@@ -5,3 +5,4 @@ docker>=2.0.0
 pipreqs
 six
 tenacity
+configparser; python_verstion < '3.0'
