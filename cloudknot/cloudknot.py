@@ -791,7 +791,7 @@ class Knot(aws.NamedObject):
 
         repo_name : str, optional
             Name of the AWS ECR repository to store the created Docker image
-            Default: 'cloudknot/' + self.docker_image.images[0]['name']
+            Default: return value of cloudknot.get_ecr_repo()
 
         image_tags : str or sequence of str
             Tags to be applied to this Docker image
@@ -875,7 +875,7 @@ class Knot(aws.NamedObject):
         super(Knot, self).__init__(name=name)
         self._knot_name = 'knot ' + name
 
-        image_tags = image_tags if image_tags else ['cloudknot']
+        image_tags = image_tags if image_tags else [name]
 
         # Check for existence of this knot in the config file
         config = configparser.ConfigParser()
@@ -1032,7 +1032,7 @@ class Knot(aws.NamedObject):
                 if di.repo_uri is None:
                     # Create the remote repo
                     repo_name = (repo_name if repo_name
-                                 else di.images[0]['name'])
+                                 else aws.get_ecr_repo())
 
                     # Later in __init__, we may abort this init because of
                     # inconsistent job def, compute env, or job queue
@@ -1041,6 +1041,8 @@ class Knot(aws.NamedObject):
                     # whether this repo was created or adopted.
                     if config.has_option('docker-repos', repo_name):
                         # Pre-existing repo, no cleanup necessary
+                        repo_cleanup = False
+                    elif repo_name == aws.get_ecr_repo():
                         repo_cleanup = False
                     else:
                         # Freshly created repo, cleanup necessary
@@ -1621,7 +1623,8 @@ class Knot(aws.NamedObject):
             e.submit(clobber_jq_then_ce,
                      self.job_queue, self.compute_environment)
             e.submit(self.job_definition.clobber)
-            if clobber_repo and self.docker_repo:
+            if all([clobber_repo, self.docker_repo,
+                    (self.docker_repo.name != aws.get_ecr_repo())]):
                 e.submit(self.docker_repo.clobber)
             if clobber_image:
                 e.submit(self.docker_image.clobber)

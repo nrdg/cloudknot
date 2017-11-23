@@ -23,11 +23,85 @@ __all__ = [
     "clients", "refresh_clients",
     "wait_for_compute_environment", "wait_for_job_queue",
     "get_region", "set_region",
+    "get_ecr_repo", "set_ecr_repo",
     "get_s3_bucket", "set_s3_bucket", "get_s3_policy_name",
     "get_profile", "set_profile", "list_profiles",
 ]
 
 mod_logger = logging.getLogger(__name__)
+
+
+def get_ecr_repo():
+    """Get the cloudknot ECR repository
+
+    First, check the cloudknot config file for the ecr-repo option.
+    If that fails, check for the CLOUDKNOT_ECR_REPO environment variable.
+    If that fails, use 'cloudknot'
+
+    Returns
+    -------
+    repo : string
+        Cloudknot ECR repository name
+    """
+    config_file = get_config_file()
+    config = configparser.ConfigParser()
+
+    with rlock:
+        config.read(config_file)
+
+        option = 'ecr-repo'
+        if config.has_section('aws') and config.has_option('aws', option):
+            repo = config.get('aws', option)
+        else:
+            # Set `repo`, the fallback repo in case the cloudknot
+            # repo environment variable is not set
+            try:
+                # Get the region from an environment variable
+                repo = os.environ['CLOUDKNOT_ECR_REPO']
+            except KeyError:
+                repo = 'cloudknot'
+
+        # Use set_ecr_repo to check for name availability
+        # and write to config file
+        set_ecr_repo(repo)
+
+    return repo
+
+
+def set_ecr_repo(repo):
+    """Set the cloudknot ECR repo
+
+    Set repo by modifying the cloudknot config file
+
+    Parameters
+    ----------
+    repo : string
+        Cloudknot ECR repo name
+    """
+    # Update the config file
+    config_file = get_config_file()
+    config = configparser.ConfigParser()
+
+    with rlock:
+        config.read(config_file)
+
+        if not config.has_section('aws'):  # pragma: nocover
+            config.add_section('aws')
+
+        config.set('aws', 'ecr-repo', repo)
+        with open(config_file, 'w') as f:
+            config.write(f)
+
+        try:
+            # If repo exists, retrieve its info
+            clients['ecr'].describe_repositories(
+                repositoryNames=[repo]
+            )
+        except clients['ecr'].exceptions.RepositoryNotFoundException:
+            # If it doesn't exists already, then create it
+            response = clients['ecr'].create_repository(
+                repositoryName=repo
+            )
 
 
 def get_s3_bucket():

@@ -27,17 +27,19 @@ CLASSIFIERS = ["Development Status :: 3 - Alpha",
                "Topic :: Scientific/Engineering"]
 
 # Description should be a one-liner:
-description = "cloudknot: a python library designed to run your existing python code on AWS Batch"
+description = ("cloudknot: a python library designed to run "
+               "your existing python code on AWS Batch")
 # Long description will go up on the pypi page
 long_description = """
-
 Cloudknot
 ========
-Cloudknot is a python library designed to run your existing python code on AWS Batch
+Cloudknot is a python library designed to run your existing python code on
+AWS Batch
 
-Cloudknot takes as input a python function, Dockerizes it for use in an Amazon ECS
-instance, and creates all the necessary AWS Batch constituent resources to submit
-jobs. You can then use cloudknot to submit and view jobs for a range of inputs.
+Cloudknot takes as input a python function, Dockerizes it for use in an Amazon
+ECS instance, and creates all the necessary AWS Batch constituent resources to
+submit jobs. You can then use cloudknot to submit and view jobs for a range of
+inputs.
 
 To get started using cloudknot, please see the documentation_.
 
@@ -51,7 +53,7 @@ for usage, and a DISCLAIMER OF ALL WARRANTIES.
 
 All trademarks referenced herein are property of their respective holders.
 
-Copyright (c) 2017--, Adam Richie-Halford, Ariel Rokem, The University of Washington
+Copyright (c) 2017, Adam Richie-Halford, Ariel Rokem, University of Washington
 """
 
 NAME = "cloudknot"
@@ -70,5 +72,6 @@ MINOR = _version_minor
 MICRO = _version_micro
 VERSION = __version__
 PACKAGE_DATA = {'cloudknot': [pjoin('data', '*'), pjoin('templates', '*')]}
-REQUIRES = ["awscli", "boto3", "cloudpickle", "docker", "pipreqs", "six", "tenacity", 'configparser;python_version<"3.0"']
+REQUIRES = ["awscli", "boto3", "cloudpickle", "docker", "pipreqs",
+            "six", "tenacity", 'configparser;python_version<"3.0"']
 EXTRAS_REQUIRE = {':python_version < "3.0"': ["configparser"]}
