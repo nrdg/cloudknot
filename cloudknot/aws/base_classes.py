@@ -99,9 +99,7 @@ def set_ecr_repo(repo):
             )
         except clients['ecr'].exceptions.RepositoryNotFoundException:
             # If it doesn't exists already, then create it
-            response = clients['ecr'].create_repository(
-                repositoryName=repo
-            )
+            clients['ecr'].create_repository(repositoryName=repo)
 
 
 def get_s3_bucket():
