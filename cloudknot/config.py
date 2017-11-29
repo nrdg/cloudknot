@@ -12,6 +12,7 @@ from __future__ import absolute_import, division, print_function
 
 import cloudknot.aws
 import configparser
+import errno
 import logging
 import os
 from threading import RLock
@@ -46,6 +47,18 @@ def get_config_file():
 
     with rlock:
         if not os.path.isfile(config_file):
+            # If the config directory does not exist, create it
+            configdir = os.path.dirname(config_file)
+            try:
+                os.makedirs(configdir)
+            except OSError as e:
+                pre_existing = (e.errno == errno.EEXIST
+                                and os.path.isdir(configdir))
+                if pre_existing:
+                    pass
+                else:
+                    raise e
+
             # If the config file does not exist, create it
             with open(config_file, 'w') as f:
                 f.write('# cloudknot configuration file')
