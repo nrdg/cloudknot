@@ -80,7 +80,9 @@ def pull_and_push_base_images():
     ])
 
     # Login
-    subprocess.call(login_cmd.decode('ASCII').rstrip('\n').split(' '))
+    login_cmd = login_cmd.decode('ASCII').rstrip('\n').split(' ')
+    fnull = open(os.devnull, 'w')
+    subprocess.call(login_cmd, stdout=fnull, stderr=subprocess.STDOUT)
 
     repo = aws.DockerRepo(name=get_ecr_repo())
 
