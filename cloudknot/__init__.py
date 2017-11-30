@@ -1,11 +1,8 @@
 from __future__ import absolute_import, division, print_function
 
-import docker
 import errno
 import logging
 import os
-import six
-import subprocess
 from concurrent.futures import ThreadPoolExecutor
 
 from . import aws  # noqa
@@ -16,6 +13,7 @@ from .aws.base_classes import get_ecr_repo, set_ecr_repo  # noqa
 from .aws.base_classes import get_s3_bucket, set_s3_bucket  # noqa
 from .aws.base_classes import refresh_clients  # noqa
 from .cloudknot import *  # noqa
+from .commands.configure import pull_and_push_base_images
 from .dockerimage import *  # noqa
 from .version import __version__  # noqa
 
@@ -59,49 +57,10 @@ logging.getLogger('boto').setLevel(logging.WARNING)
 logging.getLogger('boto3').setLevel(logging.WARNING)
 logging.getLogger('botocore').setLevel(logging.WARNING)
 
-
-def pull_and_push_base_images():
-    # Use docker low-level APIClient for tagging
-    c = docker.from_env().api
-    # And the image client for pulling and pushing
-    cli = docker.from_env().images
-
-    # Build the python base image so that later build commands are faster
-    v = '3' if six.PY3 else '2'
-    py_base = 'python:' + v
-    ecr_tag = 'python' + v
-    module_logger.info('Pulling base image {b:s}'.format(b=py_base))
-    cli.pull(py_base)
-
-    # Refresh the aws ecr login credentials
-    login_cmd = subprocess.check_output([
-        'aws', 'ecr', 'get-login', '--no-include-email',
-        '--region', get_region()
-    ])
-
-    # Login
-    login_cmd = login_cmd.decode('ASCII').rstrip('\n').split(' ')
-    fnull = open(os.devnull, 'w')
-    subprocess.call(login_cmd, stdout=fnull, stderr=subprocess.STDOUT)
-
-    repo = aws.DockerRepo(name=get_ecr_repo())
-
-    # Log tagging info
-    module_logger.info('Tagging base image {name:s}'.format(name=py_base))
-
-    # Tag it with the most recently added image_name
-    c.tag(image=py_base, repository=repo.repo_uri, tag=ecr_tag)
-
-    # Log push info
-    module_logger.info(
-        'Pushing base image {name:s} to ecr repository {repo:s}'
-        ''.format(name=py_base, repo=repo.repo_uri)
-    )
-
-    for l in cli.push(repository=repo.repo_uri, tag=ecr_tag, stream=True):
-        module_logger.debug(l)
-
-
-executor = ThreadPoolExecutor(1)
-base_image_future = executor.submit(pull_and_push_base_images)
-executor.shutdown(wait=False)
+# executor = ThreadPoolExecutor(1)
+# base_image_future = executor.submit(
+#     pull_and_push_base_images,
+#     region=get_region(),
+#     ecr_repo=get_ecr_repo()
+# )
+# executor.shutdown(wait=False)
