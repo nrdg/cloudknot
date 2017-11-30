@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function
 import errno
 import logging
 import os
+import subprocess
 from concurrent.futures import ThreadPoolExecutor
 
 from . import aws  # noqa
@@ -16,6 +17,18 @@ from .cloudknot import *  # noqa
 from .commands.configure import pull_and_push_base_images
 from .dockerimage import *  # noqa
 from .version import __version__  # noqa
+
+try:
+    fnull = open(os.devnull, 'w')
+    subprocess.check_call('docker version', shell=True,
+                          stdout=fnull, stderr=subprocess.STDOUT)
+except subprocess.CalledProcessError:
+    raise ImportError(
+        "It looks like you don't have Docker installed or running. Please go "
+        "to https://docs.docker.com/engine/installation/ to install it. Once "
+        "installed, make sure that the Docker daemon is running before using "
+        "cloudknot."
+    )
 
 module_logger = logging.getLogger(__name__)
 
