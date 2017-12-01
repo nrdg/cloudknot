@@ -45,7 +45,12 @@ if not imported_from_config:
             "It looks like you haven't run `cloudknot configure` to set up "
             "your cloudknot environment. Or perhaps you did that but you have "
             "since deleted your cloudknot configuration file. Please run "
-            "`cloudknot configure` before using cloudknot."
+            "`cloudknot configure` before using cloudknot. config_file={f:s}, "
+            "conf.has_section('aws') = {r0!s}, conf.has_option('aws', "
+            "'configured') = {r1!s}, conf.get('aws', 'configured') = {r2:s}"
+            "".format(f=config_file, r0=conf.has_section('aws'),
+                      r1=conf.has_option('aws', 'configured'),
+                      r2=conf.get('aws', 'configured'))
         )
 
 module_logger = logging.getLogger(__name__)
