@@ -25,7 +25,6 @@ install:
 script:
 - flake8 --ignore N802,N806,W503 `find . -name \*.py | grep -v setup.py | grep -v
   version.py | grep -v __init__.py | grep -v /doc/`
-- cat ~/.aws/cloudknot
 - mkdir for_test
 - cd for_test
 - printf "[aws]\nconfigured = True\n" > ./cloudknot
