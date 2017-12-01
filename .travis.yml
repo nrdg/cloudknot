@@ -22,11 +22,12 @@ install:
 - travis_retry pip install $PIP_DEPS
 - travis_retry pip install -r requirements.txt
 - travis_retry pip install -e .
+- mkdir ~/.aws
+- printf "[aws]\nconfigured = True\n" > ~/.aws/cloudknot
 script:
 - flake8 --ignore N802,N806,W503 `find . -name \*.py | grep -v setup.py | grep -v
   version.py | grep -v __init__.py | grep -v /doc/`
-- mkdir ~/.aws
-- printf "[aws]\nconfigured = True\n" > ~/.aws/cloudknot
+- cat ~/.aws/cloudknot
 - mkdir for_test
 - cd for_test
 - travis_wait 50 py.test --pyargs cloudknot --cov-report term-missing --cov=cloudknot
