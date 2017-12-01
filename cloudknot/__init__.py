@@ -1,10 +1,11 @@
 from __future__ import absolute_import, division, print_function
 
+import configparser
 import errno
+import inspect
 import logging
 import os
 import subprocess
-from concurrent.futures import ThreadPoolExecutor
 
 from . import aws  # noqa
 from . import config  # noqa
@@ -14,7 +15,6 @@ from .aws.base_classes import get_ecr_repo, set_ecr_repo  # noqa
 from .aws.base_classes import get_s3_bucket, set_s3_bucket  # noqa
 from .aws.base_classes import refresh_clients  # noqa
 from .cloudknot import *  # noqa
-from .commands.configure import pull_and_push_base_images
 from .dockerimage import *  # noqa
 from .version import __version__  # noqa
 
@@ -29,6 +29,24 @@ except subprocess.CalledProcessError:
         "installed, make sure that the Docker daemon is running before using "
         "cloudknot."
     )
+
+conf_context = "load_entry_point('cloudknot', 'console_scripts', 'cloudknot')"
+imported_from_config = (conf_context in inspect.stack()[-1].code_context[0])
+
+if not imported_from_config:
+    config_file = config.get_config_file()
+    conf = configparser.ConfigParser()
+    conf.read(config_file)
+
+    if not (conf.has_section('aws')
+            and conf.has_option('aws', 'configured')
+            and conf.get('aws', 'configured') == 'True'):
+        raise ImportError(
+            "It looks like you haven't run `cloudknot configure` to set up "
+            "your cloudknot environment. Or perhaps you did that but you have "
+            "since deleted your cloudknot configuration file. Please run "
+            "`cloudknot configure` before using cloudknot."
+        )
 
 module_logger = logging.getLogger(__name__)
 
@@ -69,11 +87,3 @@ module_logger.info('Started new cloudknot session')
 logging.getLogger('boto').setLevel(logging.WARNING)
 logging.getLogger('boto3').setLevel(logging.WARNING)
 logging.getLogger('botocore').setLevel(logging.WARNING)
-
-# executor = ThreadPoolExecutor(1)
-# base_image_future = executor.submit(
-#     pull_and_push_base_images,
-#     region=get_region(),
-#     ecr_repo=get_ecr_repo()
-# )
-# executor.shutdown(wait=False)

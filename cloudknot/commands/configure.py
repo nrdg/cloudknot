@@ -10,6 +10,7 @@ from awscli.customizations.configure.configure import InteractivePrompter
 from .base import Base
 from ..aws import DockerRepo, get_profile, get_region, get_ecr_repo, \
     set_profile, set_region, set_ecr_repo
+from ..config import add_resource
 
 module_logger = logging.getLogger(__name__)
 
@@ -107,5 +108,7 @@ class Configure(Base):
 
         pull_and_push_base_images(region=values['region'],
                                   ecr_repo=values['ecr_repo'])
+
+        add_resource('aws', 'configured', 'True')
 
         print('All done.\n')
