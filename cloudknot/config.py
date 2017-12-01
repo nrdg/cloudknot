@@ -16,10 +16,8 @@ import logging
 import os
 from threading import RLock
 
-from cloudknot import aws
-
 __all__ = ["get_config_file", "add_resource", "remove_resource",
-           "verify_sections", "prune"]
+           "verify_sections"]
 
 mod_logger = logging.getLogger(__name__)
 rlock = RLock()
@@ -150,77 +148,5 @@ def verify_sections():
             if not section_approved(section):
                 config.remove_section(section)
 
-        with open(config_file, 'w') as f:
-            config.write(f)
-
-
-def prune():
-    """Remove config items for non-existent AWS resources"""
-    raise NotImplementedError('prune is not yet implemented.')
-    # prune needs to be updated to use the region info in config
-
-    verify_sections()
-
-    config_file = get_config_file()
-    config = configparser.ConfigParser()
-
-    with rlock:
-        config.read(config_file)
-
-        # Prune roles
-        for role_name in config.options('roles'):
-            try:
-                aws.IamRole(name=role_name)
-            except aws.ResourceDoesNotExistException:
-                config.remove_option('roles', role_name)
-
-        # Prune VPCs
-        for vpc_id in config.options('vpc'):
-            try:
-                aws.Vpc(vpc_id=vpc_id)
-            except aws.ResourceDoesNotExistException:
-                config.remove_option('vpc', vpc_id)
-
-        # Prune security groups
-        for sg_id in config.options('security-groups'):
-            try:
-                aws.SecurityGroup(security_group_id=sg_id)
-            except aws.ResourceDoesNotExistException:
-                config.remove_option('security-groups', sg_id)
-
-        # Prune docker containers
-        for repo in config.options('docker-repos'):
-            pass
-
-        # Prune job definitions
-        for job_def_name in config.options('job-definitions'):
-            try:
-                aws.JobDefinition(name=job_def_name)
-            except aws.ResourceDoesNotExistException:
-                config.remove_option('job-definitions', job_def_name)
-
-        # Prune compute environments
-        for ce_name in config.options('compute-environments'):
-            try:
-                aws.ComputeEnvironment(name=ce_name)
-            except aws.ResourceDoesNotExistException:
-                config.remove_option('compute-environments', ce_name)
-
-        # Prune job queues
-        for queue_name in config.options('job-queues'):
-            try:
-                aws.JobQueue(name=queue_name)
-            except aws.ResourceDoesNotExistException:
-                config.remove_option('job-queues', queue_name)
-
-        # Prune batch jobs
-        for job_id in config.options('jobs'):
-            try:
-                aws.BatchJob(job_id=job_id)
-            except aws.ResourceDoesNotExistException:
-                config.remove_option('jobs', job_id)
-
-        # Prune pars
-        # Prune knots
         with open(config_file, 'w') as f:
             config.write(f)
