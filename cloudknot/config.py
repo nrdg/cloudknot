@@ -10,12 +10,13 @@ references to its state in the config file.
 """
 from __future__ import absolute_import, division, print_function
 
-import cloudknot.aws
 import configparser
 import errno
 import logging
 import os
 from threading import RLock
+
+from cloudknot import aws
 
 __all__ = ["get_config_file", "add_resource", "remove_resource",
            "verify_sections", "prune"]
@@ -169,22 +170,22 @@ def prune():
         # Prune roles
         for role_name in config.options('roles'):
             try:
-                cloudknot.aws.iam.IamRole(name=role_name)
-            except cloudknot.aws.ResourceDoesNotExistException:
+                aws.IamRole(name=role_name)
+            except aws.ResourceDoesNotExistException:
                 config.remove_option('roles', role_name)
 
         # Prune VPCs
         for vpc_id in config.options('vpc'):
             try:
-                cloudknot.aws.ec2.Vpc(vpc_id=vpc_id)
-            except cloudknot.aws.ResourceDoesNotExistException:
+                aws.Vpc(vpc_id=vpc_id)
+            except aws.ResourceDoesNotExistException:
                 config.remove_option('vpc', vpc_id)
 
         # Prune security groups
         for sg_id in config.options('security-groups'):
             try:
-                cloudknot.aws.ec2.SecurityGroup(security_group_id=sg_id)
-            except cloudknot.aws.ResourceDoesNotExistException:
+                aws.SecurityGroup(security_group_id=sg_id)
+            except aws.ResourceDoesNotExistException:
                 config.remove_option('security-groups', sg_id)
 
         # Prune docker containers
@@ -194,29 +195,29 @@ def prune():
         # Prune job definitions
         for job_def_name in config.options('job-definitions'):
             try:
-                cloudknot.aws.iam.IamRole(name=job_def_name)
-            except cloudknot.aws.ResourceDoesNotExistException:
+                aws.JobDefinition(name=job_def_name)
+            except aws.ResourceDoesNotExistException:
                 config.remove_option('job-definitions', job_def_name)
 
         # Prune compute environments
         for ce_name in config.options('compute-environments'):
             try:
-                cloudknot.aws.iam.IamRole(name=ce_name)
-            except cloudknot.aws.ResourceDoesNotExistException:
+                aws.ComputeEnvironment(name=ce_name)
+            except aws.ResourceDoesNotExistException:
                 config.remove_option('compute-environments', ce_name)
 
         # Prune job queues
         for queue_name in config.options('job-queues'):
             try:
-                cloudknot.aws.iam.IamRole(name=queue_name)
-            except cloudknot.aws.ResourceDoesNotExistException:
+                aws.JobQueue(name=queue_name)
+            except aws.ResourceDoesNotExistException:
                 config.remove_option('job-queues', queue_name)
 
         # Prune batch jobs
         for job_id in config.options('jobs'):
             try:
-                cloudknot.aws.iam.IamRole(job_id=job_id)
-            except cloudknot.aws.ResourceDoesNotExistException:
+                aws.BatchJob(job_id=job_id)
+            except aws.ResourceDoesNotExistException:
                 config.remove_option('jobs', job_id)
 
         # Prune pars
