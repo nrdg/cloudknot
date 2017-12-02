@@ -111,6 +111,7 @@
             "Sid": "Stmt1506475112000",
             "Effect": "Allow",
             "Action": [
+                "ecr:BatchDeleteImage",
                 "ecr:CreateRepository",
                 "ecr:DescribeRepositories",
                 "ecr:DescribeImages",

@@ -748,7 +748,7 @@ def test_DockerRepo(bucket_cleanup):
 
         retry = tenacity.Retrying(
             wait=tenacity.wait_exponential(max=16),
-            stop=tenacity.stop_after_delay(60),
+            stop=tenacity.stop_after_delay(180),
             retry=tenacity.retry_unless_exception_type(
                 ecr.exceptions.RepositoryNotFoundException
             )
@@ -810,7 +810,7 @@ def test_DockerRepo(bucket_cleanup):
 
         retry = tenacity.Retrying(
             wait=tenacity.wait_exponential(max=16),
-            stop=tenacity.stop_after_delay(60),
+            stop=tenacity.stop_after_delay(180),
             retry=tenacity.retry_unless_exception_type(
                 ecr.exceptions.RepositoryNotFoundException
             )
@@ -961,7 +961,7 @@ def test_Vpc(bucket_cleanup):
 
         retry = tenacity.Retrying(
             wait=tenacity.wait_exponential(max=16),
-            stop=tenacity.stop_after_delay(120),
+            stop=tenacity.stop_after_delay(180),
             retry=tenacity.retry_unless_exception_type(
                 ec2.exceptions.ClientError
             )
@@ -1031,7 +1031,7 @@ def test_Vpc(bucket_cleanup):
 
             retry = tenacity.Retrying(
                 wait=tenacity.wait_exponential(max=16),
-                stop=tenacity.stop_after_delay(120),
+                stop=tenacity.stop_after_delay(180),
                 retry=tenacity.retry_unless_exception_type(
                     ec2.exceptions.ClientError
                 )
@@ -1309,7 +1309,7 @@ def test_SecurityGroup(bucket_cleanup):
 
         retry = tenacity.Retrying(
             wait=tenacity.wait_exponential(max=16),
-            stop=tenacity.stop_after_delay(120),
+            stop=tenacity.stop_after_delay(300),
             retry=tenacity.retry_unless_exception_type(
                 ec2.exceptions.ClientError
             )

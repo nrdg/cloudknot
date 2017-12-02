@@ -4,7 +4,7 @@ import cloudknot.config
 import logging
 from collections import namedtuple
 
-from .base_classes import NamedObject, clients
+from .base_classes import NamedObject, clients, get_ecr_repo
 
 __all__ = ["DockerRepo"]
 
@@ -97,16 +97,17 @@ class DockerRepo(NamedObject):
 
         self.check_profile_and_region()
 
-        try:
-            # Remove the remote docker image
-            clients['ecr'].delete_repository(
-                registryId=self.repo_registry_id,
-                repositoryName=self.name,
-                force=True
-            )
-        except clients['ecr'].exceptions.RepositoryNotFoundException:
-            # It doesn't exist anyway, so carry on
-            pass
+        if self.name != get_ecr_repo():
+            try:
+                # Remove the remote docker image
+                clients['ecr'].delete_repository(
+                    registryId=self.repo_registry_id,
+                    repositoryName=self.name,
+                    force=True
+                )
+            except clients['ecr'].exceptions.RepositoryNotFoundException:
+                # It doesn't exist anyway, so carry on
+                pass
 
         # Remove from the config file
         cloudknot.config.remove_resource(self._section_name, self.name)
@@ -116,5 +117,5 @@ class DockerRepo(NamedObject):
         self._clobbered = True
 
         mod_logger.info(
-            'Clobbered docker image {name:s}'.format(name=self.name)
+            'Clobbered docker repo {name:s}'.format(name=self.name)
         )

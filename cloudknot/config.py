@@ -10,14 +10,14 @@ references to its state in the config file.
 """
 from __future__ import absolute_import, division, print_function
 
-import cloudknot.aws
 import configparser
+import errno
 import logging
 import os
 from threading import RLock
 
 __all__ = ["get_config_file", "add_resource", "remove_resource",
-           "verify_sections", "prune"]
+           "verify_sections"]
 
 mod_logger = logging.getLogger(__name__)
 rlock = RLock()
@@ -46,6 +46,18 @@ def get_config_file():
 
     with rlock:
         if not os.path.isfile(config_file):
+            # If the config directory does not exist, create it
+            configdir = os.path.dirname(config_file)
+            try:
+                os.makedirs(configdir)
+            except OSError as e:
+                pre_existing = (e.errno == errno.EEXIST
+                                and os.path.isdir(configdir))
+                if pre_existing:
+                    pass
+                else:
+                    raise e
+
             # If the config file does not exist, create it
             with open(config_file, 'w') as f:
                 f.write('# cloudknot configuration file')
@@ -136,77 +148,5 @@ def verify_sections():
             if not section_approved(section):
                 config.remove_section(section)
 
-        with open(config_file, 'w') as f:
-            config.write(f)
-
-
-def prune():
-    """Remove config items for non-existent AWS resources"""
-    raise NotImplementedError('prune is not yet implemented.')
-    # prune needs to be updated to use the region info in config
-
-    verify_sections()
-
-    config_file = get_config_file()
-    config = configparser.ConfigParser()
-
-    with rlock:
-        config.read(config_file)
-
-        # Prune roles
-        for role_name in config.options('roles'):
-            try:
-                cloudknot.aws.iam.IamRole(name=role_name)
-            except cloudknot.aws.ResourceDoesNotExistException:
-                config.remove_option('roles', role_name)
-
-        # Prune VPCs
-        for vpc_id in config.options('vpc'):
-            try:
-                cloudknot.aws.ec2.Vpc(vpc_id=vpc_id)
-            except cloudknot.aws.ResourceDoesNotExistException:
-                config.remove_option('vpc', vpc_id)
-
-        # Prune security groups
-        for sg_id in config.options('security-groups'):
-            try:
-                cloudknot.aws.ec2.SecurityGroup(security_group_id=sg_id)
-            except cloudknot.aws.ResourceDoesNotExistException:
-                config.remove_option('security-groups', sg_id)
-
-        # Prune docker containers
-        for repo in config.options('docker-repos'):
-            pass
-
-        # Prune job definitions
-        for job_def_name in config.options('job-definitions'):
-            try:
-                cloudknot.aws.iam.IamRole(name=job_def_name)
-            except cloudknot.aws.ResourceDoesNotExistException:
-                config.remove_option('job-definitions', job_def_name)
-
-        # Prune compute environments
-        for ce_name in config.options('compute-environments'):
-            try:
-                cloudknot.aws.iam.IamRole(name=ce_name)
-            except cloudknot.aws.ResourceDoesNotExistException:
-                config.remove_option('compute-environments', ce_name)
-
-        # Prune job queues
-        for queue_name in config.options('job-queues'):
-            try:
-                cloudknot.aws.iam.IamRole(name=queue_name)
-            except cloudknot.aws.ResourceDoesNotExistException:
-                config.remove_option('job-queues', queue_name)
-
-        # Prune batch jobs
-        for job_id in config.options('jobs'):
-            try:
-                cloudknot.aws.iam.IamRole(job_id=job_id)
-            except cloudknot.aws.ResourceDoesNotExistException:
-                config.remove_option('jobs', job_id)
-
-        # Prune pars
-        # Prune knots
         with open(config_file, 'w') as f:
             config.write(f)

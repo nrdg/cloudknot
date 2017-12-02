@@ -791,7 +791,7 @@ class Knot(aws.NamedObject):
 
         repo_name : str, optional
             Name of the AWS ECR repository to store the created Docker image
-            Default: 'cloudknot/' + self.docker_image.images[0]['name']
+            Default: return value of cloudknot.get_ecr_repo()
 
         image_tags : str or sequence of str
             Tags to be applied to this Docker image
@@ -875,7 +875,7 @@ class Knot(aws.NamedObject):
         super(Knot, self).__init__(name=name)
         self._knot_name = 'knot ' + name
 
-        image_tags = image_tags if image_tags else ['cloudknot']
+        image_tags = image_tags if image_tags else [name]
 
         # Check for existence of this knot in the config file
         config = configparser.ConfigParser()
@@ -1032,7 +1032,7 @@ class Knot(aws.NamedObject):
                 if di.repo_uri is None:
                     # Create the remote repo
                     repo_name = (repo_name if repo_name
-                                 else di.images[0]['name'])
+                                 else aws.get_ecr_repo())
 
                     # Later in __init__, we may abort this init because of
                     # inconsistent job def, compute env, or job queue
@@ -1041,6 +1041,8 @@ class Knot(aws.NamedObject):
                     # whether this repo was created or adopted.
                     if config.has_option('docker-repos', repo_name):
                         # Pre-existing repo, no cleanup necessary
+                        repo_cleanup = False
+                    elif repo_name == aws.get_ecr_repo():
                         repo_cleanup = False
                     else:
                         # Freshly created repo, cleanup necessary
@@ -1621,8 +1623,33 @@ class Knot(aws.NamedObject):
             e.submit(clobber_jq_then_ce,
                      self.job_queue, self.compute_environment)
             e.submit(self.job_definition.clobber)
-            if clobber_repo and self.docker_repo:
-                e.submit(self.docker_repo.clobber)
+            if clobber_repo:
+                dr = self.docker_repo
+                if dr and dr.name != aws.get_ecr_repo():
+                    # if the docker repo instance exists and it is not the
+                    # default cloudknot ECR repo, then clobber it
+                    e.submit(self.docker_repo.clobber)
+                else:
+                    # Either the repo instance is unavailable or this is in
+                    # the default cloudknot ECR repo.
+                    uri = self.docker_image.repo_uri
+                    repo_name = uri.split('amazonaws.com/')[-1].split(':')[0]
+                    if repo_name == aws.get_ecr_repo():
+                        # This is in the default ECR repo. So just delete the
+                        # image from the remote repo, leaving other images
+                        # untouched.
+                        registry_id = uri.split('.')[0]
+                        tag = uri.split(':')[-1]
+
+                        e.submit(aws.clients['ecr'].batch_delete_image,
+                                 registryId=registry_id,
+                                 repositoryName=repo_name,
+                                 imageIds=[{'imageTag': tag}])
+                    else:
+                        # This is not the default repo, feel free to clobber
+                        repo = aws.DockerRepo(name=repo_name)
+                        e.submit(repo.clobber)
+
             if clobber_image:
                 e.submit(self.docker_image.clobber)
             if clobber_pars:
