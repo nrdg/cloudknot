@@ -22,16 +22,17 @@ You can install cloudknot from PyPI (recommended)::
    pip install cloudknot
 
 or from the `github repository <https://github.com/richford/cloudknot>`_.
-This will install cloudknot and its dependencies, including the AWS command
-line utilities. If you haven't already done so, we recommend that you follow
-the `awscli configuration instructions
-<http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html>`_.
+This will install cloudknot and its python dependencies. You must also
+`install Docker <https://docs.docker.com/engine/installation/>`_ and start
+the Docker daemon for cloudknot to work properly.
 
-If you have a "default" profile listed in either the AWS credentials file or
-the AWS CLI configuration file, then cloudknot should work out of the box.
-If you don't know what either of those files are, read about
-`AWS configuration files
-<https://docs.aws.amazon.com/cli/latest/userguide/cli-config-files.html>`_.
+After installation, you must configure cloudknot by running::
+
+    cloudknot configure
+
+This runs the AWS-CLI configuration tool and also installs some cloudknot
+infrastructure on AWS. Follow the prompts or simply press <ENTER> to accept
+the default values.
 
 
 Permissions
