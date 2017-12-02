@@ -30,11 +30,13 @@ except subprocess.CalledProcessError:
         "cloudknot."
     )
 
-conf_context = "load_entry_point('cloudknot', 'console_scripts', 'cloudknot')"
 try:
-    imported_from_config = (conf_context in inspect.stack()[-1].code_context[0])
+    context = inspect.stack()[-1].code_context
 except AttributeError:
-    imported_from_config = (conf_context in inspect.stack()[-1][-2][0])
+    context = inspect.stack()[-1][-2]
+
+conf_context = "load_entry_point('cloudknot', 'console_scripts', 'cloudknot')"
+imported_from_config = context is not None and conf_context in context[0]
 
 if not imported_from_config:
     config_file = config.get_config_file()
