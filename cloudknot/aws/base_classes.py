@@ -179,7 +179,8 @@ def set_s3_bucket(bucket):
         except clients['s3'].exceptions.ClientError as e:
             # Check for Illegal Location Constraint
             error_code = e.response['Error']['Code']
-            if error_code == 'IllegalLocationConstraintException':
+            if error_code in ['IllegalLocationConstraintException',
+                              'InvalidLocationConstraint']:
                 try:
                     clients['s3'].create_bucket(Bucket=bucket)
                 except clients['s3'].exceptions.BucketAlreadyOwnedByYou:
