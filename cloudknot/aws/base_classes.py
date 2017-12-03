@@ -165,8 +165,17 @@ def set_s3_bucket(bucket):
             config.write(f)
 
         # Create the bucket
+        region = get_region()
         try:
-            clients['s3'].create_bucket(Bucket=bucket)
+            if region == 'us-east-1':
+                clients['s3'].create_bucket(Bucket=bucket)
+            else:
+                clients['s3'].create_bucket(
+                    Bucket=bucket,
+                    CreateBucketConfiguration={
+                        'LocationConstraint': region
+                    }
+                )
         except clients['s3'].exceptions.BucketAlreadyOwnedByYou:
             pass
         except clients['s3'].exceptions.BucketAlreadyExists:
