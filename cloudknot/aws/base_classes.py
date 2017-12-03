@@ -165,21 +165,31 @@ def set_s3_bucket(bucket):
             config.write(f)
 
         # Create the bucket
-        region = get_region()
         try:
-            if region == 'us-east-1':
-                clients['s3'].create_bucket(Bucket=bucket)
-            else:
-                clients['s3'].create_bucket(
-                    Bucket=bucket,
-                    CreateBucketConfiguration={
-                        'LocationConstraint': region
-                    }
-                )
+            clients['s3'].create_bucket(
+                Bucket=bucket,
+                CreateBucketConfiguration={
+                    'LocationConstraint': get_region()
+                }
+            )
         except clients['s3'].exceptions.BucketAlreadyOwnedByYou:
             pass
         except clients['s3'].exceptions.BucketAlreadyExists:
             raise ValueError('The requested bucket name is not available.')
+        except clients['s3'].exceptions.ClientError as e:
+            # Check for Illegal Location Constraint
+            error_code = e.response['Error']['Code']
+            if error_code == 'IllegalLocationConstraintException':
+                try:
+                    clients['s3'].create_bucket(Bucket=bucket)
+                except clients['s3'].exceptions.BucketAlreadyOwnedByYou:
+                    pass
+                except clients['s3'].exceptions.BucketAlreadyExists:
+                    raise ValueError('The requested bucket name '
+                                     'is not available.')
+            else:
+                # Pass exception to user
+                raise e
 
         # Update the s3_policy with new bucket name
         update_s3_policy(bucket)
