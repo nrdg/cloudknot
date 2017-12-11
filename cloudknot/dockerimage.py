@@ -14,7 +14,7 @@ from string import Template
 
 from . import aws
 from . import config as ckconfig
-from .aws.base_classes import get_region, \
+from .aws.base_classes import get_region, get_profile, \
     ResourceDoesNotExistException, ResourceClobberedException
 from .config import get_config_file, rlock
 
@@ -527,11 +527,21 @@ class DockerImage(aws.NamedObject):
                 'first before calling `tag()`.'
             )
 
+        fallback = 'from_env'
+        if get_profile(fallback=fallback) != fallback:
+            cmd = [
+                'aws', 'ecr', 'get-login', '--no-include-email',
+                '--region', get_region(),
+                '--profile', get_profile(),
+            ]
+        else:
+            cmd = [
+                'aws', 'ecr', 'get-login', '--no-include-email',
+                '--region', get_region(),
+            ]
+
         # Refresh the aws ecr login credentials
-        login_cmd = subprocess.check_output([
-            'aws', 'ecr', 'get-login', '--no-include-email',
-            '--region', get_region()
-        ])
+        login_cmd = subprocess.check_output(cmd)
 
         # Login
         login_cmd = login_cmd.decode('ASCII').rstrip('\n').split(' ')

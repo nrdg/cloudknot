@@ -15,7 +15,7 @@ from ..config import add_resource
 module_logger = logging.getLogger(__name__)
 
 
-def pull_and_push_base_images(region, ecr_repo):
+def pull_and_push_base_images(region, profile, ecr_repo):
     # Use docker low-level APIClient for tagging
     c = docker.from_env().api
     # And the image client for pulling and pushing
@@ -28,11 +28,20 @@ def pull_and_push_base_images(region, ecr_repo):
     module_logger.info('Pulling base image {b:s}'.format(b=py_base))
     cli.pull(py_base)
 
+    if profile != 'from-env':
+        cmd = [
+            'aws', 'ecr', 'get-login', '--no-include-email',
+            '--region', region,
+            '--profile', profile,
+        ]
+    else:
+        cmd = [
+            'aws', 'ecr', 'get-login', '--no-include-email',
+            '--region', region,
+        ]
+
     # Refresh the aws ecr login credentials
-    login_cmd = subprocess.check_output([
-        'aws', 'ecr', 'get-login', '--no-include-email',
-        '--region', region
-    ])
+    login_cmd = subprocess.check_output(cmd)
 
     # Login
     login_cmd = login_cmd.decode('ASCII').rstrip('\n').split(' ')
@@ -72,16 +81,20 @@ class Configure(Base):
               '`cloudknot configure`\n')
 
         values_to_prompt = [
-            # (config_name, prompt_text, default_value)
-            ('profile', "AWS profile to use", get_profile()),
-            ('region', "Default region name", get_region()),
-            ('ecr_repo', "Default AWS ECR repository name", get_ecr_repo()),
+            # (config_name, prompt_text, getter, setter)
+            ('profile', "AWS profile to use", get_profile, set_profile),
+            ('region', "Default region name", get_region, set_region),
+            (
+                'ecr_repo', "Default AWS ECR repository name",
+                get_ecr_repo, set_ecr_repo
+            ),
         ]
 
         values = {}
-        set_flags = {}
-        for config_name, prompt_text, default_value in values_to_prompt:
+        for config_name, prompt_text, getter, setter in values_to_prompt:
             prompter = InteractivePrompter()
+            default_value = getter()
+
             new_value = prompter.get_value(
                 current_value=default_value,
                 config_name=config_name,
@@ -90,23 +103,16 @@ class Configure(Base):
 
             if new_value is not None and new_value != default_value:
                 values[config_name] = new_value
-                set_flags[config_name] = True
+                setter(new_value)
             else:
                 values[config_name] = default_value
-                set_flags[config_name] = False
-
-        if set_flags['profile']:
-            set_profile(values['profile'])
-        if set_flags['region']:
-            set_region(values['region'])
-        if set_flags['ecr_repo']:
-            set_ecr_repo(values['ecr_repo'])
 
         print('\nCloudknot will now pull the base python docker image to your '
               'local machine and push the same docker image to your cloudknot '
               'repository on AWS ECR.')
 
         pull_and_push_base_images(region=values['region'],
+                                  profile=values['profile'],
                                   ecr_repo=values['ecr_repo'])
 
         add_resource('aws', 'configured', 'True')
