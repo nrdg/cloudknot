@@ -37,6 +37,7 @@ after_success:
     pip install sphinx sphinx-gallery
     set -e;
     cd doc;
+    make clean;
     make html;
     cd ..;
     pip install doctr;
