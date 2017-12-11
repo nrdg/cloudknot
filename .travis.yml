@@ -25,8 +25,8 @@ install:
 script:
 - flake8 --ignore N802,N806,W503 `find . -name \*.py | grep -v setup.py | grep -v
   version.py | grep -v __init__.py | grep -v /doc/`
-- mkdir config_files
-- printf "[aws]\nconfigured = True\n" > config_files/cloudknot
+- mkdir ~/config_files
+- printf "[aws]\nconfigured = True\n" > ~/config_files/cloudknot
 - mkdir for_test
 - cd for_test
 - travis_wait 50 py.test --pyargs cloudknot --cov-report term-missing --cov=cloudknot
