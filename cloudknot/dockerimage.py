@@ -527,12 +527,21 @@ class DockerImage(aws.NamedObject):
                 'first before calling `tag()`.'
             )
 
+        fallback = 'from_env'
+        if get_profile(fallback=fallback) != fallback:
+            cmd = [
+                'aws', 'ecr', 'get-login', '--no-include-email',
+                '--region', get_region(),
+                '--profile', get_profile(),
+            ]
+        else:
+            cmd = [
+                'aws', 'ecr', 'get-login', '--no-include-email',
+                '--region', get_region(),
+            ]
+
         # Refresh the aws ecr login credentials
-        login_cmd = subprocess.check_output([
-            'aws', 'ecr', 'get-login', '--no-include-email',
-            '--region', get_region(),
-            '--profile', get_profile(),
-        ])
+        login_cmd = subprocess.check_output(cmd)
 
         # Login
         login_cmd = login_cmd.decode('ASCII').rstrip('\n').split(' ')
