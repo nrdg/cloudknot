@@ -54,7 +54,8 @@ if not imported_from_config:
             "It looks like you haven't run `cloudknot configure` to set up "
             "your cloudknot environment. Or perhaps you did that but you have "
             "since deleted your cloudknot configuration file. Please run "
-            "`cloudknot configure` before using cloudknot."
+            "`cloudknot configure` before using cloudknot. "
+            "config_file = {cf:s}".format(cf=config_file)
         )
 
 module_logger = logging.getLogger(__name__)
