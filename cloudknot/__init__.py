@@ -5,6 +5,7 @@ import errno
 import inspect
 import logging
 import os
+import re
 import subprocess
 
 from . import aws  # noqa
@@ -35,8 +36,11 @@ try:
 except AttributeError:
     context = inspect.stack()[-1][-2]
 
-conf_context = "load_entry_point('cloudknot', 'console_scripts', 'cloudknot')"
-imported_from_config = context is not None and conf_context in context[0]
+pattern = re.compile(
+    'load_entry_point\(\'.*\', \'console_scripts\', \'cloudknot\'\)'
+)
+
+imported_from_config = context is not None and pattern.search(context[0])
 
 if not imported_from_config:
     config_file = config.get_config_file()
