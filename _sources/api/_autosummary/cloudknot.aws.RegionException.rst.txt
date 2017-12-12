@@ -1,0 +1,10 @@
+cloudknot\.aws\.RegionException
+===============================
+
+.. currentmodule:: cloudknot.aws
+
+.. autoclass:: RegionException
+
+.. raw:: html
+
+    <div style='clear:both'></div>

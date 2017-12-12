@@ -1,0 +1,10 @@
+cloudknot\.aws\.CannotDeleteResourceException
+=============================================
+
+.. currentmodule:: cloudknot.aws
+
+.. autoclass:: CannotDeleteResourceException
+
+.. raw:: html
+
+    <div style='clear:both'></div>

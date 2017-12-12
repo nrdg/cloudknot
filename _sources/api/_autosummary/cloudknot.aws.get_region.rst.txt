@@ -1,0 +1,10 @@
+cloudknot\.aws\.get\_region
+===========================
+
+.. currentmodule:: cloudknot.aws
+
+.. autofunction:: get_region
+
+.. raw:: html
+
+    <div style='clear:both'></div>

@@ -1,0 +1,269 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>cloudknot.config &#8212; cloudknot 0.1 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/collapsible.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">cloudknot</a></h1>
+
+
+
+<p class="blurb">Run your existing python code on AWS Batch</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=richford&repo=cloudknot&type=star&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../documentation.html">documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../faq.html">faq</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/tree/master/examples">examples</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot">code</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/issues">bugs</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for cloudknot.config</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;The config module contains functions to maintain the cloudknot config file</span>
+
+<span class="sd">This module contains function that other cloudknot objects use to maintain the</span>
+<span class="sd">cloudknot config file, including adding resources, removing resources, and</span>
+<span class="sd">verifying the section headers.</span>
+
+<span class="sd">Ideally, the cloudknot user should never have to use these functions to</span>
+<span class="sd">interact with the cloudknot config file. Each cloudknot object maintains</span>
+<span class="sd">references to its state in the config file.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">configparser</span>
+<span class="kn">import</span> <span class="nn">errno</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">threading</span> <span class="k">import</span> <span class="n">RLock</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;get_config_file&quot;</span><span class="p">,</span> <span class="s2">&quot;add_resource&quot;</span><span class="p">,</span> <span class="s2">&quot;remove_resource&quot;</span><span class="p">,</span>
+           <span class="s2">&quot;verify_sections&quot;</span><span class="p">]</span>
+
+<span class="n">mod_logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="n">rlock</span> <span class="o">=</span> <span class="n">RLock</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="get_config_file"><a class="viewcode-back" href="../../api/config.html#cloudknot.config.get_config_file">[docs]</a><span class="k">def</span> <span class="nf">get_config_file</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Get the path to the cloudknot config file</span>
+
+<span class="sd">    First, check for the CLOUDKNOT_CONFIG_FILE environment variable.</span>
+<span class="sd">    If that fails, use ~/.aws/cloudknot. If ~/.aws/cloudknot doesn&#39;t</span>
+<span class="sd">    exist, create it.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    config_file : string</span>
+<span class="sd">        Path to cloudknot config file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Get config file from environment variable</span>
+        <span class="n">env_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;CLOUDKNOT_CONFIG_FILE&#39;</span><span class="p">]</span>
+        <span class="n">config_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">env_file</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="c1"># Fallback on default config file path</span>
+        <span class="n">home</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s1">&#39;~&#39;</span><span class="p">)</span>
+        <span class="n">config_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">home</span><span class="p">,</span> <span class="s1">&#39;.aws&#39;</span><span class="p">,</span> <span class="s1">&#39;cloudknot&#39;</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">rlock</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">config_file</span><span class="p">):</span>
+            <span class="c1"># If the config directory does not exist, create it</span>
+            <span class="n">configdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">configdir</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">pre_existing</span> <span class="o">=</span> <span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">errno</span> <span class="o">==</span> <span class="n">errno</span><span class="o">.</span><span class="n">EEXIST</span>
+                                <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">configdir</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">pre_existing</span><span class="p">:</span>
+                    <span class="k">pass</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">e</span>
+
+            <span class="c1"># If the config file does not exist, create it</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;# cloudknot configuration file&#39;</span><span class="p">)</span>
+
+            <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s1">&#39;Created new cloudknot config file at </span><span class="si">{path:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">path</span><span class="o">=</span><span class="n">config_file</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="n">mod_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Using cloudknot config file </span><span class="si">{path:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">path</span><span class="o">=</span><span class="n">config_file</span>
+    <span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">config_file</span></div>
+
+
+<div class="viewcode-block" id="add_resource"><a class="viewcode-back" href="../../api/config.html#cloudknot.config.add_resource">[docs]</a><span class="k">def</span> <span class="nf">add_resource</span><span class="p">(</span><span class="n">section</span><span class="p">,</span> <span class="n">option</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Add a resource to the cloudknot config file</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    section : string</span>
+<span class="sd">        Config section to which to add option:value</span>
+
+<span class="sd">    option : string</span>
+<span class="sd">        Config option to add (i.e. the key in the key:value pair)</span>
+
+<span class="sd">    value : string</span>
+<span class="sd">        Config value to add (i.e. second item in key:value pair)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">config_file</span> <span class="o">=</span> <span class="n">get_config_file</span><span class="p">()</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="n">rlock</span><span class="p">:</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">section</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">sections</span><span class="p">():</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">add_section</span><span class="p">(</span><span class="n">section</span><span class="p">)</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="n">section</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="n">option</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="remove_resource"><a class="viewcode-back" href="../../api/config.html#cloudknot.config.remove_resource">[docs]</a><span class="k">def</span> <span class="nf">remove_resource</span><span class="p">(</span><span class="n">section</span><span class="p">,</span> <span class="n">option</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Remove a resource from the cloudknot config file</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    section : string</span>
+<span class="sd">        Config section from which to remove option</span>
+
+<span class="sd">    option : string</span>
+<span class="sd">        Config option to remove (i.e. the key in the key:value pair)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">config_file</span> <span class="o">=</span> <span class="n">get_config_file</span><span class="p">()</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="n">rlock</span><span class="p">:</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">remove_option</span><span class="p">(</span><span class="n">section</span><span class="p">,</span> <span class="n">option</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">configparser</span><span class="o">.</span><span class="n">NoSectionError</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="verify_sections"><a class="viewcode-back" href="../../api/config.html#cloudknot.config.verify_sections">[docs]</a><span class="k">def</span> <span class="nf">verify_sections</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Verify config sections, remove ones that don&#39;t belong&quot;&quot;&quot;</span>
+    <span class="n">config_file</span> <span class="o">=</span> <span class="n">get_config_file</span><span class="p">()</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">rlock</span><span class="p">:</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+
+        <span class="n">approved_sections</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="s1">&#39;roles&#39;</span><span class="p">,</span> <span class="s1">&#39;vpc&#39;</span><span class="p">,</span> <span class="s1">&#39;security-groups&#39;</span><span class="p">,</span> <span class="s1">&#39;docker-repos&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;job-definitions&#39;</span><span class="p">,</span> <span class="s1">&#39;compute-environments&#39;</span><span class="p">,</span> <span class="s1">&#39;job-queues&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;batch-jobs&#39;</span><span class="p">,</span> <span class="s1">&#39;pars&#39;</span><span class="p">,</span> <span class="s1">&#39;knot&#39;</span><span class="p">,</span> <span class="s1">&#39;docker-image&#39;</span>
+        <span class="p">]</span>
+
+        <span class="k">def</span> <span class="nf">section_approved</span><span class="p">(</span><span class="n">sec</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">any</span><span class="p">([</span>
+                <span class="n">sec</span> <span class="ow">in</span> <span class="n">approved_sections</span><span class="p">,</span>
+                <span class="n">sec</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">approved_sections</span>
+            <span class="p">])</span>
+
+        <span class="k">for</span> <span class="n">section</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">sections</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">section_approved</span><span class="p">(</span><span class="n">section</span><span class="p">):</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">remove_section</span><span class="p">(</span><span class="n">section</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    
+    <div class="footer">
+      &copy;2017, Adam Richie-Halford, Ariel Rokem.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $(".toggle > *").hide();
+            $(".toggle .header").show();
+            $(".toggle .header").click(function() {
+                $(this).parent().children().not(".header").toggle(400);
+                $(this).parent().children(".header").toggleClass("open");
+            })
+        });
+    </script>
+
+  </body>
+</html>

@@ -341,9 +341,9 @@ AWS_SECRET_ACCESS_KEY=****************************************
 </pre></div>
 </div>
 <p>Then you can use the cloudknot functions
-<code class="xref py py-func docutils literal"><span class="pre">cloudknot.set_profile</span></code>,
-<code class="xref py py-func docutils literal"><span class="pre">cloudknot.get_profile</span></code>, and
-<code class="xref py py-func docutils literal"><span class="pre">cloudknot.list_profiles</span></code>
+<a class="reference internal" href="api/_autosummary/cloudknot.aws.set_profile.html#cloudknot.aws.set_profile" title="cloudknot.aws.set_profile"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.set_profile</span></code></a>,
+<a class="reference internal" href="api/_autosummary/cloudknot.aws.get_profile.html#cloudknot.aws.get_profile" title="cloudknot.aws.get_profile"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.get_profile</span></code></a>, and
+<a class="reference internal" href="api/_autosummary/cloudknot.aws.list_profiles.html#cloudknot.aws.list_profiles" title="cloudknot.aws.list_profiles"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.list_profiles</span></code></a>
 to interact with your various AWS profiles.</p>
 </div>
 <div class="section" id="region-shopping">
@@ -352,7 +352,7 @@ to interact with your various AWS profiles.</p>
 (see <a class="reference external" href="http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-spot-instances-history.html">this page</a>
 for details). You can view and change the region in which your cloudknot
 resources reside and in which you will launch your AWS Batch jobs by using the
-<code class="xref py py-func docutils literal"><span class="pre">cloudknot.aws.get_region()</span></code> and <code class="xref py py-func docutils literal"><span class="pre">cloudknot.aws.set_region()</span></code> functions.</p>
+<a class="reference internal" href="api/_autosummary/cloudknot.aws.get_region.html#cloudknot.aws.get_region" title="cloudknot.aws.get_region"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.aws.get_region()</span></code></a> and <a class="reference internal" href="api/_autosummary/cloudknot.aws.set_region.html#cloudknot.aws.set_region" title="cloudknot.aws.set_region"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.aws.set_region()</span></code></a> functions.</p>
 </div>
 <div class="section" id="examples">
 <span id="eg-label"></span><h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h2>
@@ -362,13 +362,13 @@ resources reside and in which you will launch your AWS Batch jobs by using the
 <div class="section" id="cloudknot-s3-bucket">
 <h2>Cloudknot S3 Bucket<a class="headerlink" href="#cloudknot-s3-bucket" title="Permalink to this headline">¶</a></h2>
 <p>Cloudknot has some methods to return the results of AWS Batch jobs to the
-user. See, for example, <code class="xref py py-func docutils literal"><span class="pre">cloudknot.Knot.map()</span></code>,
-<code class="xref py py-func docutils literal"><span class="pre">cloudknot.BatchJob.done</span></code>, and
-<code class="xref py py-func docutils literal"><span class="pre">cloudknot.BatchJob.result</span></code>. Under
+user. See, for example, <a class="reference internal" href="documentation.html#cloudknot.Knot.map" title="cloudknot.Knot.map"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.Knot.map()</span></code></a>,
+<a class="reference internal" href="api/_autosummary/cloudknot.aws.BatchJob.html#cloudknot.aws.BatchJob.done" title="cloudknot.aws.BatchJob.done"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.BatchJob.done</span></code></a>, and
+<a class="reference internal" href="api/_autosummary/cloudknot.aws.BatchJob.html#cloudknot.aws.BatchJob.result" title="cloudknot.aws.BatchJob.result"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.BatchJob.result</span></code></a>. Under
 the hood, these methods pass results through an Amazon S3 bucket. You can get
 and set the name of this S3 bucket using
-<code class="xref py py-func docutils literal"><span class="pre">cloudknot.get_s3_bucket</span></code> and
-<code class="xref py py-func docutils literal"><span class="pre">cloudknot.set_s3_bucket</span></code>.</p>
+<a class="reference internal" href="api/_autosummary/cloudknot.aws.get_s3_bucket.html#cloudknot.aws.get_s3_bucket" title="cloudknot.aws.get_s3_bucket"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.get_s3_bucket</span></code></a> and
+<a class="reference internal" href="api/_autosummary/cloudknot.aws.set_s3_bucket.html#cloudknot.aws.set_s3_bucket" title="cloudknot.aws.set_s3_bucket"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.set_s3_bucket</span></code></a>.</p>
 </div>
 <div class="section" id="aws-resource-limitations">
 <h2>AWS resource limitations<a class="headerlink" href="#aws-resource-limitations" title="Permalink to this headline">¶</a></h2>
@@ -404,7 +404,7 @@ user’s home directory in the path returned by</p>
 <p>If something goes wrong with an AWS Batch job, you might want to inspect the
 job’s log on Amazon CloudWatch. You can get a URL for each job attempt’s
 CloudWatch log using the
-<code class="xref py py-func docutils literal"><span class="pre">cloudknot.BatchJob.log_urls</span></code>
+<a class="reference internal" href="api/_autosummary/cloudknot.aws.BatchJob.html#cloudknot.aws.BatchJob.log_urls" title="cloudknot.aws.BatchJob.log_urls"><code class="xref py py-func docutils literal"><span class="pre">cloudknot.BatchJob.log_urls</span></code></a>
 parameter.</p>
 </div>
 </div>

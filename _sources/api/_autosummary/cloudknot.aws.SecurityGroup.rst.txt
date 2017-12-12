@@ -1,0 +1,10 @@
+cloudknot\.aws\.SecurityGroup
+=============================
+
+.. currentmodule:: cloudknot.aws
+
+.. autoclass:: SecurityGroup
+
+.. raw:: html
+
+    <div style='clear:both'></div>

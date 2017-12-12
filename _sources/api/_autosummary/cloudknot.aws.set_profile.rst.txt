@@ -1,0 +1,10 @@
+cloudknot\.aws\.set\_profile
+============================
+
+.. currentmodule:: cloudknot.aws
+
+.. autofunction:: set_profile
+
+.. raw:: html
+
+    <div style='clear:both'></div>

@@ -1,0 +1,10 @@
+cloudknot\.aws\.refresh\_clients
+================================
+
+.. currentmodule:: cloudknot.aws
+
+.. autofunction:: refresh_clients
+
+.. raw:: html
+
+    <div style='clear:both'></div>

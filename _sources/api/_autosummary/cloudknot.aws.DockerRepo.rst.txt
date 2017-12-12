@@ -1,0 +1,10 @@
+cloudknot\.aws\.DockerRepo
+==========================
+
+.. currentmodule:: cloudknot.aws
+
+.. autoclass:: DockerRepo
+
+.. raw:: html
+
+    <div style='clear:both'></div>

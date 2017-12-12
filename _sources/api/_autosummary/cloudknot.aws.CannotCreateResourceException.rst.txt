@@ -1,0 +1,10 @@
+cloudknot\.aws\.CannotCreateResourceException
+=============================================
+
+.. currentmodule:: cloudknot.aws
+
+.. autoclass:: CannotCreateResourceException
+
+.. raw:: html
+
+    <div style='clear:both'></div>

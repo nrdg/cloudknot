@@ -1,0 +1,10 @@
+cloudknot\.aws\.ResourceDoesNotExistException
+=============================================
+
+.. currentmodule:: cloudknot.aws
+
+.. autoclass:: ResourceDoesNotExistException
+
+.. raw:: html
+
+    <div style='clear:both'></div>

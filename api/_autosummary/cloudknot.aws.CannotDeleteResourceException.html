@@ -1,0 +1,175 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>cloudknot.aws.CannotDeleteResourceException &#8212; cloudknot 0.1 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/collapsible.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="cloudknot.aws.CannotCreateResourceException" href="cloudknot.aws.CannotCreateResourceException.html" />
+    <link rel="prev" title="cloudknot.aws.ResourceExistsException" href="cloudknot.aws.ResourceExistsException.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">cloudknot</a></h1>
+
+
+
+<p class="blurb">Run your existing python code on AWS Batch</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=richford&repo=cloudknot&type=star&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../documentation.html">documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../documentation.html#knot">Knot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../documentation.html#pars">Pars</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../documentation.html#dockerimage">DockerImage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../documentation.html#clobbering-and-aws-resource-persistence">Clobbering and AWS resource persistence</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../../documentation.html#api">API</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../aws.html">aws Module</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../aws.html#classes">Classes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aws.html#functions">Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aws.html#clients">Clients</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="../aws.html#exceptions">Exceptions</a><ul class="current">
+<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.ResourceDoesNotExistException.html">cloudknot.aws.ResourceDoesNotExistException</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.ResourceClobberedException.html">cloudknot.aws.ResourceClobberedException</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.ResourceExistsException.html">cloudknot.aws.ResourceExistsException</a></li>
+<li class="toctree-l5 current"><a class="current reference internal" href="#">cloudknot.aws.CannotDeleteResourceException</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.CannotCreateResourceException.html">cloudknot.aws.CannotCreateResourceException</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.RegionException.html">cloudknot.aws.RegionException</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../config.html">config Module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../faq.html">faq</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/tree/master/examples">examples</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot">code</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/issues">bugs</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="cloudknot-aws-cannotdeleteresourceexception">
+<h1>cloudknot.aws.CannotDeleteResourceException<a class="headerlink" href="#cloudknot-aws-cannotdeleteresourceexception" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="cloudknot.aws.CannotDeleteResourceException">
+<em class="property">class </em><code class="descclassname">cloudknot.aws.</code><code class="descname">CannotDeleteResourceException</code><span class="sig-paren">(</span><em>message</em>, <em>resource_id</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cloudknot/aws/base_classes.html#CannotDeleteResourceException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.aws.CannotDeleteResourceException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Exception indicating that an AWS resource cannot be deleted</p>
+<p>Initialize the Exception</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>message</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) – The error message to display to the user</li>
+<li><strong>resource_id</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) – The resource ID (e.g. ARN, VPC-ID) of the dependent resources</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="cloudknot.aws.CannotDeleteResourceException.with_traceback">
+<code class="descname">with_traceback</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cloudknot.aws.CannotDeleteResourceException.with_traceback" title="Permalink to this definition">¶</a></dt>
+<dd><p>Exception.with_traceback(tb) –
+set self.__traceback__ to tb and return self.</p>
+</dd></dl>
+
+</dd></dl>
+
+<div style='clear:both'></div></div>
+
+
+          </div>
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    
+    <div class="footer">
+      &copy;2017, Adam Richie-Halford, Ariel Rokem.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="../../_sources/api/_autosummary/cloudknot.aws.CannotDeleteResourceException.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $(".toggle > *").hide();
+            $(".toggle .header").show();
+            $(".toggle .header").click(function() {
+                $(this).parent().children().not(".header").toggle(400);
+                $(this).parent().children(".header").toggleClass("open");
+            })
+        });
+    </script>
+
+  </body>
+</html>

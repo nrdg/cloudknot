@@ -1,0 +1,10 @@
+cloudknot\.aws\.set\_s3\_bucket
+===============================
+
+.. currentmodule:: cloudknot.aws
+
+.. autofunction:: set_s3_bucket
+
+.. raw:: html
+
+    <div style='clear:both'></div>

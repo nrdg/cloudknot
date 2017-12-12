@@ -1,0 +1,374 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>cloudknot.aws.ComputeEnvironment &#8212; cloudknot 0.1 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/collapsible.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="cloudknot.aws.JobQueue" href="cloudknot.aws.JobQueue.html" />
+    <link rel="prev" title="cloudknot.aws.JobDefinition" href="cloudknot.aws.JobDefinition.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">cloudknot</a></h1>
+
+
+
+<p class="blurb">Run your existing python code on AWS Batch</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=richford&repo=cloudknot&type=star&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../documentation.html">documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../documentation.html#knot">Knot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../documentation.html#pars">Pars</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../documentation.html#dockerimage">DockerImage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../documentation.html#clobbering-and-aws-resource-persistence">Clobbering and AWS resource persistence</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../../documentation.html#api">API</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../aws.html">aws Module</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="../aws.html#classes">Classes</a><ul class="current">
+<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.IamRole.html">cloudknot.aws.IamRole</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.Vpc.html">cloudknot.aws.Vpc</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.SecurityGroup.html">cloudknot.aws.SecurityGroup</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.DockerRepo.html">cloudknot.aws.DockerRepo</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.JobDefinition.html">cloudknot.aws.JobDefinition</a></li>
+<li class="toctree-l5 current"><a class="current reference internal" href="#">cloudknot.aws.ComputeEnvironment</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.JobQueue.html">cloudknot.aws.JobQueue</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.BatchJob.html">cloudknot.aws.BatchJob</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../aws.html#functions">Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aws.html#clients">Clients</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aws.html#exceptions">Exceptions</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../config.html">config Module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../faq.html">faq</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/tree/master/examples">examples</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot">code</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/issues">bugs</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="cloudknot-aws-computeenvironment">
+<h1>cloudknot.aws.ComputeEnvironment<a class="headerlink" href="#cloudknot-aws-computeenvironment" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="cloudknot.aws.ComputeEnvironment">
+<em class="property">class </em><code class="descclassname">cloudknot.aws.</code><code class="descname">ComputeEnvironment</code><span class="sig-paren">(</span><em>arn=None</em>, <em>name=None</em>, <em>batch_service_role=None</em>, <em>instance_role=None</em>, <em>vpc=None</em>, <em>security_group=None</em>, <em>spot_fleet_role=None</em>, <em>instance_types=None</em>, <em>resource_type=None</em>, <em>min_vcpus=None</em>, <em>max_vcpus=None</em>, <em>desired_vcpus=None</em>, <em>image_id=None</em>, <em>ec2_key_pair=None</em>, <em>tags=None</em>, <em>bid_percentage=None</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cloudknot/aws/batch.html#ComputeEnvironment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class for defining AWS Compute Environments</p>
+<p>Initialize an AWS Batch job definition object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>arn</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) – Amazon Resource Number of this compute environment</li>
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) – Name of the compute environment</li>
+<li><strong>batch_service_role</strong> (<a class="reference internal" href="cloudknot.aws.IamRole.html#cloudknot.aws.IamRole" title="cloudknot.aws.IamRole"><em>IamRole</em></a>) – IamRole instance for the AWS IAM batch service role</li>
+<li><strong>instance_role</strong> (<a class="reference internal" href="cloudknot.aws.IamRole.html#cloudknot.aws.IamRole" title="cloudknot.aws.IamRole"><em>IamRole</em></a>) – IamRole instance for the AWS IAM instance role</li>
+<li><strong>vpc</strong> (<a class="reference internal" href="cloudknot.aws.Vpc.html#cloudknot.aws.Vpc" title="cloudknot.aws.Vpc"><em>Vpc</em></a>) – Vpc instance for the AWS virtual private cloud that this
+compute environment will use</li>
+<li><strong>security_group</strong> (<a class="reference internal" href="cloudknot.aws.SecurityGroup.html#cloudknot.aws.SecurityGroup" title="cloudknot.aws.SecurityGroup"><em>SecurityGroup</em></a>) – SecurityGroup instance for the AWS security group that this
+compute environment will use</li>
+<li><strong>spot_fleet_role</strong> (<a class="reference internal" href="cloudknot.aws.IamRole.html#cloudknot.aws.IamRole" title="cloudknot.aws.IamRole"><em>IamRole</em></a>) – optional IamRole instance for the AWS IAM spot fleet role.
+Default: None</li>
+<li><strong>instance_types</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a><em> or </em><em>sequence of strings</em>) – instance types that may be launched in this compute environment.
+Default: (‘optimal’,)</li>
+<li><strong>resource_type</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) – Resource type, either “EC2” or “SPOT”</li>
+<li><strong>min_vcpus</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – minimum number of virtual cpus for instances launched in this
+compute environment. CAREFUL HERE: If you specify min_vcpus
+greater than 0, your ECS cluster will keep instances spinning
+even when there is no work to do. We strongly recommend
+keeping min_vpucs set at 0.
+Default: 0</li>
+<li><strong>max_vcpus</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – maximum number of virtual cpus for instances launched in this
+compute environment.
+Default: 256</li>
+<li><strong>desired_vcpus</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – desired number of virtual cpus for instances launched in this
+compute environment.
+Default: 8</li>
+<li><strong>image_id</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) – optional AMI id used for instances launched in this compute
+environment.
+Default: None</li>
+<li><strong>ec2_key_pair</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) – optional EC2 key pair used for instances launched in this compute
+environment.
+Default: None</li>
+<li><strong>tags</strong> (<em>dictionary</em>) – optional key-value pair tags to be applied to resources in this
+compute environment.
+Default: None</li>
+<li><strong>bid_percentage</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – bid percentage if using spot instances.
+Default: 50</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="cloudknot.aws.ComputeEnvironment.arn">
+<code class="descname">arn</code><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment.arn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Amazon resource number (ARN) of this resource</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.ComputeEnvironment.batch_service_role">
+<code class="descname">batch_service_role</code><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment.batch_service_role" title="Permalink to this definition">¶</a></dt>
+<dd><p>IamRole instance for the AWS IAM batch service role</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.ComputeEnvironment.batch_service_role_arn">
+<code class="descname">batch_service_role_arn</code><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment.batch_service_role_arn" title="Permalink to this definition">¶</a></dt>
+<dd><p>ARN for this compute environment’s IAM batch service role</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.ComputeEnvironment.bid_percentage">
+<code class="descname">bid_percentage</code><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment.bid_percentage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bid percentage if using spot instances</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudknot.aws.ComputeEnvironment.check_profile">
+<code class="descname">check_profile</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment.check_profile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check for profile exception</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudknot.aws.ComputeEnvironment.check_profile_and_region">
+<code class="descname">check_profile_and_region</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment.check_profile_and_region" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check for region and profile exceptions</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudknot.aws.ComputeEnvironment.clobber">
+<code class="descname">clobber</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cloudknot/aws/batch.html#ComputeEnvironment.clobber"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment.clobber" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete this compute environment</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.ComputeEnvironment.clobbered">
+<code class="descname">clobbered</code><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment.clobbered" title="Permalink to this definition">¶</a></dt>
+<dd><p>Has this instance been previously clobbered</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.ComputeEnvironment.desired_vcpus">
+<code class="descname">desired_vcpus</code><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment.desired_vcpus" title="Permalink to this definition">¶</a></dt>
+<dd><p>Desired number of vCPUs for instances in this compute environment</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.ComputeEnvironment.ec2_key_pair">
+<code class="descname">ec2_key_pair</code><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment.ec2_key_pair" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional EC2 key pair for instances in this compute environment</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.ComputeEnvironment.image_id">
+<code class="descname">image_id</code><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment.image_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional AMI id used for instances in this compute environment</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.ComputeEnvironment.instance_role">
+<code class="descname">instance_role</code><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment.instance_role" title="Permalink to this definition">¶</a></dt>
+<dd><p>IamRole instance for the AWS IAM instance role</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.ComputeEnvironment.instance_role_arn">
+<code class="descname">instance_role_arn</code><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment.instance_role_arn" title="Permalink to this definition">¶</a></dt>
+<dd><p>ARN for this compute environment’s IAM instance role</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.ComputeEnvironment.instance_types">
+<code class="descname">instance_types</code><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment.instance_types" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instance types that may be launched in this compute environment</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.ComputeEnvironment.max_vcpus">
+<code class="descname">max_vcpus</code><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment.max_vcpus" title="Permalink to this definition">¶</a></dt>
+<dd><p>Maximum number of vCPUs for instances in this compute environment</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.ComputeEnvironment.min_vcpus">
+<code class="descname">min_vcpus</code><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment.min_vcpus" title="Permalink to this definition">¶</a></dt>
+<dd><p>Minimum number of vCPUs for instances in this compute environment</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.ComputeEnvironment.name">
+<code class="descname">name</code><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The name of this AWS resource</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.ComputeEnvironment.pre_existing">
+<code class="descname">pre_existing</code><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment.pre_existing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Boolean flag to indicate whether this resource was pre-existing</p>
+<p>True if resource was retrieved from AWS,
+False if it was created on __init__.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.ComputeEnvironment.profile">
+<code class="descname">profile</code><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment.profile" title="Permalink to this definition">¶</a></dt>
+<dd><p>The AWS profile in which this resource was created</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.ComputeEnvironment.region">
+<code class="descname">region</code><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment.region" title="Permalink to this definition">¶</a></dt>
+<dd><p>The AWS region in which this resource was created</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.ComputeEnvironment.resource_type">
+<code class="descname">resource_type</code><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment.resource_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resource type, either ‘EC2’ or ‘SPOT’</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.ComputeEnvironment.security_group">
+<code class="descname">security_group</code><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment.security_group" title="Permalink to this definition">¶</a></dt>
+<dd><p>SecurityGroup instance that this compute environment will use</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.ComputeEnvironment.security_group_ids">
+<code class="descname">security_group_ids</code><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment.security_group_ids" title="Permalink to this definition">¶</a></dt>
+<dd><p>Security group IDs for this compute environment</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.ComputeEnvironment.spot_fleet_role">
+<code class="descname">spot_fleet_role</code><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment.spot_fleet_role" title="Permalink to this definition">¶</a></dt>
+<dd><p>optional IamRole instance for the AWS IAM spot fleet role</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.ComputeEnvironment.spot_fleet_role_arn">
+<code class="descname">spot_fleet_role_arn</code><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment.spot_fleet_role_arn" title="Permalink to this definition">¶</a></dt>
+<dd><p>ARN for this compute environment’s IAM spot fleet role</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.ComputeEnvironment.subnets">
+<code class="descname">subnets</code><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment.subnets" title="Permalink to this definition">¶</a></dt>
+<dd><p>VPC subnets that this compute environment will use</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.ComputeEnvironment.tags">
+<code class="descname">tags</code><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment.tags" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional tags to apply to resources in this compute environment</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudknot.aws.ComputeEnvironment.vpc">
+<code class="descname">vpc</code><a class="headerlink" href="#cloudknot.aws.ComputeEnvironment.vpc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Vpc instance that this compute environment will use</p>
+</dd></dl>
+
+</dd></dl>
+
+<div style='clear:both'></div></div>
+
+
+          </div>
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    
+    <div class="footer">
+      &copy;2017, Adam Richie-Halford, Ariel Rokem.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="../../_sources/api/_autosummary/cloudknot.aws.ComputeEnvironment.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $(".toggle > *").hide();
+            $(".toggle .header").show();
+            $(".toggle .header").click(function() {
+                $(this).parent().children().not(".header").toggle(400);
+                $(this).parent().children(".header").toggleClass("open");
+            })
+        });
+    </script>
+
+  </body>
+</html>

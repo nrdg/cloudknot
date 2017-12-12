@@ -1,0 +1,10 @@
+cloudknot\.aws\.JobQueue
+========================
+
+.. currentmodule:: cloudknot.aws
+
+.. autoclass:: JobQueue
+
+.. raw:: html
+
+    <div style='clear:both'></div>

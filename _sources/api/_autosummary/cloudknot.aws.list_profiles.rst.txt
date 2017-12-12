@@ -1,0 +1,10 @@
+cloudknot\.aws\.list\_profiles
+==============================
+
+.. currentmodule:: cloudknot.aws
+
+.. autofunction:: list_profiles
+
+.. raw:: html
+
+    <div style='clear:both'></div>
