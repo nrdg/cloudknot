@@ -24,7 +24,7 @@ __all__ = [
     "wait_for_compute_environment", "wait_for_job_queue",
     "get_region", "set_region",
     "get_ecr_repo", "set_ecr_repo",
-    "get_s3_bucket", "set_s3_bucket", "get_s3_policy_name",
+    "get_s3_params", "set_s3_params",
     "get_profile", "set_profile", "list_profiles",
 ]
 
@@ -102,45 +102,70 @@ def set_ecr_repo(repo):
             clients['ecr'].create_repository(repositoryName=repo)
 
 
-def get_s3_bucket():
-    """Get the cloudknot S3 bucket
+def get_s3_params():
+    """Get the cloudknot S3 bucket and corresponding access policy
 
-    First, check the cloudknot config file for the bucket option.
-    If that fails, check for the CLOUDKNOT_S3_BUCKET environment variable.
-    If that fails, use 'cloudknot-' + getpass.getuser().lower() + '-' + uuid4()
+    For the bucket name, first check the cloudknot config file for the bucket
+    option. If that fails, check for the CLOUDKNOT_S3_BUCKET environment
+    variable. If that fails, use
+    'cloudknot-' + getpass.getuser().lower() + '-' + uuid4()
+
+    For the policy name, first check the cloudknot config file. If that fails,
+    use 'cloudknot-bucket-access-' + str(uuid.uuid4())
 
     Returns
     -------
-    bucket : string
-        Cloudknot S3 bucket name
+    bucket : NamedTuple
+        A named tuple with Cloudknot S3 bucket and policy fields
     """
     config_file = get_config_file()
     config = configparser.ConfigParser()
 
+    BucketInfo = namedtuple('BucketInfo', ['bucket', 'policy', ])
+
     with rlock:
         config.read(config_file)
+
+        option = 's3-bucket-policy'
+        if config.has_section('aws') and config.has_option('aws', option):
+            # Get policy name from the config file
+            policy = config.get('aws', option)
+        else:
+            # or set policy to None to create it in the call to
+            # set_s3_params()
+            policy = None
 
         option = 's3-bucket'
         if config.has_section('aws') and config.has_option('aws', option):
             bucket = config.get('aws', option)
         else:
-            # Set `bucket`, the fallback bucket in case the cloudknot
-            # bucket environment variable is not set
             try:
-                # Get the region from an environment variable
+                # Get the bucket name from an environment variable
                 bucket = os.environ['CLOUDKNOT_S3_BUCKET']
             except KeyError:
+                # Use the fallback bucket b/c the cloudknot
+                # bucket environment variable is not set
                 bucket = ('cloudknot-' + getpass.getuser().lower()
                           + '-' + str(uuid.uuid4()))
 
-        # Use set_s3_bucket to check for name availability
+            if policy is not None:
+                # In this case, the bucket name is new, but the policy is not.
+                # Update the policy to reflect the new bucket name.
+                update_s3_policy(policy=policy, bucket=bucket)
+
+        # Use set_s3_params to check for name availability
         # and write to config file
-        set_s3_bucket(bucket)
+        set_s3_params(bucket=bucket, policy=policy)
 
-    return bucket
+        if policy is None:
+            config.read(config_file)
+            policy = config.get('aws', 's3-bucket-policy')
 
 
-def set_s3_bucket(bucket):
+    return BucketInfo(bucket=bucket, policy=policy)
+
+
+def set_s3_params(bucket, policy=None):
     """Set the cloudknot S3 bucket
 
     Set bucket by modifying the cloudknot config file
@@ -149,23 +174,26 @@ def set_s3_bucket(bucket):
     ----------
     bucket : string
         Cloudknot S3 bucket name
+    policy : string
+        Cloudknot S3 bucket access policy name
+        Default: None means that cloudknot will create a new policy
     """
     # Update the config file
     config_file = get_config_file()
     config = configparser.ConfigParser()
 
-    def test_bucket_put_get(bucket):
+    def test_bucket_put_get(bucket_):
         key = 'cloudnot-test-permissions-key'
         try:
-            clients['s3'].put_object(Bucket=bucket, Body=b'test', Key=key)
-            clients['s3'].get_object(Bucket=bucket, Key=key)
+            clients['s3'].put_object(Bucket=bucket_, Body=b'test', Key=key)
+            clients['s3'].get_object(Bucket=bucket_, Key=key)
         except clients['s3'].exceptions.ClientError:
             raise ValueError('The requested bucket name already exists '
                              'and you do not have permission to put or '
                              'get objects in it.')
 
         try:
-            clients['s3'].delete_object(Bucket=bucket, Key=key)
+            clients['s3'].delete_object(Bucket=bucket_, Key=key)
         except Exception:
             pass
 
@@ -176,8 +204,6 @@ def set_s3_bucket(bucket):
             config.add_section('aws')
 
         config.set('aws', 's3-bucket', bucket)
-        with open(config_file, 'w') as f:
-            config.write(f)
 
         # Create the bucket
         try:
@@ -206,11 +232,30 @@ def set_s3_bucket(bucket):
                 # Pass exception to user
                 raise e
 
-        # Update the s3_policy with new bucket name
-        update_s3_policy(bucket)
+        if policy is None:
+            policy = 'cloudknot-bucket-access-' + str(uuid.uuid4())
+
+        try:
+            # Create the policy
+            s3_policy_doc = bucket_policy_document(bucket)
+
+            clients['iam'].create_policy(
+                PolicyName=policy,
+                Path='/cloudknot/',
+                PolicyDocument=json.dumps(s3_policy_doc),
+                Description='Grants access to S3 bucket {0:s}'
+                            ''.format(bucket)
+            )
+        except clients['iam'].exceptions.EntityAlreadyExistsException:
+            # Policy already exists, do nothing
+            pass
+
+        config.set('aws', 's3-bucket-policy', policy)
+        with open(config_file, 'w') as f:
+            config.write(f)
 
 
-def get_bucket_policy(bucket):
+def bucket_policy_document(bucket):
     """Return the policy document to access an S3 bucket
 
     Parameters
@@ -220,11 +265,11 @@ def get_bucket_policy(bucket):
 
     Returns
     -------
-    s3_policy: dict
+    s3_policy_doc: dict
         A dictionary containing the AWS policy document
     """
     # Add policy statements to access to cloudknot S3 bucket
-    s3_policy = {
+    s3_policy_doc = {
         "Version": "2012-10-17",
         "Statement": [
             {
@@ -240,71 +285,23 @@ def get_bucket_policy(bucket):
         ]
     }
 
-    return s3_policy
+    return s3_policy_doc
 
 
-def get_s3_policy_name(bucket):
-    """Get the policy that grants access to the cloudknot S3 bucket
-
-    First, check the cloudknot config file for the bucket-policy option.
-    If that fails, use 'cloudknot-bucket-access-' + uuid4()
-
-    Returns
-    -------
-    policy : string
-        Cloudknot S3 bucket access policy name
-    """
-    config_file = get_config_file()
-    config = configparser.ConfigParser()
-
-    with rlock:
-        config.read(config_file)
-
-        option = 's3-bucket-policy'
-        if config.has_section('aws') and config.has_option('aws', option):
-            # Get policy name from the config file
-            policy = config.get('aws', option)
-        else:
-            # or create new one if it doesn't exist
-            policy = 'cloudknot-bucket-access-' + str(uuid.uuid4())
-
-            if not config.has_section('aws'):
-                config.add_section('aws')
-
-            config.set('aws', option, policy)
-            with open(config_file, 'w') as f:
-                config.write(f)
-
-        s3_policy = get_bucket_policy(bucket)
-
-        try:
-            # Create the policy
-            clients['iam'].create_policy(
-                PolicyName=policy,
-                Path='/cloudknot/',
-                PolicyDocument=json.dumps(s3_policy),
-                Description='Grants access to S3 bucket {0:s}'.format(bucket)
-            )
-        except clients['iam'].exceptions.EntityAlreadyExistsException:
-            # Policy already exists, do nothing
-            pass
-
-    return policy
-
-
-def update_s3_policy(bucket):
+def update_s3_policy(policy, bucket):
     """Update the cloudknot S3 access policy with new bucket name
 
     Parameters
     ----------
+    policy: string
+        Amazon S3 bucket access policy name
+
     bucket: string
         Amazon S3 bucket name
     """
-    s3_policy = get_bucket_policy(bucket)
-    policy = get_s3_policy_name(bucket)
+    s3_policy_doc = bucket_policy_document(bucket)
 
-    # After calling get_s3_policy_name(), the policy already exists
-    # Get the ARN
+    # Get the ARN of the policy
     response = clients['iam'].list_policies(
         Scope='Local',
         PathPrefix='/cloudknot/'
@@ -320,7 +317,7 @@ def update_s3_policy(bucket):
             # Update the policy
             clients['iam'].create_policy_version(
                 PolicyArn=arn,
-                PolicyDocument=json.dumps(s3_policy),
+                PolicyDocument=json.dumps(s3_policy_doc),
                 SetAsDefault=True
             )
         except clients['iam'].exceptions.LimitExceededException:
@@ -343,7 +340,7 @@ def update_s3_policy(bucket):
             # Update the policy not that there's room for another version
             clients['iam'].create_policy_version(
                 PolicyArn=arn,
-                PolicyDocument=json.dumps(s3_policy),
+                PolicyDocument=json.dumps(s3_policy_doc),
                 SetAsDefault=True
             )
 

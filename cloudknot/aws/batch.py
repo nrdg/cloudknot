@@ -15,7 +15,7 @@ from .base_classes import NamedObject, ObjectWithArn, \
     ResourceExistsException, ResourceDoesNotExistException, \
     ResourceClobberedException, CannotDeleteResourceException, \
     BatchJobFailedError, CKTimeoutError, \
-    wait_for_job_queue, get_s3_bucket
+    wait_for_job_queue, get_s3_params
 from .ec2 import Vpc, SecurityGroup
 from .ecr import DockerRepo
 from .iam import IamRole
@@ -165,7 +165,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
                     'or a string'
                 )
             self._docker_image = docker_image
-            self._output_bucket = get_s3_bucket()
+            self._output_bucket = get_s3_params().bucket
 
             # Validate vcpus input
             if vcpus:
