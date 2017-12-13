@@ -154,6 +154,21 @@ def set_s3_bucket(bucket):
     config_file = get_config_file()
     config = configparser.ConfigParser()
 
+    def test_bucket_put_get(bucket):
+        key = 'cloudnot-test-permissions-key'
+        try:
+            clients['s3'].put_object(Bucket=bucket, Body=b'test', Key=key)
+            clients['s3'].get_object(Bucket=bucket, Key=key)
+        except clients['s3'].exceptions.ClientError:
+            raise ValueError('The requested bucket name already exists '
+                             'and you do not have permission to put or '
+                             'get objects in it.')
+
+        try:
+            clients['s3'].delete_object(Bucket=bucket, Key=key)
+        except Exception:
+            pass
+
     with rlock:
         config.read(config_file)
 
@@ -175,7 +190,7 @@ def set_s3_bucket(bucket):
         except clients['s3'].exceptions.BucketAlreadyOwnedByYou:
             pass
         except clients['s3'].exceptions.BucketAlreadyExists:
-            raise ValueError('The requested bucket name is not available.')
+            test_bucket_put_get(bucket)
         except clients['s3'].exceptions.ClientError as e:
             # Check for Illegal Location Constraint
             error_code = e.response['Error']['Code']
@@ -186,8 +201,7 @@ def set_s3_bucket(bucket):
                 except clients['s3'].exceptions.BucketAlreadyOwnedByYou:
                     pass
                 except clients['s3'].exceptions.BucketAlreadyExists:
-                    raise ValueError('The requested bucket name '
-                                     'is not available.')
+                    test_bucket_put_get(bucket)
             else:
                 # Pass exception to user
                 raise e
