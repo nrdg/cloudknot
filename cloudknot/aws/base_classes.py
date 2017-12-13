@@ -512,13 +512,16 @@ def get_profile(fallback='from-env'):
     """Get the AWS profile to use
 
     First, check the cloudknot config file for the profile option.
-    If that fails, return 'default'
+    If that fails, check for the AWS_PROFILE environment variable.
+    If that fails, return 'default' if there is a default profile in AWS config
+    or credentials files. If that fails, return the fallback value.
 
     Parameters
     ----------
     fallback :
         The fallback value if get_profile cannot find an AWS profile.
         Default: 'from-env'
+
     Returns
     -------
     profile_name : string
@@ -534,19 +537,24 @@ def get_profile(fallback='from-env'):
         if config.has_section('aws') and config.has_option('aws', 'profile'):
             return config.get('aws', 'profile')
         else:
-            if 'default' in list_profiles().profile_names:
-                # Set profile in cloudknot config to 'default'
-                # and return 'default'
-                if not config.has_section('aws'):
-                    config.add_section('aws')
+            # Set profile from environment variable
+            try:
+                profile = os.environ['AWS_PROFILE']
+            except KeyError:
+                if 'default' in list_profiles().profile_names:
+                    # Set profile in cloudknot config to 'default'
+                    profile = 'default'
+                else:
+                    return fallback
 
-                config.set('aws', 'profile', 'default')
-                with open(config_file, 'w') as f:
-                    config.write(f)
+            if not config.has_section('aws'):
+                config.add_section('aws')
 
-                return 'default'
-            else:
-                return fallback
+            config.set('aws', 'profile', profile)
+            with open(config_file, 'w') as f:
+                config.write(f)
+
+            return profile
 
 
 def set_profile(profile_name):
