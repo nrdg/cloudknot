@@ -161,7 +161,6 @@ def get_s3_params():
             config.read(config_file)
             policy = config.get('aws', 's3-bucket-policy')
 
-
     return BucketInfo(bucket=bucket, policy=policy)
 
 
