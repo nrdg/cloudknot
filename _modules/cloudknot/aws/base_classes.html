@@ -108,7 +108,7 @@
     <span class="s2">&quot;wait_for_compute_environment&quot;</span><span class="p">,</span> <span class="s2">&quot;wait_for_job_queue&quot;</span><span class="p">,</span>
     <span class="s2">&quot;get_region&quot;</span><span class="p">,</span> <span class="s2">&quot;set_region&quot;</span><span class="p">,</span>
     <span class="s2">&quot;get_ecr_repo&quot;</span><span class="p">,</span> <span class="s2">&quot;set_ecr_repo&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;get_s3_bucket&quot;</span><span class="p">,</span> <span class="s2">&quot;set_s3_bucket&quot;</span><span class="p">,</span> <span class="s2">&quot;get_s3_policy_name&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;get_s3_params&quot;</span><span class="p">,</span> <span class="s2">&quot;set_s3_params&quot;</span><span class="p">,</span>
     <span class="s2">&quot;get_profile&quot;</span><span class="p">,</span> <span class="s2">&quot;set_profile&quot;</span><span class="p">,</span> <span class="s2">&quot;list_profiles&quot;</span><span class="p">,</span>
 <span class="p">]</span>
 
@@ -186,45 +186,69 @@
             <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ecr&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">create_repository</span><span class="p">(</span><span class="n">repositoryName</span><span class="o">=</span><span class="n">repo</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="get_s3_bucket"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.get_s3_bucket.html#cloudknot.aws.get_s3_bucket">[docs]</a><span class="k">def</span> <span class="nf">get_s3_bucket</span><span class="p">():</span>
-    <span class="sd">&quot;&quot;&quot;Get the cloudknot S3 bucket</span>
+<div class="viewcode-block" id="get_s3_params"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.get_s3_params.html#cloudknot.aws.get_s3_params">[docs]</a><span class="k">def</span> <span class="nf">get_s3_params</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Get the cloudknot S3 bucket and corresponding access policy</span>
 
-<span class="sd">    First, check the cloudknot config file for the bucket option.</span>
-<span class="sd">    If that fails, check for the CLOUDKNOT_S3_BUCKET environment variable.</span>
-<span class="sd">    If that fails, use &#39;cloudknot-&#39; + getpass.getuser().lower() + &#39;-&#39; + uuid4()</span>
+<span class="sd">    For the bucket name, first check the cloudknot config file for the bucket</span>
+<span class="sd">    option. If that fails, check for the CLOUDKNOT_S3_BUCKET environment</span>
+<span class="sd">    variable. If that fails, use</span>
+<span class="sd">    &#39;cloudknot-&#39; + getpass.getuser().lower() + &#39;-&#39; + uuid4()</span>
+
+<span class="sd">    For the policy name, first check the cloudknot config file. If that fails,</span>
+<span class="sd">    use &#39;cloudknot-bucket-access-&#39; + str(uuid.uuid4())</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    bucket : string</span>
-<span class="sd">        Cloudknot S3 bucket name</span>
+<span class="sd">    bucket : NamedTuple</span>
+<span class="sd">        A named tuple with Cloudknot S3 bucket and policy fields</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">config_file</span> <span class="o">=</span> <span class="n">get_config_file</span><span class="p">()</span>
     <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
 
+    <span class="n">BucketInfo</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;BucketInfo&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;bucket&#39;</span><span class="p">,</span> <span class="s1">&#39;policy&#39;</span><span class="p">,</span> <span class="p">])</span>
+
     <span class="k">with</span> <span class="n">rlock</span><span class="p">:</span>
         <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+
+        <span class="n">option</span> <span class="o">=</span> <span class="s1">&#39;s3-bucket-policy&#39;</span>
+        <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">has_section</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">config</span><span class="o">.</span><span class="n">has_option</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="n">option</span><span class="p">):</span>
+            <span class="c1"># Get policy name from the config file</span>
+            <span class="n">policy</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="n">option</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># or set policy to None to create it in the call to</span>
+            <span class="c1"># set_s3_params()</span>
+            <span class="n">policy</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="n">option</span> <span class="o">=</span> <span class="s1">&#39;s3-bucket&#39;</span>
         <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">has_section</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">config</span><span class="o">.</span><span class="n">has_option</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="n">option</span><span class="p">):</span>
             <span class="n">bucket</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="n">option</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># Set `bucket`, the fallback bucket in case the cloudknot</span>
-            <span class="c1"># bucket environment variable is not set</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="c1"># Get the region from an environment variable</span>
+                <span class="c1"># Get the bucket name from an environment variable</span>
                 <span class="n">bucket</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;CLOUDKNOT_S3_BUCKET&#39;</span><span class="p">]</span>
             <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="c1"># Use the fallback bucket b/c the cloudknot</span>
+                <span class="c1"># bucket environment variable is not set</span>
                 <span class="n">bucket</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;cloudknot-&#39;</span> <span class="o">+</span> <span class="n">getpass</span><span class="o">.</span><span class="n">getuser</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
                           <span class="o">+</span> <span class="s1">&#39;-&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()))</span>
 
-        <span class="c1"># Use set_s3_bucket to check for name availability</span>
+            <span class="k">if</span> <span class="n">policy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># In this case, the bucket name is new, but the policy is not.</span>
+                <span class="c1"># Update the policy to reflect the new bucket name.</span>
+                <span class="n">update_s3_policy</span><span class="p">(</span><span class="n">policy</span><span class="o">=</span><span class="n">policy</span><span class="p">,</span> <span class="n">bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">)</span>
+
+        <span class="c1"># Use set_s3_params to check for name availability</span>
         <span class="c1"># and write to config file</span>
-        <span class="n">set_s3_bucket</span><span class="p">(</span><span class="n">bucket</span><span class="p">)</span>
+        <span class="n">set_s3_params</span><span class="p">(</span><span class="n">bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="n">policy</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">bucket</span></div>
+        <span class="k">if</span> <span class="n">policy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+            <span class="n">policy</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="s1">&#39;s3-bucket-policy&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">BucketInfo</span><span class="p">(</span><span class="n">bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="n">policy</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="set_s3_bucket"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.set_s3_bucket.html#cloudknot.aws.set_s3_bucket">[docs]</a><span class="k">def</span> <span class="nf">set_s3_bucket</span><span class="p">(</span><span class="n">bucket</span><span class="p">):</span>
+<div class="viewcode-block" id="set_s3_params"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.set_s3_params.html#cloudknot.aws.set_s3_params">[docs]</a><span class="k">def</span> <span class="nf">set_s3_params</span><span class="p">(</span><span class="n">bucket</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Set the cloudknot S3 bucket</span>
 
 <span class="sd">    Set bucket by modifying the cloudknot config file</span>
@@ -233,10 +257,28 @@
 <span class="sd">    ----------</span>
 <span class="sd">    bucket : string</span>
 <span class="sd">        Cloudknot S3 bucket name</span>
+<span class="sd">    policy : string</span>
+<span class="sd">        Cloudknot S3 bucket access policy name</span>
+<span class="sd">        Default: None means that cloudknot will create a new policy</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Update the config file</span>
     <span class="n">config_file</span> <span class="o">=</span> <span class="n">get_config_file</span><span class="p">()</span>
     <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">test_bucket_put_get</span><span class="p">(</span><span class="n">bucket_</span><span class="p">):</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;cloudnot-test-permissions-key&#39;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">put_object</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">bucket_</span><span class="p">,</span> <span class="n">Body</span><span class="o">=</span><span class="sa">b</span><span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="n">Key</span><span class="o">=</span><span class="n">key</span><span class="p">)</span>
+            <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get_object</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">bucket_</span><span class="p">,</span> <span class="n">Key</span><span class="o">=</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">ClientError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The requested bucket name already exists &#39;</span>
+                             <span class="s1">&#39;and you do not have permission to put or &#39;</span>
+                             <span class="s1">&#39;get objects in it.&#39;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">delete_object</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">bucket_</span><span class="p">,</span> <span class="n">Key</span><span class="o">=</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">pass</span>
 
     <span class="k">with</span> <span class="n">rlock</span><span class="p">:</span>
         <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
@@ -245,8 +287,6 @@
             <span class="n">config</span><span class="o">.</span><span class="n">add_section</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">)</span>
 
         <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="s1">&#39;s3-bucket&#39;</span><span class="p">,</span> <span class="n">bucket</span><span class="p">)</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="n">config</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 
         <span class="c1"># Create the bucket</span>
         <span class="k">try</span><span class="p">:</span>
@@ -259,7 +299,7 @@
         <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">BucketAlreadyOwnedByYou</span><span class="p">:</span>
             <span class="k">pass</span>
         <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">BucketAlreadyExists</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The requested bucket name is not available.&#39;</span><span class="p">)</span>
+            <span class="n">test_bucket_put_get</span><span class="p">(</span><span class="n">bucket</span><span class="p">)</span>
         <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">ClientError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="c1"># Check for Illegal Location Constraint</span>
             <span class="n">error_code</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">response</span><span class="p">[</span><span class="s1">&#39;Error&#39;</span><span class="p">][</span><span class="s1">&#39;Code&#39;</span><span class="p">]</span>
@@ -270,17 +310,35 @@
                 <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">BucketAlreadyOwnedByYou</span><span class="p">:</span>
                     <span class="k">pass</span>
                 <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">BucketAlreadyExists</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The requested bucket name &#39;</span>
-                                     <span class="s1">&#39;is not available.&#39;</span><span class="p">)</span>
+                    <span class="n">test_bucket_put_get</span><span class="p">(</span><span class="n">bucket</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="c1"># Pass exception to user</span>
                 <span class="k">raise</span> <span class="n">e</span>
 
-        <span class="c1"># Update the s3_policy with new bucket name</span>
-        <span class="n">update_s3_policy</span><span class="p">(</span><span class="n">bucket</span><span class="p">)</span></div>
+        <span class="k">if</span> <span class="n">policy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">policy</span> <span class="o">=</span> <span class="s1">&#39;cloudknot-bucket-access-&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Create the policy</span>
+            <span class="n">s3_policy_doc</span> <span class="o">=</span> <span class="n">bucket_policy_document</span><span class="p">(</span><span class="n">bucket</span><span class="p">)</span>
+
+            <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">create_policy</span><span class="p">(</span>
+                <span class="n">PolicyName</span><span class="o">=</span><span class="n">policy</span><span class="p">,</span>
+                <span class="n">Path</span><span class="o">=</span><span class="s1">&#39;/cloudknot/&#39;</span><span class="p">,</span>
+                <span class="n">PolicyDocument</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">s3_policy_doc</span><span class="p">),</span>
+                <span class="n">Description</span><span class="o">=</span><span class="s1">&#39;Grants access to S3 bucket </span><span class="si">{0:s}</span><span class="s1">&#39;</span>
+                            <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bucket</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">EntityAlreadyExistsException</span><span class="p">:</span>
+            <span class="c1"># Policy already exists, do nothing</span>
+            <span class="k">pass</span>
+
+        <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="s1">&#39;s3-bucket-policy&#39;</span><span class="p">,</span> <span class="n">policy</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">get_bucket_policy</span><span class="p">(</span><span class="n">bucket</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">bucket_policy_document</span><span class="p">(</span><span class="n">bucket</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Return the policy document to access an S3 bucket</span>
 
 <span class="sd">    Parameters</span>
@@ -290,11 +348,11 @@
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    s3_policy: dict</span>
+<span class="sd">    s3_policy_doc: dict</span>
 <span class="sd">        A dictionary containing the AWS policy document</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Add policy statements to access to cloudknot S3 bucket</span>
-    <span class="n">s3_policy</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">s3_policy_doc</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s2">&quot;Version&quot;</span><span class="p">:</span> <span class="s2">&quot;2012-10-17&quot;</span><span class="p">,</span>
         <span class="s2">&quot;Statement&quot;</span><span class="p">:</span> <span class="p">[</span>
             <span class="p">{</span>
@@ -310,71 +368,23 @@
         <span class="p">]</span>
     <span class="p">}</span>
 
-    <span class="k">return</span> <span class="n">s3_policy</span>
+    <span class="k">return</span> <span class="n">s3_policy_doc</span>
 
 
-<span class="k">def</span> <span class="nf">get_s3_policy_name</span><span class="p">(</span><span class="n">bucket</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Get the policy that grants access to the cloudknot S3 bucket</span>
-
-<span class="sd">    First, check the cloudknot config file for the bucket-policy option.</span>
-<span class="sd">    If that fails, use &#39;cloudknot-bucket-access-&#39; + uuid4()</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    policy : string</span>
-<span class="sd">        Cloudknot S3 bucket access policy name</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">config_file</span> <span class="o">=</span> <span class="n">get_config_file</span><span class="p">()</span>
-    <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
-
-    <span class="k">with</span> <span class="n">rlock</span><span class="p">:</span>
-        <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
-
-        <span class="n">option</span> <span class="o">=</span> <span class="s1">&#39;s3-bucket-policy&#39;</span>
-        <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">has_section</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">config</span><span class="o">.</span><span class="n">has_option</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="n">option</span><span class="p">):</span>
-            <span class="c1"># Get policy name from the config file</span>
-            <span class="n">policy</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="n">option</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># or create new one if it doesn&#39;t exist</span>
-            <span class="n">policy</span> <span class="o">=</span> <span class="s1">&#39;cloudknot-bucket-access-&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())</span>
-
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">config</span><span class="o">.</span><span class="n">has_section</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">):</span>
-                <span class="n">config</span><span class="o">.</span><span class="n">add_section</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">)</span>
-
-            <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="n">option</span><span class="p">,</span> <span class="n">policy</span><span class="p">)</span>
-            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-                <span class="n">config</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
-
-        <span class="n">s3_policy</span> <span class="o">=</span> <span class="n">get_bucket_policy</span><span class="p">(</span><span class="n">bucket</span><span class="p">)</span>
-
-        <span class="k">try</span><span class="p">:</span>
-            <span class="c1"># Create the policy</span>
-            <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">create_policy</span><span class="p">(</span>
-                <span class="n">PolicyName</span><span class="o">=</span><span class="n">policy</span><span class="p">,</span>
-                <span class="n">Path</span><span class="o">=</span><span class="s1">&#39;/cloudknot/&#39;</span><span class="p">,</span>
-                <span class="n">PolicyDocument</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">s3_policy</span><span class="p">),</span>
-                <span class="n">Description</span><span class="o">=</span><span class="s1">&#39;Grants access to S3 bucket </span><span class="si">{0:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bucket</span><span class="p">)</span>
-            <span class="p">)</span>
-        <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">EntityAlreadyExistsException</span><span class="p">:</span>
-            <span class="c1"># Policy already exists, do nothing</span>
-            <span class="k">pass</span>
-
-    <span class="k">return</span> <span class="n">policy</span>
-
-
-<span class="k">def</span> <span class="nf">update_s3_policy</span><span class="p">(</span><span class="n">bucket</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">update_s3_policy</span><span class="p">(</span><span class="n">policy</span><span class="p">,</span> <span class="n">bucket</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Update the cloudknot S3 access policy with new bucket name</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
+<span class="sd">    policy: string</span>
+<span class="sd">        Amazon S3 bucket access policy name</span>
+
 <span class="sd">    bucket: string</span>
 <span class="sd">        Amazon S3 bucket name</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">s3_policy</span> <span class="o">=</span> <span class="n">get_bucket_policy</span><span class="p">(</span><span class="n">bucket</span><span class="p">)</span>
-    <span class="n">policy</span> <span class="o">=</span> <span class="n">get_s3_policy_name</span><span class="p">(</span><span class="n">bucket</span><span class="p">)</span>
+    <span class="n">s3_policy_doc</span> <span class="o">=</span> <span class="n">bucket_policy_document</span><span class="p">(</span><span class="n">bucket</span><span class="p">)</span>
 
-    <span class="c1"># After calling get_s3_policy_name(), the policy already exists</span>
-    <span class="c1"># Get the ARN</span>
+    <span class="c1"># Get the ARN of the policy</span>
     <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">list_policies</span><span class="p">(</span>
         <span class="n">Scope</span><span class="o">=</span><span class="s1">&#39;Local&#39;</span><span class="p">,</span>
         <span class="n">PathPrefix</span><span class="o">=</span><span class="s1">&#39;/cloudknot/&#39;</span>
@@ -390,7 +400,7 @@
             <span class="c1"># Update the policy</span>
             <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">create_policy_version</span><span class="p">(</span>
                 <span class="n">PolicyArn</span><span class="o">=</span><span class="n">arn</span><span class="p">,</span>
-                <span class="n">PolicyDocument</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">s3_policy</span><span class="p">),</span>
+                <span class="n">PolicyDocument</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">s3_policy_doc</span><span class="p">),</span>
                 <span class="n">SetAsDefault</span><span class="o">=</span><span class="kc">True</span>
             <span class="p">)</span>
         <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">LimitExceededException</span><span class="p">:</span>
@@ -413,7 +423,7 @@
             <span class="c1"># Update the policy not that there&#39;s room for another version</span>
             <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">create_policy_version</span><span class="p">(</span>
                 <span class="n">PolicyArn</span><span class="o">=</span><span class="n">arn</span><span class="p">,</span>
-                <span class="n">PolicyDocument</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">s3_policy</span><span class="p">),</span>
+                <span class="n">PolicyDocument</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">s3_policy_doc</span><span class="p">),</span>
                 <span class="n">SetAsDefault</span><span class="o">=</span><span class="kc">True</span>
             <span class="p">)</span>
 
@@ -585,13 +595,16 @@
     <span class="sd">&quot;&quot;&quot;Get the AWS profile to use</span>
 
 <span class="sd">    First, check the cloudknot config file for the profile option.</span>
-<span class="sd">    If that fails, return &#39;default&#39;</span>
+<span class="sd">    If that fails, check for the AWS_PROFILE environment variable.</span>
+<span class="sd">    If that fails, return &#39;default&#39; if there is a default profile in AWS config</span>
+<span class="sd">    or credentials files. If that fails, return the fallback value.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    fallback :</span>
 <span class="sd">        The fallback value if get_profile cannot find an AWS profile.</span>
 <span class="sd">        Default: &#39;from-env&#39;</span>
+
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    profile_name : string</span>
@@ -607,19 +620,24 @@
         <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">has_section</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">config</span><span class="o">.</span><span class="n">has_option</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="s1">&#39;profile&#39;</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="s1">&#39;profile&#39;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="s1">&#39;default&#39;</span> <span class="ow">in</span> <span class="n">list_profiles</span><span class="p">()</span><span class="o">.</span><span class="n">profile_names</span><span class="p">:</span>
-                <span class="c1"># Set profile in cloudknot config to &#39;default&#39;</span>
-                <span class="c1"># and return &#39;default&#39;</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="n">config</span><span class="o">.</span><span class="n">has_section</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">):</span>
-                    <span class="n">config</span><span class="o">.</span><span class="n">add_section</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">)</span>
+            <span class="c1"># Set profile from environment variable</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">profile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;AWS_PROFILE&#39;</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s1">&#39;default&#39;</span> <span class="ow">in</span> <span class="n">list_profiles</span><span class="p">()</span><span class="o">.</span><span class="n">profile_names</span><span class="p">:</span>
+                    <span class="c1"># Set profile in cloudknot config to &#39;default&#39;</span>
+                    <span class="n">profile</span> <span class="o">=</span> <span class="s1">&#39;default&#39;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">fallback</span>
 
-                <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="s1">&#39;profile&#39;</span><span class="p">,</span> <span class="s1">&#39;default&#39;</span><span class="p">)</span>
-                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-                    <span class="n">config</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">config</span><span class="o">.</span><span class="n">has_section</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">):</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">add_section</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">)</span>
 
-                <span class="k">return</span> <span class="s1">&#39;default&#39;</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="k">return</span> <span class="n">fallback</span></div>
+            <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="s1">&#39;profile&#39;</span><span class="p">,</span> <span class="n">profile</span><span class="p">)</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">profile</span></div>
 
 
 <div class="viewcode-block" id="set_profile"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.set_profile.html#cloudknot.aws.set_profile">[docs]</a><span class="k">def</span> <span class="nf">set_profile</span><span class="p">(</span><span class="n">profile_name</span><span class="p">):</span>

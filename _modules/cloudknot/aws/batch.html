@@ -99,7 +99,7 @@
     <span class="n">ResourceExistsException</span><span class="p">,</span> <span class="n">ResourceDoesNotExistException</span><span class="p">,</span> \
     <span class="n">ResourceClobberedException</span><span class="p">,</span> <span class="n">CannotDeleteResourceException</span><span class="p">,</span> \
     <span class="n">BatchJobFailedError</span><span class="p">,</span> <span class="n">CKTimeoutError</span><span class="p">,</span> \
-    <span class="n">wait_for_job_queue</span><span class="p">,</span> <span class="n">get_s3_bucket</span>
+    <span class="n">wait_for_job_queue</span><span class="p">,</span> <span class="n">get_s3_params</span>
 <span class="kn">from</span> <span class="nn">.ec2</span> <span class="k">import</span> <span class="n">Vpc</span><span class="p">,</span> <span class="n">SecurityGroup</span>
 <span class="kn">from</span> <span class="nn">.ecr</span> <span class="k">import</span> <span class="n">DockerRepo</span>
 <span class="kn">from</span> <span class="nn">.iam</span> <span class="k">import</span> <span class="n">IamRole</span>
@@ -249,7 +249,7 @@
                     <span class="s1">&#39;or a string&#39;</span>
                 <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_docker_image</span> <span class="o">=</span> <span class="n">docker_image</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_output_bucket</span> <span class="o">=</span> <span class="n">get_s3_bucket</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_output_bucket</span> <span class="o">=</span> <span class="n">get_s3_params</span><span class="p">()</span><span class="o">.</span><span class="n">bucket</span>
 
             <span class="c1"># Validate vcpus input</span>
             <span class="k">if</span> <span class="n">vcpus</span><span class="p">:</span>

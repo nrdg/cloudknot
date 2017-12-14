@@ -91,8 +91,7 @@
 <span class="kn">import</span> <span class="nn">tenacity</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">namedtuple</span>
 
-<span class="kn">from</span> <span class="nn">.base_classes</span> <span class="k">import</span> <span class="n">ObjectWithArn</span><span class="p">,</span> <span class="n">clients</span><span class="p">,</span> \
-    <span class="n">get_s3_bucket</span><span class="p">,</span> <span class="n">get_s3_policy_name</span><span class="p">,</span> \
+<span class="kn">from</span> <span class="nn">.base_classes</span> <span class="k">import</span> <span class="n">ObjectWithArn</span><span class="p">,</span> <span class="n">clients</span><span class="p">,</span> <span class="n">get_s3_params</span><span class="p">,</span> \
     <span class="n">ResourceExistsException</span><span class="p">,</span> <span class="n">ResourceDoesNotExistException</span><span class="p">,</span> \
     <span class="n">ResourceClobberedException</span><span class="p">,</span> <span class="n">CannotDeleteResourceException</span>
 
@@ -227,9 +226,9 @@
                 <span class="p">)</span>
 
             <span class="c1"># Add the cloudknot s3 policy if not already in input_policies</span>
-            <span class="n">bucket</span> <span class="o">=</span> <span class="n">get_s3_bucket</span><span class="p">()</span>
+            <span class="n">s3_params</span> <span class="o">=</span> <span class="n">get_s3_params</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_policies</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
-                <span class="n">input_policies</span> <span class="o">|</span> <span class="p">{</span><span class="n">get_s3_policy_name</span><span class="p">(</span><span class="n">bucket</span><span class="p">)}</span>
+                <span class="n">input_policies</span> <span class="o">|</span> <span class="p">{</span><span class="n">s3_params</span><span class="o">.</span><span class="n">policy</span><span class="p">}</span>
             <span class="p">)</span>
 
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">add_instance_profile</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>

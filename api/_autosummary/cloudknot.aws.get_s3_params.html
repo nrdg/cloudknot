@@ -5,7 +5,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>cloudknot.aws.set_s3_bucket &#8212; cloudknot 0.1 documentation</title>
+    <title>cloudknot.aws.get_s3_params &#8212; cloudknot 0.1 documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/collapsible.css" type="text/css" />
@@ -24,8 +24,8 @@
     <script type="text/javascript" src="../../_static/doctools.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="cloudknot.aws.ResourceDoesNotExistException" href="cloudknot.aws.ResourceDoesNotExistException.html" />
-    <link rel="prev" title="cloudknot.aws.get_s3_bucket" href="cloudknot.aws.get_s3_bucket.html" />
+    <link rel="next" title="cloudknot.aws.set_s3_params" href="cloudknot.aws.set_s3_params.html" />
+    <link rel="prev" title="cloudknot.aws.refresh_clients" href="cloudknot.aws.refresh_clients.html" />
    
   <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
   
@@ -74,8 +74,8 @@
 <li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.set_profile.html">cloudknot.aws.set_profile</a></li>
 <li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.list_profiles.html">cloudknot.aws.list_profiles</a></li>
 <li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.refresh_clients.html">cloudknot.aws.refresh_clients</a></li>
-<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.get_s3_bucket.html">cloudknot.aws.get_s3_bucket</a></li>
-<li class="toctree-l5 current"><a class="current reference internal" href="#">cloudknot.aws.set_s3_bucket</a></li>
+<li class="toctree-l5 current"><a class="current reference internal" href="#">cloudknot.aws.get_s3_params</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.set_s3_params.html">cloudknot.aws.set_s3_params</a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="../aws.html#clients">Clients</a></li>
@@ -110,18 +110,23 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="cloudknot-aws-set-s3-bucket">
-<h1>cloudknot.aws.set_s3_bucket<a class="headerlink" href="#cloudknot-aws-set-s3-bucket" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="cloudknot-aws-get-s3-params">
+<h1>cloudknot.aws.get_s3_params<a class="headerlink" href="#cloudknot-aws-get-s3-params" title="Permalink to this headline">¶</a></h1>
 <dl class="function">
-<dt id="cloudknot.aws.set_s3_bucket">
-<code class="descclassname">cloudknot.aws.</code><code class="descname">set_s3_bucket</code><span class="sig-paren">(</span><em>bucket</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cloudknot/aws/base_classes.html#set_s3_bucket"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.aws.set_s3_bucket" title="Permalink to this definition">¶</a></dt>
-<dd><p>Set the cloudknot S3 bucket</p>
-<p>Set bucket by modifying the cloudknot config file</p>
+<dt id="cloudknot.aws.get_s3_params">
+<code class="descclassname">cloudknot.aws.</code><code class="descname">get_s3_params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cloudknot/aws/base_classes.html#get_s3_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.aws.get_s3_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the cloudknot S3 bucket and corresponding access policy</p>
+<p>For the bucket name, first check the cloudknot config file for the bucket
+option. If that fails, check for the CLOUDKNOT_S3_BUCKET environment
+variable. If that fails, use
+‘cloudknot-‘ + getpass.getuser().lower() + ‘-‘ + uuid4()</p>
+<p>For the policy name, first check the cloudknot config file. If that fails,
+use ‘cloudknot-bucket-access-‘ + str(uuid.uuid4())</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>bucket</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) – Cloudknot S3 bucket name</td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><strong>bucket</strong> (<em>NamedTuple</em>) – A named tuple with Cloudknot S3 bucket and policy fields</td>
 </tr>
 </tbody>
 </table>
@@ -144,7 +149,7 @@
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
       
       |
-      <a href="../../_sources/api/_autosummary/cloudknot.aws.set_s3_bucket.rst.txt"
+      <a href="../../_sources/api/_autosummary/cloudknot.aws.get_s3_params.rst.txt"
           rel="nofollow">Page source</a>
     </div>
 

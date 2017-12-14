@@ -111,8 +111,8 @@ user. See, for example, :func:`cloudknot.Knot.map`,
 :func:`cloudknot.BatchJob.result <cloudknot.aws.BatchJob.result>`. Under
 the hood, these methods pass results through an Amazon S3 bucket. You can get
 and set the name of this S3 bucket using
-:func:`cloudknot.get_s3_bucket <cloudknot.aws.get_s3_bucket>` and
-:func:`cloudknot.set_s3_bucket <cloudknot.aws.set_s3_bucket>`.
+:func:`cloudknot.get_s3_params <cloudknot.aws.get_s3_params>` and
+:func:`cloudknot.set_s3_params <cloudknot.aws.set_s3_params>`.
 
 
 AWS resource limitations

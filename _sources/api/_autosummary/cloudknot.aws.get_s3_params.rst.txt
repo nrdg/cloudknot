@@ -1,9 +1,9 @@
-cloudknot\.aws\.get\_s3\_bucket
+cloudknot\.aws\.get\_s3\_params
 ===============================
 
 .. currentmodule:: cloudknot.aws
 
-.. autofunction:: get_s3_bucket
+.. autofunction:: get_s3_params
 
 .. raw:: html
 
