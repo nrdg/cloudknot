@@ -81,13 +81,6 @@ if __name__ == "__main__":
              'in S3.'
     )
 
-    parser.add_argument(
-        '--sse', dest='sse', action='store',
-        choices=['AES256', 'aws:kms'], default=None,
-        help='Server side encryption algorithm used when storing objects '
-             'in S3.'
-    )
-
     args = parser.parse_args()
 
     s3 = boto3.client('s3')
