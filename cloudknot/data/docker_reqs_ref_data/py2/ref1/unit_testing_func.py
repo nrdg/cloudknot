@@ -6,25 +6,30 @@ from argparse import ArgumentParser
 from functools import wraps
 
 
-def pickle_to_s3(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        s3 = boto3.client("s3")
-        bucket = os.environ.get("CLOUDKNOT_JOBS_S3_BUCKET")
-        key = '/'.join([
-            'cloudknot.jobs',
-            os.environ.get("CLOUDKNOT_S3_JOBDEF_KEY"),
-            os.environ.get("AWS_BATCH_JOB_ID"),
-            '{0:3d}'.format(int(os.environ.get("AWS_BATCH_JOB_ATTEMPT"))),
-            'output.pickle'
-        ])
-        pickled_result = cloudpickle.dumps(f(*args, **kwargs))
-        s3.put_object(Bucket=bucket, Body=pickled_result, Key=key)
+def pickle_to_s3(server_side_encryption=None):
+    def real_decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            s3 = boto3.client("s3")
+            bucket = os.environ.get("CLOUDKNOT_JOBS_S3_BUCKET")
+            key = '/'.join([
+                'cloudknot.jobs',
+                os.environ.get("CLOUDKNOT_S3_JOBDEF_KEY"),
+                os.environ.get("AWS_BATCH_JOB_ID"),
+                '{0:3d}'.format(int(os.environ.get("AWS_BATCH_JOB_ATTEMPT"))),
+                'output.pickle'
+            ])
+            pickled_result = cloudpickle.dumps(f(*args, **kwargs))
+            if server_side_encryption is None:
+                s3.put_object(Bucket=bucket, Body=pickled_result, Key=key)
+            else:
+                s3.put_object(Bucket=bucket, Body=pickled_result, Key=key,
+                              ServerSideEncryption=server_side_encryption)
 
-    return wrapper
+        return wrapper
+    return real_decorator
 
 
-@pickle_to_s3
 def unit_testing_func(name=None, no_capitalize=False):
     """Test function for unit testing of cloudknot.DockerImage
 
@@ -69,6 +74,20 @@ if __name__ == "__main__":
         help='Assume input has already been grouped into a single tuple.'
     )
 
+    parser.add_argument(
+        '--sse', dest='sse', action='store',
+        choices=['AES256', 'aws:kms'], default=None,
+        help='Server side encryption algorithm used when storing objects '
+             'in S3.'
+    )
+
+    parser.add_argument(
+        '--sse', dest='sse', action='store',
+        choices=['AES256', 'aws:kms'], default=None,
+        help='Server side encryption algorithm used when storing objects '
+             'in S3.'
+    )
+
     args = parser.parse_args()
 
     s3 = boto3.client('s3')
@@ -84,6 +103,6 @@ if __name__ == "__main__":
     input = pickle.loads(response.get('Body').read())
 
     if args.starmap:
-        unit_testing_func(*input)
+        pickle_to_s3(args.sse)(unit_testing_func)(*input)
     else:
-        unit_testing_func(input)
+        pickle_to_s3(args.sse)(unit_testing_func)(input)

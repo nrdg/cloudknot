@@ -116,12 +116,12 @@ def get_s3_params():
     Returns
     -------
     bucket : NamedTuple
-        A named tuple with Cloudknot S3 bucket and policy fields
+        A namedtuple with fields ['bucket', 'policy', 'sse']
     """
     config_file = get_config_file()
     config = configparser.ConfigParser()
 
-    BucketInfo = namedtuple('BucketInfo', ['bucket', 'policy', ])
+    BucketInfo = namedtuple('BucketInfo', ['bucket', 'policy', 'sse'])
 
     with rlock:
         config.read(config_file)
@@ -153,18 +153,32 @@ def get_s3_params():
                 # Update the policy to reflect the new bucket name.
                 update_s3_policy(policy=policy, bucket=bucket)
 
+        option = 's3-sse'
+        if config.has_section('aws') and config.has_option('aws', option):
+            sse = config.get('aws', option)
+            if sse not in ['AES256', 'aws:kms', 'None']:
+                raise ValueError(
+                    'The server-side encryption option "sse" must must be '
+                    'one of ["AES256", "aws:kms", "None"]'
+                )
+        else:
+            sse = None
+
+        if sse == 'None':
+            sse = None
+
         # Use set_s3_params to check for name availability
         # and write to config file
-        set_s3_params(bucket=bucket, policy=policy)
+        set_s3_params(bucket=bucket, policy=policy, sse=sse)
 
         if policy is None:
             config.read(config_file)
             policy = config.get('aws', 's3-bucket-policy')
 
-    return BucketInfo(bucket=bucket, policy=policy)
+    return BucketInfo(bucket=bucket, policy=policy, sse=sse)
 
 
-def set_s3_params(bucket, policy=None):
+def set_s3_params(bucket, policy=None, sse=None):
     """Set the cloudknot S3 bucket
 
     Set bucket by modifying the cloudknot config file
@@ -176,15 +190,28 @@ def set_s3_params(bucket, policy=None):
     policy : string
         Cloudknot S3 bucket access policy name
         Default: None means that cloudknot will create a new policy
+    sse : string
+        S3 server side encryption method. If provided, must be one of
+        ['AES256', 'aws:kms'].
+        Default: None
     """
+    if sse is not None and sse not in ['AES256', 'aws:kms']:
+        raise ValueError('The server-side encryption option "sse" '
+                         'must be one of ["AES256", "aws:kms"]')
+
     # Update the config file
     config_file = get_config_file()
     config = configparser.ConfigParser()
 
-    def test_bucket_put_get(bucket_):
+    def test_bucket_put_get(bucket_, sse_):
         key = 'cloudnot-test-permissions-key'
         try:
-            clients['s3'].put_object(Bucket=bucket_, Body=b'test', Key=key)
+            if sse_:
+                clients['s3'].put_object(Bucket=bucket_, Body=b'test',
+                                         Key=key, ServerSideEncryption=sse_)
+            else:
+                clients['s3'].put_object(Bucket=bucket_, Body=b'test', Key=key)
+
             clients['s3'].get_object(Bucket=bucket_, Key=key)
         except clients['s3'].exceptions.ClientError:
             raise ValueError('The requested bucket name already exists '
@@ -215,7 +242,7 @@ def set_s3_params(bucket, policy=None):
         except clients['s3'].exceptions.BucketAlreadyOwnedByYou:
             pass
         except clients['s3'].exceptions.BucketAlreadyExists:
-            test_bucket_put_get(bucket)
+            test_bucket_put_get(bucket, sse)
         except clients['s3'].exceptions.ClientError as e:
             # Check for Illegal Location Constraint
             error_code = e.response['Error']['Code']
@@ -226,7 +253,7 @@ def set_s3_params(bucket, policy=None):
                 except clients['s3'].exceptions.BucketAlreadyOwnedByYou:
                     pass
                 except clients['s3'].exceptions.BucketAlreadyExists:
-                    test_bucket_put_get(bucket)
+                    test_bucket_put_get(bucket, sse)
             else:
                 # Pass exception to user
                 raise e
@@ -250,6 +277,7 @@ def set_s3_params(bucket, policy=None):
             pass
 
         config.set('aws', 's3-bucket-policy', policy)
+        config.set('aws', 's3-sse', str(sse))
         with open(config_file, 'w') as f:
             config.write(f)
 
