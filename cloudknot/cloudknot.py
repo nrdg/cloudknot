@@ -87,23 +87,27 @@ class Pars(aws.NamedObject):
         """
         # Validate name input
         if not isinstance(name, six.string_types):
-            raise ValueError('PARS name must be a string. You passed a '
-                             '{t!s}'.format(t=type(name)))
+            raise aws.CloudknotInputError(
+                'PARS name must be a string. You passed a '
+                '{t!s}'.format(t=type(name))
+            )
 
         super(Pars, self).__init__(name=name)
 
         # Validate vpc_name input
         if vpc_name:
             if not isinstance(vpc_name, six.string_types):
-                raise ValueError('if provided, vpc_name must be a string.')
+                raise aws.CloudknotInputError('if provided, vpc_name must be '
+                                              'a string.')
         else:
             vpc_name = name + '-cloudknot-vpc'
 
         # Validate security_group_name input
         if security_group_name:
             if not isinstance(security_group_name, six.string_types):
-                raise ValueError('if provided, security_group_name must be '
-                                 'a string.')
+                raise aws.CloudknotInputError(
+                    'if provided, security_group_name must be a string.'
+                )
         else:
             security_group_name = name + '-cloudknot-security-group'
 
@@ -121,9 +125,10 @@ class Pars(aws.NamedObject):
             # Pars exists, check that user did not provide any resource names
             if any([batch_service_role_name, ecs_instance_role_name,
                     spot_fleet_role_name, vpc_id, security_group_id]):
-                raise ValueError('You provided resources for a pars that '
-                                 'already exists in configuration file '
-                                 '{fn:s}.'.format(fn=get_config_file()))
+                raise aws.CloudknotInputError(
+                    'You provided resources for a pars that already exists in '
+                    'configuration file {fn:s}.'.format(fn=get_config_file())
+                )
 
             mod_logger.info('Found PARS {name:s} in config'.format(name=name))
 
@@ -275,8 +280,9 @@ class Pars(aws.NamedObject):
                 # Validate role name input
                 if role_name:
                     if not isinstance(role_name, six.string_types):
-                        raise ValueError('if provided, role names must '
-                                         'be strings.')
+                        raise aws.CloudknotInputError(
+                            'if provided, role names must be strings.'
+                        )
                 else:
                     role_name = (
                         name + '-cloudknot-' + fallback_suffix
@@ -295,13 +301,14 @@ class Pars(aws.NamedObject):
 
             # Validate vpc_id input
             if vpc_id and not isinstance(vpc_id, six.string_types):
-                raise ValueError('if provided, vpc_id must be a string')
+                raise aws.CloudknotInputError('if provided, vpc_id must be a '
+                                              'string')
 
             # Validate security_group_id input
             if security_group_id and not isinstance(security_group_id,
                                                     six.string_types):
-                raise ValueError('if provided, security_group_id '
-                                 'must be a string')
+                raise aws.CloudknotInputError('if provided, security_group_id '
+                                              'must be a string')
 
             def set_role(pars_name, role_name, service, policies,
                          add_instance_profile):
@@ -500,7 +507,8 @@ class Pars(aws.NamedObject):
 
             # Verify input
             if not isinstance(new_role, aws.IamRole):
-                raise ValueError('new role must be an instance of IamRole')
+                raise aws.CloudknotInputError('new role must be an instance '
+                                              'of IamRole')
 
             old_role = getattr(self, attr)
 
@@ -582,7 +590,7 @@ class Pars(aws.NamedObject):
             )
 
         if not isinstance(v, aws.Vpc):
-            raise ValueError('new vpc must be an instance of Vpc')
+            raise aws.CloudknotInputError('new vpc must be an instance of Vpc')
 
         if v.region != self._vpc.region:
             raise aws.RegionException(v.region)
@@ -656,8 +664,8 @@ class Pars(aws.NamedObject):
             )
 
         if not isinstance(sg, aws.SecurityGroup):
-            raise ValueError('new security group must be an instance of '
-                             'SecurityGroup')
+            raise aws.CloudknotInputError('new security group must be an '
+                                          'instance of SecurityGroup')
 
         if sg.region != self._security_group.region:
             raise aws.RegionException(sg.region)
@@ -869,8 +877,10 @@ class Knot(aws.NamedObject):
         """
         # Validate name input
         if not isinstance(name, six.string_types):
-            raise ValueError('Knot name must be a string. You passed a '
-                             '{t!s}'.format(t=type(name)))
+            raise aws.CloudknotInputError(
+                'Knot name must be a string. You passed a '
+                '{t!s}'.format(t=type(name))
+            )
 
         super(Knot, self).__init__(name=name)
         self._knot_name = 'knot ' + name
@@ -968,11 +978,12 @@ class Knot(aws.NamedObject):
                 else name + '-cloudknot-job-queue'
 
             if pars and not isinstance(pars, Pars):
-                raise ValueError('if provided, pars must be a Pars instance.')
+                raise aws.CloudknotInputError('if provided, pars must be a '
+                                              'Pars instance.')
 
             if docker_image and any([func, image_script_path, image_work_dir,
                                      image_github_installs]):
-                raise ValueError(
+                raise aws.CloudknotInputError(
                     'you gave redundant, possibly conflicting input: '
                     '`docker_image` and one of [`func`, '
                     '`image_script_path`, `image_work_dir`]'
@@ -980,8 +991,9 @@ class Knot(aws.NamedObject):
 
             if docker_image and not isinstance(docker_image,
                                                dockerimage.DockerImage):
-                raise ValueError('docker_image must be a cloudknot '
-                                 'DockerImage instance.')
+                raise aws.CloudknotInputError(
+                    'docker_image must be a cloudknot DockerImage instance.'
+                )
 
             def set_pars(knot_name, input_pars, pars_policies):
                 # Validate and set the PARS
@@ -1118,7 +1130,7 @@ class Knot(aws.NamedObject):
                     }
 
                     if not all(matches.values()):
-                        raise ValueError(
+                        raise aws.CloudknotInputError(
                             'The requested job definition already exists but '
                             'does not match the input parameters. '
                             '{matches!s}'.format(matches=matches)
@@ -1220,7 +1232,7 @@ class Knot(aws.NamedObject):
                     }
 
                     if not all(matches.values()):
-                        raise ValueError(
+                        raise aws.CloudknotInputError(
                             'The requested compute environment already exists '
                             'but does not match the input parameters. '
                             '{matches!s}.'.format(matches=matches)
@@ -1272,7 +1284,7 @@ class Knot(aws.NamedObject):
                     }
 
                     if not all(matches.values()):
-                        raise ValueError(
+                        raise aws.CloudknotInputError(
                             'The requested job queue already exists '
                             'but does not match the input parameters. '
                             '{matches!s}'.format(matches=matches)
@@ -1322,7 +1334,7 @@ class Knot(aws.NamedObject):
             try:
                 self._compute_environment, ce_cleanup = \
                     futures['compute-environment'].result()
-            except ValueError as e:
+            except aws.CloudknotInputError as e:
                 if pars_cleanup:
                     self.pars.clobber()
                 raise e
@@ -1335,7 +1347,7 @@ class Knot(aws.NamedObject):
 
             try:
                 self._job_queue, jq_cleanup = futures['job-queue'].result()
-            except ValueError as e:
+            except aws.CloudknotInputError as e:
                 if ce_cleanup:
                     self.compute_environment.clobber()
                 if pars_cleanup:
@@ -1356,7 +1368,7 @@ class Knot(aws.NamedObject):
             try:
                 self._job_definition, jd_cleanup = \
                     futures['job-definition'].result()
-            except ValueError as e:
+            except aws.CloudknotInputError as e:
                 if jq_cleanup:
                     self.job_queue.clobber()
                 if ce_cleanup:
@@ -1379,9 +1391,10 @@ class Knot(aws.NamedObject):
                 if pars_cleanup:
                     self.pars.clobber()
 
-                raise ValueError("The username for this knot's job definition "
-                                 "does not match the username for this knot's "
-                                 "Docker image.")
+                raise aws.CloudknotInputError(
+                    "The username for this knot's job definition does not "
+                    "match the username for this knot's Docker image."
+                )
 
             executor.shutdown()
 
@@ -1512,13 +1525,14 @@ class Knot(aws.NamedObject):
 
         # env_vars should be a sequence of sequences of dicts
         if env_vars and not all(isinstance(s, dict) for s in env_vars):
-            raise ValueError('env_vars must be a sequence of dicts')
+            raise aws.CloudknotInputError('env_vars must be a sequence of '
+                                          'dicts')
 
         # and each dict should have only 'name' and 'value' keys
         if env_vars and not all(set(d.keys()) == {'name', 'value'}
                                 for d in env_vars):
-            raise ValueError('each dict in env_vars must have '
-                             'keys "name" and "value"')
+            raise aws.CloudknotInputError('each dict in env_vars must have '
+                                          'keys "name" and "value"')
 
         these_jobs = []
 

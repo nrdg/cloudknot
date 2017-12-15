@@ -19,6 +19,7 @@ __all__ = [
     "ResourceExistsException", "CannotDeleteResourceException",
     "CannotCreateResourceException", "RegionException", "ProfileException",
     "BatchJobFailedError", "CKTimeoutError",
+    "CloudknotInputError", "CloudknotConfigurationError",
     "NamedObject", "ObjectWithArn", "ObjectWithUsernameAndMemory",
     "clients", "refresh_clients",
     "wait_for_compute_environment", "wait_for_job_queue",
@@ -157,7 +158,7 @@ def get_s3_params():
         if config.has_section('aws') and config.has_option('aws', option):
             sse = config.get('aws', option)
             if sse not in ['AES256', 'aws:kms', 'None']:
-                raise ValueError(
+                raise CloudknotInputError(
                     'The server-side encryption option "sse" must must be '
                     'one of ["AES256", "aws:kms", "None"]'
                 )
@@ -196,8 +197,8 @@ def set_s3_params(bucket, policy=None, sse=None):
         Default: None
     """
     if sse is not None and sse not in ['AES256', 'aws:kms']:
-        raise ValueError('The server-side encryption option "sse" '
-                         'must be one of ["AES256", "aws:kms"]')
+        raise CloudknotInputError('The server-side encryption option "sse" '
+                                  'must be one of ["AES256", "aws:kms"]')
 
     # Update the config file
     config_file = get_config_file()
@@ -214,9 +215,9 @@ def set_s3_params(bucket, policy=None, sse=None):
 
             clients['s3'].get_object(Bucket=bucket_, Key=key)
         except clients['s3'].exceptions.ClientError:
-            raise ValueError('The requested bucket name already exists '
-                             'and you do not have permission to put or '
-                             'get objects in it.')
+            raise CloudknotInputError('The requested bucket name already '
+                                      'exists and you do not have permission '
+                                      'to put or get objects in it.')
 
         try:
             clients['s3'].delete_object(Bucket=bucket_, Key=key)
@@ -444,7 +445,7 @@ def set_region(region='us-east-1'):
     region_names = [d['RegionName'] for d in response.get('Regions')]
 
     if region not in region_names:
-        raise ValueError('`region` must be in {regions!s}'.format(
+        raise CloudknotInputError('`region` must be in {regions!s}'.format(
             regions=region_names
         ))
 
@@ -598,7 +599,7 @@ def set_profile(profile_name):
     profile_info = list_profiles()
 
     if profile_name not in profile_info.profile_names:
-        raise ValueError(
+        raise CloudknotInputError(
             'The profile you specified does not exist in either the AWS '
             'config file at {conf:s} or the AWS shared credentials file at '
             '{cred:s}.'.format(
@@ -872,7 +873,7 @@ class CloudknotConfigurationError(Exception):
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-class CloudknotValueError(Exception):
+class CloudknotInputError(Exception):
     """Error indicating an input argument has an invalid value"""
     def __init__(self, msg):
         """Initialize the Exception
@@ -1001,11 +1002,11 @@ class ObjectWithUsernameAndMemory(ObjectWithArn):
         try:
             mem = int(memory)
             if mem < 1:
-                raise ValueError('memory must be positive')
+                raise CloudknotInputError('memory must be positive')
             else:
                 self._memory = mem
         except ValueError:
-            raise ValueError('memory must be an integer')
+            raise CloudknotInputError('memory must be an integer')
 
         self._username = str(username)
 

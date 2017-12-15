@@ -587,7 +587,7 @@ def test_Pars(bucket_cleanup):
         # Now re-instantiate so that the PARS loads from the config file
         # with resources that don't exist anymore
         # First, with specifying other resource names, to throw error
-        with pytest.raises(ValueError):
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.Pars(name=name, spot_fleet_role_name=get_testing_name())
 
         # And for real this time
@@ -647,7 +647,7 @@ def test_Pars(bucket_cleanup):
 
         # Test setting new batch service role
         # -----------------------------------
-        with pytest.raises(ValueError):
+        with pytest.raises(ck.aws.CloudknotInputError):
             p.batch_service_role = 42
 
         role = ck.aws.IamRole(
@@ -669,7 +669,7 @@ def test_Pars(bucket_cleanup):
 
         # Test setting new ecs instance role
         # ----------------------------------
-        with pytest.raises(ValueError):
+        with pytest.raises(ck.aws.CloudknotInputError):
             p.ecs_instance_role = 42
 
         role = ck.aws.IamRole(
@@ -692,7 +692,7 @@ def test_Pars(bucket_cleanup):
 
         # Test setting new spot fleet role
         # --------------------------------
-        with pytest.raises(ValueError):
+        with pytest.raises(ck.aws.CloudknotInputError):
             p.spot_fleet_role = 42
 
         role = ck.aws.IamRole(
@@ -714,7 +714,7 @@ def test_Pars(bucket_cleanup):
 
         # Test setting new security group
         # --------------------------------
-        with pytest.raises(ValueError):
+        with pytest.raises(ck.aws.CloudknotInputError):
             p.security_group = 42
 
         sg = ck.aws.SecurityGroup(name=get_testing_name(), vpc=p.vpc)
@@ -733,7 +733,7 @@ def test_Pars(bucket_cleanup):
 
         # Test setting new VPC
         # --------------------------------
-        with pytest.raises(ValueError):
+        with pytest.raises(ck.aws.CloudknotInputError):
             p.vpc = 42
 
         vpc = ck.aws.Vpc(name=get_testing_name())
@@ -759,36 +759,36 @@ def test_Pars(bucket_cleanup):
 
         # Test Exceptions on invalid input
         # --------------------------------
-        # Assert ValueError on invalid name
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on invalid name
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.Pars(name=42)
 
-        # Assert ValueError on invalid vpc_name
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on invalid vpc_name
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.Pars(name=get_testing_name(), vpc_name=42)
 
-        # Assert ValueError on invalid vpc_id
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on invalid vpc_id
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.Pars(name=get_testing_name(), vpc_id=42)
 
-        # Assert ValueError on invalid security_group_name
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on invalid security_group_name
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.Pars(name=get_testing_name(), security_group_name=42)
 
-        # Assert ValueError on invalid security_group_id
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on invalid security_group_id
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.Pars(name=get_testing_name(), security_group_id=42)
 
-        # Assert ValueError on invalid batch_service_role_name
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on invalid batch_service_role_name
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.Pars(name=get_testing_name(), batch_service_role_name=42)
 
-        # Assert ValueError on invalid ecs_instance_role_name
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on invalid ecs_instance_role_name
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.Pars(name=get_testing_name(), ecs_instance_role_name=42)
 
-        # Assert ValueError on invalid spot_fleet_role_name
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on invalid spot_fleet_role_name
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.Pars(name=get_testing_name(), spot_fleet_role_name=42)
     except Exception as e:
         if p:
@@ -1037,36 +1037,36 @@ def test_DockerImage(cleanup_repos):
         # Test for exception handling of incorrect input
         # ----------------------------------------------
 
-        # Assert ValueError on no input
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on no input
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.DockerImage()
 
-        # Assert ValueError on name plus other input
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on name plus other input
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.DockerImage(name=get_testing_name(), func=unit_testing_func)
 
-        # Assert ValueError on non-string name input
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on non-string name input
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.DockerImage(name=42)
 
-        # Assert ValueError on non-existent name input
+        # Assert ck.aws.CloudknotInputError on non-existent name input
         with pytest.raises(ck.aws.ResourceDoesNotExistException):
             ck.DockerImage(name=get_testing_name())
 
-        # Assert ValueError on redundant input
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on redundant input
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.DockerImage(
                 func=unit_testing_func,
                 script_path=correct_script_path,
                 dir_name=os.getcwd()
             )
 
-        # Assert ValueError on invalid script path
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on invalid script path
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.DockerImage(script_path=str(uuid.uuid4()), dir_name=os.getcwd())
 
-        # Assert ValueError on invalid dir name
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on invalid dir name
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.DockerImage(
                 script_path=correct_script_path,
                 dir_name=str(uuid.uuid4())
@@ -1075,15 +1075,15 @@ def test_DockerImage(cleanup_repos):
         correct_dir = op.join(
             data_path, 'docker_reqs_ref_data', py_dir, 'ref1'
         )
-        # Assert ValueError to prevent overwriting existing script
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError to prevent overwriting existing script
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.DockerImage(func=unit_testing_func, dir_name=correct_dir)
 
-        # Assert ValueError to prevent overwriting existing Dockerfile
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError to prevent overwriting existing Dockerfile
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.DockerImage(script_path=correct_script_path)
 
-        # Assert ValueError to prevent overwriting existing requirements.txt
+        # Assert ck.aws.CloudknotInputError to prevent overwriting existing requirements.txt
         # First, avoid the existing Dockerfile error by renaming the Dockerfile
         old_dockerfile = op.join(op.dirname(correct_script_path), 'Dockerfile')
 
@@ -1092,8 +1092,8 @@ def test_DockerImage(cleanup_repos):
         )
         os.rename(old_dockerfile, new_dockerfile)
 
-        # Assert the ValueError
-        with pytest.raises(ValueError):
+        # Assert the ck.aws.CloudknotInputError
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.DockerImage(script_path=correct_script_path)
 
         # Clean up our mess by renaming to the old Dockerfile
@@ -1112,24 +1112,24 @@ def test_DockerImage(cleanup_repos):
 
         repo = ck.aws.DockerRepo(name=repo_name)
 
-        # Assert ValueError on push without args
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on push without args
+        with pytest.raises(ck.aws.CloudknotInputError):
             di.push()
 
-        # Assert ValueError on over-specified input
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on over-specified input
+        with pytest.raises(ck.aws.CloudknotInputError):
             di.push(repo="input doesn't matter here", repo_uri=str(repo_uri))
 
-        # Assert ValueError on push before build
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on push before build
+        with pytest.raises(ck.aws.CloudknotInputError):
             di.push(repo_uri=str(repo_uri))
 
-        # Assert ValueError on incorrect build args
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on incorrect build args
+        with pytest.raises(ck.aws.CloudknotInputError):
             di.build(tags=[42, -42])
 
-        # Assert ValueError on 'latest' in tags
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on 'latest' in tags
+        with pytest.raises(ck.aws.CloudknotInputError):
             di.build(tags=['testing', 'latest'])
 
         tags = ['testing', ['testing1', 'testing2']]
@@ -1153,12 +1153,12 @@ def test_DockerImage(cleanup_repos):
 
             assert repo_uri in di.repo_uri
 
-        # Assert ValueError on push with invalid repo
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on push with invalid repo
+        with pytest.raises(ck.aws.CloudknotInputError):
             di.push(repo=42)
 
-        # Assert ValueError on push with invalid repo_uri
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on push with invalid repo_uri
+        with pytest.raises(ck.aws.CloudknotInputError):
             di.push(repo_uri=42)
 
         di.clobber()
@@ -1167,7 +1167,7 @@ def test_DockerImage(cleanup_repos):
         with pytest.raises(ck.aws.ResourceClobberedException):
             di.build(tags=['testing'])
 
-        # Assert ValueError on push with invalid repo_uri
+        # Assert ck.aws.CloudknotInputError on push with invalid repo_uri
         with pytest.raises(ck.aws.ResourceClobberedException):
             di.push(repo=repo)
     except Exception as e:
@@ -1329,7 +1329,7 @@ def test_Knot(cleanup_repos):
             priority=1
         )
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ck.aws.CloudknotInputError):
             knot = ck.Knot(
                 name=get_testing_name(),
                 func=unit_testing_func,
@@ -1337,7 +1337,7 @@ def test_Knot(cleanup_repos):
                 job_def_vcpus=42
             )
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ck.aws.CloudknotInputError):
             knot = ck.Knot(
                 name=get_testing_name(),
                 func=unit_testing_func,
@@ -1345,7 +1345,7 @@ def test_Knot(cleanup_repos):
                 desired_vcpus=42
             )
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ck.aws.CloudknotInputError):
             knot = ck.Knot(
                 name=get_testing_name(),
                 func=unit_testing_func,
@@ -1368,10 +1368,10 @@ def test_Knot(cleanup_repos):
 
     # Test Exceptions on invalid input
     # --------------------------------
-    # Assert ValueError on invalid name
-    with pytest.raises(ValueError):
+    # Assert ck.aws.CloudknotInputError on invalid name
+    with pytest.raises(ck.aws.CloudknotInputError):
         ck.Knot(name=42)
 
-    # Assert ValueError on invalid pars input
-    with pytest.raises(ValueError):
+    # Assert ck.aws.CloudknotInputError on invalid pars input
+    with pytest.raises(ck.aws.CloudknotInputError):
         ck.Knot(func=unit_testing_func, pars=42)

@@ -267,7 +267,7 @@ def test_get_region(bucket_cleanup):
 
 
 def test_set_region(bucket_cleanup):
-    with pytest.raises(ValueError):
+    with pytest.raises(ck.aws.CloudknotInputError):
         ck.set_region(region='not a valid region name')
 
     old_region = ck.get_region()
@@ -449,7 +449,7 @@ def test_set_profile(bucket_cleanup):
         cred_file = op.join(ref_dir, 'credentials_without_default')
         os.environ['AWS_SHARED_CREDENTIALS_FILE'] = cred_file
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.set_profile(profile_name='not_in_list_of_profiles')
 
         profile = 'name-5'
@@ -487,7 +487,7 @@ def test_set_profile(bucket_cleanup):
 
 def test_ObjectWithUsernameAndMemory(bucket_cleanup):
     for mem in [-42, 'not-an-int']:
-        with pytest.raises(ValueError):
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.aws.base_classes.ObjectWithUsernameAndMemory(
                 name=get_testing_name(),
                 memory=mem
@@ -639,17 +639,17 @@ def test_IamRole(bucket_cleanup):
             assert n not in config.options(role_section_name)
 
         # Test for correct handling of incorrect input
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.IamRole(name='not-important', service='value-error')
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.IamRole(name='not-important', service='ec2', policies=455)
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.IamRole(name='not-important', service='ec2',
                            policies=[455, 455])
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.IamRole(name='not-important', service='ec2',
                            policies='NotAnAWSPolicy')
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.IamRole(name='not-important', service='ec2',
                            add_instance_profile=455)
 
@@ -1093,20 +1093,20 @@ def test_Vpc(bucket_cleanup):
         vpc.clobber()
 
         # Test for correct handling of incorrect input
-        # Assert ValueError on no input
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on no input
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.aws.Vpc()
 
-        # Assert ValueError on vpc_id and name input
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on vpc_id and name input
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.aws.Vpc(vpc_id=get_testing_name(), name=get_testing_name())
 
-        # Assert ValueError on invalid ipv4_cidr
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on invalid ipv4_cidr
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.aws.Vpc(name=get_testing_name(), ipv4_cidr='not-valid')
 
-        # Assert ValueError on invalid instance tenancy
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on invalid instance tenancy
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.aws.Vpc(name=get_testing_name(), instance_tenancy='not-valid')
 
         # Assert ResourceDoesNotExistException on invalid vpc_id
@@ -1388,19 +1388,19 @@ def test_SecurityGroup(bucket_cleanup):
             assert sg.security_group_id not in config.options(sg_section_name)
 
         # Test for correct handling of incorrect input
-        # Assert ValueError on no input
-        with pytest.raises(ValueError) as e:
+        # Assert ck.aws.CloudknotInputError on no input
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.SecurityGroup()
 
-        # Assert ValueError on name and group_id input
-        with pytest.raises(ValueError) as e:
+        # Assert ck.aws.CloudknotInputError on name and group_id input
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.SecurityGroup(
                 security_group_id=get_testing_name(),
                 name=get_testing_name()
             )
 
-        # Assert ValueError on invalid vpc input
-        with pytest.raises(ValueError) as e:
+        # Assert ck.aws.CloudknotInputError on invalid vpc input
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.SecurityGroup(name=get_testing_name(), vpc=5)
 
         # Finally clean up the VPC that we used for testing
@@ -1636,39 +1636,39 @@ def test_JobDefinition(pars):
             assert jd.name not in config.options(jd_section_name)
 
         # Test for correct handling of incorrect input
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.JobDefinition()
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.JobDefinition(
                 arn=get_testing_name(),
                 name=get_testing_name()
             )
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.JobDefinition(
                 name=get_testing_name(),
                 job_role=5, docker_image='ubuntu'
             )
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.JobDefinition(
                 name=get_testing_name(),
                 job_role=pars.batch_service_role,
                 docker_image=5
             )
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.JobDefinition(
                 name=get_testing_name(),
                 job_role=pars.batch_service_role,
                 docker_image='ubuntu',
                 vcpus=-2
             )
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.JobDefinition(
                 name=get_testing_name(),
                 job_role=pars.batch_service_role,
                 docker_image='ubuntu',
                 retries=0
             )
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.JobDefinition(
                 name=get_testing_name(),
                 job_role=pars.batch_service_role,
@@ -1974,19 +1974,19 @@ def test_ComputeEnvironment(pars):
             assert ce.name not in config.options(ce_section_name)
 
         # Test for correct handling of incorrect input
-        # ValueError for neither arn or name
-        with pytest.raises(ValueError) as e:
+        # ck.aws.CloudknotInputError for neither arn or name
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.ComputeEnvironment()
 
         # Value Error for both arn and name
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.ComputeEnvironment(
                 arn=get_testing_name(),
                 name=get_testing_name()
             )
 
-        # ValueError for 'SPOT' resource with no spot_fleet_role
-        with pytest.raises(ValueError) as e:
+        # ck.aws.CloudknotInputError for 'SPOT' resource with no spot_fleet_role
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.ComputeEnvironment(
                 name=get_testing_name(),
                 batch_service_role=pars.batch_service_role,
@@ -1995,8 +1995,8 @@ def test_ComputeEnvironment(pars):
                 resource_type='SPOT', bid_percentage=50
             )
 
-        # ValueError for 'SPOT' resource with no bid_percentage
-        with pytest.raises(ValueError) as e:
+        # ck.aws.CloudknotInputError for 'SPOT' resource with no bid_percentage
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.ComputeEnvironment(
                 name=get_testing_name(),
                 batch_service_role=pars.batch_service_role,
@@ -2006,8 +2006,8 @@ def test_ComputeEnvironment(pars):
                 resource_type='SPOT'
             )
 
-        # ValueError for bad batch_service_role
-        with pytest.raises(ValueError) as e:
+        # ck.aws.CloudknotInputError for bad batch_service_role
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.ComputeEnvironment(
                 name=get_testing_name(),
                 batch_service_role=pars.ecs_instance_role,
@@ -2015,8 +2015,8 @@ def test_ComputeEnvironment(pars):
                 security_group=pars.security_group
             )
 
-        # ValueError for bad instance_role
-        with pytest.raises(ValueError) as e:
+        # ck.aws.CloudknotInputError for bad instance_role
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.ComputeEnvironment(
                 name=get_testing_name(),
                 batch_service_role=pars.batch_service_role,
@@ -2024,8 +2024,8 @@ def test_ComputeEnvironment(pars):
                 security_group=pars.security_group
             )
 
-        # ValueError for bad vpc
-        with pytest.raises(ValueError) as e:
+        # ck.aws.CloudknotInputError for bad vpc
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.ComputeEnvironment(
                 name=get_testing_name(),
                 batch_service_role=pars.batch_service_role,
@@ -2034,8 +2034,8 @@ def test_ComputeEnvironment(pars):
                 security_group=pars.security_group
             )
 
-        # ValueError for bad security_group
-        with pytest.raises(ValueError) as e:
+        # ck.aws.CloudknotInputError for bad security_group
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.ComputeEnvironment(
                 name=get_testing_name(),
                 batch_service_role=pars.batch_service_role,
@@ -2044,8 +2044,8 @@ def test_ComputeEnvironment(pars):
                 security_group=pars.vpc
             )
 
-        # ValueError for bad spot_fleet_role
-        with pytest.raises(ValueError) as e:
+        # ck.aws.CloudknotInputError for bad spot_fleet_role
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.ComputeEnvironment(
                 name=get_testing_name(),
                 batch_service_role=pars.batch_service_role,
@@ -2055,9 +2055,9 @@ def test_ComputeEnvironment(pars):
                 spot_fleet_role=pars.batch_service_role
             )
 
-        # ValueError for bad instance_types
+        # ck.aws.CloudknotInputError for bad instance_types
         for instance_type in [[5, 4], 'bad-instance-type-string']:
-            with pytest.raises(ValueError) as e:
+            with pytest.raises(ck.aws.CloudknotInputError) as e:
                 ck.aws.ComputeEnvironment(
                     name=get_testing_name(),
                     batch_service_role=pars.batch_service_role,
@@ -2067,8 +2067,8 @@ def test_ComputeEnvironment(pars):
                     instance_types=instance_type
                 )
 
-        # ValueError for bad resource_type
-        with pytest.raises(ValueError) as e:
+        # ck.aws.CloudknotInputError for bad resource_type
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.ComputeEnvironment(
                 name=get_testing_name(),
                 batch_service_role=pars.batch_service_role,
@@ -2078,8 +2078,8 @@ def test_ComputeEnvironment(pars):
                 resource_type='BAD'
             )
 
-        # ValueError for bad min_vcpus
-        with pytest.raises(ValueError) as e:
+        # ck.aws.CloudknotInputError for bad min_vcpus
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.ComputeEnvironment(
                 name=get_testing_name(),
                 batch_service_role=pars.batch_service_role,
@@ -2089,8 +2089,8 @@ def test_ComputeEnvironment(pars):
                 min_vcpus=-42
             )
 
-        # ValueError for bad max_vcpus
-        with pytest.raises(ValueError) as e:
+        # ck.aws.CloudknotInputError for bad max_vcpus
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.ComputeEnvironment(
                 name=get_testing_name(),
                 batch_service_role=pars.batch_service_role,
@@ -2100,8 +2100,8 @@ def test_ComputeEnvironment(pars):
                 max_vcpus=-42
             )
 
-        # ValueError for bad desired_vcpus
-        with pytest.raises(ValueError) as e:
+        # ck.aws.CloudknotInputError for bad desired_vcpus
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.ComputeEnvironment(
                 name=get_testing_name(),
                 batch_service_role=pars.batch_service_role,
@@ -2111,8 +2111,8 @@ def test_ComputeEnvironment(pars):
                 desired_vcpus=-42
             )
 
-        # ValueError for bad image_id
-        with pytest.raises(ValueError) as e:
+        # ck.aws.CloudknotInputError for bad image_id
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.ComputeEnvironment(
                 name=get_testing_name(),
                 batch_service_role=pars.batch_service_role,
@@ -2122,8 +2122,8 @@ def test_ComputeEnvironment(pars):
                 image_id=42
             )
 
-        # ValueError for bad ec2_key_pair
-        with pytest.raises(ValueError) as e:
+        # ck.aws.CloudknotInputError for bad ec2_key_pair
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.ComputeEnvironment(
                 name=get_testing_name(),
                 batch_service_role=pars.batch_service_role,
@@ -2133,8 +2133,8 @@ def test_ComputeEnvironment(pars):
                 ec2_key_pair=-42
             )
 
-        # ValueError for bad ec2_key_pair
-        with pytest.raises(ValueError) as e:
+        # ck.aws.CloudknotInputError for bad ec2_key_pair
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.ComputeEnvironment(
                 name=get_testing_name(),
                 batch_service_role=pars.batch_service_role,
@@ -2342,8 +2342,8 @@ def test_JobQueue(pars):
 
         assert name in config.options(jq_section_name)
 
-        # Assert ValueError on invalid status in get_jobs() method
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on invalid status in get_jobs() method
+        with pytest.raises(ck.aws.CloudknotInputError):
             jq.get_jobs(status='INVALID')
 
         assert jq.get_jobs() == []
@@ -2454,16 +2454,16 @@ def test_JobQueue(pars):
         ce2.clobber()
 
         # Test for correct handling of incorrect input
-        # ValueError for neither arn or name
-        with pytest.raises(ValueError) as e:
+        # ck.aws.CloudknotInputError for neither arn or name
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.JobQueue()
 
         # Value Error for both arn and name
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.JobQueue(arn=get_testing_name(), name=get_testing_name())
 
         # Value Error for negative priority
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.JobQueue(
                 name=get_testing_name(),
                 compute_environments=ce,
@@ -2471,7 +2471,7 @@ def test_JobQueue(pars):
             )
 
         # Value Error for invalid compute environments
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.JobQueue(
                 name=get_testing_name(),
                 compute_environments=[42, -42]
@@ -2681,27 +2681,27 @@ def test_BatchJob(pars):
             priority=1
         )
 
-        # Assert ValueError on insufficient input
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on insufficient input
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.aws.BatchJob()
 
-        # Assert ValueError on over-specified input
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on over-specified input
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.aws.BatchJob(
                 job_id=42,
                 name=get_testing_name()
             )
 
-        # Assert ValueError on invalid job_queue
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on invalid job_queue
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.aws.BatchJob(
                 name=get_testing_name(),
                 input=42,
                 job_queue=42
             )
 
-        # Assert ValueError on invalid job_definition
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on invalid job_definition
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.aws.BatchJob(
                 name=get_testing_name(),
                 input=42,
@@ -2709,8 +2709,8 @@ def test_BatchJob(pars):
                 job_definition=42
             )
 
-        # Assert ValueError on invalid environment variable
-        with pytest.raises(ValueError):
+        # Assert ck.aws.CloudknotInputError on invalid environment variable
+        with pytest.raises(ck.aws.CloudknotInputError):
             ck.aws.BatchJob(
                 name=get_testing_name(),
                 input=42,

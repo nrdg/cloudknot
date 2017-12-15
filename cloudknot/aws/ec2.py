@@ -10,7 +10,8 @@ from collections import namedtuple
 
 from .base_classes import clients, NamedObject, \
     ResourceExistsException, ResourceDoesNotExistException, \
-    CannotCreateResourceException, CannotDeleteResourceException
+    CannotCreateResourceException, CannotDeleteResourceException, \
+    CloudknotInputError
 
 __all__ = ["Vpc", "SecurityGroup"]
 
@@ -45,11 +46,11 @@ class Vpc(NamedObject):
         """
         # User must supply vpc_id or name, or specify use_default_vpc
         if not (vpc_id or name or use_default_vpc):
-            raise ValueError('name or vpc_id is required.')
+            raise CloudknotInputError('name or vpc_id is required.')
 
         # If user supplies vpc_id, then no other input is allowed
         if vpc_id and any([name, ipv4_cidr, instance_tenancy]):
-            raise ValueError(
+            raise CloudknotInputError(
                 'You must specify either a VPC id for an existing VPC or '
                 'input parameters for a new VPC. You cannot do both.'
             )
@@ -57,8 +58,8 @@ class Vpc(NamedObject):
         if use_default_vpc and any([
             vpc_id, name, ipv4_cidr, instance_tenancy
         ]):
-            raise ValueError('You may not specify any other input if'
-                             'requesting the default VPC')
+            raise CloudknotInputError('You may not specify any other input if'
+                                      'requesting the default VPC')
 
         if use_default_vpc:
             try:
@@ -136,7 +137,7 @@ class Vpc(NamedObject):
                         six.text_type(ipv4_cidr)
                     ))
                 except (ipaddress.AddressValueError, ValueError):
-                    raise ValueError(
+                    raise CloudknotInputError(
                         'If provided, ipv4_cidr must be a valid IPv4 network '
                         'range.'
                     )
@@ -146,7 +147,7 @@ class Vpc(NamedObject):
                 if instance_tenancy in ('default', 'dedicated'):
                     self._instance_tenancy = instance_tenancy
                 else:
-                    raise ValueError(
+                    raise CloudknotInputError(
                         'If provided, instance tenancy must be '
                         'one of ("default", "dedicated").'
                     )
@@ -422,8 +423,8 @@ class Vpc(NamedObject):
 
         # Ensure that the CIDR block has enough addresses to cover each zone
         if len(subnet_ipv4_cidrs) < len(zones):  # pragma: nocover
-            raise ValueError('IPv4 CIDR block does not have enough addresses '
-                             'for each availability zone')
+            raise CloudknotInputError('IPv4 CIDR block does not have enough '
+                                      'addresses for each availability zone')
 
         subnet_ipv4_cidrs = subnet_ipv4_cidrs[:len(zones)]
 
@@ -618,14 +619,14 @@ class SecurityGroup(NamedObject):
         """
         # User must specify either an ID or a name and VPC
         if not (security_group_id or (name and vpc)):
-            raise ValueError(
+            raise CloudknotInputError(
                 'You must specify either a security group id for an existing '
                 'security group or a name and VPC for a new security group.'
             )
 
         # Check that user didn't over-specify input
         if security_group_id and any([name, vpc, description]):
-            raise ValueError(
+            raise CloudknotInputError(
                 'You must specify either a security group id for an existing '
                 'security group or input parameters for a new security group. '
                 'You cannot do both.'
@@ -633,7 +634,8 @@ class SecurityGroup(NamedObject):
 
         # Validate VPC input
         if vpc and not isinstance(vpc, Vpc):
-            raise ValueError('If provided, vpc must be an instance of Vpc.')
+            raise CloudknotInputError('If provided, vpc must be an '
+                                      'instance of Vpc.')
 
         vpc_id = vpc.vpc_id if vpc else None
 
