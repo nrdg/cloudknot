@@ -852,6 +852,40 @@ class BatchJobFailedError(Exception):
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
+class CloudknotConfigurationError(Exception):
+    """Error indicating an cloudknot has not been properly configured"""
+    def __init__(self, config_file):
+        """Initialize the Exception
+
+        Parameters
+        ----------
+        config_file : string
+            The path to the cloudknot config file
+        """
+        super(CloudknotConfigurationError, self).__init__(
+            "It looks like you haven't run `cloudknot configure` to set up "
+            "your cloudknot environment. Or perhaps you did that but you have "
+            "since deleted your cloudknot configuration file. Please run "
+            "`cloudknot configure` before using cloudknot. "
+        )
+        self.config_file = config_file
+
+
+# noinspection PyPropertyAccess,PyAttributeOutsideInit
+class CloudknotValueError(Exception):
+    """Error indicating an input argument has an invalid value"""
+    def __init__(self, msg):
+        """Initialize the Exception
+
+        Parameters
+        ----------
+        msg : string
+            The error message
+        """
+        super(CloudknotConfigurationError, self).__init__(msg)
+
+
+# noinspection PyPropertyAccess,PyAttributeOutsideInit
 class NamedObject(object):
     """Base class for building objects with name property"""
     def __init__(self, name):
@@ -862,6 +896,16 @@ class NamedObject(object):
         name : string
             Name of the object
         """
+        config_file = get_config_file()
+        conf = configparser.ConfigParser()
+        with rlock:
+            conf.read(config_file)
+
+            if not (conf.has_section('aws')
+                    and conf.has_option('aws', 'configured')
+                    and conf.get('aws', 'configured') == 'True'):
+                raise CloudknotConfigurationError(config_file)
+
         self._name = str(name)
         self._clobbered = False
         self._region = get_region()

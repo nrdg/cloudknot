@@ -107,6 +107,8 @@ class Configure(Base):
             else:
                 values[config_name] = default_value
 
+        add_resource('aws', 'configured', 'True')
+
         print('\nCloudknot will now pull the base python docker image to your '
               'local machine and push the same docker image to your cloudknot '
               'repository on AWS ECR.')
@@ -114,7 +116,5 @@ class Configure(Base):
         pull_and_push_base_images(region=values['region'],
                                   profile=values['profile'],
                                   ecr_repo=values['ecr_repo'])
-
-        add_resource('aws', 'configured', 'True')
 
         print('All done.\n')

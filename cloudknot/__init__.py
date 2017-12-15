@@ -1,11 +1,8 @@
 from __future__ import absolute_import, division, print_function
 
-import configparser
 import errno
-import inspect
 import logging
 import os
-import re
 import subprocess
 
 from . import aws  # noqa
@@ -30,33 +27,6 @@ except subprocess.CalledProcessError:
         "installed, make sure that the Docker daemon is running before using "
         "cloudknot."
     )
-
-try:
-    context = inspect.stack()[-1].code_context
-except AttributeError:
-    context = inspect.stack()[-1][-2]
-
-pattern = re.compile(
-    'load_entry_point\(\'.*\', \'console_scripts\', \'cloudknot\'\)'
-)
-
-imported_from_config = context is not None and pattern.search(context[0])
-
-if not imported_from_config:
-    config_file = config.get_config_file()
-    conf = configparser.ConfigParser()
-    conf.read(config_file)
-
-    if not (conf.has_section('aws')
-            and conf.has_option('aws', 'configured')
-            and conf.get('aws', 'configured') == 'True'):
-        raise ImportError(
-            "It looks like you haven't run `cloudknot configure` to set up "
-            "your cloudknot environment. Or perhaps you did that but you have "
-            "since deleted your cloudknot configuration file. Please run "
-            "`cloudknot configure` before using cloudknot. "
-            "config_file = {cf:s}".format(cf=config_file)
-        )
 
 module_logger = logging.getLogger(__name__)
 
