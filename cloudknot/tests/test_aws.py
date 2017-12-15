@@ -77,14 +77,17 @@ def bucket_cleanup():
     versions = [v for v in response.get('Versions')
                 if not v['IsDefaultVersion']]
 
-    # Get the oldest version and delete it
+    # Delete the non-default versions
     for v in versions:
         iam.delete_policy_version(
             PolicyArn=arn,
             VersionId=v['VersionId']
         )
 
-    iam.delete_policy(PolicyArn=arn)
+    try:
+        iam.delete_policy(PolicyArn=arn)
+    except Exception:
+        pass
 
 
 @pytest.fixture(scope='module')
@@ -1985,7 +1988,7 @@ def test_ComputeEnvironment(pars):
                 name=get_testing_name()
             )
 
-        # ck.aws.CloudknotInputError for 'SPOT' resource with no spot_fleet_role
+        # CloudknotInputError for 'SPOT' resource with no spot_fleet_role
         with pytest.raises(ck.aws.CloudknotInputError) as e:
             ck.aws.ComputeEnvironment(
                 name=get_testing_name(),
@@ -2342,7 +2345,7 @@ def test_JobQueue(pars):
 
         assert name in config.options(jq_section_name)
 
-        # Assert ck.aws.CloudknotInputError on invalid status in get_jobs() method
+        # Assert CloudknotInputError on invalid status in get_jobs() method
         with pytest.raises(ck.aws.CloudknotInputError):
             jq.get_jobs(status='INVALID')
 

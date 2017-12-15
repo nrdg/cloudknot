@@ -1075,15 +1075,16 @@ def test_DockerImage(cleanup_repos):
         correct_dir = op.join(
             data_path, 'docker_reqs_ref_data', py_dir, 'ref1'
         )
-        # Assert ck.aws.CloudknotInputError to prevent overwriting existing script
+        # Assert CloudknotInputError to prevent overwriting existing script
         with pytest.raises(ck.aws.CloudknotInputError):
             ck.DockerImage(func=unit_testing_func, dir_name=correct_dir)
 
-        # Assert ck.aws.CloudknotInputError to prevent overwriting existing Dockerfile
+        # Assert CloudknotInputError to prevent overwriting existing Dockerfile
         with pytest.raises(ck.aws.CloudknotInputError):
             ck.DockerImage(script_path=correct_script_path)
 
-        # Assert ck.aws.CloudknotInputError to prevent overwriting existing requirements.txt
+        # Assert CloudknotInputError to prevent overwriting existing
+        # requirements.txt
         # First, avoid the existing Dockerfile error by renaming the Dockerfile
         old_dockerfile = op.join(op.dirname(correct_script_path), 'Dockerfile')
 

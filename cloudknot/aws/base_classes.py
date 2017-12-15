@@ -883,7 +883,7 @@ class CloudknotInputError(Exception):
         msg : string
             The error message
         """
-        super(CloudknotConfigurationError, self).__init__(msg)
+        super(CloudknotInputError, self).__init__(msg)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
