@@ -1666,11 +1666,15 @@ class BatchJob(NamedObject):
         # no coverage since actually submitting a batch job for
         # unit testing would be expensive
         bucket = self.job_definition.output_bucket
+        sse = get_s3_params().sse
         pickled_input = cloudpickle.dumps(self.input)
 
         command = [self.job_definition.output_bucket]
         if self.starmap:
             command = ['--starmap'] + command
+
+        if sse:
+            command = ['--sse', sse] + command
 
         if self.environment_variables:
             container_overrides = {
@@ -1697,7 +1701,12 @@ class BatchJob(NamedObject):
         ])
 
         # Upload the input pickle
-        clients['s3'].put_object(Bucket=bucket, Body=pickled_input, Key=key)
+        if sse:
+            clients['s3'].put_object(Bucket=bucket, Body=pickled_input,
+                                     Key=key, ServerSideEncryption=sse)
+        else:
+            clients['s3'].put_object(Bucket=bucket, Body=pickled_input,
+                                     Key=key)
 
         # Add this job to the list of jobs in the config file
         self._section_name = self._get_section_name('batch-jobs')
