@@ -1750,11 +1750,15 @@
         <span class="c1"># no coverage since actually submitting a batch job for</span>
         <span class="c1"># unit testing would be expensive</span>
         <span class="n">bucket</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">output_bucket</span>
+        <span class="n">sse</span> <span class="o">=</span> <span class="n">get_s3_params</span><span class="p">()</span><span class="o">.</span><span class="n">sse</span>
         <span class="n">pickled_input</span> <span class="o">=</span> <span class="n">cloudpickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">)</span>
 
         <span class="n">command</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">output_bucket</span><span class="p">]</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">starmap</span><span class="p">:</span>
             <span class="n">command</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;--starmap&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">command</span>
+
+        <span class="k">if</span> <span class="n">sse</span><span class="p">:</span>
+            <span class="n">command</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;--sse&#39;</span><span class="p">,</span> <span class="n">sse</span><span class="p">]</span> <span class="o">+</span> <span class="n">command</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">environment_variables</span><span class="p">:</span>
             <span class="n">container_overrides</span> <span class="o">=</span> <span class="p">{</span>
@@ -1781,7 +1785,12 @@
         <span class="p">])</span>
 
         <span class="c1"># Upload the input pickle</span>
-        <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">put_object</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">Body</span><span class="o">=</span><span class="n">pickled_input</span><span class="p">,</span> <span class="n">Key</span><span class="o">=</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sse</span><span class="p">:</span>
+            <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">put_object</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">Body</span><span class="o">=</span><span class="n">pickled_input</span><span class="p">,</span>
+                                     <span class="n">Key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">ServerSideEncryption</span><span class="o">=</span><span class="n">sse</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">put_object</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">Body</span><span class="o">=</span><span class="n">pickled_input</span><span class="p">,</span>
+                                     <span class="n">Key</span><span class="o">=</span><span class="n">key</span><span class="p">)</span>
 
         <span class="c1"># Add this job to the list of jobs in the config file</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_section_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_section_name</span><span class="p">(</span><span class="s1">&#39;batch-jobs&#39;</span><span class="p">)</span>

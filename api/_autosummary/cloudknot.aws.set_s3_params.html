@@ -114,7 +114,7 @@
 <h1>cloudknot.aws.set_s3_params<a class="headerlink" href="#cloudknot-aws-set-s3-params" title="Permalink to this headline">¶</a></h1>
 <dl class="function">
 <dt id="cloudknot.aws.set_s3_params">
-<code class="descclassname">cloudknot.aws.</code><code class="descname">set_s3_params</code><span class="sig-paren">(</span><em>bucket</em>, <em>policy=None</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cloudknot/aws/base_classes.html#set_s3_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.aws.set_s3_params" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">cloudknot.aws.</code><code class="descname">set_s3_params</code><span class="sig-paren">(</span><em>bucket</em>, <em>policy=None</em>, <em>sse=None</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cloudknot/aws/base_classes.html#set_s3_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.aws.set_s3_params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set the cloudknot S3 bucket</p>
 <p>Set bucket by modifying the cloudknot config file</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -125,6 +125,9 @@
 <li><strong>bucket</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) – Cloudknot S3 bucket name</li>
 <li><strong>policy</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) – Cloudknot S3 bucket access policy name
 Default: None means that cloudknot will create a new policy</li>
+<li><strong>sse</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) – S3 server side encryption method. If provided, must be one of
+[‘AES256’, ‘aws:kms’].
+Default: None</li>
 </ul>
 </td>
 </tr>

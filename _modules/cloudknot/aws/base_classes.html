@@ -200,12 +200,12 @@
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    bucket : NamedTuple</span>
-<span class="sd">        A named tuple with Cloudknot S3 bucket and policy fields</span>
+<span class="sd">        A namedtuple with fields [&#39;bucket&#39;, &#39;policy&#39;, &#39;sse&#39;]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">config_file</span> <span class="o">=</span> <span class="n">get_config_file</span><span class="p">()</span>
     <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
 
-    <span class="n">BucketInfo</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;BucketInfo&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;bucket&#39;</span><span class="p">,</span> <span class="s1">&#39;policy&#39;</span><span class="p">,</span> <span class="p">])</span>
+    <span class="n">BucketInfo</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;BucketInfo&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;bucket&#39;</span><span class="p">,</span> <span class="s1">&#39;policy&#39;</span><span class="p">,</span> <span class="s1">&#39;sse&#39;</span><span class="p">])</span>
 
     <span class="k">with</span> <span class="n">rlock</span><span class="p">:</span>
         <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
@@ -237,18 +237,32 @@
                 <span class="c1"># Update the policy to reflect the new bucket name.</span>
                 <span class="n">update_s3_policy</span><span class="p">(</span><span class="n">policy</span><span class="o">=</span><span class="n">policy</span><span class="p">,</span> <span class="n">bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">)</span>
 
+        <span class="n">option</span> <span class="o">=</span> <span class="s1">&#39;s3-sse&#39;</span>
+        <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">has_section</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">config</span><span class="o">.</span><span class="n">has_option</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="n">option</span><span class="p">):</span>
+            <span class="n">sse</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="n">option</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">sse</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;AES256&#39;</span><span class="p">,</span> <span class="s1">&#39;aws:kms&#39;</span><span class="p">,</span> <span class="s1">&#39;None&#39;</span><span class="p">]:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s1">&#39;The server-side encryption option &quot;sse&quot; must must be &#39;</span>
+                    <span class="s1">&#39;one of [&quot;AES256&quot;, &quot;aws:kms&quot;, &quot;None&quot;]&#39;</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sse</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">sse</span> <span class="o">==</span> <span class="s1">&#39;None&#39;</span><span class="p">:</span>
+            <span class="n">sse</span> <span class="o">=</span> <span class="kc">None</span>
+
         <span class="c1"># Use set_s3_params to check for name availability</span>
         <span class="c1"># and write to config file</span>
-        <span class="n">set_s3_params</span><span class="p">(</span><span class="n">bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="n">policy</span><span class="p">)</span>
+        <span class="n">set_s3_params</span><span class="p">(</span><span class="n">bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="n">policy</span><span class="p">,</span> <span class="n">sse</span><span class="o">=</span><span class="n">sse</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">policy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
             <span class="n">policy</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="s1">&#39;s3-bucket-policy&#39;</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">BucketInfo</span><span class="p">(</span><span class="n">bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="n">policy</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">BucketInfo</span><span class="p">(</span><span class="n">bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="n">policy</span><span class="p">,</span> <span class="n">sse</span><span class="o">=</span><span class="n">sse</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="set_s3_params"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.set_s3_params.html#cloudknot.aws.set_s3_params">[docs]</a><span class="k">def</span> <span class="nf">set_s3_params</span><span class="p">(</span><span class="n">bucket</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="set_s3_params"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.set_s3_params.html#cloudknot.aws.set_s3_params">[docs]</a><span class="k">def</span> <span class="nf">set_s3_params</span><span class="p">(</span><span class="n">bucket</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sse</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Set the cloudknot S3 bucket</span>
 
 <span class="sd">    Set bucket by modifying the cloudknot config file</span>
@@ -260,15 +274,28 @@
 <span class="sd">    policy : string</span>
 <span class="sd">        Cloudknot S3 bucket access policy name</span>
 <span class="sd">        Default: None means that cloudknot will create a new policy</span>
+<span class="sd">    sse : string</span>
+<span class="sd">        S3 server side encryption method. If provided, must be one of</span>
+<span class="sd">        [&#39;AES256&#39;, &#39;aws:kms&#39;].</span>
+<span class="sd">        Default: None</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">sse</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">sse</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;AES256&#39;</span><span class="p">,</span> <span class="s1">&#39;aws:kms&#39;</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The server-side encryption option &quot;sse&quot; &#39;</span>
+                         <span class="s1">&#39;must be one of [&quot;AES256&quot;, &quot;aws:kms&quot;]&#39;</span><span class="p">)</span>
+
     <span class="c1"># Update the config file</span>
     <span class="n">config_file</span> <span class="o">=</span> <span class="n">get_config_file</span><span class="p">()</span>
     <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">test_bucket_put_get</span><span class="p">(</span><span class="n">bucket_</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">test_bucket_put_get</span><span class="p">(</span><span class="n">bucket_</span><span class="p">,</span> <span class="n">sse_</span><span class="p">):</span>
         <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;cloudnot-test-permissions-key&#39;</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">put_object</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">bucket_</span><span class="p">,</span> <span class="n">Body</span><span class="o">=</span><span class="sa">b</span><span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="n">Key</span><span class="o">=</span><span class="n">key</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">sse_</span><span class="p">:</span>
+                <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">put_object</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">bucket_</span><span class="p">,</span> <span class="n">Body</span><span class="o">=</span><span class="sa">b</span><span class="s1">&#39;test&#39;</span><span class="p">,</span>
+                                         <span class="n">Key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">ServerSideEncryption</span><span class="o">=</span><span class="n">sse_</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">put_object</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">bucket_</span><span class="p">,</span> <span class="n">Body</span><span class="o">=</span><span class="sa">b</span><span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="n">Key</span><span class="o">=</span><span class="n">key</span><span class="p">)</span>
+
             <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get_object</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">bucket_</span><span class="p">,</span> <span class="n">Key</span><span class="o">=</span><span class="n">key</span><span class="p">)</span>
         <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">ClientError</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The requested bucket name already exists &#39;</span>
@@ -299,7 +326,7 @@
         <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">BucketAlreadyOwnedByYou</span><span class="p">:</span>
             <span class="k">pass</span>
         <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">BucketAlreadyExists</span><span class="p">:</span>
-            <span class="n">test_bucket_put_get</span><span class="p">(</span><span class="n">bucket</span><span class="p">)</span>
+            <span class="n">test_bucket_put_get</span><span class="p">(</span><span class="n">bucket</span><span class="p">,</span> <span class="n">sse</span><span class="p">)</span>
         <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">ClientError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="c1"># Check for Illegal Location Constraint</span>
             <span class="n">error_code</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">response</span><span class="p">[</span><span class="s1">&#39;Error&#39;</span><span class="p">][</span><span class="s1">&#39;Code&#39;</span><span class="p">]</span>
@@ -310,7 +337,7 @@
                 <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">BucketAlreadyOwnedByYou</span><span class="p">:</span>
                     <span class="k">pass</span>
                 <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">BucketAlreadyExists</span><span class="p">:</span>
-                    <span class="n">test_bucket_put_get</span><span class="p">(</span><span class="n">bucket</span><span class="p">)</span>
+                    <span class="n">test_bucket_put_get</span><span class="p">(</span><span class="n">bucket</span><span class="p">,</span> <span class="n">sse</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="c1"># Pass exception to user</span>
                 <span class="k">raise</span> <span class="n">e</span>
@@ -334,6 +361,7 @@
             <span class="k">pass</span>
 
         <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="s1">&#39;s3-bucket-policy&#39;</span><span class="p">,</span> <span class="n">policy</span><span class="p">)</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="s1">&#39;s3-sse&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">sse</span><span class="p">))</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">config</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span></div>
 
