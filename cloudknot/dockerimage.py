@@ -15,7 +15,8 @@ from string import Template
 from . import aws
 from . import config as ckconfig
 from .aws.base_classes import get_region, get_profile, \
-    ResourceDoesNotExistException, ResourceClobberedException
+    ResourceDoesNotExistException, ResourceClobberedException, \
+    CloudknotInputError, CloudknotConfigurationError
 from .config import get_config_file, rlock
 
 __all__ = ["DockerImage"]
@@ -75,7 +76,7 @@ class DockerImage(aws.NamedObject):
         """
         # User must specify at least `func` or `script_path`
         if name and any([func, script_path, dir_name, username]):
-            raise ValueError(
+            raise CloudknotInputError(
                 "You specified a name plus other stuff. The name parameter is "
                 "only used to retrieve a pre-existing DockerImage instance. "
                 "If you'd like to create a new one, do not provide a name "
@@ -84,20 +85,22 @@ class DockerImage(aws.NamedObject):
 
         # User must specify at least `func` or `script_path`
         if not any([name, func, script_path]):
-            raise ValueError('You must suppy either `name`, `func` or '
-                             '`script_path`.')
+            raise CloudknotInputError('You must suppy either `name`, `func` '
+                                      'or `script_path`.')
 
         # If both `func` and `script_path` are specified,
         # input is over-specified
         if script_path and func:
-            raise ValueError('You provided `script_path` and other redundant '
-                             'arguments, either `func` or `dir_name`. ')
+            raise CloudknotInputError('You provided `script_path` and other '
+                                      'redundant arguments, either `func` or '
+                                      '`dir_name`. ')
 
         if name:
             # Validate name input
             if not isinstance(name, six.string_types):
-                raise ValueError('Docker image name must be a string. You '
-                                 'passed a {t!s}'.format(t=type(name)))
+                raise CloudknotInputError('Docker image name must be a '
+                                          'string. You passed a {t!s}'
+                                          ''.format(t=type(name)))
 
             super(DockerImage, self).__init__(name=name)
 
@@ -143,7 +146,8 @@ class DockerImage(aws.NamedObject):
 
             # Validate dir_name input
             if dir_name and not os.path.isdir(dir_name):
-                raise ValueError('`dir_name` is not an existing directory')
+                raise CloudknotInputError('`dir_name` is not an existing '
+                                          'directory')
 
             if script_path:
                 # User supplied a pre-existing python script.
@@ -152,8 +156,10 @@ class DockerImage(aws.NamedObject):
 
                 # Check that it is a valid path
                 if not os.path.isfile(script_path):
-                    raise ValueError('If provided, `script_path` must be an '
-                                     'existing regular file.')
+                    raise CloudknotInputError(
+                        'If provided, `script_path` must be an existing '
+                        'regular file.'
+                    )
 
                 self._script_path = os.path.abspath(script_path)
                 super(DockerImage, self).__init__(
@@ -178,7 +184,7 @@ class DockerImage(aws.NamedObject):
 
                     # Confirm that we will not overwrite an existing script
                     if os.path.isfile(self._script_path):
-                        raise ValueError(
+                        raise CloudknotInputError(
                             'There is a pre-existing python script in the '
                             'directory that you provided. Either specify a '
                             'new directory, move the python script `{file:s}` '
@@ -204,7 +210,7 @@ class DockerImage(aws.NamedObject):
 
             # Confirm that we won't overwrite an existing Dockerfile
             if os.path.isfile(self._docker_path):
-                raise ValueError(
+                raise CloudknotInputError(
                     'There is a pre-existing Dockerfile in the same directory '
                     'as the python script you provided or in the directory '
                     'name that you provided. Either specify a new directory, '
@@ -215,7 +221,7 @@ class DockerImage(aws.NamedObject):
 
             # Confirm that we won't overwrite an existing requirements.txt
             if os.path.isfile(self._req_path):
-                raise ValueError(
+                raise CloudknotInputError(
                     'There is a pre-existing requirements.txt in the same '
                     'directory as the python script you provided or in the '
                     'directory name that you provided. Either specify a new '
@@ -230,14 +236,14 @@ class DockerImage(aws.NamedObject):
             elif all(isinstance(x, six.string_types) for x in github_installs):
                 self._github_installs = list(github_installs)
             else:
-                raise ValueError('github_installs must be a string or a '
-                                 'sequence of strings.')
+                raise CloudknotInputError('github_installs must be a string '
+                                          'or a sequence of strings.')
 
             pattern = r'(https|git)(://github.com/).*/.*\.git($|@.*$)'
             for install in self._github_installs:
                 match_obj = re.match(pattern, install)
                 if match_obj is None:
-                    raise ValueError(
+                    raise CloudknotInputError(
                         'One of your github_installs, {i:s} is not formatted '
                         'correctly. It should look something like '
                         'git://github.com/user/repo.git, '
@@ -441,12 +447,13 @@ class DockerImage(aws.NamedObject):
         elif all(isinstance(x, six.string_types) for x in tags):
             tags = [t for t in tags]
         else:
-            raise ValueError('tags must be a string or a sequence '
-                             'of strings.')
+            raise CloudknotInputError('tags must be a string or a sequence '
+                                      'of strings.')
 
         # Don't allow user to put "latest" in tags.
         if 'latest' in tags:
-            raise ValueError('Any tag is allowed, except for "latest."')
+            raise CloudknotInputError('Any tag is allowed, except for '
+                                      '"latest."')
 
         image_name = image_name if image_name else 'cloudknot/' + self.name
 
@@ -511,17 +518,17 @@ class DockerImage(aws.NamedObject):
 
         # User must supply either a repo object or the repo name and uri
         if not (repo or repo_uri):
-            raise ValueError('You must supply either `repo=<DockerRepo '
-                             'instance>` or `repo_uri`.')
+            raise CloudknotInputError('You must supply either `repo='
+                                      '<DockerRepo instance>` or `repo_uri`.')
 
         # User cannot supply both repo and repo_name or repo_uri
         if repo and repo_uri:
-            raise ValueError('You may not specify both a repo object and '
-                             '`repo_uri`.')
+            raise CloudknotInputError('You may not specify both a repo object '
+                                      'and `repo_uri`.')
 
         # Make sure that the user has called build first or somehow set tags.
         if not self.images:
-            raise ValueError(
+            raise CloudknotInputError(
                 'The images property is empty, indicating that the build '
                 'method has not yet been called. Call `build(tags=<tags>)` '
                 'first before calling `tag()`.'
@@ -551,7 +558,7 @@ class DockerImage(aws.NamedObject):
 
         # If login failed, pass error to user
         if login_result:  # pragma: nocover
-            raise ValueError(
+            raise CloudknotConfigurationError(
                 'Unable to login to AWS ECR using `{login:s}`'.format(
                     login=login_cmd.decode()
                 )
@@ -559,11 +566,11 @@ class DockerImage(aws.NamedObject):
 
         if repo:
             if not isinstance(repo, aws.DockerRepo):
-                raise ValueError('repo must be a DockerRepo instance.')
+                raise CloudknotInputError('repo must be of type DockerRepo.')
             self._repo_uri = repo.repo_uri
         else:
             if not isinstance(repo_uri, six.string_types):
-                raise ValueError('`repo_uri` must be a string.')
+                raise CloudknotInputError('`repo_uri` must be a string.')
             self._repo_uri = repo_uri
 
         # Use docker low-level APIClient for tagging

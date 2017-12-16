@@ -14,7 +14,7 @@ from .base_classes import NamedObject, ObjectWithArn, \
     ObjectWithUsernameAndMemory, clients, \
     ResourceExistsException, ResourceDoesNotExistException, \
     ResourceClobberedException, CannotDeleteResourceException, \
-    BatchJobFailedError, CKTimeoutError, \
+    BatchJobFailedError, CKTimeoutError, CloudknotInputError, \
     wait_for_job_queue, get_s3_params
 from .ec2 import Vpc, SecurityGroup
 from .ecr import DockerRepo
@@ -69,15 +69,15 @@ class JobDefinition(ObjectWithUsernameAndMemory):
         """
         # Validate for minimum input
         if not (arn or name):
-            raise ValueError('You must supply either an arn or name for this '
-                             'job definition.')
+            raise CloudknotInputError('You must supply either an arn or name '
+                                      'for this job definition.')
 
         # Validate to prevent over-specified input
         if arn and any([
             name, job_role, docker_image, vcpus, memory, username, retries
         ]):
-            raise ValueError('You may supply either an arn or other job '
-                             'definition details. Not both.')
+            raise CloudknotInputError('You may supply either an arn or other '
+                                      'job definition details. Not both.')
 
         # Determine whether the user supplied only an arn or only a name
         arn_or_name_only = (arn or (name and not any([
@@ -153,14 +153,14 @@ class JobDefinition(ObjectWithUsernameAndMemory):
 
             # Validate job role input
             if not isinstance(job_role, IamRole):
-                raise ValueError('job_role must be an instance of IamRole')
+                raise CloudknotInputError('job_role must be of type IamRole')
             self._job_role = job_role
             self._job_role_arn = job_role.arn
 
             # Validate docker_image input
             if not (isinstance(docker_image, DockerRepo)
                     or isinstance(docker_image, six.string_types)):
-                raise ValueError(
+                raise CloudknotInputError(
                     'docker_image must be an instance of DockerRepo '
                     'or a string'
                 )
@@ -171,7 +171,7 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             if vcpus:
                 cpus = int(vcpus)
                 if cpus < 1:
-                    raise ValueError('vcpus must be positive')
+                    raise CloudknotInputError('vcpus must be positive')
                 else:
                     self._vcpus = cpus
             else:
@@ -181,9 +181,9 @@ class JobDefinition(ObjectWithUsernameAndMemory):
             if retries is not None:
                 retries_int = int(retries)
                 if retries_int < 1:
-                    raise ValueError('retries must be positive')
+                    raise CloudknotInputError('retries must be positive')
                 elif retries_int > 10:
-                    raise ValueError('retries must be less than 10')
+                    raise CloudknotInputError('retries must be less than 10')
                 else:
                     self._retries = retries_int
             else:
@@ -472,7 +472,7 @@ class ComputeEnvironment(ObjectWithArn):
         """
         # Validate for minimum input
         if not (arn or name):
-            raise ValueError(
+            raise CloudknotInputError(
                 'You must supply either an arn or name for this '
                 'compute environment.'
             )
@@ -484,7 +484,7 @@ class ComputeEnvironment(ObjectWithArn):
             max_vcpus, desired_vcpus, image_id, ec2_key_pair, tags,
             bid_percentage
         ]):
-            raise ValueError(
+            raise CloudknotInputError(
                 'You may supply either an arn or compute '
                 'environment parameters, but not both.'
             )
@@ -570,13 +570,13 @@ class ComputeEnvironment(ObjectWithArn):
             # If resource type is 'SPOT', user must also specify
             # a bid percentage and a spot fleet IAM role
             if not bid_percentage and resource_type == 'SPOT':
-                raise ValueError(
+                raise CloudknotInputError(
                     'if resource_type is "SPOT", bid_percentage '
                     'must be set.'
                 )
 
             if not spot_fleet_role and resource_type == 'SPOT':
-                raise ValueError(
+                raise CloudknotInputError(
                     'if resource_type is "SPOT", spot_fleet_role '
                     'must be set.'
                 )
@@ -584,7 +584,7 @@ class ComputeEnvironment(ObjectWithArn):
             # Validate batch_service_role is actually a batch role
             if not (isinstance(batch_service_role, IamRole)
                     and 'batch' in batch_service_role.service):
-                raise ValueError(
+                raise CloudknotInputError(
                     'batch_service_role must be an IamRole '
                     'instance with service type "batch"'
                 )
@@ -594,7 +594,7 @@ class ComputeEnvironment(ObjectWithArn):
             # Validate instance_role is actually an instance role
             if not (isinstance(instance_role, IamRole)
                     and instance_role.instance_profile_arn):
-                raise ValueError(
+                raise CloudknotInputError(
                     'instance_role must be an IamRole instance '
                     'with an instance profile ARN'
                 )
@@ -603,13 +603,13 @@ class ComputeEnvironment(ObjectWithArn):
 
             # Validate vpc input
             if not isinstance(vpc, Vpc):
-                raise ValueError('vpc must be an instance of Vpc')
+                raise CloudknotInputError('vpc must be an instance of Vpc')
             self._vpc = vpc
             self._subnets = vpc.subnet_ids
 
             # Validate security group input
             if not isinstance(security_group, SecurityGroup):
-                raise ValueError(
+                raise CloudknotInputError(
                     'security_group must be an instance of '
                     'SecurityGroup'
                 )
@@ -620,7 +620,7 @@ class ComputeEnvironment(ObjectWithArn):
                 # Validate that spot_fleet_role is actually a spot fleet role
                 if not (isinstance(spot_fleet_role, IamRole)
                         and 'spotfleet' in spot_fleet_role.service):
-                    raise ValueError(
+                    raise CloudknotInputError(
                         'if provided, spot_fleet_role must be an '
                         'IamRole instance with service type '
                         '"spotfleet"'
@@ -638,7 +638,7 @@ class ComputeEnvironment(ObjectWithArn):
             elif all(isinstance(x, six.string_types) for x in instance_types):
                 self._instance_types = list(instance_types)
             else:
-                raise ValueError(
+                raise CloudknotInputError(
                     'instance_types must be a string or a '
                     'sequence of strings.'
                 )
@@ -658,7 +658,7 @@ class ComputeEnvironment(ObjectWithArn):
                 'd2.2xlarge', 'd2.xlarge', 'x1.32xlarge'
             }
             if not set(self._instance_types) < valid_instance_types:
-                raise ValueError(
+                raise CloudknotInputError(
                     'instance_types must be a subset of {types!s}'.format(
                         types=valid_instance_types
                     )
@@ -667,14 +667,14 @@ class ComputeEnvironment(ObjectWithArn):
             # Validate resource type, default to 'EC2'
             resource_type = resource_type if resource_type else 'EC2'
             if resource_type not in ('EC2', 'SPOT'):
-                raise ValueError('resource_type must be "EC2" or "SPOT"')
+                raise CloudknotInputError('resource_type must be EC2 or SPOT')
             self._resource_type = resource_type
 
             # Validate min_vcpus, default to 0
             min_vcpus = min_vcpus if min_vcpus else 0
             cpus = int(min_vcpus)
             if cpus < 0:
-                raise ValueError('min_vcpus must be non-negative')
+                raise CloudknotInputError('min_vcpus must be non-negative')
             else:
                 self._min_vcpus = cpus
 
@@ -691,7 +691,7 @@ class ComputeEnvironment(ObjectWithArn):
             max_vcpus = max_vcpus if max_vcpus else 256
             cpus = int(max_vcpus)
             if cpus < 0:
-                raise ValueError('max_vcpus must be non-negative')
+                raise CloudknotInputError('max_vcpus must be non-negative')
             else:
                 self._max_vcpus = cpus
 
@@ -699,14 +699,15 @@ class ComputeEnvironment(ObjectWithArn):
             desired_vcpus = desired_vcpus if desired_vcpus else 8
             cpus = int(desired_vcpus)
             if cpus < 0:
-                raise ValueError('desired_vcpus must be non-negative')
+                raise CloudknotInputError('desired_vcpus must be non-negative')
             else:
                 self._desired_vcpus = cpus
 
             # Validate image_id input
             if image_id:
                 if not isinstance(image_id, six.string_types):
-                    raise ValueError('if provided, image_id must be a string')
+                    raise CloudknotInputError('if provided, image_id must be '
+                                              'a string')
                 self._image_id = image_id
             else:
                 self._image_id = None
@@ -714,7 +715,7 @@ class ComputeEnvironment(ObjectWithArn):
             # Validate ec2_key_pair input
             if ec2_key_pair:
                 if not isinstance(ec2_key_pair, six.string_types):
-                    raise ValueError(
+                    raise CloudknotInputError(
                         'if provided, ec2_key_pair must be a string'
                     )
                 self._ec2_key_pair = ec2_key_pair
@@ -724,7 +725,7 @@ class ComputeEnvironment(ObjectWithArn):
             # Validate tags input
             if tags:
                 if not isinstance(tags, dict):
-                    raise ValueError(
+                    raise CloudknotInputError(
                         'if provided, tags must be an instance of dict'
                     )
                 elif self.resource_type == 'SPOT':
@@ -1151,14 +1152,14 @@ class JobQueue(ObjectWithArn):
         """
         # Test for minimum input
         if not (arn or name):
-            raise ValueError(
+            raise CloudknotInputError(
                 'You must supply either an arn or name for this '
                 'job queue.'
             )
 
         # Test for over-specified input
         if arn and any([name, compute_environments, priority]):
-            raise ValueError(
+            raise CloudknotInputError(
                 'You may supply either an arn or (name, '
                 'compute_environments, and priority), but not '
                 'both.'
@@ -1217,7 +1218,7 @@ class JobQueue(ObjectWithArn):
                      ):
                 self._compute_environments = tuple(compute_environments)
             else:
-                raise ValueError(
+                raise CloudknotInputError(
                     'compute_environments must be a '
                     'ComputeEnvironment instance or a sequence '
                     'of ComputeEnvironment instances.'
@@ -1236,7 +1237,7 @@ class JobQueue(ObjectWithArn):
             if priority:
                 p_int = int(priority)
                 if p_int < 1:
-                    raise ValueError('priority must be positive')
+                    raise CloudknotInputError('priority must be positive')
                 else:
                     self._priority = p_int
             else:
@@ -1387,7 +1388,8 @@ class JobQueue(ObjectWithArn):
         allowed_statuses = ['ALL', 'SUBMITTED', 'PENDING', 'RUNNABLE',
                             'STARTING', 'RUNNING', 'SUCCEEDED', 'FAILED']
         if status not in allowed_statuses:
-            raise ValueError('status must be one of ', allowed_statuses)
+            raise CloudknotInputError('status must be one of {s!s}'
+                                      ''.format(s=allowed_statuses))
 
         if status == 'ALL':
             # status == 'ALL' is equivalent to not specifying a status at all
@@ -1494,13 +1496,14 @@ class BatchJob(NamedObject):
         """
         has_input = input is not None
         if not (job_id or all([name, job_queue, has_input, job_definition])):
-            raise ValueError('You must supply either job_id or (name, '
-                             'input, job_queue, and job_definition).')
+            raise CloudknotInputError('You must supply either job_id or '
+                                      '(name, input, job_queue, and '
+                                      'job_definition).')
 
         if job_id and any([name, job_queue, has_input, job_definition]):
-            raise ValueError('You may supply either job_id or (name, '
-                             'input, job_queue, and job_definition), '
-                             'not both.')
+            raise CloudknotInputError('You may supply either job_id or (name, '
+                                      'input, job_queue, and job_definition), '
+                                      'not both.')
 
         self._starmap = starmap
 
@@ -1548,22 +1551,25 @@ class BatchJob(NamedObject):
             super(BatchJob, self).__init__(name=name)
 
             if not isinstance(job_queue, JobQueue):
-                raise ValueError('job_queue must be a JobQueue instance')
+                raise CloudknotInputError('job_queue must be a JobQueue '
+                                          'instance')
             self._job_queue = job_queue
             self._job_queue_arn = job_queue.arn
 
             if not isinstance(job_definition, JobDefinition):
-                raise ValueError('job_queue must be a JobQueue instance')
+                raise CloudknotInputError('job_queue must be a JobQueue '
+                                          'instance')
             self._job_definition = job_definition
             self._job_definition_arn = job_definition.arn
 
             if environment_variables:
                 if not all(isinstance(s, dict) for s in environment_variables):
-                    raise ValueError('env_vars must be a sequence of dicts')
+                    raise CloudknotInputError('env_vars must be a sequence of '
+                                              'dicts')
                 if not all(set(d.keys()) == {'name', 'value'}
                            for d in environment_variables):
-                    raise ValueError('each dict in env_vars must have '
-                                     'keys "name" and "value"')
+                    raise CloudknotInputError('each dict in env_vars must '
+                                              'have keys "name" and "value"')
                 self._environment_variables = environment_variables
             else:
                 self._environment_variables = None
@@ -1860,7 +1866,7 @@ class BatchJob(NamedObject):
 
         # Require the user to supply a reason for job termination
         if not isinstance(reason, six.string_types):
-            raise ValueError('reason must be a string.')
+            raise CloudknotInputError('reason must be a string.')
 
         state = self.status['status']
 

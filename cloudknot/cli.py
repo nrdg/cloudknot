@@ -15,8 +15,10 @@ Help:
   https://github.com/richford/cloudknot
 """
 
-from inspect import getmembers, isclass
+from __future__ import absolute_import, division, print_function
+
 from docopt import docopt
+from inspect import getmembers, isclass
 
 from . import __version__ as VERSION
 

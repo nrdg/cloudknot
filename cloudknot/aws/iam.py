@@ -9,7 +9,8 @@ from collections import namedtuple
 
 from .base_classes import ObjectWithArn, clients, get_s3_params, \
     ResourceExistsException, ResourceDoesNotExistException, \
-    ResourceClobberedException, CannotDeleteResourceException
+    ResourceClobberedException, CannotDeleteResourceException, \
+    CloudknotInputError
 
 __all__ = ["IamRole"]
 
@@ -92,7 +93,7 @@ class IamRole(ObjectWithArn):
                 self._service = service + '.amazonaws.com'
             else:
                 msg = 'service must be in ' + str(self._allowed_services)
-                raise ValueError(msg)
+                raise CloudknotInputError(msg)
 
             # "Version": "2012-10-17",
             role_policy = {
@@ -114,11 +115,11 @@ class IamRole(ObjectWithArn):
                     if all(isinstance(x, six.string_types) for x in policies):
                         input_policies = set(list(policies))
                     else:
-                        raise ValueError('policies must be a string or a '
-                                         'sequence of strings.')
+                        raise CloudknotInputError('policies must be a string '
+                                                  'or a sequence of strings.')
                 except TypeError:
-                    raise ValueError('policies must be a string or a '
-                                     'sequence of strings')
+                    raise CloudknotInputError('policies must be a string or a '
+                                              'sequence of strings')
 
             # Get all AWS policies
             response = clients['iam'].list_policies()
@@ -136,7 +137,7 @@ class IamRole(ObjectWithArn):
             # If input policies are not a subset of aws_policies, throw error
             if not (input_policies < set(aws_policies)):
                 bad_policies = input_policies - set(aws_policies)
-                raise ValueError(
+                raise CloudknotInputError(
                     'Could not find the policies {bad_policies!s} on '
                     'AWS.'.format(bad_policies=bad_policies)
                 )
@@ -148,7 +149,8 @@ class IamRole(ObjectWithArn):
             )
 
             if not isinstance(add_instance_profile, bool):
-                raise ValueError('add_instance_profile is a boolean input')
+                raise CloudknotInputError('add_instance_profile is a '
+                                          'boolean input')
 
             self._arn = self._create(add_instance_profile=add_instance_profile)
 
