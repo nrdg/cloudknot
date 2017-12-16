@@ -94,7 +94,8 @@
 
 <span class="kn">from</span> <span class="nn">.base_classes</span> <span class="k">import</span> <span class="n">clients</span><span class="p">,</span> <span class="n">NamedObject</span><span class="p">,</span> \
     <span class="n">ResourceExistsException</span><span class="p">,</span> <span class="n">ResourceDoesNotExistException</span><span class="p">,</span> \
-    <span class="n">CannotCreateResourceException</span><span class="p">,</span> <span class="n">CannotDeleteResourceException</span>
+    <span class="n">CannotCreateResourceException</span><span class="p">,</span> <span class="n">CannotDeleteResourceException</span><span class="p">,</span> \
+    <span class="n">CloudknotInputError</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Vpc&quot;</span><span class="p">,</span> <span class="s2">&quot;SecurityGroup&quot;</span><span class="p">]</span>
 
@@ -129,11 +130,11 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># User must supply vpc_id or name, or specify use_default_vpc</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">vpc_id</span> <span class="ow">or</span> <span class="n">name</span> <span class="ow">or</span> <span class="n">use_default_vpc</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;name or vpc_id is required.&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;name or vpc_id is required.&#39;</span><span class="p">)</span>
 
         <span class="c1"># If user supplies vpc_id, then no other input is allowed</span>
         <span class="k">if</span> <span class="n">vpc_id</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">([</span><span class="n">name</span><span class="p">,</span> <span class="n">ipv4_cidr</span><span class="p">,</span> <span class="n">instance_tenancy</span><span class="p">]):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                 <span class="s1">&#39;You must specify either a VPC id for an existing VPC or &#39;</span>
                 <span class="s1">&#39;input parameters for a new VPC. You cannot do both.&#39;</span>
             <span class="p">)</span>
@@ -141,8 +142,8 @@
         <span class="k">if</span> <span class="n">use_default_vpc</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">([</span>
             <span class="n">vpc_id</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">ipv4_cidr</span><span class="p">,</span> <span class="n">instance_tenancy</span>
         <span class="p">]):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;You may not specify any other input if&#39;</span>
-                             <span class="s1">&#39;requesting the default VPC&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;You may not specify any other input if&#39;</span>
+                                      <span class="s1">&#39;requesting the default VPC&#39;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">use_default_vpc</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
@@ -220,7 +221,7 @@
                         <span class="n">six</span><span class="o">.</span><span class="n">text_type</span><span class="p">(</span><span class="n">ipv4_cidr</span><span class="p">)</span>
                     <span class="p">))</span>
                 <span class="k">except</span> <span class="p">(</span><span class="n">ipaddress</span><span class="o">.</span><span class="n">AddressValueError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                         <span class="s1">&#39;If provided, ipv4_cidr must be a valid IPv4 network &#39;</span>
                         <span class="s1">&#39;range.&#39;</span>
                     <span class="p">)</span>
@@ -230,7 +231,7 @@
                 <span class="k">if</span> <span class="n">instance_tenancy</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="s1">&#39;dedicated&#39;</span><span class="p">):</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_instance_tenancy</span> <span class="o">=</span> <span class="n">instance_tenancy</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                         <span class="s1">&#39;If provided, instance tenancy must be &#39;</span>
                         <span class="s1">&#39;one of (&quot;default&quot;, &quot;dedicated&quot;).&#39;</span>
                     <span class="p">)</span>
@@ -506,8 +507,8 @@
 
         <span class="c1"># Ensure that the CIDR block has enough addresses to cover each zone</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">subnet_ipv4_cidrs</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">zones</span><span class="p">):</span>  <span class="c1"># pragma: nocover</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;IPv4 CIDR block does not have enough addresses &#39;</span>
-                             <span class="s1">&#39;for each availability zone&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;IPv4 CIDR block does not have enough &#39;</span>
+                                      <span class="s1">&#39;addresses for each availability zone&#39;</span><span class="p">)</span>
 
         <span class="n">subnet_ipv4_cidrs</span> <span class="o">=</span> <span class="n">subnet_ipv4_cidrs</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">zones</span><span class="p">)]</span>
 
@@ -702,14 +703,14 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># User must specify either an ID or a name and VPC</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">security_group_id</span> <span class="ow">or</span> <span class="p">(</span><span class="n">name</span> <span class="ow">and</span> <span class="n">vpc</span><span class="p">)):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                 <span class="s1">&#39;You must specify either a security group id for an existing &#39;</span>
                 <span class="s1">&#39;security group or a name and VPC for a new security group.&#39;</span>
             <span class="p">)</span>
 
         <span class="c1"># Check that user didn&#39;t over-specify input</span>
         <span class="k">if</span> <span class="n">security_group_id</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">([</span><span class="n">name</span><span class="p">,</span> <span class="n">vpc</span><span class="p">,</span> <span class="n">description</span><span class="p">]):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                 <span class="s1">&#39;You must specify either a security group id for an existing &#39;</span>
                 <span class="s1">&#39;security group or input parameters for a new security group. &#39;</span>
                 <span class="s1">&#39;You cannot do both.&#39;</span>
@@ -717,7 +718,8 @@
 
         <span class="c1"># Validate VPC input</span>
         <span class="k">if</span> <span class="n">vpc</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vpc</span><span class="p">,</span> <span class="n">Vpc</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;If provided, vpc must be an instance of Vpc.&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;If provided, vpc must be an &#39;</span>
+                                      <span class="s1">&#39;instance of Vpc.&#39;</span><span class="p">)</span>
 
         <span class="n">vpc_id</span> <span class="o">=</span> <span class="n">vpc</span><span class="o">.</span><span class="n">vpc_id</span> <span class="k">if</span> <span class="n">vpc</span> <span class="k">else</span> <span class="kc">None</span>
 

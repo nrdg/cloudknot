@@ -98,7 +98,7 @@
     <span class="n">ObjectWithUsernameAndMemory</span><span class="p">,</span> <span class="n">clients</span><span class="p">,</span> \
     <span class="n">ResourceExistsException</span><span class="p">,</span> <span class="n">ResourceDoesNotExistException</span><span class="p">,</span> \
     <span class="n">ResourceClobberedException</span><span class="p">,</span> <span class="n">CannotDeleteResourceException</span><span class="p">,</span> \
-    <span class="n">BatchJobFailedError</span><span class="p">,</span> <span class="n">CKTimeoutError</span><span class="p">,</span> \
+    <span class="n">BatchJobFailedError</span><span class="p">,</span> <span class="n">CKTimeoutError</span><span class="p">,</span> <span class="n">CloudknotInputError</span><span class="p">,</span> \
     <span class="n">wait_for_job_queue</span><span class="p">,</span> <span class="n">get_s3_params</span>
 <span class="kn">from</span> <span class="nn">.ec2</span> <span class="k">import</span> <span class="n">Vpc</span><span class="p">,</span> <span class="n">SecurityGroup</span>
 <span class="kn">from</span> <span class="nn">.ecr</span> <span class="k">import</span> <span class="n">DockerRepo</span>
@@ -153,15 +153,15 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Validate for minimum input</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">arn</span> <span class="ow">or</span> <span class="n">name</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;You must supply either an arn or name for this &#39;</span>
-                             <span class="s1">&#39;job definition.&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;You must supply either an arn or name &#39;</span>
+                                      <span class="s1">&#39;for this job definition.&#39;</span><span class="p">)</span>
 
         <span class="c1"># Validate to prevent over-specified input</span>
         <span class="k">if</span> <span class="n">arn</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">([</span>
             <span class="n">name</span><span class="p">,</span> <span class="n">job_role</span><span class="p">,</span> <span class="n">docker_image</span><span class="p">,</span> <span class="n">vcpus</span><span class="p">,</span> <span class="n">memory</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">retries</span>
         <span class="p">]):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;You may supply either an arn or other job &#39;</span>
-                             <span class="s1">&#39;definition details. Not both.&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;You may supply either an arn or other &#39;</span>
+                                      <span class="s1">&#39;job definition details. Not both.&#39;</span><span class="p">)</span>
 
         <span class="c1"># Determine whether the user supplied only an arn or only a name</span>
         <span class="n">arn_or_name_only</span> <span class="o">=</span> <span class="p">(</span><span class="n">arn</span> <span class="ow">or</span> <span class="p">(</span><span class="n">name</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">([</span>
@@ -237,14 +237,14 @@
 
             <span class="c1"># Validate job role input</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">job_role</span><span class="p">,</span> <span class="n">IamRole</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;job_role must be an instance of IamRole&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;job_role must be of type IamRole&#39;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_job_role</span> <span class="o">=</span> <span class="n">job_role</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_job_role_arn</span> <span class="o">=</span> <span class="n">job_role</span><span class="o">.</span><span class="n">arn</span>
 
             <span class="c1"># Validate docker_image input</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">docker_image</span><span class="p">,</span> <span class="n">DockerRepo</span><span class="p">)</span>
                     <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">docker_image</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">)):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                     <span class="s1">&#39;docker_image must be an instance of DockerRepo &#39;</span>
                     <span class="s1">&#39;or a string&#39;</span>
                 <span class="p">)</span>
@@ -255,7 +255,7 @@
             <span class="k">if</span> <span class="n">vcpus</span><span class="p">:</span>
                 <span class="n">cpus</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">vcpus</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">cpus</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;vcpus must be positive&#39;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;vcpus must be positive&#39;</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_vcpus</span> <span class="o">=</span> <span class="n">cpus</span>
             <span class="k">else</span><span class="p">:</span>
@@ -265,9 +265,9 @@
             <span class="k">if</span> <span class="n">retries</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">retries_int</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">retries</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">retries_int</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;retries must be positive&#39;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;retries must be positive&#39;</span><span class="p">)</span>
                 <span class="k">elif</span> <span class="n">retries_int</span> <span class="o">&gt;</span> <span class="mi">10</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;retries must be less than 10&#39;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;retries must be less than 10&#39;</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_retries</span> <span class="o">=</span> <span class="n">retries_int</span>
             <span class="k">else</span><span class="p">:</span>
@@ -556,7 +556,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Validate for minimum input</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">arn</span> <span class="ow">or</span> <span class="n">name</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                 <span class="s1">&#39;You must supply either an arn or name for this &#39;</span>
                 <span class="s1">&#39;compute environment.&#39;</span>
             <span class="p">)</span>
@@ -568,7 +568,7 @@
             <span class="n">max_vcpus</span><span class="p">,</span> <span class="n">desired_vcpus</span><span class="p">,</span> <span class="n">image_id</span><span class="p">,</span> <span class="n">ec2_key_pair</span><span class="p">,</span> <span class="n">tags</span><span class="p">,</span>
             <span class="n">bid_percentage</span>
         <span class="p">]):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                 <span class="s1">&#39;You may supply either an arn or compute &#39;</span>
                 <span class="s1">&#39;environment parameters, but not both.&#39;</span>
             <span class="p">)</span>
@@ -654,13 +654,13 @@
             <span class="c1"># If resource type is &#39;SPOT&#39;, user must also specify</span>
             <span class="c1"># a bid percentage and a spot fleet IAM role</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">bid_percentage</span> <span class="ow">and</span> <span class="n">resource_type</span> <span class="o">==</span> <span class="s1">&#39;SPOT&#39;</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                     <span class="s1">&#39;if resource_type is &quot;SPOT&quot;, bid_percentage &#39;</span>
                     <span class="s1">&#39;must be set.&#39;</span>
                 <span class="p">)</span>
 
             <span class="k">if</span> <span class="ow">not</span> <span class="n">spot_fleet_role</span> <span class="ow">and</span> <span class="n">resource_type</span> <span class="o">==</span> <span class="s1">&#39;SPOT&#39;</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                     <span class="s1">&#39;if resource_type is &quot;SPOT&quot;, spot_fleet_role &#39;</span>
                     <span class="s1">&#39;must be set.&#39;</span>
                 <span class="p">)</span>
@@ -668,7 +668,7 @@
             <span class="c1"># Validate batch_service_role is actually a batch role</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">batch_service_role</span><span class="p">,</span> <span class="n">IamRole</span><span class="p">)</span>
                     <span class="ow">and</span> <span class="s1">&#39;batch&#39;</span> <span class="ow">in</span> <span class="n">batch_service_role</span><span class="o">.</span><span class="n">service</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                     <span class="s1">&#39;batch_service_role must be an IamRole &#39;</span>
                     <span class="s1">&#39;instance with service type &quot;batch&quot;&#39;</span>
                 <span class="p">)</span>
@@ -678,7 +678,7 @@
             <span class="c1"># Validate instance_role is actually an instance role</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">instance_role</span><span class="p">,</span> <span class="n">IamRole</span><span class="p">)</span>
                     <span class="ow">and</span> <span class="n">instance_role</span><span class="o">.</span><span class="n">instance_profile_arn</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                     <span class="s1">&#39;instance_role must be an IamRole instance &#39;</span>
                     <span class="s1">&#39;with an instance profile ARN&#39;</span>
                 <span class="p">)</span>
@@ -687,13 +687,13 @@
 
             <span class="c1"># Validate vpc input</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vpc</span><span class="p">,</span> <span class="n">Vpc</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;vpc must be an instance of Vpc&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;vpc must be an instance of Vpc&#39;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_vpc</span> <span class="o">=</span> <span class="n">vpc</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_subnets</span> <span class="o">=</span> <span class="n">vpc</span><span class="o">.</span><span class="n">subnet_ids</span>
 
             <span class="c1"># Validate security group input</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">security_group</span><span class="p">,</span> <span class="n">SecurityGroup</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                     <span class="s1">&#39;security_group must be an instance of &#39;</span>
                     <span class="s1">&#39;SecurityGroup&#39;</span>
                 <span class="p">)</span>
@@ -704,7 +704,7 @@
                 <span class="c1"># Validate that spot_fleet_role is actually a spot fleet role</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">spot_fleet_role</span><span class="p">,</span> <span class="n">IamRole</span><span class="p">)</span>
                         <span class="ow">and</span> <span class="s1">&#39;spotfleet&#39;</span> <span class="ow">in</span> <span class="n">spot_fleet_role</span><span class="o">.</span><span class="n">service</span><span class="p">):</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                         <span class="s1">&#39;if provided, spot_fleet_role must be an &#39;</span>
                         <span class="s1">&#39;IamRole instance with service type &#39;</span>
                         <span class="s1">&#39;&quot;spotfleet&quot;&#39;</span>
@@ -722,7 +722,7 @@
             <span class="k">elif</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">instance_types</span><span class="p">):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_instance_types</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">instance_types</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                     <span class="s1">&#39;instance_types must be a string or a &#39;</span>
                     <span class="s1">&#39;sequence of strings.&#39;</span>
                 <span class="p">)</span>
@@ -742,7 +742,7 @@
                 <span class="s1">&#39;d2.2xlarge&#39;</span><span class="p">,</span> <span class="s1">&#39;d2.xlarge&#39;</span><span class="p">,</span> <span class="s1">&#39;x1.32xlarge&#39;</span>
             <span class="p">}</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_instance_types</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">valid_instance_types</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                     <span class="s1">&#39;instance_types must be a subset of </span><span class="si">{types!s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                         <span class="n">types</span><span class="o">=</span><span class="n">valid_instance_types</span>
                     <span class="p">)</span>
@@ -751,14 +751,14 @@
             <span class="c1"># Validate resource type, default to &#39;EC2&#39;</span>
             <span class="n">resource_type</span> <span class="o">=</span> <span class="n">resource_type</span> <span class="k">if</span> <span class="n">resource_type</span> <span class="k">else</span> <span class="s1">&#39;EC2&#39;</span>
             <span class="k">if</span> <span class="n">resource_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;EC2&#39;</span><span class="p">,</span> <span class="s1">&#39;SPOT&#39;</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;resource_type must be &quot;EC2&quot; or &quot;SPOT&quot;&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;resource_type must be EC2 or SPOT&#39;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_resource_type</span> <span class="o">=</span> <span class="n">resource_type</span>
 
             <span class="c1"># Validate min_vcpus, default to 0</span>
             <span class="n">min_vcpus</span> <span class="o">=</span> <span class="n">min_vcpus</span> <span class="k">if</span> <span class="n">min_vcpus</span> <span class="k">else</span> <span class="mi">0</span>
             <span class="n">cpus</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">min_vcpus</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">cpus</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;min_vcpus must be non-negative&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;min_vcpus must be non-negative&#39;</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_min_vcpus</span> <span class="o">=</span> <span class="n">cpus</span>
 
@@ -775,7 +775,7 @@
             <span class="n">max_vcpus</span> <span class="o">=</span> <span class="n">max_vcpus</span> <span class="k">if</span> <span class="n">max_vcpus</span> <span class="k">else</span> <span class="mi">256</span>
             <span class="n">cpus</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">max_vcpus</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">cpus</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;max_vcpus must be non-negative&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;max_vcpus must be non-negative&#39;</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_max_vcpus</span> <span class="o">=</span> <span class="n">cpus</span>
 
@@ -783,14 +783,15 @@
             <span class="n">desired_vcpus</span> <span class="o">=</span> <span class="n">desired_vcpus</span> <span class="k">if</span> <span class="n">desired_vcpus</span> <span class="k">else</span> <span class="mi">8</span>
             <span class="n">cpus</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">desired_vcpus</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">cpus</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;desired_vcpus must be non-negative&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;desired_vcpus must be non-negative&#39;</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_desired_vcpus</span> <span class="o">=</span> <span class="n">cpus</span>
 
             <span class="c1"># Validate image_id input</span>
             <span class="k">if</span> <span class="n">image_id</span><span class="p">:</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">image_id</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;if provided, image_id must be a string&#39;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;if provided, image_id must be &#39;</span>
+                                              <span class="s1">&#39;a string&#39;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_image_id</span> <span class="o">=</span> <span class="n">image_id</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_image_id</span> <span class="o">=</span> <span class="kc">None</span>
@@ -798,7 +799,7 @@
             <span class="c1"># Validate ec2_key_pair input</span>
             <span class="k">if</span> <span class="n">ec2_key_pair</span><span class="p">:</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ec2_key_pair</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                         <span class="s1">&#39;if provided, ec2_key_pair must be a string&#39;</span>
                     <span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_ec2_key_pair</span> <span class="o">=</span> <span class="n">ec2_key_pair</span>
@@ -808,7 +809,7 @@
             <span class="c1"># Validate tags input</span>
             <span class="k">if</span> <span class="n">tags</span><span class="p">:</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tags</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                         <span class="s1">&#39;if provided, tags must be an instance of dict&#39;</span>
                     <span class="p">)</span>
                 <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">resource_type</span> <span class="o">==</span> <span class="s1">&#39;SPOT&#39;</span><span class="p">:</span>
@@ -1235,14 +1236,14 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Test for minimum input</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">arn</span> <span class="ow">or</span> <span class="n">name</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                 <span class="s1">&#39;You must supply either an arn or name for this &#39;</span>
                 <span class="s1">&#39;job queue.&#39;</span>
             <span class="p">)</span>
 
         <span class="c1"># Test for over-specified input</span>
         <span class="k">if</span> <span class="n">arn</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">([</span><span class="n">name</span><span class="p">,</span> <span class="n">compute_environments</span><span class="p">,</span> <span class="n">priority</span><span class="p">]):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                 <span class="s1">&#39;You may supply either an arn or (name, &#39;</span>
                 <span class="s1">&#39;compute_environments, and priority), but not &#39;</span>
                 <span class="s1">&#39;both.&#39;</span>
@@ -1301,7 +1302,7 @@
                      <span class="p">):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_compute_environments</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">compute_environments</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                     <span class="s1">&#39;compute_environments must be a &#39;</span>
                     <span class="s1">&#39;ComputeEnvironment instance or a sequence &#39;</span>
                     <span class="s1">&#39;of ComputeEnvironment instances.&#39;</span>
@@ -1320,7 +1321,7 @@
             <span class="k">if</span> <span class="n">priority</span><span class="p">:</span>
                 <span class="n">p_int</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">priority</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">p_int</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;priority must be positive&#39;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;priority must be positive&#39;</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_priority</span> <span class="o">=</span> <span class="n">p_int</span>
             <span class="k">else</span><span class="p">:</span>
@@ -1471,7 +1472,8 @@
         <span class="n">allowed_statuses</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ALL&#39;</span><span class="p">,</span> <span class="s1">&#39;SUBMITTED&#39;</span><span class="p">,</span> <span class="s1">&#39;PENDING&#39;</span><span class="p">,</span> <span class="s1">&#39;RUNNABLE&#39;</span><span class="p">,</span>
                             <span class="s1">&#39;STARTING&#39;</span><span class="p">,</span> <span class="s1">&#39;RUNNING&#39;</span><span class="p">,</span> <span class="s1">&#39;SUCCEEDED&#39;</span><span class="p">,</span> <span class="s1">&#39;FAILED&#39;</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">status</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allowed_statuses</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;status must be one of &#39;</span><span class="p">,</span> <span class="n">allowed_statuses</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;status must be one of </span><span class="si">{s!s}</span><span class="s1">&#39;</span>
+                                      <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="n">allowed_statuses</span><span class="p">))</span>
 
         <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="s1">&#39;ALL&#39;</span><span class="p">:</span>
             <span class="c1"># status == &#39;ALL&#39; is equivalent to not specifying a status at all</span>
@@ -1578,13 +1580,14 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">has_input</span> <span class="o">=</span> <span class="nb">input</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">job_id</span> <span class="ow">or</span> <span class="nb">all</span><span class="p">([</span><span class="n">name</span><span class="p">,</span> <span class="n">job_queue</span><span class="p">,</span> <span class="n">has_input</span><span class="p">,</span> <span class="n">job_definition</span><span class="p">])):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;You must supply either job_id or (name, &#39;</span>
-                             <span class="s1">&#39;input, job_queue, and job_definition).&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;You must supply either job_id or &#39;</span>
+                                      <span class="s1">&#39;(name, input, job_queue, and &#39;</span>
+                                      <span class="s1">&#39;job_definition).&#39;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">job_id</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">([</span><span class="n">name</span><span class="p">,</span> <span class="n">job_queue</span><span class="p">,</span> <span class="n">has_input</span><span class="p">,</span> <span class="n">job_definition</span><span class="p">]):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;You may supply either job_id or (name, &#39;</span>
-                             <span class="s1">&#39;input, job_queue, and job_definition), &#39;</span>
-                             <span class="s1">&#39;not both.&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;You may supply either job_id or (name, &#39;</span>
+                                      <span class="s1">&#39;input, job_queue, and job_definition), &#39;</span>
+                                      <span class="s1">&#39;not both.&#39;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_starmap</span> <span class="o">=</span> <span class="n">starmap</span>
 
@@ -1632,22 +1635,25 @@
             <span class="nb">super</span><span class="p">(</span><span class="n">BatchJob</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">job_queue</span><span class="p">,</span> <span class="n">JobQueue</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;job_queue must be a JobQueue instance&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;job_queue must be a JobQueue &#39;</span>
+                                          <span class="s1">&#39;instance&#39;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_job_queue</span> <span class="o">=</span> <span class="n">job_queue</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_job_queue_arn</span> <span class="o">=</span> <span class="n">job_queue</span><span class="o">.</span><span class="n">arn</span>
 
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">job_definition</span><span class="p">,</span> <span class="n">JobDefinition</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;job_queue must be a JobQueue instance&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;job_queue must be a JobQueue &#39;</span>
+                                          <span class="s1">&#39;instance&#39;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_job_definition</span> <span class="o">=</span> <span class="n">job_definition</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_job_definition_arn</span> <span class="o">=</span> <span class="n">job_definition</span><span class="o">.</span><span class="n">arn</span>
 
             <span class="k">if</span> <span class="n">environment_variables</span><span class="p">:</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">environment_variables</span><span class="p">):</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;env_vars must be a sequence of dicts&#39;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;env_vars must be a sequence of &#39;</span>
+                                              <span class="s1">&#39;dicts&#39;</span><span class="p">)</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">}</span>
                            <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">environment_variables</span><span class="p">):</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;each dict in env_vars must have &#39;</span>
-                                     <span class="s1">&#39;keys &quot;name&quot; and &quot;value&quot;&#39;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;each dict in env_vars must &#39;</span>
+                                              <span class="s1">&#39;have keys &quot;name&quot; and &quot;value&quot;&#39;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_environment_variables</span> <span class="o">=</span> <span class="n">environment_variables</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_environment_variables</span> <span class="o">=</span> <span class="kc">None</span>
@@ -1944,7 +1950,7 @@
 
         <span class="c1"># Require the user to supply a reason for job termination</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reason</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;reason must be a string.&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;reason must be a string.&#39;</span><span class="p">)</span>
 
         <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">status</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span>
 

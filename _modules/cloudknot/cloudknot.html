@@ -171,23 +171,27 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Validate name input</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;PARS name must be a string. You passed a &#39;</span>
-                             <span class="s1">&#39;</span><span class="si">{t!s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="n">name</span><span class="p">)))</span>
+            <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span>
+                <span class="s1">&#39;PARS name must be a string. You passed a &#39;</span>
+                <span class="s1">&#39;</span><span class="si">{t!s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+            <span class="p">)</span>
 
         <span class="nb">super</span><span class="p">(</span><span class="n">Pars</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
 
         <span class="c1"># Validate vpc_name input</span>
         <span class="k">if</span> <span class="n">vpc_name</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vpc_name</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;if provided, vpc_name must be a string.&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;if provided, vpc_name must be &#39;</span>
+                                              <span class="s1">&#39;a string.&#39;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">vpc_name</span> <span class="o">=</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;-cloudknot-vpc&#39;</span>
 
         <span class="c1"># Validate security_group_name input</span>
         <span class="k">if</span> <span class="n">security_group_name</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">security_group_name</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;if provided, security_group_name must be &#39;</span>
-                                 <span class="s1">&#39;a string.&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span>
+                    <span class="s1">&#39;if provided, security_group_name must be a string.&#39;</span>
+                <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">security_group_name</span> <span class="o">=</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;-cloudknot-security-group&#39;</span>
 
@@ -205,9 +209,10 @@
             <span class="c1"># Pars exists, check that user did not provide any resource names</span>
             <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">batch_service_role_name</span><span class="p">,</span> <span class="n">ecs_instance_role_name</span><span class="p">,</span>
                     <span class="n">spot_fleet_role_name</span><span class="p">,</span> <span class="n">vpc_id</span><span class="p">,</span> <span class="n">security_group_id</span><span class="p">]):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;You provided resources for a pars that &#39;</span>
-                                 <span class="s1">&#39;already exists in configuration file &#39;</span>
-                                 <span class="s1">&#39;</span><span class="si">{fn:s}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="n">get_config_file</span><span class="p">()))</span>
+                <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span>
+                    <span class="s1">&#39;You provided resources for a pars that already exists in &#39;</span>
+                    <span class="s1">&#39;configuration file </span><span class="si">{fn:s}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="n">get_config_file</span><span class="p">())</span>
+                <span class="p">)</span>
 
             <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Found PARS </span><span class="si">{name:s}</span><span class="s1"> in config&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">))</span>
 
@@ -359,8 +364,9 @@
                 <span class="c1"># Validate role name input</span>
                 <span class="k">if</span> <span class="n">role_name</span><span class="p">:</span>
                     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">role_name</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
-                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;if provided, role names must &#39;</span>
-                                         <span class="s1">&#39;be strings.&#39;</span><span class="p">)</span>
+                        <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span>
+                            <span class="s1">&#39;if provided, role names must be strings.&#39;</span>
+                        <span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">role_name</span> <span class="o">=</span> <span class="p">(</span>
                         <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;-cloudknot-&#39;</span> <span class="o">+</span> <span class="n">fallback_suffix</span>
@@ -379,13 +385,14 @@
 
             <span class="c1"># Validate vpc_id input</span>
             <span class="k">if</span> <span class="n">vpc_id</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vpc_id</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;if provided, vpc_id must be a string&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;if provided, vpc_id must be a &#39;</span>
+                                              <span class="s1">&#39;string&#39;</span><span class="p">)</span>
 
             <span class="c1"># Validate security_group_id input</span>
             <span class="k">if</span> <span class="n">security_group_id</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">security_group_id</span><span class="p">,</span>
                                                     <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;if provided, security_group_id &#39;</span>
-                                 <span class="s1">&#39;must be a string&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;if provided, security_group_id &#39;</span>
+                                              <span class="s1">&#39;must be a string&#39;</span><span class="p">)</span>
 
             <span class="k">def</span> <span class="nf">set_role</span><span class="p">(</span><span class="n">pars_name</span><span class="p">,</span> <span class="n">role_name</span><span class="p">,</span> <span class="n">service</span><span class="p">,</span> <span class="n">policies</span><span class="p">,</span>
                          <span class="n">add_instance_profile</span><span class="p">):</span>
@@ -584,7 +591,8 @@
 
             <span class="c1"># Verify input</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">new_role</span><span class="p">,</span> <span class="n">aws</span><span class="o">.</span><span class="n">IamRole</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;new role must be an instance of IamRole&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;new role must be an instance &#39;</span>
+                                              <span class="s1">&#39;of IamRole&#39;</span><span class="p">)</span>
 
             <span class="n">old_role</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
 
@@ -666,7 +674,7 @@
             <span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">aws</span><span class="o">.</span><span class="n">Vpc</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;new vpc must be an instance of Vpc&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;new vpc must be an instance of Vpc&#39;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">region</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vpc</span><span class="o">.</span><span class="n">region</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">RegionException</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">region</span><span class="p">)</span>
@@ -740,8 +748,8 @@
             <span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sg</span><span class="p">,</span> <span class="n">aws</span><span class="o">.</span><span class="n">SecurityGroup</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;new security group must be an instance of &#39;</span>
-                             <span class="s1">&#39;SecurityGroup&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;new security group must be an &#39;</span>
+                                          <span class="s1">&#39;instance of SecurityGroup&#39;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">sg</span><span class="o">.</span><span class="n">region</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_security_group</span><span class="o">.</span><span class="n">region</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">RegionException</span><span class="p">(</span><span class="n">sg</span><span class="o">.</span><span class="n">region</span><span class="p">)</span>
@@ -953,8 +961,10 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Validate name input</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Knot name must be a string. You passed a &#39;</span>
-                             <span class="s1">&#39;</span><span class="si">{t!s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="n">name</span><span class="p">)))</span>
+            <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span>
+                <span class="s1">&#39;Knot name must be a string. You passed a &#39;</span>
+                <span class="s1">&#39;</span><span class="si">{t!s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+            <span class="p">)</span>
 
         <span class="nb">super</span><span class="p">(</span><span class="n">Knot</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span> <span class="o">=</span> <span class="s1">&#39;knot &#39;</span> <span class="o">+</span> <span class="n">name</span>
@@ -1052,11 +1062,12 @@
                 <span class="k">else</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;-cloudknot-job-queue&#39;</span>
 
             <span class="k">if</span> <span class="n">pars</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pars</span><span class="p">,</span> <span class="n">Pars</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;if provided, pars must be a Pars instance.&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;if provided, pars must be a &#39;</span>
+                                              <span class="s1">&#39;Pars instance.&#39;</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="n">docker_image</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">([</span><span class="n">func</span><span class="p">,</span> <span class="n">image_script_path</span><span class="p">,</span> <span class="n">image_work_dir</span><span class="p">,</span>
                                      <span class="n">image_github_installs</span><span class="p">]):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span>
                     <span class="s1">&#39;you gave redundant, possibly conflicting input: &#39;</span>
                     <span class="s1">&#39;`docker_image` and one of [`func`, &#39;</span>
                     <span class="s1">&#39;`image_script_path`, `image_work_dir`]&#39;</span>
@@ -1064,8 +1075,9 @@
 
             <span class="k">if</span> <span class="n">docker_image</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">docker_image</span><span class="p">,</span>
                                                <span class="n">dockerimage</span><span class="o">.</span><span class="n">DockerImage</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;docker_image must be a cloudknot &#39;</span>
-                                 <span class="s1">&#39;DockerImage instance.&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span>
+                    <span class="s1">&#39;docker_image must be a cloudknot DockerImage instance.&#39;</span>
+                <span class="p">)</span>
 
             <span class="k">def</span> <span class="nf">set_pars</span><span class="p">(</span><span class="n">knot_name</span><span class="p">,</span> <span class="n">input_pars</span><span class="p">,</span> <span class="n">pars_policies</span><span class="p">):</span>
                 <span class="c1"># Validate and set the PARS</span>
@@ -1202,7 +1214,7 @@
                     <span class="p">}</span>
 
                     <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">matches</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
-                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span>
                             <span class="s1">&#39;The requested job definition already exists but &#39;</span>
                             <span class="s1">&#39;does not match the input parameters. &#39;</span>
                             <span class="s1">&#39;</span><span class="si">{matches!s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">matches</span><span class="o">=</span><span class="n">matches</span><span class="p">)</span>
@@ -1304,7 +1316,7 @@
                     <span class="p">}</span>
 
                     <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">matches</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
-                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span>
                             <span class="s1">&#39;The requested compute environment already exists &#39;</span>
                             <span class="s1">&#39;but does not match the input parameters. &#39;</span>
                             <span class="s1">&#39;</span><span class="si">{matches!s}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">matches</span><span class="o">=</span><span class="n">matches</span><span class="p">)</span>
@@ -1356,7 +1368,7 @@
                     <span class="p">}</span>
 
                     <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">matches</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
-                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span>
                             <span class="s1">&#39;The requested job queue already exists &#39;</span>
                             <span class="s1">&#39;but does not match the input parameters. &#39;</span>
                             <span class="s1">&#39;</span><span class="si">{matches!s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">matches</span><span class="o">=</span><span class="n">matches</span><span class="p">)</span>
@@ -1406,7 +1418,7 @@
             <span class="k">try</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_compute_environment</span><span class="p">,</span> <span class="n">ce_cleanup</span> <span class="o">=</span> \
                     <span class="n">futures</span><span class="p">[</span><span class="s1">&#39;compute-environment&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
-            <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">except</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">pars_cleanup</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
                 <span class="k">raise</span> <span class="n">e</span>
@@ -1419,7 +1431,7 @@
 
             <span class="k">try</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_job_queue</span><span class="p">,</span> <span class="n">jq_cleanup</span> <span class="o">=</span> <span class="n">futures</span><span class="p">[</span><span class="s1">&#39;job-queue&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
-            <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">except</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">ce_cleanup</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">compute_environment</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
                 <span class="k">if</span> <span class="n">pars_cleanup</span><span class="p">:</span>
@@ -1440,7 +1452,7 @@
             <span class="k">try</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_job_definition</span><span class="p">,</span> <span class="n">jd_cleanup</span> <span class="o">=</span> \
                     <span class="n">futures</span><span class="p">[</span><span class="s1">&#39;job-definition&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
-            <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">except</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">jq_cleanup</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">job_queue</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
                 <span class="k">if</span> <span class="n">ce_cleanup</span><span class="p">:</span>
@@ -1463,9 +1475,10 @@
                 <span class="k">if</span> <span class="n">pars_cleanup</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">pars</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
 
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The username for this knot&#39;s job definition &quot;</span>
-                                 <span class="s2">&quot;does not match the username for this knot&#39;s &quot;</span>
-                                 <span class="s2">&quot;Docker image.&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span>
+                    <span class="s2">&quot;The username for this knot&#39;s job definition does not &quot;</span>
+                    <span class="s2">&quot;match the username for this knot&#39;s Docker image.&quot;</span>
+                <span class="p">)</span>
 
             <span class="n">executor</span><span class="o">.</span><span class="n">shutdown</span><span class="p">()</span>
 
@@ -1596,13 +1609,14 @@
 
         <span class="c1"># env_vars should be a sequence of sequences of dicts</span>
         <span class="k">if</span> <span class="n">env_vars</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">env_vars</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;env_vars must be a sequence of dicts&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;env_vars must be a sequence of &#39;</span>
+                                          <span class="s1">&#39;dicts&#39;</span><span class="p">)</span>
 
         <span class="c1"># and each dict should have only &#39;name&#39; and &#39;value&#39; keys</span>
         <span class="k">if</span> <span class="n">env_vars</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">}</span>
                                 <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">env_vars</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;each dict in env_vars must have &#39;</span>
-                             <span class="s1">&#39;keys &quot;name&quot; and &quot;value&quot;&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;each dict in env_vars must have &#39;</span>
+                                          <span class="s1">&#39;keys &quot;name&quot; and &quot;value&quot;&#39;</span><span class="p">)</span>
 
         <span class="n">these_jobs</span> <span class="o">=</span> <span class="p">[]</span>
 

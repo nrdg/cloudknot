@@ -103,6 +103,7 @@
     <span class="s2">&quot;ResourceExistsException&quot;</span><span class="p">,</span> <span class="s2">&quot;CannotDeleteResourceException&quot;</span><span class="p">,</span>
     <span class="s2">&quot;CannotCreateResourceException&quot;</span><span class="p">,</span> <span class="s2">&quot;RegionException&quot;</span><span class="p">,</span> <span class="s2">&quot;ProfileException&quot;</span><span class="p">,</span>
     <span class="s2">&quot;BatchJobFailedError&quot;</span><span class="p">,</span> <span class="s2">&quot;CKTimeoutError&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;CloudknotInputError&quot;</span><span class="p">,</span> <span class="s2">&quot;CloudknotConfigurationError&quot;</span><span class="p">,</span>
     <span class="s2">&quot;NamedObject&quot;</span><span class="p">,</span> <span class="s2">&quot;ObjectWithArn&quot;</span><span class="p">,</span> <span class="s2">&quot;ObjectWithUsernameAndMemory&quot;</span><span class="p">,</span>
     <span class="s2">&quot;clients&quot;</span><span class="p">,</span> <span class="s2">&quot;refresh_clients&quot;</span><span class="p">,</span>
     <span class="s2">&quot;wait_for_compute_environment&quot;</span><span class="p">,</span> <span class="s2">&quot;wait_for_job_queue&quot;</span><span class="p">,</span>
@@ -241,7 +242,7 @@
         <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">has_section</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">config</span><span class="o">.</span><span class="n">has_option</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="n">option</span><span class="p">):</span>
             <span class="n">sse</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="n">option</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">sse</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;AES256&#39;</span><span class="p">,</span> <span class="s1">&#39;aws:kms&#39;</span><span class="p">,</span> <span class="s1">&#39;None&#39;</span><span class="p">]:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                     <span class="s1">&#39;The server-side encryption option &quot;sse&quot; must must be &#39;</span>
                     <span class="s1">&#39;one of [&quot;AES256&quot;, &quot;aws:kms&quot;, &quot;None&quot;]&#39;</span>
                 <span class="p">)</span>
@@ -280,8 +281,8 @@
 <span class="sd">        Default: None</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">sse</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">sse</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;AES256&#39;</span><span class="p">,</span> <span class="s1">&#39;aws:kms&#39;</span><span class="p">]:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The server-side encryption option &quot;sse&quot; &#39;</span>
-                         <span class="s1">&#39;must be one of [&quot;AES256&quot;, &quot;aws:kms&quot;]&#39;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;The server-side encryption option &quot;sse&quot; &#39;</span>
+                                  <span class="s1">&#39;must be one of [&quot;AES256&quot;, &quot;aws:kms&quot;]&#39;</span><span class="p">)</span>
 
     <span class="c1"># Update the config file</span>
     <span class="n">config_file</span> <span class="o">=</span> <span class="n">get_config_file</span><span class="p">()</span>
@@ -298,9 +299,9 @@
 
             <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get_object</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">bucket_</span><span class="p">,</span> <span class="n">Key</span><span class="o">=</span><span class="n">key</span><span class="p">)</span>
         <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">ClientError</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The requested bucket name already exists &#39;</span>
-                             <span class="s1">&#39;and you do not have permission to put or &#39;</span>
-                             <span class="s1">&#39;get objects in it.&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;The requested bucket name already &#39;</span>
+                                      <span class="s1">&#39;exists and you do not have permission &#39;</span>
+                                      <span class="s1">&#39;to put or get objects in it.&#39;</span><span class="p">)</span>
 
         <span class="k">try</span><span class="p">:</span>
             <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">delete_object</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">bucket_</span><span class="p">,</span> <span class="n">Key</span><span class="o">=</span><span class="n">key</span><span class="p">)</span>
@@ -528,7 +529,7 @@
     <span class="n">region_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;RegionName&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Regions&#39;</span><span class="p">)]</span>
 
     <span class="k">if</span> <span class="n">region</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">region_names</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;`region` must be in </span><span class="si">{regions!s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;`region` must be in </span><span class="si">{regions!s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
             <span class="n">regions</span><span class="o">=</span><span class="n">region_names</span>
         <span class="p">))</span>
 
@@ -682,7 +683,7 @@
     <span class="n">profile_info</span> <span class="o">=</span> <span class="n">list_profiles</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">profile_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">profile_info</span><span class="o">.</span><span class="n">profile_names</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+        <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
             <span class="s1">&#39;The profile you specified does not exist in either the AWS &#39;</span>
             <span class="s1">&#39;config file at </span><span class="si">{conf:s}</span><span class="s1"> or the AWS shared credentials file at &#39;</span>
             <span class="s1">&#39;</span><span class="si">{cred:s}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
@@ -936,6 +937,40 @@
 
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
+<span class="k">class</span> <span class="nc">CloudknotConfigurationError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Error indicating an cloudknot has not been properly configured&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config_file</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        config_file : string</span>
+<span class="sd">            The path to the cloudknot config file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">CloudknotConfigurationError</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="s2">&quot;It looks like you haven&#39;t run `cloudknot configure` to set up &quot;</span>
+            <span class="s2">&quot;your cloudknot environment. Or perhaps you did that but you have &quot;</span>
+            <span class="s2">&quot;since deleted your cloudknot configuration file. Please run &quot;</span>
+            <span class="s2">&quot;`cloudknot configure` before using cloudknot. &quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config_file</span> <span class="o">=</span> <span class="n">config_file</span>
+
+
+<span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
+<span class="k">class</span> <span class="nc">CloudknotInputError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Error indicating an input argument has an invalid value&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        msg : string</span>
+<span class="sd">            The error message</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">CloudknotInputError</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+
+<span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
 <span class="k">class</span> <span class="nc">NamedObject</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Base class for building objects with name property&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
@@ -946,6 +981,16 @@
 <span class="sd">        name : string</span>
 <span class="sd">            Name of the object</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">config_file</span> <span class="o">=</span> <span class="n">get_config_file</span><span class="p">()</span>
+        <span class="n">conf</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
+        <span class="k">with</span> <span class="n">rlock</span><span class="p">:</span>
+            <span class="n">conf</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">conf</span><span class="o">.</span><span class="n">has_section</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">)</span>
+                    <span class="ow">and</span> <span class="n">conf</span><span class="o">.</span><span class="n">has_option</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="s1">&#39;configured&#39;</span><span class="p">)</span>
+                    <span class="ow">and</span> <span class="n">conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="s1">&#39;configured&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;True&#39;</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">CloudknotConfigurationError</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_clobbered</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_region</span> <span class="o">=</span> <span class="n">get_region</span><span class="p">()</span>
@@ -1041,11 +1086,11 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="n">mem</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">memory</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">mem</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;memory must be positive&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;memory must be positive&#39;</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_memory</span> <span class="o">=</span> <span class="n">mem</span>
         <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;memory must be an integer&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;memory must be an integer&#39;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_username</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">username</span><span class="p">)</span>
 

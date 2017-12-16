@@ -99,7 +99,8 @@
 <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">aws</span>
 <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">config</span> <span class="k">as</span> <span class="n">ckconfig</span>
 <span class="kn">from</span> <span class="nn">.aws.base_classes</span> <span class="k">import</span> <span class="n">get_region</span><span class="p">,</span> <span class="n">get_profile</span><span class="p">,</span> \
-    <span class="n">ResourceDoesNotExistException</span><span class="p">,</span> <span class="n">ResourceClobberedException</span>
+    <span class="n">ResourceDoesNotExistException</span><span class="p">,</span> <span class="n">ResourceClobberedException</span><span class="p">,</span> \
+    <span class="n">CloudknotInputError</span><span class="p">,</span> <span class="n">CloudknotConfigurationError</span>
 <span class="kn">from</span> <span class="nn">.config</span> <span class="k">import</span> <span class="n">get_config_file</span><span class="p">,</span> <span class="n">rlock</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;DockerImage&quot;</span><span class="p">]</span>
@@ -159,7 +160,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># User must specify at least `func` or `script_path`</span>
         <span class="k">if</span> <span class="n">name</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">([</span><span class="n">func</span><span class="p">,</span> <span class="n">script_path</span><span class="p">,</span> <span class="n">dir_name</span><span class="p">,</span> <span class="n">username</span><span class="p">]):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                 <span class="s2">&quot;You specified a name plus other stuff. The name parameter is &quot;</span>
                 <span class="s2">&quot;only used to retrieve a pre-existing DockerImage instance. &quot;</span>
                 <span class="s2">&quot;If you&#39;d like to create a new one, do not provide a name &quot;</span>
@@ -168,20 +169,22 @@
 
         <span class="c1"># User must specify at least `func` or `script_path`</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">([</span><span class="n">name</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">script_path</span><span class="p">]):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;You must suppy either `name`, `func` or &#39;</span>
-                             <span class="s1">&#39;`script_path`.&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;You must suppy either `name`, `func` &#39;</span>
+                                      <span class="s1">&#39;or `script_path`.&#39;</span><span class="p">)</span>
 
         <span class="c1"># If both `func` and `script_path` are specified,</span>
         <span class="c1"># input is over-specified</span>
         <span class="k">if</span> <span class="n">script_path</span> <span class="ow">and</span> <span class="n">func</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;You provided `script_path` and other redundant &#39;</span>
-                             <span class="s1">&#39;arguments, either `func` or `dir_name`. &#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;You provided `script_path` and other &#39;</span>
+                                      <span class="s1">&#39;redundant arguments, either `func` or &#39;</span>
+                                      <span class="s1">&#39;`dir_name`. &#39;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">name</span><span class="p">:</span>
             <span class="c1"># Validate name input</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Docker image name must be a string. You &#39;</span>
-                                 <span class="s1">&#39;passed a </span><span class="si">{t!s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="n">name</span><span class="p">)))</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;Docker image name must be a &#39;</span>
+                                          <span class="s1">&#39;string. You passed a </span><span class="si">{t!s}</span><span class="s1">&#39;</span>
+                                          <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="n">name</span><span class="p">)))</span>
 
             <span class="nb">super</span><span class="p">(</span><span class="n">DockerImage</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
 
@@ -227,7 +230,8 @@
 
             <span class="c1"># Validate dir_name input</span>
             <span class="k">if</span> <span class="n">dir_name</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">dir_name</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;`dir_name` is not an existing directory&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;`dir_name` is not an existing &#39;</span>
+                                          <span class="s1">&#39;directory&#39;</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="n">script_path</span><span class="p">:</span>
                 <span class="c1"># User supplied a pre-existing python script.</span>
@@ -236,8 +240,10 @@
 
                 <span class="c1"># Check that it is a valid path</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">script_path</span><span class="p">):</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;If provided, `script_path` must be an &#39;</span>
-                                     <span class="s1">&#39;existing regular file.&#39;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
+                        <span class="s1">&#39;If provided, `script_path` must be an existing &#39;</span>
+                        <span class="s1">&#39;regular file.&#39;</span>
+                    <span class="p">)</span>
 
                 <span class="bp">self</span><span class="o">.</span><span class="n">_script_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">script_path</span><span class="p">)</span>
                 <span class="nb">super</span><span class="p">(</span><span class="n">DockerImage</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
@@ -262,7 +268,7 @@
 
                     <span class="c1"># Confirm that we will not overwrite an existing script</span>
                     <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_script_path</span><span class="p">):</span>
-                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                             <span class="s1">&#39;There is a pre-existing python script in the &#39;</span>
                             <span class="s1">&#39;directory that you provided. Either specify a &#39;</span>
                             <span class="s1">&#39;new directory, move the python script `</span><span class="si">{file:s}</span><span class="s1">` &#39;</span>
@@ -288,7 +294,7 @@
 
             <span class="c1"># Confirm that we won&#39;t overwrite an existing Dockerfile</span>
             <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_docker_path</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                     <span class="s1">&#39;There is a pre-existing Dockerfile in the same directory &#39;</span>
                     <span class="s1">&#39;as the python script you provided or in the directory &#39;</span>
                     <span class="s1">&#39;name that you provided. Either specify a new directory, &#39;</span>
@@ -299,7 +305,7 @@
 
             <span class="c1"># Confirm that we won&#39;t overwrite an existing requirements.txt</span>
             <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_req_path</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                     <span class="s1">&#39;There is a pre-existing requirements.txt in the same &#39;</span>
                     <span class="s1">&#39;directory as the python script you provided or in the &#39;</span>
                     <span class="s1">&#39;directory name that you provided. Either specify a new &#39;</span>
@@ -314,14 +320,14 @@
             <span class="k">elif</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">github_installs</span><span class="p">):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_github_installs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">github_installs</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;github_installs must be a string or a &#39;</span>
-                                 <span class="s1">&#39;sequence of strings.&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;github_installs must be a string &#39;</span>
+                                          <span class="s1">&#39;or a sequence of strings.&#39;</span><span class="p">)</span>
 
             <span class="n">pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;(https|git)(://github.com/).*/.*\.git($|@.*$)&#39;</span>
             <span class="k">for</span> <span class="n">install</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_github_installs</span><span class="p">:</span>
                 <span class="n">match_obj</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">install</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">match_obj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                         <span class="s1">&#39;One of your github_installs, </span><span class="si">{i:s}</span><span class="s1"> is not formatted &#39;</span>
                         <span class="s1">&#39;correctly. It should look something like &#39;</span>
                         <span class="s1">&#39;git://github.com/user/repo.git, &#39;</span>
@@ -525,12 +531,13 @@
         <span class="k">elif</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">tags</span><span class="p">):</span>
             <span class="n">tags</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tags</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;tags must be a string or a sequence &#39;</span>
-                             <span class="s1">&#39;of strings.&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;tags must be a string or a sequence &#39;</span>
+                                      <span class="s1">&#39;of strings.&#39;</span><span class="p">)</span>
 
         <span class="c1"># Don&#39;t allow user to put &quot;latest&quot; in tags.</span>
         <span class="k">if</span> <span class="s1">&#39;latest&#39;</span> <span class="ow">in</span> <span class="n">tags</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Any tag is allowed, except for &quot;latest.&quot;&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;Any tag is allowed, except for &#39;</span>
+                                      <span class="s1">&#39;&quot;latest.&quot;&#39;</span><span class="p">)</span>
 
         <span class="n">image_name</span> <span class="o">=</span> <span class="n">image_name</span> <span class="k">if</span> <span class="n">image_name</span> <span class="k">else</span> <span class="s1">&#39;cloudknot/&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
 
@@ -595,17 +602,17 @@
 
         <span class="c1"># User must supply either a repo object or the repo name and uri</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">repo</span> <span class="ow">or</span> <span class="n">repo_uri</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;You must supply either `repo=&lt;DockerRepo &#39;</span>
-                             <span class="s1">&#39;instance&gt;` or `repo_uri`.&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;You must supply either `repo=&#39;</span>
+                                      <span class="s1">&#39;&lt;DockerRepo instance&gt;` or `repo_uri`.&#39;</span><span class="p">)</span>
 
         <span class="c1"># User cannot supply both repo and repo_name or repo_uri</span>
         <span class="k">if</span> <span class="n">repo</span> <span class="ow">and</span> <span class="n">repo_uri</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;You may not specify both a repo object and &#39;</span>
-                             <span class="s1">&#39;`repo_uri`.&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;You may not specify both a repo object &#39;</span>
+                                      <span class="s1">&#39;and `repo_uri`.&#39;</span><span class="p">)</span>
 
         <span class="c1"># Make sure that the user has called build first or somehow set tags.</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                 <span class="s1">&#39;The images property is empty, indicating that the build &#39;</span>
                 <span class="s1">&#39;method has not yet been called. Call `build(tags=&lt;tags&gt;)` &#39;</span>
                 <span class="s1">&#39;first before calling `tag()`.&#39;</span>
@@ -635,7 +642,7 @@
 
         <span class="c1"># If login failed, pass error to user</span>
         <span class="k">if</span> <span class="n">login_result</span><span class="p">:</span>  <span class="c1"># pragma: nocover</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="k">raise</span> <span class="n">CloudknotConfigurationError</span><span class="p">(</span>
                 <span class="s1">&#39;Unable to login to AWS ECR using `</span><span class="si">{login:s}</span><span class="s1">`&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                     <span class="n">login</span><span class="o">=</span><span class="n">login_cmd</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
                 <span class="p">)</span>
@@ -643,11 +650,11 @@
 
         <span class="k">if</span> <span class="n">repo</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">repo</span><span class="p">,</span> <span class="n">aws</span><span class="o">.</span><span class="n">DockerRepo</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;repo must be a DockerRepo instance.&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;repo must be of type DockerRepo.&#39;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_repo_uri</span> <span class="o">=</span> <span class="n">repo</span><span class="o">.</span><span class="n">repo_uri</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">repo_uri</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;`repo_uri` must be a string.&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;`repo_uri` must be a string.&#39;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_repo_uri</span> <span class="o">=</span> <span class="n">repo_uri</span>
 
         <span class="c1"># Use docker low-level APIClient for tagging</span>
