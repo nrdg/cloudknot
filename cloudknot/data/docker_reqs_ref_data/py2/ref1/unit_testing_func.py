@@ -19,12 +19,17 @@ def pickle_to_s3(server_side_encryption=None):
                 '{0:3d}'.format(int(os.environ.get("AWS_BATCH_JOB_ATTEMPT"))),
                 'output.pickle'
             ])
-            pickled_result = cloudpickle.dumps(f(*args, **kwargs))
-            if server_side_encryption is None:
-                s3.put_object(Bucket=bucket, Body=pickled_result, Key=key)
-            else:
-                s3.put_object(Bucket=bucket, Body=pickled_result, Key=key,
-                              ServerSideEncryption=server_side_encryption)
+
+            result = f(*args, **kwargs)
+
+            # Only pickle output and write to S3 if it is not None
+            if result is not None:
+                pickled_result = cloudpickle.dumps(result)
+                if server_side_encryption is None:
+                    s3.put_object(Bucket=bucket, Body=pickled_result, Key=key)
+                else:
+                    s3.put_object(Bucket=bucket, Body=pickled_result, Key=key,
+                                  ServerSideEncryption=server_side_encryption)
 
         return wrapper
     return real_decorator
