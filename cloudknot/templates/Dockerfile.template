@@ -1,10 +1,10 @@
 ###############################################################################
 # Dockerfile to build ${app_name} application container
-# Based on python ${py_version}
+# Based on ${base_image}
 ###############################################################################
 
 # Use official python base image
-FROM python:${py_version}
+FROM ${base_image}
 
 # Install python dependencies
 COPY requirements.txt /tmp/
