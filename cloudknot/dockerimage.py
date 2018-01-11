@@ -42,7 +42,8 @@ class DockerImage(aws.NamedObject):
     Dockerfile.
     """
     def __init__(self, name=None, func=None, script_path=None,
-                 dir_name=None, github_installs=(), username=None):
+                 dir_name=None, base_image=None,
+                 github_installs=(), username=None):
         """Initialize a DockerImage instance
 
         Parameters
@@ -64,6 +65,11 @@ class DockerImage(aws.NamedObject):
             else DockerImage creates a new directory, accessible by the
             `build_path` property.
 
+        base_image : string
+            Docker base image on which to base this Dockerfile
+            Default: None will use the python base image for the
+            current version of python
+
         github_installs : string or sequence of strings
             Github addresses for packages to install from github rather than
             PyPI (e.g. git://github.com/richford/cloudknot.git or
@@ -74,8 +80,9 @@ class DockerImage(aws.NamedObject):
             Default user created in the Dockerfile
             Default: 'cloudknot-user'
         """
-        # User must specify at least `func` or `script_path`
-        if name and any([func, script_path, dir_name, username]):
+        # Check for redundant input
+        if name and any([func, script_path, dir_name, username,
+                         base_image, github_installs]):
             raise CloudknotInputError(
                 "You specified a name plus other stuff. The name parameter is "
                 "only used to retrieve a pre-existing DockerImage instance. "
@@ -124,6 +131,7 @@ class DockerImage(aws.NamedObject):
             self._script_path = config.get(section_name, 'script-path')
             self._docker_path = config.get(section_name, 'docker-path')
             self._req_path = config.get(section_name, 'req-path')
+            self._base_image = config.get(section_name, 'base-image')
             self._github_installs = config.get(section_name,
                                                'github-imports').split()
             self._username = config.get(section_name, 'username')
@@ -143,6 +151,12 @@ class DockerImage(aws.NamedObject):
         else:
             self._func = func
             self._username = username if username else 'cloudknot-user'
+
+            if base_image is not None:
+                self._base_image = base_image
+            else:
+                py_ver = '3' if six.PY3 else '2'
+                self._base_image = 'python:' + py_ver
 
             # Validate dir_name input
             if dir_name and not os.path.isdir(dir_name):
@@ -273,6 +287,7 @@ class DockerImage(aws.NamedObject):
                 section_name, 'docker-path', self.docker_path
             )
             ckconfig.add_resource(section_name, 'req-path', self.req_path)
+            ckconfig.add_resource(section_name, 'base-image', self.base_image)
             ckconfig.add_resource(section_name, 'github-imports',
                                   ' '.join(self.github_installs))
             ckconfig.add_resource(section_name, 'username', self.username)
@@ -312,6 +327,11 @@ class DockerImage(aws.NamedObject):
     def pip_imports(self):
         """List of packages in the requirements.txt file"""
         return self._pip_imports
+
+    @property
+    def base_image(self):
+        """Docker base image on which to base the docker image"""
+        return self._base_image
 
     @property
     def github_installs(self):
@@ -390,7 +410,7 @@ class DockerImage(aws.NamedObject):
                 f.write(s.substitute(
                     app_name=self.name,
                     username=self.username,
-                    py_version='3' if six.PY3 else '2',
+                    base_image=self.base_image,
                     script_base_name=os.path.basename(self.script_path),
                     github_installs_string=github_installs_string
                 ))
