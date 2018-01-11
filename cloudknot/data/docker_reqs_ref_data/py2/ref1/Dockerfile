@@ -1,6 +1,6 @@
 ###############################################################################
 # Dockerfile to build unit_testing_func application container
-# Based on python 2
+# Based on python:2
 ###############################################################################
 
 # Use official python base image
