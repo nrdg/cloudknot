@@ -6,16 +6,23 @@ from argparse import ArgumentParser
 from functools import wraps
 
 
-def pickle_to_s3(server_side_encryption=None):
+def pickle_to_s3(server_side_encryption=None, array_job=True):
     def real_decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
             s3 = boto3.client("s3")
             bucket = os.environ.get("CLOUDKNOT_JOBS_S3_BUCKET")
+
+            if array_job:
+                array_index = os.environ.get("AWS_BATCH_JOB_ARRAY_INDEX")
+            else:
+                array_index = '0'
+
             key = '/'.join([
                 'cloudknot.jobs',
                 os.environ.get("CLOUDKNOT_S3_JOBDEF_KEY"),
                 os.environ.get("AWS_BATCH_JOB_ID"),
+                array_index,
                 '{0:3d}'.format(int(os.environ.get("AWS_BATCH_JOB_ATTEMPT"))),
                 'output.pickle'
             ])
@@ -54,6 +61,12 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        '--arrayjob', action='store_true',
+        help='If True, this is an array job and it should reference the '
+             'AWS_BATCH_JOB_ARRAY_INDEX environment variable.'
+    )
+
+    parser.add_argument(
         '--sse', dest='sse', action='store',
         choices=['AES256', 'aws:kms'], default=None,
         help='Server side encryption algorithm used when storing objects '
@@ -72,9 +85,14 @@ if __name__ == "__main__":
     ])
 
     response = s3.get_object(Bucket=bucket, Key=key)
-    input = pickle.loads(response.get('Body').read())
+
+    input = pickle.loads(response.get('Body').read())[array_index]
+
+    if args.arrayjob:
+        array_index = int(os.environ.get("AWS_BATCH_JOB_ARRAY_INDEX"))
+        input = input[array_index]
 
     if args.starmap:
-        pickle_to_s3(args.sse)(${func_name})(*input)
+        pickle_to_s3(args.sse, args.arrayjob)(${func_name})(*input)
     else:
-        pickle_to_s3(args.sse)(${func_name})(input)
+        pickle_to_s3(args.sse, args.arrayjob)(${func_name})(input)
