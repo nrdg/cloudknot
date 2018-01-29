@@ -1459,8 +1459,8 @@ class JobQueue(ObjectWithArn):
 class BatchJob(NamedObject):
     """Class for defining AWS Batch Job"""
     def __init__(self, job_id=None, name=None, job_queue=None,
-                 job_definition=None, input=None, starmap=False,
-                 environment_variables=None):
+                 job_definition=None, input_=None, starmap=False,
+                 environment_variables=None, array_job=True):
         """Initialize an AWS Batch Job object.
 
         If requesting information on a pre-existing job, `job_id` is required.
@@ -1483,7 +1483,7 @@ class BatchJob(NamedObject):
             JobDefinition instance specifying the job definition on which
             to base this job
 
-        input :
+        input_ :
             The input to be pickled and sent to the batch job via S3
 
         starmap : bool
@@ -1493,17 +1493,21 @@ class BatchJob(NamedObject):
         environment_variables : list of dict
             list of key/value pairs representing environment variables
             sent to the container
+
+        array_job : bool
+            If True, this batch job will be an array_job.
+            Default: True
         """
-        has_input = input is not None
+        has_input = input_ is not None
         if not (job_id or all([name, job_queue, has_input, job_definition])):
             raise CloudknotInputError('You must supply either job_id or '
-                                      '(name, input, job_queue, and '
+                                      '(name, input_, job_queue, and '
                                       'job_definition).')
 
         if job_id and any([name, job_queue, has_input, job_definition]):
             raise CloudknotInputError('You may supply either job_id or (name, '
-                                      'input, job_queue, and job_definition), '
-                                      'not both.')
+                                      'input_, job_queue, and '
+                                      'job_definition), not both.')
 
         self._starmap = starmap
 
@@ -1523,6 +1527,7 @@ class BatchJob(NamedObject):
             self._job_definition = JobDefinition(arn=self._job_definition_arn)
             self._environment_variables = job.environment_variables
             self._job_id = job.job_id
+            self._array_job = job.array_job
 
             bucket = self._job_definition.output_bucket
             key = '/'.join([
@@ -1574,7 +1579,8 @@ class BatchJob(NamedObject):
             else:
                 self._environment_variables = None
 
-            self._input = input
+            self._input = input_
+            self._array_job = array_job
             self._job_id = self._create()
 
     @property
@@ -1613,6 +1619,11 @@ class BatchJob(NamedObject):
         return self._starmap
 
     @property
+    def array_job(self):
+        """Boolean flag to indicate whether this is an array job"""
+        return self._array_job
+
+    @property
     def job_id(self):
         """This job's AWS jobID"""
         return self._job_id
@@ -1629,13 +1640,13 @@ class BatchJob(NamedObject):
         namedtuple JobExists
             A namedtuple with fields
             ['exists', 'name', 'job_id', 'job_queue_arn',
-             'job_definition_arn', 'environment_variables']
+             'job_definition_arn', 'environment_variables', 'array_job']
         """
         # define a namedtuple for return value type
         JobExists = namedtuple(
             'JobExists',
             ['exists', 'name', 'job_id', 'job_queue_arn',
-             'job_definition_arn', 'environment_variables']
+             'job_definition_arn', 'environment_variables', 'array_job']
         )
         # make all but the first value default to None
         JobExists.__new__.__defaults__ = \
@@ -1650,13 +1661,16 @@ class BatchJob(NamedObject):
             job_definition_arn = job['jobDefinition']
             environment_variables = job['container']['environment']
 
+            array_job = 'arrayProperties' in job
+
             mod_logger.info('Job {id:s} exists.'.format(id=job_id))
 
             return JobExists(
                 exists=True, name=name, job_id=job_id,
                 job_queue_arn=job_queue_arn,
                 job_definition_arn=job_definition_arn,
-                environment_variables=environment_variables
+                environment_variables=environment_variables,
+                array_job=array_job
             )
         else:
             return JobExists(exists=False)
@@ -1682,6 +1696,9 @@ class BatchJob(NamedObject):
         if sse:
             command = ['--sse', sse] + command
 
+        if self.array_job:
+            command = ['--arrayjob'] + command
+
         if self.environment_variables:
             container_overrides = {
                 'environment': self.environment_variables,
@@ -1694,12 +1711,21 @@ class BatchJob(NamedObject):
 
         # We have to submit before uploading the input in order to get the
         # jobID first.
-        response = clients['batch'].submit_job(
-            jobName=self.name,
-            jobQueue=self.job_queue_arn,
-            jobDefinition=self.job_definition_arn,
-            containerOverrides=container_overrides
-        )
+        if self.array_job:
+            response = clients['batch'].submit_job(
+                jobName=self.name,
+                jobQueue=self.job_queue_arn,
+                arrayProperties={'size': len(self.input)},
+                jobDefinition=self.job_definition_arn,
+                containerOverrides=container_overrides
+            )
+        else:
+            response = clients['batch'].submit_job(
+                jobName=self.name,
+                jobQueue=self.job_queue_arn,
+                jobDefinition=self.job_definition_arn,
+                containerOverrides=container_overrides
+            )
 
         job_id = response['jobId']
         key = '/'.join([
@@ -1750,8 +1776,12 @@ class BatchJob(NamedObject):
         job = response.get('jobs')[0]
 
         # Return only a subset of the job dictionary
-        status = {k: job.get(k)
-                  for k in ('status', 'statusReason', 'attempts')}
+        keys = ['status', 'statusReason', 'attempts']
+
+        if self.array_job:
+            keys.append('arrayProperties')
+
+        status = {k: job.get(k) for k in keys}
 
         return status
 
@@ -1795,6 +1825,48 @@ class BatchJob(NamedObject):
 
         return done
 
+    def _collect_array_job_result(self, idx=0):
+        """Collect the array job results and return as a complete list
+
+        Parameters
+        ----------
+        idx : int
+            Index of the array job element to be retrieved.
+            Default: 0
+
+        Returns
+        -------
+        The array job element at index `idx`
+        """
+        bucket = self.job_definition.output_bucket
+
+        # For array jobs, different child jobs may have had different
+        # numbers of attempts. So we start at the highest possible attempt
+        # number and retrieve the latest one.
+        attempt = self.job_definition.retries
+        result_retrieved = False
+
+        while not result_retrieved and attempt >= 0:
+            key = '/'.join([
+                'cloudknot.jobs', self.job_definition.name,
+                self.job_id, str(idx),
+                '{0:03d}'.format(attempt), 'output.pickle'
+            ])
+
+            try:
+                response = clients['s3'].get_object(Bucket=bucket, Key=key)
+                result_retrieved = True
+            except clients['s3'].exceptions.NoSuchKey:
+                attempt -= 1
+
+        if not result_retrieved:
+            raise CKTimeoutError(
+                'Result not available in bucket {bucket:s} with key {key:s}'
+                ''.format(bucket=bucket, key=key)
+            )
+
+        return pickle.loads(response.get('Body').read())
+
     def result(self, timeout=None):
         """Return the result of the latest attempt
 
@@ -1831,14 +1903,11 @@ class BatchJob(NamedObject):
         if status['status'] == 'FAILED':
             raise BatchJobFailedError(self.job_id)
         else:
-            bucket = self.job_definition.output_bucket
-            key = '/'.join([
-                'cloudknot.jobs', self.job_definition.name, self.job_id,
-                '{0:3d}'.format(len(status['attempts'])), 'output.pickle'
-            ])
-
-            response = clients['s3'].get_object(Bucket=bucket, Key=key)
-            return pickle.loads(response.get('Body').read())
+            if self.array_job:
+                return [self._collect_array_job_result(idx)
+                        for idx in range(len(self.input))]
+            else:
+                return self._collect_array_job_result()
 
     def terminate(self, reason):
         """Kill AWS batch job using instance parameter `self.job_id`

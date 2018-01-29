@@ -2699,7 +2699,7 @@ def test_BatchJob(pars):
         with pytest.raises(ck.aws.CloudknotInputError):
             ck.aws.BatchJob(
                 name=get_testing_name(),
-                input=42,
+                input_=42,
                 job_queue=42
             )
 
@@ -2707,7 +2707,7 @@ def test_BatchJob(pars):
         with pytest.raises(ck.aws.CloudknotInputError):
             ck.aws.BatchJob(
                 name=get_testing_name(),
-                input=42,
+                input_=42,
                 job_queue=job_queue,
                 job_definition=42
             )
@@ -2716,7 +2716,7 @@ def test_BatchJob(pars):
         with pytest.raises(ck.aws.CloudknotInputError):
             ck.aws.BatchJob(
                 name=get_testing_name(),
-                input=42,
+                input_=42,
                 job_queue=job_queue,
                 job_definition=job_def,
                 environment_variables=[42]
