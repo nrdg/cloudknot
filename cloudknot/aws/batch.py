@@ -1459,7 +1459,7 @@ class JobQueue(ObjectWithArn):
 class BatchJob(NamedObject):
     """Class for defining AWS Batch Job"""
     def __init__(self, job_id=None, name=None, job_queue=None,
-                 job_definition=None, input=None, starmap=False,
+                 job_definition=None, input_=None, starmap=False,
                  environment_variables=None, array_job=True):
         """Initialize an AWS Batch Job object.
 
@@ -1483,7 +1483,7 @@ class BatchJob(NamedObject):
             JobDefinition instance specifying the job definition on which
             to base this job
 
-        input :
+        input_ :
             The input to be pickled and sent to the batch job via S3
 
         starmap : bool
@@ -1498,16 +1498,16 @@ class BatchJob(NamedObject):
             If True, this batch job will be an array_job.
             Default: True
         """
-        has_input = input is not None
+        has_input = input_ is not None
         if not (job_id or all([name, job_queue, has_input, job_definition])):
             raise CloudknotInputError('You must supply either job_id or '
-                                      '(name, input, job_queue, and '
+                                      '(name, input_, job_queue, and '
                                       'job_definition).')
 
         if job_id and any([name, job_queue, has_input, job_definition]):
             raise CloudknotInputError('You may supply either job_id or (name, '
-                                      'input, job_queue, and job_definition), '
-                                      'not both.')
+                                      'input_, job_queue, and '
+                                      'job_definition), not both.')
 
         self._starmap = starmap
 
@@ -1579,7 +1579,7 @@ class BatchJob(NamedObject):
             else:
                 self._environment_variables = None
 
-            self._input = input
+            self._input = input_
             self._array_job = array_job
             self._job_id = self._create()
 
@@ -1840,13 +1840,31 @@ class BatchJob(NamedObject):
         """
         bucket = self.job_definition.output_bucket
 
-        key = '/'.join([
-            'cloudknot.jobs', self.job_definition.name,
-            self.job_id, str(idx),
-            '{0:3d}'.format(len(status['attempts'])), 'output.pickle'
-        ])
+        # For array jobs, different child jobs may have had different
+        # numbers of attempts. So we start at the highest possible attempt
+        # number and retrieve the latest one.
+        attempt = self.job_definition.retries
+        result_retrieved = False
 
-        response = clients['s3'].get_object(Bucket=bucket, Key=key)
+        while not result_retrieved and attempt >= 0:
+            key = '/'.join([
+                'cloudknot.jobs', self.job_definition.name,
+                self.job_id, str(idx),
+                '{0:03d}'.format(attempt), 'output.pickle'
+            ])
+
+            try:
+                response = clients['s3'].get_object(Bucket=bucket, Key=key)
+                result_retrieved = True
+            except clients['s3'].exceptions.NoSuchKey:
+                attempt -= 1
+
+        if not result_retrieved:
+            raise CKTimeoutError(
+                'Result not available in bucket {bucket:s} with key {key:s}'
+                ''.format(bucket=bucket, key=key)
+            )
+
         return pickle.loads(response.get('Body').read())
 
     def result(self, timeout=None):

@@ -1557,7 +1557,9 @@ class Knot(aws.NamedObject):
                 job = aws.BatchJob(
                     input=input,
                     starmap=starmap,
-                    name='{n:s}-{i:d}'.format(n=self.name, i=len(self.job_ids)),
+                    name='{n:s}-{i:d}'.format(
+                        n=self.name, i=len(self.job_ids)
+                    ),
                     job_queue=self.job_queue,
                     job_definition=self.job_definition,
                     environment_variables=env_vars,
