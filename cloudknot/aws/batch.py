@@ -1777,6 +1777,7 @@ class BatchJob(NamedObject):
 
         # Return only a subset of the job dictionary
         keys = ['status', 'statusReason', 'attempts']
+
         if self.array_job:
             keys.append('arrayProperties')
 
@@ -1824,6 +1825,30 @@ class BatchJob(NamedObject):
 
         return done
 
+    def _collect_array_job_result(self, idx=0):
+        """Collect the array job results and return as a complete list
+
+        Parameters
+        ----------
+        idx : int
+            Index of the array job element to be retrieved.
+            Default: 0
+
+        Returns
+        -------
+        The array job element at index `idx`
+        """
+        bucket = self.job_definition.output_bucket
+
+        key = '/'.join([
+            'cloudknot.jobs', self.job_definition.name,
+            self.job_id, str(idx),
+            '{0:3d}'.format(len(status['attempts'])), 'output.pickle'
+        ])
+
+        response = clients['s3'].get_object(Bucket=bucket, Key=key)
+        return pickle.loads(response.get('Body').read())
+
     def result(self, timeout=None):
         """Return the result of the latest attempt
 
@@ -1860,22 +1885,11 @@ class BatchJob(NamedObject):
         if status['status'] == 'FAILED':
             raise BatchJobFailedError(self.job_id)
         else:
-            bucket = self.job_definition.output_bucket
-
             if self.array_job:
-                # TODO: Return results if it's an array job
-                # Should it return a list of the results
-                # Or a list of futures
-                pass
+                return [self._collect_array_job_result(idx)
+                        for idx in range(len(self.input))]
             else:
-                key = '/'.join([
-                    'cloudknot.jobs', self.job_definition.name,
-                    self.job_id, '0',
-                    '{0:3d}'.format(len(status['attempts'])), 'output.pickle'
-                ])
-
-                response = clients['s3'].get_object(Bucket=bucket, Key=key)
-                return pickle.loads(response.get('Body').read())
+                return self._collect_array_job_result()
 
     def terminate(self, reason):
         """Kill AWS batch job using instance parameter `self.job_id`
