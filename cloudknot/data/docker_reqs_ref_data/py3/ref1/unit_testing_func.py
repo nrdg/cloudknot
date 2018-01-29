@@ -23,7 +23,7 @@ def pickle_to_s3(server_side_encryption=None, array_job=True):
                 os.environ.get("CLOUDKNOT_S3_JOBDEF_KEY"),
                 os.environ.get("AWS_BATCH_JOB_ID"),
                 array_index,
-                '{0:3d}'.format(int(os.environ.get("AWS_BATCH_JOB_ATTEMPT"))),
+                '{0:03d}'.format(int(os.environ.get("AWS_BATCH_JOB_ATTEMPT"))),
                 'output.pickle'
             ])
 
