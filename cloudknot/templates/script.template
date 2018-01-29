@@ -85,8 +85,7 @@ if __name__ == "__main__":
     ])
 
     response = s3.get_object(Bucket=bucket, Key=key)
-
-    input = pickle.loads(response.get('Body').read())[array_index]
+    input = pickle.loads(response.get('Body').read())
 
     if args.arrayjob:
         array_index = int(os.environ.get("AWS_BATCH_JOB_ARRAY_INDEX"))
