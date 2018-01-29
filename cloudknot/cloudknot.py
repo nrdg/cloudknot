@@ -1553,9 +1553,9 @@ class Knot(aws.NamedObject):
         these_jobs = []
 
         if job_type == 'independent':
-            for input in iterdata:
+            for input_ in iterdata:
                 job = aws.BatchJob(
-                    input=input,
+                    input_=input_,
                     starmap=starmap,
                     name='{n:s}-{i:d}'.format(
                         n=self.name, i=len(self.job_ids)
@@ -1571,7 +1571,7 @@ class Knot(aws.NamedObject):
                 self._job_ids.append(job.job_id)
         else:
             job = aws.BatchJob(
-                input=input,
+                input_=iterdata,
                 starmap=starmap,
                 name='{n:s}-{i:d}'.format(n=self.name, i=len(self.job_ids)),
                 job_queue=self.job_queue,
