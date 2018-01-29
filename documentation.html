@@ -285,7 +285,7 @@ Default: False</li>
 
 <dl class="method">
 <dt id="cloudknot.Knot.map">
-<code class="descname">map</code><span class="sig-paren">(</span><em>iterdata</em>, <em>env_vars=None</em>, <em>max_threads=64</em>, <em>starmap=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cloudknot/cloudknot.html#Knot.map"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.Knot.map" title="Permalink to this definition">¶</a></dt>
+<code class="descname">map</code><span class="sig-paren">(</span><em>iterdata</em>, <em>env_vars=None</em>, <em>max_threads=64</em>, <em>starmap=False</em>, <em>job_type='array'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cloudknot/cloudknot.html#Knot.map"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.Knot.map" title="Permalink to this definition">¶</a></dt>
 <dd><p>Submit batch jobs for a range of commands and environment vars</p>
 <p>Each item of <cite>iterdata</cite> is assumed to be a single input for the
 python function in this knot’s docker image. If your function takes
@@ -310,10 +310,20 @@ tuples from a single iterable. This behavior is similar to
 <cite>itertools.starmap()</cite>. If False, assume argument parameters
 have not been “pre-zipped”. Then the behavior is similar to
 python’s built-in <cite>map()</cite> method.</li>
+<li><strong>job_type</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a><em>, </em><em>'array'</em><em> or </em><em>'independent'</em>) – Type of batch job to submit. If ‘array’, then an array job is
+submitted (see
+<a class="reference external" href="https://docs.aws.amazon.com/batch/latest/userguide/array_jobs.html">https://docs.aws.amazon.com/batch/latest/userguide/array_jobs.html</a>)
+with one child job for each input element and map returns one
+future for the entire results list. If job_type is ‘independent’
+then one independent batch job is submitted for each input
+element and map returns a list of futures for each element of
+the results.
+Default: ‘array’</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><strong>map</strong> (<em>list of futures</em>) – A list of futures for each job</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><strong>map</strong> (<em>future or list of futures</em>) – If <cite>job_type</cite> is ‘array’, a future for the list of results.
+If <cite>job_type</cite> is ‘independent’, list of futures for each job</p>
 </td>
 </tr>
 </tbody>

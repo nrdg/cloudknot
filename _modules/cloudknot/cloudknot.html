@@ -1558,7 +1558,8 @@
         <span class="sd">&quot;&quot;&quot;List of batch job IDs that this knot has launched&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_ids</span>
 
-<div class="viewcode-block" id="Knot.map"><a class="viewcode-back" href="../../documentation.html#cloudknot.Knot.map">[docs]</a>    <span class="k">def</span> <span class="nf">map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iterdata</span><span class="p">,</span> <span class="n">env_vars</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_threads</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">starmap</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="Knot.map"><a class="viewcode-back" href="../../documentation.html#cloudknot.Knot.map">[docs]</a>    <span class="k">def</span> <span class="nf">map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iterdata</span><span class="p">,</span> <span class="n">env_vars</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_threads</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+            <span class="n">starmap</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">job_type</span><span class="o">=</span><span class="s1">&#39;array&#39;</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Submit batch jobs for a range of commands and environment vars</span>
 
 <span class="sd">        Each item of `iterdata` is assumed to be a single input for the</span>
@@ -1591,11 +1592,26 @@
 <span class="sd">            have not been &quot;pre-zipped&quot;. Then the behavior is similar to</span>
 <span class="sd">            python&#39;s built-in `map()` method.</span>
 
+<span class="sd">        job_type : string, &#39;array&#39; or &#39;independent&#39;</span>
+<span class="sd">            Type of batch job to submit. If &#39;array&#39;, then an array job is</span>
+<span class="sd">            submitted (see</span>
+<span class="sd">            https://docs.aws.amazon.com/batch/latest/userguide/array_jobs.html)</span>
+<span class="sd">            with one child job for each input element and map returns one</span>
+<span class="sd">            future for the entire results list. If job_type is &#39;independent&#39;</span>
+<span class="sd">            then one independent batch job is submitted for each input</span>
+<span class="sd">            element and map returns a list of futures for each element of</span>
+<span class="sd">            the results.</span>
+<span class="sd">            Default: &#39;array&#39;</span>
+
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
-<span class="sd">        map : list of futures</span>
-<span class="sd">            A list of futures for each job</span>
+<span class="sd">        map : future or list of futures</span>
+<span class="sd">            If `job_type` is &#39;array&#39;, a future for the list of results.</span>
+<span class="sd">            If `job_type` is &#39;independent&#39;, list of futures for each job</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">job_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;array&#39;</span><span class="p">,</span> <span class="s1">&#39;independent&#39;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;`job_type` must be &#39;array&#39; or &#39;independent&#39;.&quot;</span><span class="p">)</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">clobbered</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">ResourceClobberedException</span><span class="p">(</span>
                 <span class="s1">&#39;This Knot has already been clobbered.&#39;</span><span class="p">,</span>
@@ -1620,14 +1636,32 @@
 
         <span class="n">these_jobs</span> <span class="o">=</span> <span class="p">[]</span>
 
-        <span class="k">for</span> <span class="nb">input</span> <span class="ow">in</span> <span class="n">iterdata</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">job_type</span> <span class="o">==</span> <span class="s1">&#39;independent&#39;</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">input_</span> <span class="ow">in</span> <span class="n">iterdata</span><span class="p">:</span>
+                <span class="n">job</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">BatchJob</span><span class="p">(</span>
+                    <span class="n">input_</span><span class="o">=</span><span class="n">input_</span><span class="p">,</span>
+                    <span class="n">starmap</span><span class="o">=</span><span class="n">starmap</span><span class="p">,</span>
+                    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{n:s}</span><span class="s1">-</span><span class="si">{i:d}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">n</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">job_ids</span><span class="p">)</span>
+                    <span class="p">),</span>
+                    <span class="n">job_queue</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">job_queue</span><span class="p">,</span>
+                    <span class="n">job_definition</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="p">,</span>
+                    <span class="n">environment_variables</span><span class="o">=</span><span class="n">env_vars</span><span class="p">,</span>
+                    <span class="n">array_job</span><span class="o">=</span><span class="kc">False</span>
+                <span class="p">)</span>
+
+                <span class="n">these_jobs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_jobs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_job_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">job_id</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
             <span class="n">job</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">BatchJob</span><span class="p">(</span>
-                <span class="nb">input</span><span class="o">=</span><span class="nb">input</span><span class="p">,</span>
+                <span class="n">input_</span><span class="o">=</span><span class="n">iterdata</span><span class="p">,</span>
                 <span class="n">starmap</span><span class="o">=</span><span class="n">starmap</span><span class="p">,</span>
                 <span class="n">name</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{n:s}</span><span class="s1">-</span><span class="si">{i:d}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">job_ids</span><span class="p">)),</span>
                 <span class="n">job_queue</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">job_queue</span><span class="p">,</span>
                 <span class="n">job_definition</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="p">,</span>
-                <span class="n">environment_variables</span><span class="o">=</span><span class="n">env_vars</span>
+                <span class="n">environment_variables</span><span class="o">=</span><span class="n">env_vars</span><span class="p">,</span>
+                <span class="n">array_job</span><span class="o">=</span><span class="kc">True</span>
             <span class="p">)</span>
 
             <span class="n">these_jobs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
@@ -1650,14 +1684,20 @@
         <span class="c1"># https://github.com/boto/botocore/issues/766</span>
         <span class="n">aws</span><span class="o">.</span><span class="n">refresh_clients</span><span class="p">(</span><span class="n">max_pool</span><span class="o">=</span><span class="n">max_threads</span><span class="p">)</span>
 
-        <span class="n">executor</span> <span class="o">=</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">these_jobs</span><span class="p">),</span> <span class="n">max_threads</span><span class="p">))</span>
+        <span class="n">executor</span> <span class="o">=</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span>
+            <span class="nb">max</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">these_jobs</span><span class="p">),</span> <span class="n">max_threads</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="p">)</span>
+
         <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span><span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="k">lambda</span> <span class="n">j</span><span class="p">:</span> <span class="n">j</span><span class="o">.</span><span class="n">result</span><span class="p">(),</span> <span class="n">jb</span><span class="p">)</span>
                    <span class="k">for</span> <span class="n">jb</span> <span class="ow">in</span> <span class="n">these_jobs</span><span class="p">]</span>
 
         <span class="c1"># Shutdown the executor but do not wait to return the futures</span>
         <span class="n">executor</span><span class="o">.</span><span class="n">shutdown</span><span class="p">(</span><span class="n">wait</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">futures</span></div>
+        <span class="k">if</span> <span class="n">job_type</span> <span class="o">==</span> <span class="s1">&#39;independent&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">futures</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">futures</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="Knot.view_jobs"><a class="viewcode-back" href="../../documentation.html#cloudknot.Knot.view_jobs">[docs]</a>    <span class="k">def</span> <span class="nf">view_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Print the job_id, name, and status of all jobs in self.jobs&quot;&quot;&quot;</span>

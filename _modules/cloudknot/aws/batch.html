@@ -1543,8 +1543,8 @@
 <div class="viewcode-block" id="BatchJob"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.BatchJob.html#cloudknot.aws.BatchJob">[docs]</a><span class="k">class</span> <span class="nc">BatchJob</span><span class="p">(</span><span class="n">NamedObject</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Class for defining AWS Batch Job&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">job_queue</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">job_definition</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">input</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">starmap</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                 <span class="n">environment_variables</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                 <span class="n">job_definition</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">input_</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">starmap</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">environment_variables</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">array_job</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize an AWS Batch Job object.</span>
 
 <span class="sd">        If requesting information on a pre-existing job, `job_id` is required.</span>
@@ -1567,7 +1567,7 @@
 <span class="sd">            JobDefinition instance specifying the job definition on which</span>
 <span class="sd">            to base this job</span>
 
-<span class="sd">        input :</span>
+<span class="sd">        input_ :</span>
 <span class="sd">            The input to be pickled and sent to the batch job via S3</span>
 
 <span class="sd">        starmap : bool</span>
@@ -1577,17 +1577,21 @@
 <span class="sd">        environment_variables : list of dict</span>
 <span class="sd">            list of key/value pairs representing environment variables</span>
 <span class="sd">            sent to the container</span>
+
+<span class="sd">        array_job : bool</span>
+<span class="sd">            If True, this batch job will be an array_job.</span>
+<span class="sd">            Default: True</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">has_input</span> <span class="o">=</span> <span class="nb">input</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="n">has_input</span> <span class="o">=</span> <span class="n">input_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">job_id</span> <span class="ow">or</span> <span class="nb">all</span><span class="p">([</span><span class="n">name</span><span class="p">,</span> <span class="n">job_queue</span><span class="p">,</span> <span class="n">has_input</span><span class="p">,</span> <span class="n">job_definition</span><span class="p">])):</span>
             <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;You must supply either job_id or &#39;</span>
-                                      <span class="s1">&#39;(name, input, job_queue, and &#39;</span>
+                                      <span class="s1">&#39;(name, input_, job_queue, and &#39;</span>
                                       <span class="s1">&#39;job_definition).&#39;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">job_id</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">([</span><span class="n">name</span><span class="p">,</span> <span class="n">job_queue</span><span class="p">,</span> <span class="n">has_input</span><span class="p">,</span> <span class="n">job_definition</span><span class="p">]):</span>
             <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;You may supply either job_id or (name, &#39;</span>
-                                      <span class="s1">&#39;input, job_queue, and job_definition), &#39;</span>
-                                      <span class="s1">&#39;not both.&#39;</span><span class="p">)</span>
+                                      <span class="s1">&#39;input_, job_queue, and &#39;</span>
+                                      <span class="s1">&#39;job_definition), not both.&#39;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_starmap</span> <span class="o">=</span> <span class="n">starmap</span>
 
@@ -1607,6 +1611,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_job_definition</span> <span class="o">=</span> <span class="n">JobDefinition</span><span class="p">(</span><span class="n">arn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_definition_arn</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_environment_variables</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">environment_variables</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_job_id</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">job_id</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_array_job</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">array_job</span>
 
             <span class="n">bucket</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_definition</span><span class="o">.</span><span class="n">output_bucket</span>
             <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;/&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
@@ -1658,7 +1663,8 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_environment_variables</span> <span class="o">=</span> <span class="kc">None</span>
 
-            <span class="bp">self</span><span class="o">.</span><span class="n">_input</span> <span class="o">=</span> <span class="nb">input</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_input</span> <span class="o">=</span> <span class="n">input_</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_array_job</span> <span class="o">=</span> <span class="n">array_job</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_job_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create</span><span class="p">()</span>
 
     <span class="nd">@property</span>
@@ -1697,6 +1703,11 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_starmap</span>
 
     <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">array_job</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Boolean flag to indicate whether this is an array job&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_array_job</span>
+
+    <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">job_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;This job&#39;s AWS jobID&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_id</span>
@@ -1713,13 +1724,13 @@
 <span class="sd">        namedtuple JobExists</span>
 <span class="sd">            A namedtuple with fields</span>
 <span class="sd">            [&#39;exists&#39;, &#39;name&#39;, &#39;job_id&#39;, &#39;job_queue_arn&#39;,</span>
-<span class="sd">             &#39;job_definition_arn&#39;, &#39;environment_variables&#39;]</span>
+<span class="sd">             &#39;job_definition_arn&#39;, &#39;environment_variables&#39;, &#39;array_job&#39;]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># define a namedtuple for return value type</span>
         <span class="n">JobExists</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span>
             <span class="s1">&#39;JobExists&#39;</span><span class="p">,</span>
             <span class="p">[</span><span class="s1">&#39;exists&#39;</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;job_id&#39;</span><span class="p">,</span> <span class="s1">&#39;job_queue_arn&#39;</span><span class="p">,</span>
-             <span class="s1">&#39;job_definition_arn&#39;</span><span class="p">,</span> <span class="s1">&#39;environment_variables&#39;</span><span class="p">]</span>
+             <span class="s1">&#39;job_definition_arn&#39;</span><span class="p">,</span> <span class="s1">&#39;environment_variables&#39;</span><span class="p">,</span> <span class="s1">&#39;array_job&#39;</span><span class="p">]</span>
         <span class="p">)</span>
         <span class="c1"># make all but the first value default to None</span>
         <span class="n">JobExists</span><span class="o">.</span><span class="fm">__new__</span><span class="o">.</span><span class="vm">__defaults__</span> <span class="o">=</span> \
@@ -1734,13 +1745,16 @@
             <span class="n">job_definition_arn</span> <span class="o">=</span> <span class="n">job</span><span class="p">[</span><span class="s1">&#39;jobDefinition&#39;</span><span class="p">]</span>
             <span class="n">environment_variables</span> <span class="o">=</span> <span class="n">job</span><span class="p">[</span><span class="s1">&#39;container&#39;</span><span class="p">][</span><span class="s1">&#39;environment&#39;</span><span class="p">]</span>
 
+            <span class="n">array_job</span> <span class="o">=</span> <span class="s1">&#39;arrayProperties&#39;</span> <span class="ow">in</span> <span class="n">job</span>
+
             <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Job </span><span class="si">{id:s}</span><span class="s1"> exists.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">job_id</span><span class="p">))</span>
 
             <span class="k">return</span> <span class="n">JobExists</span><span class="p">(</span>
                 <span class="n">exists</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">job_id</span><span class="o">=</span><span class="n">job_id</span><span class="p">,</span>
                 <span class="n">job_queue_arn</span><span class="o">=</span><span class="n">job_queue_arn</span><span class="p">,</span>
                 <span class="n">job_definition_arn</span><span class="o">=</span><span class="n">job_definition_arn</span><span class="p">,</span>
-                <span class="n">environment_variables</span><span class="o">=</span><span class="n">environment_variables</span>
+                <span class="n">environment_variables</span><span class="o">=</span><span class="n">environment_variables</span><span class="p">,</span>
+                <span class="n">array_job</span><span class="o">=</span><span class="n">array_job</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">JobExists</span><span class="p">(</span><span class="n">exists</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -1766,6 +1780,9 @@
         <span class="k">if</span> <span class="n">sse</span><span class="p">:</span>
             <span class="n">command</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;--sse&#39;</span><span class="p">,</span> <span class="n">sse</span><span class="p">]</span> <span class="o">+</span> <span class="n">command</span>
 
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">array_job</span><span class="p">:</span>
+            <span class="n">command</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;--arrayjob&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">command</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">environment_variables</span><span class="p">:</span>
             <span class="n">container_overrides</span> <span class="o">=</span> <span class="p">{</span>
                 <span class="s1">&#39;environment&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">environment_variables</span><span class="p">,</span>
@@ -1778,12 +1795,21 @@
 
         <span class="c1"># We have to submit before uploading the input in order to get the</span>
         <span class="c1"># jobID first.</span>
-        <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;batch&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">submit_job</span><span class="p">(</span>
-            <span class="n">jobName</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-            <span class="n">jobQueue</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">job_queue_arn</span><span class="p">,</span>
-            <span class="n">jobDefinition</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">job_definition_arn</span><span class="p">,</span>
-            <span class="n">containerOverrides</span><span class="o">=</span><span class="n">container_overrides</span>
-        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">array_job</span><span class="p">:</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;batch&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">submit_job</span><span class="p">(</span>
+                <span class="n">jobName</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">jobQueue</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">job_queue_arn</span><span class="p">,</span>
+                <span class="n">arrayProperties</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;size&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">)},</span>
+                <span class="n">jobDefinition</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">job_definition_arn</span><span class="p">,</span>
+                <span class="n">containerOverrides</span><span class="o">=</span><span class="n">container_overrides</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;batch&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">submit_job</span><span class="p">(</span>
+                <span class="n">jobName</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">jobQueue</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">job_queue_arn</span><span class="p">,</span>
+                <span class="n">jobDefinition</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">job_definition_arn</span><span class="p">,</span>
+                <span class="n">containerOverrides</span><span class="o">=</span><span class="n">container_overrides</span>
+            <span class="p">)</span>
 
         <span class="n">job_id</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s1">&#39;jobId&#39;</span><span class="p">]</span>
         <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;/&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
@@ -1834,8 +1860,12 @@
         <span class="n">job</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;jobs&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
         <span class="c1"># Return only a subset of the job dictionary</span>
-        <span class="n">status</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">job</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
-                  <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;status&#39;</span><span class="p">,</span> <span class="s1">&#39;statusReason&#39;</span><span class="p">,</span> <span class="s1">&#39;attempts&#39;</span><span class="p">)}</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">,</span> <span class="s1">&#39;statusReason&#39;</span><span class="p">,</span> <span class="s1">&#39;attempts&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">array_job</span><span class="p">:</span>
+            <span class="n">keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;arrayProperties&#39;</span><span class="p">)</span>
+
+        <span class="n">status</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">job</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">}</span>
 
         <span class="k">return</span> <span class="n">status</span>
 
@@ -1879,6 +1909,48 @@
 
         <span class="k">return</span> <span class="n">done</span>
 
+    <span class="k">def</span> <span class="nf">_collect_array_job_result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Collect the array job results and return as a complete list</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        idx : int</span>
+<span class="sd">            Index of the array job element to be retrieved.</span>
+<span class="sd">            Default: 0</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        The array job element at index `idx`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">bucket</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">output_bucket</span>
+
+        <span class="c1"># For array jobs, different child jobs may have had different</span>
+        <span class="c1"># numbers of attempts. So we start at the highest possible attempt</span>
+        <span class="c1"># number and retrieve the latest one.</span>
+        <span class="n">attempt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">retries</span>
+        <span class="n">result_retrieved</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">result_retrieved</span> <span class="ow">and</span> <span class="n">attempt</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;/&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+                <span class="s1">&#39;cloudknot.jobs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">job_id</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">idx</span><span class="p">),</span>
+                <span class="s1">&#39;</span><span class="si">{0:03d}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">attempt</span><span class="p">),</span> <span class="s1">&#39;output.pickle&#39;</span>
+            <span class="p">])</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get_object</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">Key</span><span class="o">=</span><span class="n">key</span><span class="p">)</span>
+                <span class="n">result_retrieved</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">NoSuchKey</span><span class="p">:</span>
+                <span class="n">attempt</span> <span class="o">-=</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">result_retrieved</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">CKTimeoutError</span><span class="p">(</span>
+                <span class="s1">&#39;Result not available in bucket </span><span class="si">{bucket:s}</span><span class="s1"> with key </span><span class="si">{key:s}</span><span class="s1">&#39;</span>
+                <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">pickle</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Body&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+
 <div class="viewcode-block" id="BatchJob.result"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.BatchJob.html#cloudknot.aws.BatchJob.result">[docs]</a>    <span class="k">def</span> <span class="nf">result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return the result of the latest attempt</span>
 
@@ -1915,14 +1987,11 @@
         <span class="k">if</span> <span class="n">status</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;FAILED&#39;</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">BatchJobFailedError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">job_id</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">bucket</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">output_bucket</span>
-            <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;/&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
-                <span class="s1">&#39;cloudknot.jobs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_id</span><span class="p">,</span>
-                <span class="s1">&#39;</span><span class="si">{0:3d}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">status</span><span class="p">[</span><span class="s1">&#39;attempts&#39;</span><span class="p">])),</span> <span class="s1">&#39;output.pickle&#39;</span>
-            <span class="p">])</span>
-
-            <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get_object</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">Key</span><span class="o">=</span><span class="n">key</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">pickle</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Body&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">())</span></div>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">array_job</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_collect_array_job_result</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+                        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">))]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collect_array_job_result</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="BatchJob.terminate"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.BatchJob.html#cloudknot.aws.BatchJob.terminate">[docs]</a>    <span class="k">def</span> <span class="nf">terminate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reason</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Kill AWS batch job using instance parameter `self.job_id`</span>

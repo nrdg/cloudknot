@@ -114,7 +114,7 @@
 <h1>cloudknot.aws.BatchJob<a class="headerlink" href="#cloudknot-aws-batchjob" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
 <dt id="cloudknot.aws.BatchJob">
-<em class="property">class </em><code class="descclassname">cloudknot.aws.</code><code class="descname">BatchJob</code><span class="sig-paren">(</span><em>job_id=None</em>, <em>name=None</em>, <em>job_queue=None</em>, <em>job_definition=None</em>, <em>input=None</em>, <em>starmap=False</em>, <em>environment_variables=None</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cloudknot/aws/batch.html#BatchJob"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.aws.BatchJob" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">cloudknot.aws.</code><code class="descname">BatchJob</code><span class="sig-paren">(</span><em>job_id=None</em>, <em>name=None</em>, <em>job_queue=None</em>, <em>job_definition=None</em>, <em>input_=None</em>, <em>starmap=False</em>, <em>environment_variables=None</em>, <em>array_job=True</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cloudknot/aws/batch.html#BatchJob"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.aws.BatchJob" title="Permalink to this definition">¶</a></dt>
 <dd><p>Class for defining AWS Batch Job</p>
 <p>Initialize an AWS Batch Job object.</p>
 <p>If requesting information on a pre-existing job, <cite>job_id</cite> is required.
@@ -136,11 +136,19 @@ to base this job</li>
 tuples from a single iterable.</li>
 <li><strong>environment_variables</strong> (<em>list of dict</em>) – list of key/value pairs representing environment variables
 sent to the container</li>
+<li><strong>array_job</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) – If True, this batch job will be an array_job.
+Default: True</li>
 </ul>
 </td>
 </tr>
 </tbody>
 </table>
+<dl class="attribute">
+<dt id="cloudknot.aws.BatchJob.array_job">
+<code class="descname">array_job</code><a class="headerlink" href="#cloudknot.aws.BatchJob.array_job" title="Permalink to this definition">¶</a></dt>
+<dd><p>Boolean flag to indicate whether this is an array job</p>
+</dd></dl>
+
 <dl class="method">
 <dt id="cloudknot.aws.BatchJob.check_profile">
 <code class="descname">check_profile</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cloudknot.aws.BatchJob.check_profile" title="Permalink to this definition">¶</a></dt>
