@@ -18,10 +18,15 @@ def pickle_to_s3(server_side_encryption=None, array_job=True):
             else:
                 array_index = '0'
 
+            jobid = os.environ.get("AWS_BATCH_JOB_ID")
+
+            if array_job:
+                jobid = jobid.split(':')[0]
+
             key = '/'.join([
                 'cloudknot.jobs',
                 os.environ.get("CLOUDKNOT_S3_JOBDEF_KEY"),
-                os.environ.get("AWS_BATCH_JOB_ID"),
+                jobid,
                 array_index,
                 '{0:03d}'.format(int(os.environ.get("AWS_BATCH_JOB_ATTEMPT"))),
                 'output.pickle'
@@ -103,21 +108,27 @@ if __name__ == "__main__":
 
     s3 = boto3.client('s3')
     bucket = args.bucket
+
+    jobid = os.environ.get("AWS_BATCH_JOB_ID")
+
+    if args.arrayjob:
+        jobid = jobid.split(':')[0]
+
     key = '/'.join([
         'cloudknot.jobs',
         os.environ.get("CLOUDKNOT_S3_JOBDEF_KEY"),
-        os.environ.get("AWS_BATCH_JOB_ID"),
+        jobid,
         'input.pickle'
     ])
 
     response = s3.get_object(Bucket=bucket, Key=key)
-    input = pickle.loads(response.get('Body').read())
+    input_ = pickle.loads(response.get('Body').read())
 
     if args.arrayjob:
         array_index = int(os.environ.get("AWS_BATCH_JOB_ARRAY_INDEX"))
-        input = input[array_index]
+        input_ = input_[array_index]
 
     if args.starmap:
-        pickle_to_s3(args.sse, args.arrayjob)(unit_testing_func)(*input)
+        pickle_to_s3(args.sse, args.arrayjob)(unit_testing_func)(*input_)
     else:
-        pickle_to_s3(args.sse, args.arrayjob)(unit_testing_func)(input)
+        pickle_to_s3(args.sse, args.arrayjob)(unit_testing_func)(input_)
