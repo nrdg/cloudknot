@@ -1474,7 +1474,8 @@ class Knot(aws.NamedObject):
         """List of batch job IDs that this knot has launched"""
         return self._job_ids
 
-    def map(self, iterdata, env_vars=None, max_threads=64, starmap=False):
+    def map(self, iterdata, env_vars=None, max_threads=64,
+            starmap=False, job_type='array'):
         """Submit batch jobs for a range of commands and environment vars
 
         Each item of `iterdata` is assumed to be a single input for the
@@ -1507,11 +1508,26 @@ class Knot(aws.NamedObject):
             have not been "pre-zipped". Then the behavior is similar to
             python's built-in `map()` method.
 
+        job_type : string, 'array' or 'independent'
+            Type of batch job to submit. If 'array', then an array job is
+            submitted (see
+            https://docs.aws.amazon.com/batch/latest/userguide/array_jobs.html)
+            with one child job for each input element and map returns one
+            future for the entire results list. If job_type is 'independent'
+            then one independent batch job is submitted for each input
+            element and map returns a list of futures for each element of
+            the results.
+            Default: 'array'
+
         Returns
         -------
-        map : list of futures
-            A list of futures for each job
+        map : future or list of futures
+            If `job_type` is 'array', a future for the list of results.
+            If `job_type` is 'independent', list of futures for each job
         """
+        if job_type not in ['array', 'independent']:
+            raise ValueError("`job_type` must be 'array' or 'independent'.")
+
         if self.clobbered:
             raise aws.ResourceClobberedException(
                 'This Knot has already been clobbered.',
@@ -1536,14 +1552,32 @@ class Knot(aws.NamedObject):
 
         these_jobs = []
 
-        for input in iterdata:
+        if job_type == 'independent':
+            for input_ in iterdata:
+                job = aws.BatchJob(
+                    input_=input_,
+                    starmap=starmap,
+                    name='{n:s}-{i:d}'.format(
+                        n=self.name, i=len(self.job_ids)
+                    ),
+                    job_queue=self.job_queue,
+                    job_definition=self.job_definition,
+                    environment_variables=env_vars,
+                    array_job=False
+                )
+
+                these_jobs.append(job)
+                self._jobs.append(job)
+                self._job_ids.append(job.job_id)
+        else:
             job = aws.BatchJob(
-                input=input,
+                input_=iterdata,
                 starmap=starmap,
                 name='{n:s}-{i:d}'.format(n=self.name, i=len(self.job_ids)),
                 job_queue=self.job_queue,
                 job_definition=self.job_definition,
-                environment_variables=env_vars
+                environment_variables=env_vars,
+                array_job=True
             )
 
             these_jobs.append(job)
@@ -1566,14 +1600,20 @@ class Knot(aws.NamedObject):
         # https://github.com/boto/botocore/issues/766
         aws.refresh_clients(max_pool=max_threads)
 
-        executor = ThreadPoolExecutor(min(len(these_jobs), max_threads))
+        executor = ThreadPoolExecutor(
+            max(min(len(these_jobs), max_threads), 2)
+        )
+
         futures = [executor.submit(lambda j: j.result(), jb)
                    for jb in these_jobs]
 
         # Shutdown the executor but do not wait to return the futures
         executor.shutdown(wait=False)
 
-        return futures
+        if job_type == 'independent':
+            return futures
+        else:
+            return futures[0]
 
     def view_jobs(self):
         """Print the job_id, name, and status of all jobs in self.jobs"""

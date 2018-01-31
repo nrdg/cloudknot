@@ -73,7 +73,8 @@ MICRO = _version_micro
 VERSION = __version__
 PACKAGE_DATA = {'cloudknot': [pjoin('data', '*', '*', '*', '*'),
 			      pjoin('templates', '*')]}
-REQUIRES = ["awscli", "boto3", "cloudpickle", "docker", "pipreqs",
-            "six", "tenacity", 'configparser;python_version<"3.0"']
+REQUIRES = ["awscli", "boto3>=1.5.21", "botocore>=1.8.36", "cloudpickle",
+            "docker>=2.0.0", "pipreqs", "six", "tenacity",
+            'configparser;python_version<"3.0"', ]
 EXTRAS_REQUIRE = {':python_version < "3.0"': ["configparser"]}
 ENTRY_POINTS = {'console_scripts': ['cloudknot=cloudknot.cli:main']}

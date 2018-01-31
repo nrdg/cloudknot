@@ -1,5 +1,6 @@
 awscli
-boto3
+boto3>=1.5.21
+botocore>=1.8.36
 cloudpickle
 docker>=2.0.0
 pipreqs
