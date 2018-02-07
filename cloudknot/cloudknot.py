@@ -745,7 +745,8 @@ class Knot(aws.NamedObject):
     of arguments.
     """
     def __init__(self, name='default', pars=None, pars_policies=(),
-                 docker_image=None, func=None, image_script_path=None,
+                 docker_image=None, base_image=None,
+                 func=None, image_script_path=None,
                  image_work_dir=None, image_github_installs=(),
                  username=None, repo_name=None,
                  image_tags=None, job_definition_name=None,
@@ -772,7 +773,21 @@ class Knot(aws.NamedObject):
             Default: ()
 
         docker_image : DockerImage, optional
-            The pre-existing DockerImage instance to adopt
+            The pre-existing DockerImage instance to adopt. i.e.,
+            you may construct your own Docker Image using
+            ```
+            d = cloudknot.DockerImage(*args)
+            ```
+            and then supply that docker image as a keyword arg using
+            ```
+            knot = cloudknot.Knot(..., docker_image=d)
+            ```
+
+        base_image : string
+            Docker base image on which to base this Dockerfile.
+            You may not specify both docker_image and base_image.
+            Default: None will use the python base image for the
+            current version of python
 
         func : function
             Python function to be dockerized
@@ -895,12 +910,12 @@ class Knot(aws.NamedObject):
 
         if self._knot_name in config.sections():
             if any([
-                pars, pars_policies, docker_image, func, image_script_path,
-                image_work_dir, username, repo_name, job_definition_name,
-                job_def_vcpus, memory, retries, compute_environment_name,
-                instance_types, resource_type, min_vcpus, max_vcpus,
-                desired_vcpus, image_id, ec2_key_pair, ce_tags, bid_percentage,
-                job_queue_name, priority
+                pars, pars_policies, docker_image, base_image, func,
+                image_script_path, image_work_dir, username, repo_name,
+                job_definition_name, job_def_vcpus, memory, retries,
+                compute_environment_name, instance_types, resource_type,
+                min_vcpus, max_vcpus, desired_vcpus, image_id, ec2_key_pair,
+                ce_tags, bid_percentage, job_queue_name, priority
             ]):
                 mod_logger.warning(
                     "You specified configuration arguments for a knot that "
@@ -982,11 +997,12 @@ class Knot(aws.NamedObject):
                                               'Pars instance.')
 
             if docker_image and any([func, image_script_path, image_work_dir,
-                                     image_github_installs]):
+                                     base_image, image_github_installs]):
                 raise aws.CloudknotInputError(
                     'you gave redundant, possibly conflicting input: '
-                    '`docker_image` and one of [`func`, '
-                    '`image_script_path`, `image_work_dir`]'
+                    '`docker_image` and one of [`func`, `base_image`, '
+                    '`image_script_path`, `image_work_dir`, '
+                    '`image_github_installs`]'
                 )
 
             if docker_image and not isinstance(docker_image,
@@ -1015,8 +1031,8 @@ class Knot(aws.NamedObject):
                 return pars, pars_cleanup
 
             def set_dockerimage(knot_name, input_docker_image, func,
-                                script_path, work_dir, github_installs,
-                                username, tags, repo_name):
+                                script_path, work_dir, base_image,
+                                github_installs, username, tags, repo_name):
                 if input_docker_image:
                     di = input_docker_image
 
@@ -1030,6 +1046,7 @@ class Knot(aws.NamedObject):
                         func=func,
                         script_path=script_path,
                         dir_name=work_dir,
+                        base_image=base_image,
                         github_installs=github_installs,
                         username=username
                     )
@@ -1314,6 +1331,7 @@ class Knot(aws.NamedObject):
                 knot_name=self.name, input_docker_image=docker_image,
                 func=func, script_path=image_script_path,
                 work_dir=image_work_dir,
+                base_image=base_image,
                 github_installs=image_github_installs, username=username,
                 tags=image_tags, repo_name=repo_name
             )
