@@ -13,7 +13,7 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 # Create a default user. Available via runtime flag `--user cloudknot-user`.
 # Add user to "staff" group.
 # Give user a home directory.
-RUN useradd cloudknot-user \
+RUN (id -u cloudknot-user >/dev/null 2>&1 || useradd cloudknot-user) \
     && addgroup cloudknot-user staff \
     && mkdir /home/cloudknot-user \
     && chown -R cloudknot-user:staff /home/cloudknot-user
