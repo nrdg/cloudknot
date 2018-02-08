@@ -829,7 +829,8 @@
 <span class="sd">    of arguments.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="n">pars</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pars_policies</span><span class="o">=</span><span class="p">(),</span>
-                 <span class="n">docker_image</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">func</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_script_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">docker_image</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">base_image</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">func</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_script_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">image_work_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_github_installs</span><span class="o">=</span><span class="p">(),</span>
                  <span class="n">username</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">repo_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">image_tags</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">job_definition_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -856,7 +857,21 @@
 <span class="sd">            Default: ()</span>
 
 <span class="sd">        docker_image : DockerImage, optional</span>
-<span class="sd">            The pre-existing DockerImage instance to adopt</span>
+<span class="sd">            The pre-existing DockerImage instance to adopt. i.e.,</span>
+<span class="sd">            you may construct your own Docker Image using</span>
+<span class="sd">            ```</span>
+<span class="sd">            d = cloudknot.DockerImage(*args)</span>
+<span class="sd">            ```</span>
+<span class="sd">            and then supply that docker image as a keyword arg using</span>
+<span class="sd">            ```</span>
+<span class="sd">            knot = cloudknot.Knot(..., docker_image=d)</span>
+<span class="sd">            ```</span>
+
+<span class="sd">        base_image : string</span>
+<span class="sd">            Docker base image on which to base this Dockerfile.</span>
+<span class="sd">            You may not specify both docker_image and base_image.</span>
+<span class="sd">            Default: None will use the python base image for the</span>
+<span class="sd">            current version of python</span>
 
 <span class="sd">        func : function</span>
 <span class="sd">            Python function to be dockerized</span>
@@ -979,12 +994,12 @@
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">sections</span><span class="p">():</span>
             <span class="k">if</span> <span class="nb">any</span><span class="p">([</span>
-                <span class="n">pars</span><span class="p">,</span> <span class="n">pars_policies</span><span class="p">,</span> <span class="n">docker_image</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">image_script_path</span><span class="p">,</span>
-                <span class="n">image_work_dir</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">repo_name</span><span class="p">,</span> <span class="n">job_definition_name</span><span class="p">,</span>
-                <span class="n">job_def_vcpus</span><span class="p">,</span> <span class="n">memory</span><span class="p">,</span> <span class="n">retries</span><span class="p">,</span> <span class="n">compute_environment_name</span><span class="p">,</span>
-                <span class="n">instance_types</span><span class="p">,</span> <span class="n">resource_type</span><span class="p">,</span> <span class="n">min_vcpus</span><span class="p">,</span> <span class="n">max_vcpus</span><span class="p">,</span>
-                <span class="n">desired_vcpus</span><span class="p">,</span> <span class="n">image_id</span><span class="p">,</span> <span class="n">ec2_key_pair</span><span class="p">,</span> <span class="n">ce_tags</span><span class="p">,</span> <span class="n">bid_percentage</span><span class="p">,</span>
-                <span class="n">job_queue_name</span><span class="p">,</span> <span class="n">priority</span>
+                <span class="n">pars</span><span class="p">,</span> <span class="n">pars_policies</span><span class="p">,</span> <span class="n">docker_image</span><span class="p">,</span> <span class="n">base_image</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span>
+                <span class="n">image_script_path</span><span class="p">,</span> <span class="n">image_work_dir</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">repo_name</span><span class="p">,</span>
+                <span class="n">job_definition_name</span><span class="p">,</span> <span class="n">job_def_vcpus</span><span class="p">,</span> <span class="n">memory</span><span class="p">,</span> <span class="n">retries</span><span class="p">,</span>
+                <span class="n">compute_environment_name</span><span class="p">,</span> <span class="n">instance_types</span><span class="p">,</span> <span class="n">resource_type</span><span class="p">,</span>
+                <span class="n">min_vcpus</span><span class="p">,</span> <span class="n">max_vcpus</span><span class="p">,</span> <span class="n">desired_vcpus</span><span class="p">,</span> <span class="n">image_id</span><span class="p">,</span> <span class="n">ec2_key_pair</span><span class="p">,</span>
+                <span class="n">ce_tags</span><span class="p">,</span> <span class="n">bid_percentage</span><span class="p">,</span> <span class="n">job_queue_name</span><span class="p">,</span> <span class="n">priority</span>
             <span class="p">]):</span>
                 <span class="n">mod_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
                     <span class="s2">&quot;You specified configuration arguments for a knot that &quot;</span>
@@ -1066,11 +1081,12 @@
                                               <span class="s1">&#39;Pars instance.&#39;</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="n">docker_image</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">([</span><span class="n">func</span><span class="p">,</span> <span class="n">image_script_path</span><span class="p">,</span> <span class="n">image_work_dir</span><span class="p">,</span>
-                                     <span class="n">image_github_installs</span><span class="p">]):</span>
+                                     <span class="n">base_image</span><span class="p">,</span> <span class="n">image_github_installs</span><span class="p">]):</span>
                 <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span>
                     <span class="s1">&#39;you gave redundant, possibly conflicting input: &#39;</span>
-                    <span class="s1">&#39;`docker_image` and one of [`func`, &#39;</span>
-                    <span class="s1">&#39;`image_script_path`, `image_work_dir`]&#39;</span>
+                    <span class="s1">&#39;`docker_image` and one of [`func`, `base_image`, &#39;</span>
+                    <span class="s1">&#39;`image_script_path`, `image_work_dir`, &#39;</span>
+                    <span class="s1">&#39;`image_github_installs`]&#39;</span>
                 <span class="p">)</span>
 
             <span class="k">if</span> <span class="n">docker_image</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">docker_image</span><span class="p">,</span>
@@ -1099,8 +1115,8 @@
                 <span class="k">return</span> <span class="n">pars</span><span class="p">,</span> <span class="n">pars_cleanup</span>
 
             <span class="k">def</span> <span class="nf">set_dockerimage</span><span class="p">(</span><span class="n">knot_name</span><span class="p">,</span> <span class="n">input_docker_image</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span>
-                                <span class="n">script_path</span><span class="p">,</span> <span class="n">work_dir</span><span class="p">,</span> <span class="n">github_installs</span><span class="p">,</span>
-                                <span class="n">username</span><span class="p">,</span> <span class="n">tags</span><span class="p">,</span> <span class="n">repo_name</span><span class="p">):</span>
+                                <span class="n">script_path</span><span class="p">,</span> <span class="n">work_dir</span><span class="p">,</span> <span class="n">base_image</span><span class="p">,</span>
+                                <span class="n">github_installs</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">tags</span><span class="p">,</span> <span class="n">repo_name</span><span class="p">):</span>
                 <span class="k">if</span> <span class="n">input_docker_image</span><span class="p">:</span>
                     <span class="n">di</span> <span class="o">=</span> <span class="n">input_docker_image</span>
 
@@ -1114,6 +1130,7 @@
                         <span class="n">func</span><span class="o">=</span><span class="n">func</span><span class="p">,</span>
                         <span class="n">script_path</span><span class="o">=</span><span class="n">script_path</span><span class="p">,</span>
                         <span class="n">dir_name</span><span class="o">=</span><span class="n">work_dir</span><span class="p">,</span>
+                        <span class="n">base_image</span><span class="o">=</span><span class="n">base_image</span><span class="p">,</span>
                         <span class="n">github_installs</span><span class="o">=</span><span class="n">github_installs</span><span class="p">,</span>
                         <span class="n">username</span><span class="o">=</span><span class="n">username</span>
                     <span class="p">)</span>
@@ -1398,6 +1415,7 @@
                 <span class="n">knot_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">input_docker_image</span><span class="o">=</span><span class="n">docker_image</span><span class="p">,</span>
                 <span class="n">func</span><span class="o">=</span><span class="n">func</span><span class="p">,</span> <span class="n">script_path</span><span class="o">=</span><span class="n">image_script_path</span><span class="p">,</span>
                 <span class="n">work_dir</span><span class="o">=</span><span class="n">image_work_dir</span><span class="p">,</span>
+                <span class="n">base_image</span><span class="o">=</span><span class="n">base_image</span><span class="p">,</span>
                 <span class="n">github_installs</span><span class="o">=</span><span class="n">image_github_installs</span><span class="p">,</span> <span class="n">username</span><span class="o">=</span><span class="n">username</span><span class="p">,</span>
                 <span class="n">tags</span><span class="o">=</span><span class="n">image_tags</span><span class="p">,</span> <span class="n">repo_name</span><span class="o">=</span><span class="n">repo_name</span>
             <span class="p">)</span>
@@ -1819,7 +1837,7 @@
       &copy;2017, Adam Richie-Halford, Ariel Rokem.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.6</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.7</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
       
     </div>

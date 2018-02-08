@@ -114,7 +114,7 @@ cloudknot.Knot</div>
 <div class="content docutils container">
 <dl class="class">
 <dt id="cloudknot.Knot">
-<em class="property">class </em><code class="descclassname">cloudknot.</code><code class="descname">Knot</code><span class="sig-paren">(</span><em>name='default'</em>, <em>pars=None</em>, <em>pars_policies=()</em>, <em>docker_image=None</em>, <em>func=None</em>, <em>image_script_path=None</em>, <em>image_work_dir=None</em>, <em>image_github_installs=()</em>, <em>username=None</em>, <em>repo_name=None</em>, <em>image_tags=None</em>, <em>job_definition_name=None</em>, <em>job_def_vcpus=None</em>, <em>memory=None</em>, <em>retries=None</em>, <em>compute_environment_name=None</em>, <em>instance_types=None</em>, <em>resource_type=None</em>, <em>min_vcpus=None</em>, <em>max_vcpus=None</em>, <em>desired_vcpus=None</em>, <em>image_id=None</em>, <em>ec2_key_pair=None</em>, <em>ce_tags=None</em>, <em>bid_percentage=None</em>, <em>job_queue_name=None</em>, <em>priority=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cloudknot/cloudknot.html#Knot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.Knot" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">cloudknot.</code><code class="descname">Knot</code><span class="sig-paren">(</span><em>name='default'</em>, <em>pars=None</em>, <em>pars_policies=()</em>, <em>docker_image=None</em>, <em>base_image=None</em>, <em>func=None</em>, <em>image_script_path=None</em>, <em>image_work_dir=None</em>, <em>image_github_installs=()</em>, <em>username=None</em>, <em>repo_name=None</em>, <em>image_tags=None</em>, <em>job_definition_name=None</em>, <em>job_def_vcpus=None</em>, <em>memory=None</em>, <em>retries=None</em>, <em>compute_environment_name=None</em>, <em>instance_types=None</em>, <em>resource_type=None</em>, <em>min_vcpus=None</em>, <em>max_vcpus=None</em>, <em>desired_vcpus=None</em>, <em>image_id=None</em>, <em>ec2_key_pair=None</em>, <em>ce_tags=None</em>, <em>bid_percentage=None</em>, <em>job_queue_name=None</em>, <em>priority=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cloudknot/cloudknot.html#Knot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.Knot" title="Permalink to this definition">¶</a></dt>
 <dd><p>A collection of resources and methods to submit jobs to AWS Batch</p>
 <p>This object collects AWS resources that should be created once for each
 type of batch run. The resource set consists of a PARS; a docker image
@@ -134,7 +134,19 @@ Default=’default’</li>
 Default: instance returned by Pars()</li>
 <li><strong>pars_policies</strong> (<em>tuple of strings</em>) – tuple of names of AWS policies to attach to each role
 Default: ()</li>
-<li><strong>docker_image</strong> (<a class="reference internal" href="#cloudknot.DockerImage" title="cloudknot.DockerImage"><em>DockerImage</em></a><em>, </em><em>optional</em>) – The pre-existing DockerImage instance to adopt</li>
+<li><strong>docker_image</strong> (<a class="reference internal" href="#cloudknot.DockerImage" title="cloudknot.DockerImage"><em>DockerImage</em></a><em>, </em><em>optional</em>) – The pre-existing DockerImage instance to adopt. i.e.,
+you may construct your own Docker Image using
+<code class="docutils literal"><span class="pre">`</span>
+<span class="pre">d</span> <span class="pre">=</span> <span class="pre">cloudknot.DockerImage(*args)</span>
+<span class="pre">`</span></code>
+and then supply that docker image as a keyword arg using
+<code class="docutils literal"><span class="pre">`</span>
+<span class="pre">knot</span> <span class="pre">=</span> <span class="pre">cloudknot.Knot(...,</span> <span class="pre">docker_image=d)</span>
+<span class="pre">`</span></code></li>
+<li><strong>base_image</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) – Docker base image on which to base this Dockerfile.
+You may not specify both docker_image and base_image.
+Default: None will use the python base image for the
+current version of python</li>
 <li><strong>func</strong> (<em>function</em>) – Python function to be dockerized</li>
 <li><strong>image_script_path</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path to file with python script to be dockerized</li>
 <li><strong>image_work_dir</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) – Directory to store Dockerfile, requirements.txt, and python
@@ -794,7 +806,7 @@ module pages.</p>
       &copy;2017, Adam Richie-Halford, Ariel Rokem.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.6</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.7</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
       
       |
