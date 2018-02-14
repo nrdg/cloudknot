@@ -15,7 +15,7 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 # Give user a home directory.
 RUN (id -u cloudknot-user >/dev/null 2>&1 || useradd cloudknot-user) \
     && addgroup cloudknot-user staff \
-    && mkdir /home/cloudknot-user \
+    && mkdir -p /home/cloudknot-user \
     && chown -R cloudknot-user:staff /home/cloudknot-user
 
 ENV HOME /home/cloudknot-user
