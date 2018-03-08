@@ -13,9 +13,9 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 # Create a default user. Available via runtime flag `--user unit-test-username`.
 # Add user to "staff" group.
 # Give user a home directory.
-RUN useradd unit-test-username \
+RUN (id -u unit-test-username >/dev/null 2>&1 || useradd unit-test-username) \
     && addgroup unit-test-username staff \
-    && mkdir /home/unit-test-username \
+    && mkdir -p /home/unit-test-username \
     && chown -R unit-test-username:staff /home/unit-test-username
 
 ENV HOME /home/unit-test-username
