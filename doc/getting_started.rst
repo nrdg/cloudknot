@@ -14,6 +14,8 @@ If you haven't already done so, create an `Amazon Web Services (AWS)
 <https://aws.amazon.com>`_ account.
 
 
+.. _install-label:
+
 Installation and configuration
 ------------------------------
 
