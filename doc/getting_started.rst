@@ -36,8 +36,9 @@ Docker such that you can run Docker commands without sudo
     $ # logout and then back in again, to make the above changes take effect
     $ logout
 
-You should do all this first, before installing cloudknot.
-Then, you can install cloudknot from PyPI (recommended)
+You should do all this first, before installing cloudknot. If everything
+went well, you should be able to run :code:`docker run hello-world` without
+using :code:`sudo`.  Then, you can install cloudknot from PyPI (recommended)
 
 .. code-block:: console
 
