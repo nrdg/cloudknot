@@ -28,7 +28,7 @@ Docker such that you can run Docker commands without sudo
 .. code-block:: console
 
     $ # Install Docker
-    $ curl -sSL https://get.docker.io/ubuntu/ | sudo sh
+    $ curl -sSL https://get.docker.com | sudo sh
     $ # Add user to the group `docker`
     $ sudo usermod -a -G docker $USER
     $ # Restart the docker daemon
