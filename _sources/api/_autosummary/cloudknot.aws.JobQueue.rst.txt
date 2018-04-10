@@ -1,5 +1,5 @@
-cloudknot\.aws\.JobQueue
-========================
+cloudknot.aws.JobQueue
+======================
 
 .. currentmodule:: cloudknot.aws
 

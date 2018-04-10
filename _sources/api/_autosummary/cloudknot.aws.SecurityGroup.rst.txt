@@ -1,5 +1,5 @@
-cloudknot\.aws\.SecurityGroup
-=============================
+cloudknot.aws.SecurityGroup
+===========================
 
 .. currentmodule:: cloudknot.aws
 

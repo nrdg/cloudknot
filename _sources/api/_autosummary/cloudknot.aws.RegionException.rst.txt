@@ -1,5 +1,5 @@
-cloudknot\.aws\.RegionException
-===============================
+cloudknot.aws.RegionException
+=============================
 
 .. currentmodule:: cloudknot.aws
 

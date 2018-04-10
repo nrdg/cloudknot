@@ -1,5 +1,5 @@
-cloudknot\.aws\.ComputeEnvironment
-==================================
+cloudknot.aws.ComputeEnvironment
+================================
 
 .. currentmodule:: cloudknot.aws
 

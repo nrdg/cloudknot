@@ -1,5 +1,5 @@
-cloudknot\.aws\.ResourceDoesNotExistException
-=============================================
+cloudknot.aws.ResourceDoesNotExistException
+===========================================
 
 .. currentmodule:: cloudknot.aws
 

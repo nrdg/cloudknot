@@ -1,5 +1,5 @@
-cloudknot\.aws\.CannotDeleteResourceException
-=============================================
+cloudknot.aws.CannotDeleteResourceException
+===========================================
 
 .. currentmodule:: cloudknot.aws
 

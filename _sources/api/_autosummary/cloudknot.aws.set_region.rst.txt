@@ -1,5 +1,5 @@
-cloudknot\.aws\.set\_region
-===========================
+cloudknot.aws.set\_region
+=========================
 
 .. currentmodule:: cloudknot.aws
 

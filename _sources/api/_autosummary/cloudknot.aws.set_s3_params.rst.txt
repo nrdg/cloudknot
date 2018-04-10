@@ -1,5 +1,5 @@
-cloudknot\.aws\.set\_s3\_params
-===============================
+cloudknot.aws.set\_s3\_params
+=============================
 
 .. currentmodule:: cloudknot.aws
 

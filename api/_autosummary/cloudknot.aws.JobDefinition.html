@@ -4,21 +4,13 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>cloudknot.aws.JobDefinition &#8212; cloudknot 0.1 documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/collapsible.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../../',
-        VERSION:     '0.1',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
+    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
@@ -32,8 +24,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
 
-  </head>
-  <body>
+  </head><body>
   <div class="document">
     
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
@@ -96,12 +87,14 @@
 
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
+    </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -122,21 +115,21 @@
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>arn</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) – ARN of the job definition to retrieve</li>
-<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) – Name of the job definition to retrieve or create</li>
+<li><strong>arn</strong> (<em>string</em>) – ARN of the job definition to retrieve</li>
+<li><strong>name</strong> (<em>string</em>) – Name of the job definition to retrieve or create</li>
 <li><strong>job_role</strong> (<a class="reference internal" href="cloudknot.aws.IamRole.html#cloudknot.aws.IamRole" title="cloudknot.aws.IamRole"><em>IamRole</em></a>) – IamRole instance for the AWS IAM job role to be used in this
 job definition</li>
-<li><strong>docker_image</strong> (<a class="reference internal" href="cloudknot.aws.DockerRepo.html#cloudknot.aws.DockerRepo" title="cloudknot.aws.DockerRepo"><em>DockerRepo</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) – DockerRepo instance for the container to be used in this job
+<li><strong>docker_image</strong> (<a class="reference internal" href="cloudknot.aws.DockerRepo.html#cloudknot.aws.DockerRepo" title="cloudknot.aws.DockerRepo"><em>DockerRepo</em></a><em> or </em><em>string</em>) – DockerRepo instance for the container to be used in this job
 definition
 or string containing location of docker image on Docker Hub or
 other repository</li>
-<li><strong>vcpus</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – number of virtual cpus to be used to this job definition
+<li><strong>vcpus</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – number of virtual cpus to be used to this job definition
 Default: 1</li>
-<li><strong>memory</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – memory (MiB) to be used for this job definition
+<li><strong>memory</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – memory (MiB) to be used for this job definition
 Default: 8000</li>
-<li><strong>username</strong> (<a class="reference external" href="https://docs.python.org/2/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) – username for be used for this job definition
+<li><strong>username</strong> (<em>string</em>) – username for be used for this job definition
 Default: cloudknot-user</li>
-<li><strong>retries</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – number of times a job can be moved to ‘RUNNABLE’ status.
+<li><strong>retries</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – number of times a job can be moved to ‘RUNNABLE’ status.
 May be between 1 and 10
 Default: 1</li>
 </ul>
@@ -265,7 +258,7 @@ False if it was created on __init__.</p>
       &copy;2017, Adam Richie-Halford, Ariel Rokem.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.7</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
       
       |

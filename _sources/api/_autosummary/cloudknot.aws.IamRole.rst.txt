@@ -1,5 +1,5 @@
-cloudknot\.aws\.IamRole
-=======================
+cloudknot.aws.IamRole
+=====================
 
 .. currentmodule:: cloudknot.aws
 

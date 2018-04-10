@@ -52,3 +52,17 @@ Frequently Asked Questions
          An amazing result
 
       See :ref:`eg-label` for more details.
+
+.. container:: toggle
+
+   .. container:: header
+
+      I'm having trouble installing or configuring cloudknot on an Amazon EC2 instance. Help!
+
+   .. container:: content
+
+      Do your error messages look similar to the ones reported in
+      `this issue <https://github.com/richford/cloudknot/issues/131>`_?
+      If so, you need to install Docker such that you can run Docker
+      commands without sudo. See :ref:`install-label` for
+      installation instructions on an EC2 instance.
