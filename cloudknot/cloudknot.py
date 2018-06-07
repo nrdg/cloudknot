@@ -1,8 +1,10 @@
 from __future__ import absolute_import, division, print_function
 
 import configparser
+import ipaddress
+import json
 import logging
-import operator
+import os
 import six
 from collections import Iterable
 from concurrent.futures import ThreadPoolExecutor
@@ -27,9 +29,9 @@ class Pars(aws.NamedObject):
     """
     def __init__(self, name='default',
                  batch_service_role_name=None, ecs_instance_role_name=None,
-                 ecs_task_role_name=None, spot_fleet_role_name=None,
-                 policies=(), vpc_id=None, vpc_name=None, use_default_vpc=True,
-                 security_group_id=None, security_group_name=None):
+                 spot_fleet_role_name=None,
+                 policies=(), use_default_vpc=True,
+                 ipv4_cidr=None, instance_tenancy=None):
         """Initialize a PARS instance.
 
         Parameters
@@ -50,40 +52,25 @@ class Pars(aws.NamedObject):
             exists, Pars will adopt it. Otherwise, it will create it.
             Default: name + '-cloudknot-ecs-instance-role'
 
-        ecs_task_role_name : str
-            Name of this PARS' ECS task IAM role. If the role already
-            exists, Pars will adopt it. Otherwise, it will create it.
-            Default: name + '-cloudknot-ecs-task-role'
-
         spot_fleet_role_name : str
             Name of this PARS' spot fleet IAM role. If the role already
             exists, Pars will adopt it. Otherwise, it will create it.
             Default: name + '-cloudknot-spot-fleet-role'
 
         policies : tuple of strings
-            tuple of names of AWS policies to attach to each role
+            tuple of names of AWS policy ARNs to attach to each role
             Default: ()
-
-        vpc_id : str
-            The VPC-ID of the pre-existing VPC that this PARS should adopt
-            Default: None
-
-        vpc_name : str
-            The name of the VPC that this PARS should create
-            Default: name + '-cloudknot-vpc'
 
         use_default_vpc : bool
             if True, create or retrieve the default VPC
             if False, use other input args to create a non-default VPC
 
-        security_group_id : str
-            The ID of the pre-existing security group that this PARS should
-            adopt
-            Default: None
+        ipv4_cidr : string
+            IPv4 CIDR block to be used for creation of a new VPC
 
-        security_group_name : str
-            The name of the security group that this PARS should create
-            Default: name + '-cloudknot-security-group'
+        instance_tenancy : string
+            Instance tenancy for this VPC, one of ['default', 'dedicated']
+            Default: 'default'
         """
         # Validate name input
         if not isinstance(name, six.string_types):
@@ -94,27 +81,14 @@ class Pars(aws.NamedObject):
 
         super(Pars, self).__init__(name=name)
 
-        # Validate vpc_name input
-        if vpc_name:
-            if not isinstance(vpc_name, six.string_types):
-                raise aws.CloudknotInputError('if provided, vpc_name must be '
-                                              'a string.')
-        else:
-            vpc_name = name + '-cloudknot-vpc'
-
-        # Validate security_group_name input
-        if security_group_name:
-            if not isinstance(security_group_name, six.string_types):
-                raise aws.CloudknotInputError(
-                    'if provided, security_group_name must be a string.'
-                )
-        else:
-            security_group_name = name + '-cloudknot-security-group'
-
         # Check for existence of this pars in the config file
         config = configparser.ConfigParser()
         with rlock:
             config.read(get_config_file())
+
+        def stack_out(key, outputs):
+            o = list(filter(lambda d: d['OutputKey'] == key, outputs))[0]
+            return o['OutputValue']
 
         self._pars_name = 'pars ' + self.name
         if self._pars_name in config.sections():
@@ -124,7 +98,8 @@ class Pars(aws.NamedObject):
 
             # Pars exists, check that user did not provide any resource names
             if any([batch_service_role_name, ecs_instance_role_name,
-                    spot_fleet_role_name, vpc_id, security_group_id]):
+                    spot_fleet_role_name, ipv4_cidr, instance_tenancy,
+                    policies]):
                 raise aws.CloudknotInputError(
                     'You provided resources for a pars that already exists in '
                     'configuration file {fn:s}.'.format(fn=get_config_file())
@@ -132,150 +107,93 @@ class Pars(aws.NamedObject):
 
             mod_logger.info('Found PARS {name:s} in config'.format(name=name))
 
-            def set_role(name, pars_name, option_name,
-                         service, policies, add_instance_profile):
-                role_name = config.get(pars_name, option_name)
-                try:
-                    # Use config values to adopt role if it exists already
-                    role = aws.IamRole(name=role_name)
-                    mod_logger.info('PARS {name:s} adopted role {role:s}'
-                                    ''.format(name=name, role=role_name))
-                except aws.ResourceDoesNotExistException:
-                    # Otherwise create the new role
-                    role = aws.IamRole(
-                        name=role_name,
-                        description='This role was automatically generated '
-                                    'by cloudknot.',
-                        service=service,
-                        policies=policies,
-                        add_instance_profile=add_instance_profile
-                    )
-                    mod_logger.info('PARS {name:s} created role {role:s}'
-                                    ''.format(name=name, role=role_name))
+            self._stack_id = config.get(self._pars_name, 'stack-id')
 
-                return role
-
-            executor = ThreadPoolExecutor(5)
-            futures = []
-
-            futures.append(executor.submit(
-                set_role, name=name, pars_name=self._pars_name,
-                option_name='batch-service-role', service='batch',
-                policies=('AWSBatchServiceRole',) + policies,
-                add_instance_profile=False
-            ))
-
-            futures.append(executor.submit(
-                set_role, name=name, pars_name=self._pars_name,
-                option_name='ecs-instance-role', service='ec2',
-                policies=('AmazonEC2ContainerServiceforEC2Role',) + policies,
-                add_instance_profile=True
-            ))
-
-            futures.append(executor.submit(
-                set_role, name=name, pars_name=self._pars_name,
-                option_name='ecs-task-role', service='ecs-tasks',
-                policies=policies,
-                add_instance_profile=False
-            ))
-
-            futures.append(executor.submit(
-                set_role, name=name, pars_name=self._pars_name,
-                option_name='spot-fleet-role', service='spotfleet',
-                policies=('AmazonEC2SpotFleetRole',) + policies,
-                add_instance_profile=False
-            ))
-
-            def set_vpc_and_security_group():
-                try:
-                    # Use config values to adopt VPC if it exists already
-                    config = configparser.ConfigParser()
+            try:
+                response = aws.clients['cloudformation'].describe_stacks(
+                    StackName=self._stack_id
+                )
+            except aws.clients['cloudformation'].exceptions.ClientError as e:
+                error_code = e.response.get('Error').get('Message')
+                no_stack_code = ('Stack with id {0:s} does not exist'
+                                 ''.format(self._stack_id))
+                if error_code == no_stack_code:
+                    # Remove this section from the config file
                     with rlock:
                         config.read(get_config_file())
-
-                    vpcid = config.get(self._pars_name, 'vpc')
-                    vpc = aws.Vpc(vpc_id=vpcid)
-                    mod_logger.info('PARS {name:s} adopted VPC {vpcid:s}'
-                                    ''.format(name=name, vpcid=vpcid))
-                except aws.ResourceDoesNotExistException:
-                    # Otherwise create the new VPC
-                    if use_default_vpc:
-                        try:
-                            vpc = aws.Vpc(use_default_vpc=True)
-                        except aws.CannotCreateResourceException:
-                            vpc = aws.Vpc(name=vpc_name)
-                    else:
-                        vpc = aws.Vpc(name=vpc_name)
-
-                    config = configparser.ConfigParser()
-
-                    with rlock:
-                        config.read(get_config_file())
-                        config.set(self._pars_name, 'vpc', vpc.vpc_id)
+                        config.remove_section(self._pars_name)
                         with open(get_config_file(), 'w') as f:
                             config.write(f)
-
-                    mod_logger.info('PARS {name:s} created VPC {vpcid:s}'
-                                    ''.format(name=name, vpcid=vpc.vpc_id))
-
-                try:
-                    # Use config values to adopt security group if it exists
-                    sgid = config.get(self._pars_name, 'security-group')
-                    security_group = aws.SecurityGroup(
-                        security_group_id=sgid
+                    raise aws.ResourceDoesNotExistException(
+                        'The PARS stack that you requested does not exist. '
+                        'Cloudknot has deleted this PARS from the config '
+                        'file, so you may be able to create a new one simply '
+                        'by re-running your previous command.',
+                        self._stack_id
                     )
-                    mod_logger.info(
-                        'PARS {name:s} adopted security group {sgid:s}'.format(
-                            name=name, sgid=sgid
-                        )
-                    )
-                except aws.ResourceDoesNotExistException:
-                    # Otherwise create the new security group
-                    security_group = aws.SecurityGroup(
-                        name=security_group_name,
-                        vpc=vpc
-                    )
-                    config = configparser.ConfigParser()
+                else:
+                    raise e
 
-                    with rlock:
-                        config.read(get_config_file())
-                        config.set(
-                            self._pars_name,
-                            'security-group', security_group.security_group_id
-                        )
-                        with open(get_config_file(), 'w') as f:
-                            config.write(f)
+            no_stack = (
+                len(response.get('Stacks')) == 0 or
+                response.get('Stacks')[0]['StackStatus'] in [
+                    'CREATE_FAILED', 'ROLLBACK_COMPLETE',
+                    'ROLLBACK_IN_PROGRESS', 'ROLLBACK_FAILED',
+                    'DELETE_IN_PROGRESS', 'DELETE_FAILED', 'DELETE_COMPLETE',
+                    'UPDATE_ROLLBACK_FAILED',
+                ]
+            )
 
-                    mod_logger.info(
-                        'PARS {name:s} created security group {sgid:s}'.format(
-                            name=name, sgid=security_group.security_group_id
-                        )
-                    )
+            if no_stack:
+                # Remove this section from the config file
+                with rlock:
+                    config.read(get_config_file())
+                    config.remove_section(self._pars_name)
+                    with open(get_config_file(), 'w') as f:
+                        config.write(f)
 
-                return vpc, security_group
+                raise aws.ResourceDoesNotExistException(
+                    'The PARS stack that you requested does not exist. '
+                    'Cloudknot has deleted this PARS from the config file, '
+                    'so you may be able to create a new one simply by '
+                    're-running your previous command.',
+                    self._stack_id
+                )
 
-            futures.append(executor.submit(set_vpc_and_security_group))
+            outs = response.get('Stacks')[0]['Outputs']
 
-            executor.shutdown()
+            self._batch_service_role = stack_out('BatchServiceRole', outs)
+            self._ecs_instance_role = stack_out('EcsInstanceRole', outs)
+            self._spot_fleet_role = stack_out('SpotFleetRole', outs)
+            self._ecs_instance_profile = stack_out('InstanceProfile', outs)
+            self._vpc = stack_out('VpcId', outs)
+            self._subnets = stack_out('SubnetIds', outs).split(',')
+            self._security_group = stack_out('SecurityGroupId', outs)
 
-            self._batch_service_role = futures[0].result()
-            self._ecs_instance_role = futures[1].result()
-            self._ecs_task_role = futures[2].result()
-            self._spot_fleet_role = futures[3].result()
-            self._vpc, self._security_group = futures[4].result()
+            conf_bsr = config.get(self._pars_name, 'batch-service-role')
+            conf_sfr = config.get(self._pars_name, 'spot-fleet-role')
+            conf_ecsr = config.get(self._pars_name, 'ecs-instance-role')
+            conf_ecsp = config.get(self._pars_name, 'ecs-instance-profile')
+            conf_vpc = config.get(self._pars_name, 'vpc')
+            conf_subnets = config.get(self._pars_name, 'subnets')
+            conf_sg = config.get(self._pars_name, 'security-group')
 
-            config = configparser.ConfigParser()
-
-            with rlock:
-                config.read(get_config_file())
-                config.set(self._pars_name, 'region', self.region)
-                config.set(self._pars_name, 'profile', self.profile)
-
-                # Save config to file
-                with open(get_config_file(), 'w') as f:
-                    config.write(f)
+            if not all([
+                self._batch_service_role == conf_bsr,
+                self._ecs_instance_role == conf_ecsr,
+                self._ecs_instance_profile == conf_ecsp,
+                self._spot_fleet_role == conf_sfr,
+                self._vpc == conf_vpc,
+                ','.join(self._subnets) == conf_subnets,
+                self._security_group == conf_sg
+            ]):
+                raise aws.CloudknotConfigurationError(
+                    'The resources in the CloudFormation stack do not match '
+                    'the resources in the cloudknot configuration file. '
+                    'Please try a different name.'
+                )
         else:
-            # Pars doesn't exist, use input names to adopt/create resources
+            # Pars doesn't exist, use input to create resources
             def validated_name(role_name, fallback_suffix):
                 # Validate role name input
                 if role_name:
@@ -285,7 +203,7 @@ class Pars(aws.NamedObject):
                         )
                 else:
                     role_name = (
-                        name + '-cloudknot-' + fallback_suffix
+                        name + '-' + fallback_suffix
                     )
 
                 return role_name
@@ -294,184 +212,288 @@ class Pars(aws.NamedObject):
                                                      'batch-service-role')
             ecs_instance_role_name = validated_name(ecs_instance_role_name,
                                                     'ecs-instance-role')
-            ecs_task_role_name = validated_name(ecs_task_role_name,
-                                                'ecs-task-role')
             spot_fleet_role_name = validated_name(spot_fleet_role_name,
                                                   'spot-fleet-role')
 
-            # Validate vpc_id input
-            if vpc_id and not isinstance(vpc_id, six.string_types):
-                raise aws.CloudknotInputError('if provided, vpc_id must be a '
-                                              'string')
+            if use_default_vpc:
+                if any([ipv4_cidr, instance_tenancy]):
+                    raise aws.CloudknotInputError(
+                        'if using the default VPC, you cannot specify '
+                        '`ipv4_cidr` or `instance_tenancy`.'
+                    )
 
-            # Validate security_group_id input
-            if security_group_id and not isinstance(security_group_id,
-                                                    six.string_types):
-                raise aws.CloudknotInputError('if provided, security_group_id '
-                                              'must be a string')
-
-            def set_role(pars_name, role_name, service, policies,
-                         add_instance_profile):
+                # Retrieve the default VPC ID
                 try:
-                    # Create new role
-                    role = aws.IamRole(
-                        name=role_name,
-                        description='This IAM role was automatically '
-                                    'generated by cloudknot.',
-                        service=service,
-                        policies=policies,
-                        add_instance_profile=add_instance_profile
-                    )
-                    mod_logger.info('PARS {name:s} created role {role:s}'
-                                    ''.format(name=pars_name, role=role_name))
-                except aws.ResourceExistsException as e:
-                    # If it already exists, simply adopt it
-                    role = aws.IamRole(name=e.resource_id)
-                    mod_logger.info(
-                        'PARS {name:s} adopted role {role:s}'
-                        ''.format(name=pars_name, role=e.resource_id)
-                    )
+                    response = aws.clients['ec2'].create_default_vpc()
+                    vpc_id = response.get('Vpc').get('VpcId')
+                except aws.clients['ec2'].exceptions.ClientError as e:
+                    error_code = e.response.get('Error').get('Code')
+                    if error_code == 'DefaultVpcAlreadyExists':
+                        response = aws.clients['ec2'].describe_vpcs(Filters=[{
+                            'Name': 'isDefault',
+                            'Values': ['true']
+                        }])
+                        vpc_id = response.get('Vpcs')[0].get('VpcId')
+                    elif error_code == 'UnauthorizedOperation':
+                        raise aws.CannotCreateResourceException(
+                            'Cannot create a default VPC because this is an '
+                            'unauthorized operation. You may not have the '
+                            'proper permissions to create a default VPC.'
+                        )
+                    elif error_code == 'OperationNotPermitted':
+                        raise aws.CannotCreateResourceException(
+                            'Cannot create a default VPC because this is an '
+                            'unauthorized operation. You might have resources '
+                            'in EC2-Classic in the current region.'
+                        )
+                    else:
+                        raise e
 
-                return role
+                # Retrieve the subnets for the default VPC
+                response = aws.clients['ec2'].describe_subnets(Filters=[{
+                    'Name': 'vpc-id',
+                    'Values': [vpc_id]
+                }])
 
-            executor = ThreadPoolExecutor(5)
-            futures = {}
+                subnet_ids = [d['SubnetId'] for d in response.get('Subnets')]
 
-            futures['batch_service_role'] = executor.submit(
-                set_role,
-                pars_name=name, role_name=batch_service_role_name,
-                service='batch',
-                policies=('AWSBatchServiceRole',) + policies,
-                add_instance_profile=False
-            )
+                template_path = os.path.abspath(os.path.join(
+                    os.path.dirname(__file__),
+                    'templates',
+                    'pars-with-default-vpc.template'
+                ))
 
-            futures['ecs_instance_role'] = executor.submit(
-                set_role,
-                pars_name=name, role_name=ecs_instance_role_name,
-                service='ec2',
-                policies=('AmazonEC2ContainerServiceforEC2Role',) + policies,
-                add_instance_profile=True
-            )
+                with open(template_path, 'r') as fp:
+                    template_body = json.dumps(json.load(fp))
 
-            futures['ecs_task_role'] = executor.submit(
-                set_role,
-                pars_name=name, role_name=ecs_task_role_name,
-                service='ecs-tasks',
-                policies=policies,
-                add_instance_profile=False
-            )
+                s3_params = aws.get_s3_params()
+                policy_list = [s3_params.policy_arn] + [
+                    policy for policy in policies
+                ]
+                policies = ','.join(policy_list)
 
-            futures['spot_fleet_role'] = executor.submit(
-                set_role,
-                pars_name=name, role_name=spot_fleet_role_name,
-                service='spotfleet',
-                policies=('AmazonEC2SpotFleetRole',) + policies,
-                add_instance_profile=False
-            )
+                response = aws.clients['cloudformation'].create_stack(
+                    StackName=self.name + '-pars',
+                    TemplateBody=template_body,
+                    Parameters=[
+                        {
+                            'ParameterKey': 'BatchServiceRoleName',
+                            'ParameterValue': batch_service_role_name
+                        },
+                        {
+                            'ParameterKey': 'EcsInstanceRoleName',
+                            'ParameterValue': ecs_instance_role_name
+                        },
+                        {
+                            'ParameterKey': 'SpotFleetRoleName',
+                            'ParameterValue': spot_fleet_role_name
+                        },
+                        {
+                            'ParameterKey': 'IamPolicies',
+                            'ParameterValue': policies
+                        },
+                        {
+                            'ParameterKey': 'VpcId',
+                            'ParameterValue': vpc_id
+                        },
+                        {
+                            'ParameterKey': 'Subnets',
+                            'ParameterValue': ','.join(subnet_ids)
+                        },
+                    ],
+                    Capabilities=['CAPABILITY_NAMED_IAM'],
+                    Tags=[
+                        {
+                            'Key': 'Name',
+                            'Value': self.name,
+                        },
+                        {
+                            'Key': 'Owner',
+                            'Value': aws.get_user(),
+                        },
+                        {
+                            'Key': 'Environment',
+                            'Value': 'cloudknot',
+                        },
+                    ]
+                )
 
-            def set_vpc_and_security_group():
-                if vpc_id:
-                    # Adopt the VPC
-                    vpc = aws.Vpc(vpc_id=vpc_id)
-                    mod_logger.info('PARS {name:s} adopted VPC {vpcid:s}'
-                                    ''.format(name=name, vpcid=vpc_id))
-                else:
+                self._stack_id = response['StackId']
+
+                waiter = aws.clients['cloudformation'].get_waiter(
+                    'stack_create_complete'
+                )
+                waiter.wait(StackName=self._stack_id,
+                            WaiterConfig={'Delay': 10})
+
+                response = aws.clients['cloudformation'].describe_stacks(
+                    StackName=self._stack_id
+                )
+
+                outs = response.get('Stacks')[0]['Outputs']
+
+                self._batch_service_role = stack_out('BatchServiceRole', outs)
+                self._ecs_instance_role = stack_out('EcsInstanceRole', outs)
+                self._spot_fleet_role = stack_out('SpotFleetRole', outs)
+                self._ecs_instance_profile = stack_out('InstanceProfile', outs)
+                self._vpc = stack_out('VpcId', outs)
+                self._subnets = stack_out('SubnetIds', outs).split(',')
+                self._security_group = stack_out('SecurityGroupId', outs)
+            else:
+                # Check that ipv4 is a valid network range or set default value
+                if ipv4_cidr:
                     try:
-                        if use_default_vpc:
-                            try:
-                                vpc = aws.Vpc(use_default_vpc=True)
-                            except aws.CannotCreateResourceException:
-                                vpc = aws.Vpc(name=vpc_name)
-                        else:
-                            vpc = aws.Vpc(name=vpc_name)
-
-                        mod_logger.info(
-                            'PARS {name:s} created VPC {vpcid:s}'
-                            ''.format(name=name, vpcid=vpc.vpc_id)
+                        ipv4_cidr = str(ipaddress.IPv4Network(
+                            six.text_type(ipv4_cidr)
+                        ))
+                    except (ipaddress.AddressValueError, ValueError):
+                        raise aws.CloudknotInputError(
+                            'If provided, ipv4_cidr must be a valid IPv4 '
+                            'network range.'
                         )
-                    except aws.ResourceExistsException as e:
-                        # If it already exists, simply adopt it
-                        vpc = aws.Vpc(vpc_id=e.resource_id)
-                        mod_logger.info(
-                            'PARS {name:s} adopted VPC {vpcid:s}'
-                            ''.format(name=name, vpcid=e.resource_id)
-                        )
-
-                if security_group_id:
-                    # Adopt the security group
-                    security_group = aws.SecurityGroup(
-                        security_group_id=security_group_id
-                    )
-                    mod_logger.info(
-                        'PARS {name:s} adopted security group {sgid:s}'
-                        ''.format(name=name, sgid=security_group_id)
-                    )
                 else:
-                    try:
-                        # Create new security group
-                        security_group = aws.SecurityGroup(
-                            name=security_group_name,
-                            vpc=vpc
-                        )
-                        mod_logger.info(
-                            'PARS {name:s} created security group {sgid:s}'
-                            ''.format(
-                                name=name,
-                                sgid=security_group.security_group_id
-                            )
-                        )
-                    except aws.ResourceExistsException as e:
-                        # If it already exists, simply adopt it
-                        security_group = aws.SecurityGroup(
-                            security_group_id=e.resource_id
-                        )
-                        mod_logger.info(
-                            'PARS {name:s} adopted security group {sgid:s}'
-                            ''.format(name=name, sgid=e.resource_id)
-                        )
+                    ipv4_cidr = str(ipaddress.IPv4Network(u'172.31.0.0/16'))
 
-                return vpc, security_group
+                # Validate instance_tenancy input
+                if instance_tenancy:
+                    if instance_tenancy in ('default', 'dedicated'):
+                        instance_tenancy = instance_tenancy
+                    else:
+                        raise aws.CloudknotInputError(
+                            'If provided, instance tenancy must be '
+                            'one of ("default", "dedicated").'
+                        )
+                else:
+                    instance_tenancy = 'default'
 
-            futures['vpc'] = executor.submit(set_vpc_and_security_group)
+                # Get subnet CIDR blocks
+                # Get an IPv4Network instance representing the VPC CIDR block
+                cidr = ipaddress.IPv4Network(six.text_type(ipv4_cidr))
 
-            executor.shutdown()
+                # Get list of subnet CIDR blocks
+                subnet_ipv4_cidrs = list(cidr.subnets(new_prefix=20))
 
-            self._batch_service_role = futures['batch_service_role'].result()
-            self._ecs_instance_role = futures['ecs_instance_role'].result()
-            self._ecs_task_role = futures['ecs_task_role'].result()
-            self._spot_fleet_role = futures['spot_fleet_role'].result()
-            self._vpc, self._security_group = futures['vpc'].result()
+                if len(subnet_ipv4_cidrs) < 2:
+                    raise aws.CloudknotInputError(
+                        "If provided, ipv4_cidr must be large enough to "
+                        "accomodate two subnets. If you don't know what this "
+                        "means, try the default value or specify "
+                        "`use_default_vpc=True`."
+                    )
+
+                subnet_ipv4_cidrs = subnet_ipv4_cidrs[:2]
+
+                template_path = os.path.abspath(os.path.join(
+                    os.path.dirname(__file__),
+                    'templates',
+                    'pars-with-new-vpc.template'
+                ))
+
+                with open(template_path, 'r') as fp:
+                    template_body = json.dumps(json.load(fp))
+
+                s3_params = aws.get_s3_params()
+                policy_list = [s3_params.policy_arn] + [
+                    policy for policy in policies
+                ]
+                policies = ','.join(policy_list)
+
+                response = aws.clients['cloudformation'].create_stack(
+                    StackName=self.name + '-pars',
+                    TemplateBody=template_body,
+                    Parameters=[
+                        {
+                            'ParameterKey': 'BatchServiceRoleName',
+                            'ParameterValue': batch_service_role_name
+                        },
+                        {
+                            'ParameterKey': 'EcsInstanceRoleName',
+                            'ParameterValue': ecs_instance_role_name
+                        },
+                        {
+                            'ParameterKey': 'SpotFleetRoleName',
+                            'ParameterValue': spot_fleet_role_name
+                        },
+                        {
+                            'ParameterKey': 'IamPolicies',
+                            'ParameterValue': policies
+                        },
+                        {
+                            'ParameterKey': 'VpcCidr',
+                            'ParameterValue': ipv4_cidr
+                        },
+                        {
+                            'ParameterKey': 'VpcInstanceTenancy',
+                            'ParameterValue': instance_tenancy
+                        },
+                        {
+                            'ParameterKey': 'Subnet1Cidr',
+                            'ParameterValue': str(subnet_ipv4_cidrs[0])
+                        },
+                        {
+                            'ParameterKey': 'Subnet2Cidr',
+                            'ParameterValue': str(subnet_ipv4_cidrs[1])
+                        },
+                    ],
+                    Capabilities=['CAPABILITY_NAMED_IAM'],
+                    Tags=[
+                        {
+                            'Key': 'Name',
+                            'Value': self.name,
+                        },
+                        {
+                            'Key': 'Owner',
+                            'Value': aws.get_user(),
+                        },
+                        {
+                            'Key': 'Environment',
+                            'Value': 'cloudknot',
+                        },
+                    ]
+                )
+
+                self._stack_id = response['StackId']
+
+                waiter = aws.clients['cloudformation'].get_waiter(
+                    'stack_create_complete'
+                )
+                waiter.wait(StackName=self._stack_id,
+                            WaiterConfig={'Delay': 10})
+
+                response = aws.clients['cloudformation'].describe_stacks(
+                    StackName=self._stack_id
+                )
+
+                outs = response.get('Stacks')[0]['Outputs']
+
+                self._batch_service_role = stack_out('BatchServiceRole', outs)
+                self._ecs_instance_role = stack_out('EcsInstanceRole', outs)
+                self._spot_fleet_role = stack_out('SpotFleetRole', outs)
+                self._ecs_instance_profile = stack_out('InstanceProfile', outs)
+                self._vpc = stack_out('VpcId', outs)
+                self._subnets = stack_out('SubnetIds', outs).split(',')
+                self._security_group = stack_out('SecurityGroupId', outs)
 
             # Save the new pars resources in config object
             # Use config.set() for python 2.7 compatibility
-            config = configparser.ConfigParser()
-
             with rlock:
                 config.read(get_config_file())
                 config.add_section(self._pars_name)
+                config.set(self._pars_name, 'stack-id', self._stack_id)
                 config.set(self._pars_name, 'region', self.region)
                 config.set(self._pars_name, 'profile', self.profile)
-                config.set(
-                    self._pars_name,
-                    'batch-service-role', self._batch_service_role.name
-                )
-                config.set(
-                    self._pars_name,
-                    'ecs-instance-role', self._ecs_instance_role.name
-                )
-                config.set(
-                    self._pars_name,
-                    'ecs-task-role', self._ecs_task_role.name
-                )
-                config.set(
-                    self._pars_name, 'spot-fleet-role',
-                    self._spot_fleet_role.name
-                )
-                config.set(self._pars_name, 'vpc', self._vpc.vpc_id)
-                config.set(
-                    self._pars_name,
-                    'security-group', self._security_group.security_group_id
-                )
+                config.set(self._pars_name,
+                           'batch-service-role', self._batch_service_role)
+                config.set(self._pars_name,
+                           'ecs-instance-role', self._ecs_instance_role)
+                config.set(self._pars_name,
+                           'spot-fleet-role', self._spot_fleet_role)
+                config.set(self._pars_name,
+                           'ecs-instance-profile', self._ecs_instance_profile)
+                config.set(self._pars_name, 'vpc', self._vpc)
+                config.set(self._pars_name, 'subnets', ','.join(self._subnets))
+                config.set(self._pars_name,
+                           'security-group', self._security_group)
 
                 # Save config to file
                 with open(get_config_file(), 'w') as f:
@@ -482,221 +504,45 @@ class Pars(aws.NamedObject):
         """The section name for this PARS in the cloudknot config file"""
         return self._pars_name
 
-    @staticmethod
-    def _role_setter(attr):
-        """Static method to return setter methods for new IamRoles"""
-        def set_role(self, new_role):
-            """Setter method to attach new IAM role to this PARS
+    @property
+    def stack_id(self):
+        """The Cloudformation Stack ID for this PARS"""
+        return self._stack_id
 
-            This method clobbers the old role and adopts the new one.
+    @property
+    def batch_service_role(self):
+        """The IAM batch service role associated with this PARS"""
+        return self._batch_service_role
 
-            Parameters
-            ----------
-            new_role :
-                new IamRole instance to attach to this Pars
+    @property
+    def ecs_instance_role(self):
+        """The IAM ECS instance role associated with this PARS"""
+        return self._ecs_instance_role
 
-            Returns
-            -------
-            None
-            """
-            if self.clobbered:
-                raise aws.ResourceClobberedException(
-                    'This PARS has already been clobbered.',
-                    self.name
-                )
+    @property
+    def ecs_instance_profile(self):
+        """The IAM ECS instance profile associated with this PARS"""
+        return self._ecs_instance_profile
 
-            # Verify input
-            if not isinstance(new_role, aws.IamRole):
-                raise aws.CloudknotInputError('new role must be an instance '
-                                              'of IamRole')
-
-            old_role = getattr(self, attr)
-
-            if old_role.profile != new_role.profile:
-                raise aws.ProfileException(new_role.profile)
-
-            mod_logger.warning(
-                'You are setting a new role for PARS {name:s}. The old '
-                'role {role_name:s} will be clobbered.'.format(
-                    name=self.name, role_name=old_role.name
-                )
-            )
-
-            # Delete the old role
-            old_role.clobber()
-
-            # Set the new role attribute
-            setattr(self, attr, new_role)
-
-            # Replace the appropriate line in the config file
-            config = configparser.ConfigParser()
-
-            with rlock:
-                config.read(get_config_file())
-                field_name = attr.lstrip('_').replace('_', '-')
-                config.set(self._pars_name, field_name, new_role.name)
-                with open(get_config_file(), 'w') as f:
-                    config.write(f)
-
-            mod_logger.info(
-                'PARS {name:s} adopted new role {role_name:s}'.format(
-                    name=self.name, role_name=new_role.name
-                )
-            )
-
-        return set_role
-
-    batch_service_role = property(
-        fget=operator.attrgetter('_batch_service_role'),
-        fset=_role_setter.__func__('_batch_service_role')
-    )
-    ecs_instance_role = property(
-        fget=operator.attrgetter('_ecs_instance_role'),
-        fset=_role_setter.__func__('_ecs_instance_role')
-    )
-    ecs_task_role = property(
-        fget=operator.attrgetter('_ecs_task_role'),
-        fset=_role_setter.__func__('_ecs_task_role')
-    )
-    spot_fleet_role = property(
-        fget=operator.attrgetter('_spot_fleet_role'),
-        fset=_role_setter.__func__('_spot_fleet_role')
-    )
+    @property
+    def spot_fleet_role(self):
+        """The IAM spot fleet role associated with this PARS"""
+        return self._spot_fleet_role
 
     @property
     def vpc(self):
-        """The Vpc instance attached to this PARS"""
+        """The VPC ID attached to this PARS"""
         return self._vpc
 
-    @vpc.setter
-    def vpc(self, v):
-        """Setter method to attach new VPC to this PARS
-
-        This method clobbers the old VPC and adopts the new one.
-
-        Parameters
-        ----------
-        v : Vpc
-            new Vpc instance to attach to this Pars
-
-        Returns
-        -------
-        None
-        """
-        if self.clobbered:
-            raise aws.ResourceClobberedException(
-                'This PARS has already been clobbered.',
-                self.name
-            )
-
-        if not isinstance(v, aws.Vpc):
-            raise aws.CloudknotInputError('new vpc must be an instance of Vpc')
-
-        if v.region != self._vpc.region:
-            raise aws.RegionException(v.region)
-
-        if v.profile != self._vpc.profile:
-            raise aws.ProfileException(v.profile)
-
-        mod_logger.warning(
-            'You are setting a new VPC for PARS {name:s}. The old '
-            'VPC {vpc_id:s} will be clobbered.'.format(
-                name=self.name, vpc_id=self.vpc.vpc_id
-            )
-        )
-
-        # We have to replace the security group too, since it depends on the
-        # VPC. Create a new security group based on the new VPC but with the
-        # old name and description.
-        sg_name = self.security_group.name
-        sg_desc = self.security_group.description
-
-        # The security group setter method will take care of clobbering the
-        # old security group and updating config, etc.
-        self.security_group = aws.SecurityGroup(
-            name=sg_name, vpc=v, description=sg_desc
-        )
-
-        if not self._vpc.is_default:
-            self._vpc.clobber()
-
-        self._vpc = v
-
-        # Replace the appropriate line in the config file
-        config = configparser.ConfigParser()
-
-        with rlock:
-            config.read(get_config_file())
-            config.set(self._pars_name, 'vpc', v.vpc_id)
-            with open(get_config_file(), 'w') as f:
-                config.write(f)
-
-        mod_logger.info(
-            'PARS {name:s} adopted new VPC {vpcid:s}'.format(
-                name=self.name, vpcid=self.vpc.vpc_id
-            )
-        )
+    @property
+    def subnets(self):
+        """The VPC subnets for this PARS"""
+        return self._subnets
 
     @property
     def security_group(self):
-        """The SecurityGroup instance attached to this PARS"""
+        """The security group ID attached to this PARS"""
         return self._security_group
-
-    @security_group.setter
-    def security_group(self, sg):
-        """Setter method to attach new security group to this PARS
-
-        This method clobbers the old security group and adopts the new one.
-
-        Parameters
-        ----------
-        sg : SecurityGroup
-            new SecurityGroup instance to attach to this Pars
-
-        Returns
-        -------
-        None
-        """
-        if self.clobbered:
-            raise aws.ResourceClobberedException(
-                'This PARS has already been clobbered.',
-                self.name
-            )
-
-        if not isinstance(sg, aws.SecurityGroup):
-            raise aws.CloudknotInputError('new security group must be an '
-                                          'instance of SecurityGroup')
-
-        if sg.region != self._security_group.region:
-            raise aws.RegionException(sg.region)
-
-        if sg.profile != self._security_group.profile:
-            raise aws.ProfileException(sg.profile)
-
-        mod_logger.warning(
-            'You are setting a new security group for PARS {name:s}. The old '
-            'security group {sg_id:s} will be clobbered.'.format(
-                name=self.name, sg_id=self.security_group.security_group_id
-            )
-        )
-        old_sg = self._security_group
-        old_sg.clobber()
-        self._security_group = sg
-
-        # Replace the appropriate line in the config file
-        config = configparser.ConfigParser()
-
-        with rlock:
-            config.read(get_config_file())
-            config.set(self._pars_name, 'security-group', sg.security_group_id)
-            with open(get_config_file(), 'w') as f:
-                config.write(f)
-
-        mod_logger.info(
-            'PARS {name:s} adopted new security group {sgid:s}'.format(
-                name=self.name, sgid=sg.security_group_id
-            )
-        )
 
     def clobber(self):
         """Delete associated AWS resources and remove section from config"""
@@ -705,17 +551,7 @@ class Pars(aws.NamedObject):
 
         self.check_profile_and_region()
 
-        # Delete all associated AWS resources
-        def clobber_sg_then_vpc(sg, vpc):
-            sg.clobber()
-            vpc.clobber()
-
-        with ThreadPoolExecutor(5) as e:
-            e.submit(clobber_sg_then_vpc, self._security_group, self._vpc)
-            e.submit(self._spot_fleet_role.clobber)
-            e.submit(self._ecs_task_role.clobber)
-            e.submit(self._ecs_instance_role.clobber)
-            e.submit(self._batch_service_role.clobber)
+        aws.clients['cloudformation'].delete_stack(StackName=self._stack_id)
 
         # Remove this section from the config file
         config = configparser.ConfigParser()

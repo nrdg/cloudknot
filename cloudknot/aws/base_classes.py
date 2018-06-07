@@ -26,7 +26,7 @@ __all__ = [
     "get_region", "set_region",
     "get_ecr_repo", "set_ecr_repo",
     "get_s3_params", "set_s3_params",
-    "get_profile", "set_profile", "list_profiles",
+    "get_profile", "set_profile", "list_profiles", "get_user",
 ]
 
 mod_logger = logging.getLogger(__name__)
@@ -122,7 +122,8 @@ def get_s3_params():
     config_file = get_config_file()
     config = configparser.ConfigParser()
 
-    BucketInfo = namedtuple('BucketInfo', ['bucket', 'policy', 'sse'])
+    BucketInfo = namedtuple('BucketInfo',
+                            ['bucket', 'policy', 'policy_arn', 'sse'])
 
     with rlock:
         config.read(config_file)
@@ -176,7 +177,15 @@ def get_s3_params():
             config.read(config_file)
             policy = config.get('aws', 's3-bucket-policy')
 
-    return BucketInfo(bucket=bucket, policy=policy, sse=sse)
+    response = clients['iam'].list_policies(Scope='Local',
+                                            PathPrefix='/cloudknot/')
+    policy_arn = list(filter(
+        lambda d: d['PolicyName'] == policy,
+        response.get('Policies')
+    ))[0]['Arn']
+
+    return BucketInfo(bucket=bucket, policy=policy,
+                      policy_arn=policy_arn, sse=sse)
 
 
 def set_s3_params(bucket, policy=None, sse=None):
@@ -467,15 +476,20 @@ def set_region(region='us-east-1'):
         max_pool = clients['iam'].meta.config.max_pool_connections
         boto_config = botocore.config.Config(max_pool_connections=max_pool)
         session = boto3.Session(profile_name=get_profile(fallback=None))
-        clients['iam'] = session.client('iam', region_name=region,
-                                        config=boto_config)
-        clients['ec2'] = session.client('ec2', region_name=region,
-                                        config=boto_config)
         clients['batch'] = session.client('batch', region_name=region,
                                           config=boto_config)
+        clients['cloudformation'] = session.client('cloudformation',
+                                                   region_name=region,
+                                                   config=boto_config)
         clients['ecr'] = session.client('ecr', region_name=region,
                                         config=boto_config)
         clients['ecs'] = session.client('ecs', region_name=region,
+                                        config=boto_config)
+        clients['ec2'] = session.client('ec2', region_name=region,
+                                        config=boto_config)
+        clients['iam'] = session.client('iam', region_name=region,
+                                        config=boto_config)
+        clients['sts'] = session.client('sts', region_name=region,
                                         config=boto_config)
         clients['s3'] = session.client('s3', region_name=region,
                                        config=boto_config)
@@ -534,6 +548,10 @@ def list_profiles():
         credentials_file=credentials_file,
         aws_config_file=aws_config_file
     )
+
+
+def get_user():
+    return clients['sts'].get_caller_identity().get('Arn').split('/')[-1]
 
 
 def get_profile(fallback='from-env'):
@@ -626,15 +644,20 @@ def set_profile(profile_name):
         max_pool = clients['iam'].meta.config.max_pool_connections
         boto_config = botocore.config.Config(max_pool_connections=max_pool)
         session = boto3.Session(profile_name=profile_name)
-        clients['iam'] = session.client('iam', region_name=get_region(),
-                                        config=boto_config)
-        clients['ec2'] = session.client('ec2', region_name=get_region(),
-                                        config=boto_config)
         clients['batch'] = session.client('batch', region_name=get_region(),
                                           config=boto_config)
+        clients['cloudformation'] = session.client('cloudformation',
+                                                   region_name=get_region(),
+                                                   config=boto_config)
         clients['ecr'] = session.client('ecr', region_name=get_region(),
                                         config=boto_config)
         clients['ecs'] = session.client('ecs', region_name=get_region(),
+                                        config=boto_config)
+        clients['ec2'] = session.client('ec2', region_name=get_region(),
+                                        config=boto_config)
+        clients['iam'] = session.client('iam', region_name=get_region(),
+                                        config=boto_config)
+        clients['sts'] = session.client('sts', region_name=get_region(),
                                         config=boto_config)
         clients['s3'] = session.client('s3', region_name=get_region(),
                                        config=boto_config)
@@ -642,26 +665,32 @@ def set_profile(profile_name):
 
 #: module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, ECS, S3.
 clients = {
-    'iam': boto3.Session(profile_name=get_profile(fallback=None)).client(
-        'iam', region_name=get_region()
-    ),
-    'ec2': boto3.Session(profile_name=get_profile(fallback=None)).client(
-        'ec2', region_name=get_region()
-    ),
     'batch': boto3.Session(profile_name=get_profile(fallback=None)).client(
         'batch', region_name=get_region()
     ),
+    'cloudformation': boto3.Session(
+        profile_name=get_profile(fallback=None)
+    ).client('cloudformation', region_name=get_region()),
     'ecr': boto3.Session(profile_name=get_profile(fallback=None)).client(
         'ecr', region_name=get_region()
     ),
     'ecs': boto3.Session(profile_name=get_profile(fallback=None)).client(
         'ecs', region_name=get_region()
     ),
+    'ec2': boto3.Session(profile_name=get_profile(fallback=None)).client(
+        'ec2', region_name=get_region()
+    ),
+    'iam': boto3.Session(profile_name=get_profile(fallback=None)).client(
+        'iam', region_name=get_region()
+    ),
+    'sts': boto3.Session(profile_name=get_profile(fallback=None)).client(
+        'sts', region_name=get_region()
+    ),
     's3': boto3.Session(profile_name=get_profile(fallback=None)).client(
         's3', region_name=get_region()
-    )
+    ),
 }
-"""module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, ECS, S3.
+"""module-level dictionary of boto3 clients.
 
 Storing the boto3 clients in a module-level dictionary allows us to change
 the region and profile and have those changes reflected globally.
@@ -689,6 +718,9 @@ def refresh_clients(max_pool=10):
                                         config=config)
         clients['s3'] = session.client('s3', region_name=get_region(),
                                        config=config)
+        clients['cloudformation'] = session.client('cloudformation',
+                                                   region_name=get_region(),
+                                                   config=config)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit

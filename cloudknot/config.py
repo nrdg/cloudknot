@@ -17,7 +17,7 @@ import os
 from threading import RLock
 
 __all__ = ["get_config_file", "add_resource", "remove_resource",
-           "verify_sections"]
+           "verify_sections", "rlock"]
 
 mod_logger = logging.getLogger(__name__)
 rlock = RLock()
