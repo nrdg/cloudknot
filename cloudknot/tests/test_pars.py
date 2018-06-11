@@ -4,10 +4,7 @@ import cloudknot as ck
 import configparser
 import os.path as op
 import pytest
-import tenacity
 import uuid
-
-from moto import mock_cloudformation, mock_ec2, mock_iam, mock_sts, mock_s3
 
 UNIT_TEST_PREFIX = 'ck-unit-test'
 data_path = op.join(ck.__path__[0], 'data')
@@ -17,59 +14,6 @@ def get_testing_name():
     u = str(uuid.uuid4()).replace('-', '')[:8]
     name = UNIT_TEST_PREFIX + '-' + u
     return name
-
-
-@pytest.fixture(scope='module')
-def bucket_cleanup():
-    ck.set_s3_params(bucket='cloudknot-travis-build-45814031-351c-'
-                            '4b27-9a40-672c971f7e83')
-    yield None
-    s3_params = ck.get_s3_params()
-    bucket = s3_params.bucket
-    bucket_policy = s3_params.policy
-
-    s3 = ck.aws.clients['s3']
-    s3.delete_bucket(Bucket=bucket)
-
-    iam = ck.aws.clients['iam']
-    response = iam.list_policies(
-        Scope='Local',
-        PathPrefix='/cloudknot/'
-    )
-
-    policy_dict = [p for p in response.get('Policies')
-                   if p['PolicyName'] == bucket_policy][0]
-
-    arn = policy_dict['Arn']
-
-    response = iam.list_policy_versions(
-        PolicyArn=arn
-    )
-
-    # Get non-default versions
-    versions = [v for v in response.get('Versions')
-                if not v['IsDefaultVersion']]
-
-    # Get the oldest version and delete it
-    for v in versions:
-        iam.delete_policy_version(
-            PolicyArn=arn,
-            VersionId=v['VersionId']
-        )
-
-    response = iam.list_entities_for_policy(
-        PolicyArn=arn,
-        EntityFilter='Role'
-    )
-
-    roles = response.get('PolicyRoles')
-    for role in roles:
-        iam.detach_role_policy(
-            RoleName=role['RoleName'],
-            PolicyArn=arn
-        )
-
-    iam.delete_policy(PolicyArn=arn)
 
 
 @pytest.fixture(scope='module')
@@ -116,43 +60,6 @@ def cleanup():
             config.write(f)
 
 
-@pytest.fixture(scope='module')
-def cleanup_repos(bucket_cleanup):
-    yield None
-    ecr = ck.aws.clients['ecr']
-    config_file = ck.config.get_config_file()
-    section_suffix = ck.get_profile() + ' ' + ck.get_region()
-    repos_section_name = 'docker-repos ' + section_suffix
-
-    # Clean up repos from AWS
-    # -----------------------
-    # Get all repos with unit test prefix in the name
-    response = ecr.describe_repositories()
-    repos = [r for r in response.get('repositories')
-             if ('unit_testing_func' in r['repositoryName']
-                 or 'test_func_input' in r['repositoryName']
-                 or 'simple_unit_testing_func' in r['repositoryName']
-                 or UNIT_TEST_PREFIX in r['repositoryName'])]
-
-    # Delete the AWS ECR repo
-    for r in repos:
-        ecr.delete_repository(
-            registryId=r['registryId'],
-            repositoryName=r['repositoryName'],
-            force=True
-        )
-
-    # Clean up repos from config file
-    config = configparser.ConfigParser()
-    with ck.config.rlock:
-        config.read(config_file)
-        for repo_name in config.options(repos_section_name):
-            if UNIT_TEST_PREFIX in repo_name:
-                config.remove_option(repos_section_name, repo_name)
-        with open(config_file, 'w') as f:
-            config.write(f)
-
-
 def test_pars_errors(cleanup):
     name = get_testing_name()
 
@@ -178,7 +85,101 @@ def test_pars_errors(cleanup):
 
 
 def test_pars_with_default_vpc(cleanup):
-    pass
+    name = get_testing_name()
+
+    batch_service_role_name = 'ck-unit-test-batch-service-role'
+    ecs_instance_role_name = 'ck-unit-test-ecs-instance-role'
+    spot_fleet_role_name = 'ck-unit-test-spot-fleet-role'
+
+    try:
+        p = ck.Pars(name=name,
+                    batch_service_role_name=batch_service_role_name,
+                    ecs_instance_role_name=ecs_instance_role_name,
+                    spot_fleet_role_name=spot_fleet_role_name)
+
+        response = ck.aws.clients['cloudformation'].describe_stacks(
+            StackName=name + '-pars',
+        )
+        stack_id = response.get('Stacks')[0]['StackId']
+        assert stack_id == p.stack_id
+
+        response = ck.aws.clients['iam'].get_role(
+            RoleName=batch_service_role_name
+        )
+        bsr_arn = response.get('Role')['Arn']
+        assert bsr_arn == p.batch_service_role
+
+        response = ck.aws.clients['iam'].get_role(
+            RoleName=ecs_instance_role_name
+        )
+        ecs_arn = response.get('Role')['Arn']
+        assert ecs_arn == p.ecs_instance_role
+
+        response = ck.aws.clients['iam'].get_role(
+            RoleName=spot_fleet_role_name
+        )
+        sfr_arn = response.get('Role')['Arn']
+        assert sfr_arn == p.spot_fleet_role
+
+        response = ck.aws.clients['iam'].list_instance_profiles_for_role(
+            RoleName=ecs_instance_role_name
+        )
+        ecs_profile_arn = response.get('InstanceProfiles')[0]['Arn']
+        assert ecs_profile_arn == p.ecs_instance_profile
+
+        # Check for a default VPC
+        response = ck.aws.clients['ec2'].describe_vpcs(
+            Filters=[{'Name': 'isDefault', 'Values': ['true']}]
+        )
+
+        vpc_id = response.get('Vpcs')[0]['VpcId']
+        assert vpc_id == p.vpc
+
+        response = ck.aws.clients['ec2'].describe_subnets(Filters=[{
+            'Name': 'vpc-id',
+            'Values': [vpc_id]
+        }])
+
+        subnet_ids = [d['SubnetId'] for d in response.get('Subnets')]
+        assert set(subnet_ids) == set(p.subnets)
+
+        response = ck.aws.clients['ec2'].describe_security_groups(
+            Filters=[{'Name': 'vpc-id', 'Values': [vpc_id]},
+                     {'Name': 'tag-key', 'Values': ['Name']},
+                     {'Name': 'tag-value', 'Values': [p.name]}]
+        )
+
+        sg_id = response.get('SecurityGroups')[0]['GroupId']
+        assert sg_id == p.security_group
+
+        # Delete the stack using boto3 to check for an error from Pars
+        # on reinstantiation
+        ck.aws.clients['cloudformation'].delete_stack(
+            StackName=p.stack_id
+        )
+
+        waiter = ck.aws.clients['cloudformation'].get_waiter(
+            'stack_delete_complete'
+        )
+        waiter.wait(StackName=p.stack_id, WaiterConfig={'Delay': 10})
+
+        # Confirm error on retrieving the deleted stack
+        with pytest.raises(ck.aws.ResourceDoesNotExistException) as e:
+            ck.Pars(name=name)
+
+        assert e.value.resource_id == p.stack_id
+
+        # Confirm that the previous error deleted
+        # the stack from the config file
+        config_file = ck.config.get_config_file()
+        config = configparser.ConfigParser()
+        with ck.config.rlock:
+            config.read(config_file)
+            assert p.pars_name not in config.sections()
+    except ck.aws.CannotCreateResourceException:
+        # Cannot create a default VPC in this account
+        # Ignore test
+        pass
 
 
 def test_pars_with_new_vpc(cleanup):
@@ -261,6 +262,10 @@ def test_pars_with_new_vpc(cleanup):
     assert sg_id == p.security_group
 
     p.clobber()
+    assert p.clobbered
+
+    # Clobbering twice shouldn't be a problem
+    p.clobber()
 
     response = ck.aws.clients['cloudformation'].describe_stacks(
         StackName=stack_id
@@ -268,3 +273,57 @@ def test_pars_with_new_vpc(cleanup):
 
     status = response.get('Stacks')[0]['StackStatus']
     assert status in ['DELETE_IN_PROGRESS', 'DELETE_COMPLETE']
+
+    waiter = ck.aws.clients['cloudformation'].get_waiter(
+        'stack_delete_complete'
+    )
+    waiter.wait(StackName=stack_id, WaiterConfig={'Delay': 10})
+
+    # Confirm that clobber deleted the stack from the config file
+    config_file = ck.config.get_config_file()
+    config = configparser.ConfigParser()
+    with ck.config.rlock:
+        config.read(config_file)
+        assert p.pars_name not in config.sections()
+
+    name = get_testing_name()
+    instance_tenancy = 'dedicated'
+    cidr = '172.32.0.0/16'
+    p = ck.Pars(name=name,
+                use_default_vpc=False,
+                ipv4_cidr=cidr,
+                instance_tenancy=instance_tenancy)
+
+    response = ck.aws.clients['ec2'].describe_vpcs(VpcIds=[p.vpc])
+    assert instance_tenancy == response.get('Vpcs')[0]['InstanceTenancy']
+    assert cidr == response.get('Vpcs')[0]['CidrBlock']
+
+    ck.aws.clients['cloudformation'].delete_stack(
+        StackName=p.stack_id
+    )
+
+    # Change the stack-id in the config file to get an error
+    config_file = ck.config.get_config_file()
+    config = configparser.ConfigParser()
+    with ck.config.rlock:
+        config.read(config_file)
+        stack_id = config.get(p.pars_name, 'stack-id')
+        stack_id = stack_id.split('/')
+        stack_id[1] = get_testing_name()
+        stack_id = '/'.join(stack_id)
+        config.set(p.pars_name, 'stack-id', stack_id)
+        with open(config_file, 'w') as f:
+            config.write(f)
+
+    # Confirm error on retrieving the nonexistent stack
+    with pytest.raises(ck.aws.ResourceDoesNotExistException) as e:
+        ck.Pars(name=name)
+
+    assert e.value.resource_id == stack_id
+
+    # Confirm that the previous error deleted the stack from the config file
+    config_file = ck.config.get_config_file()
+    config = configparser.ConfigParser()
+    with ck.config.rlock:
+        config.read(config_file)
+        assert p.pars_name not in config.sections()

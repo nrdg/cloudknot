@@ -3,7 +3,6 @@ from __future__ import absolute_import, division, print_function
 import boto3
 import botocore
 import configparser
-import getpass
 import json
 import logging
 import os
@@ -20,8 +19,7 @@ __all__ = [
     "CannotCreateResourceException", "RegionException", "ProfileException",
     "BatchJobFailedError", "CKTimeoutError",
     "CloudknotInputError", "CloudknotConfigurationError",
-    "NamedObject", "ObjectWithArn", "ObjectWithUsernameAndMemory",
-    "clients", "refresh_clients",
+    "NamedObject", "clients", "refresh_clients",
     "wait_for_compute_environment", "wait_for_job_queue",
     "get_region", "set_region",
     "get_ecr_repo", "set_ecr_repo",
@@ -147,7 +145,7 @@ def get_s3_params():
             except KeyError:
                 # Use the fallback bucket b/c the cloudknot
                 # bucket environment variable is not set
-                bucket = ('cloudknot-' + getpass.getuser().lower()
+                bucket = ('cloudknot-' + get_user().lower()
                           + '-' + str(uuid.uuid4()))
 
             if policy is not None:
@@ -982,75 +980,6 @@ class NamedObject(object):
             raise RegionException(resource_region=self.region)
 
         self.check_profile()
-
-
-# noinspection PyPropertyAccess,PyAttributeOutsideInit
-class ObjectWithArn(NamedObject):
-    """Base class for building objects with an Amazon Resource Name (ARN)
-
-    Inherits from NamedObject
-    """
-    def __init__(self, name):
-        """Initialize a base class with name and Amazon Resource Number (ARN)
-
-        Parameters
-        ----------
-        name : string
-            Name of the object
-        """
-        super(ObjectWithArn, self).__init__(name=name)
-        self._arn = None
-
-    @property
-    def arn(self):
-        """Amazon resource number (ARN) of this resource"""
-        return self._arn
-
-
-# noinspection PyPropertyAccess,PyAttributeOutsideInit
-class ObjectWithUsernameAndMemory(ObjectWithArn):
-    """Base class for building objects with properties memory and username
-
-    Inherits from ObjectWithArn
-    """
-    def __init__(self, name, memory=32000, username='cloudknot-user'):
-        """Initialize a base class with name, memory, and username properties
-
-        Parameters
-        ----------
-        name : string
-            Name of the object
-
-        memory : int
-            memory (MiB) to be used for this resource
-            Default: 32000
-
-        username : string
-            username for be used for this resource
-            Default: cloudknot-user
-        """
-        super(ObjectWithUsernameAndMemory, self).__init__(name=name)
-
-        try:
-            mem = int(memory)
-            if mem < 1:
-                raise CloudknotInputError('memory must be positive')
-            else:
-                self._memory = mem
-        except ValueError:
-            raise CloudknotInputError('memory must be an integer')
-
-        self._username = str(username)
-
-    @property
-    def memory(self):
-        """Memory to be used for this resource"""
-        return self._memory
-
-    @property
-    def username(self):
-        """Username for this resource"""
-        return self._username
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit

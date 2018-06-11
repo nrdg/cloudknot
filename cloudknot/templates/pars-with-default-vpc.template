@@ -154,31 +154,38 @@
         "Outputs" : {
             "BatchServiceRole" : {
                 "Description" : "Batch Service Role ARN",
-                "Value" : { "Fn::GetAtt" : [ "BatchServiceRole", "Arn" ] }
+                "Value" : { "Fn::GetAtt" : [ "BatchServiceRole", "Arn" ] },
+                "Export" : { "Name" : {"Fn::Sub": "${AWS::StackName}-BatchServiceRole" }}
             },
             "EcsInstanceRole" : {
                 "Description" : "ECS Instance Role ARN",
-                "Value" : { "Fn::GetAtt" : [ "EcsInstanceRole", "Arn" ] }
+                "Value" : { "Fn::GetAtt" : [ "EcsInstanceRole", "Arn" ] },
+                "Export" : { "Name" : {"Fn::Sub": "${AWS::StackName}-EcsInstanceRole" }}
             },
             "InstanceProfile" : {
                 "Description" : "ECS Instance Profile ARN",
-                "Value" : { "Fn::GetAtt" : [ "IamInstanceProfile", "Arn" ] }
+                "Value" : { "Fn::GetAtt" : [ "IamInstanceProfile", "Arn" ] },
+                "Export" : { "Name" : {"Fn::Sub": "${AWS::StackName}-InstanceProfile" }}
             },
             "SpotFleetRole" : {
                 "Description" : "Spot Fleet Role ARN",
-                "Value" : { "Fn::GetAtt" : [ "SpotFleetRole", "Arn" ] }
+                "Value" : { "Fn::GetAtt" : [ "SpotFleetRole", "Arn" ] },
+                "Export" : { "Name" : {"Fn::Sub": "${AWS::StackName}-SpotFleetRole" }}
             },
             "VpcId" : {
                 "Description" : "VPC ID",
-                "Value" : { "Ref" : "VpcId" }
+                "Value" : { "Ref" : "VpcId" },
+                "Export" : { "Name" : {"Fn::Sub": "${AWS::StackName}-VpcId" }}
             },
             "SubnetIds" : {
                 "Description" : "Comma delimited list of subnet IDs",
-                "Value" : { "Fn::Join" : [ ",", { "Ref" : "Subnets" } ] }
+                "Value" : { "Fn::Join" : [ ",", { "Ref" : "Subnets" } ] },
+                "Export" : { "Name" : {"Fn::Sub": "${AWS::StackName}-SubnetIds" }}
             },
             "SecurityGroupId" : {
                 "Description" : "Security Group ID",
-                "Value" : { "Fn::GetAtt" : [ "SecurityGroup", "GroupId" ] }
+                "Value" : { "Fn::GetAtt" : [ "SecurityGroup", "GroupId" ] },
+                "Export" : { "Name" : {"Fn::Sub": "${AWS::StackName}-SecurityGroupId" }}
             }
         }
 }
