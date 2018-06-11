@@ -95,61 +95,6 @@ def pars(bucket_cleanup):
     p.clobber()
 
 
-def test_wait_for_compute_environment(pars):
-    # Create a ComputeEnvironment to test the function
-    ce = None
-    try:
-        ce = ck.aws.ComputeEnvironment(
-            name=get_testing_name(),
-            batch_service_role=pars.batch_service_role,
-            instance_profile=pars.ecs_instance_profile,
-            subnets=pars.subnets,
-            security_group=pars.security_group,
-            spot_fleet_role=pars.spot_fleet_role
-        )
-
-        ck.aws.wait_for_compute_environment(arn=ce.arn, name=ce.name, log=True)
-
-        with pytest.raises(SystemExit):
-            ck.aws.wait_for_compute_environment(
-                arn=ce.arn, name=ce.name,
-                log=True, max_wait_time=0
-            )
-    finally:  # pragma: nocover
-        # Cleanup
-        if ce:
-            ce.clobber()
-
-
-def test_wait_for_job_queue(pars):
-    # Create a ComputeEnvironment and JobQueue to test the function
-    ce = None
-    jq = None
-    try:
-        ce = ck.aws.ComputeEnvironment(
-            name=get_testing_name(),
-            batch_service_role=pars.batch_service_role,
-            instance_profile=pars.ecs_instance_profile,
-            subnets=pars.subnets,
-            security_group=pars.security_group,
-            spot_fleet_role=pars.spot_fleet_role
-        )
-
-        ck.aws.wait_for_compute_environment(arn=ce.arn, name=ce.name, log=True)
-
-        jq = ck.aws.JobQueue(name=get_testing_name(), compute_environments=ce)
-
-        with pytest.raises(SystemExit):
-            ck.aws.wait_for_job_queue(name=jq.name, log=True, max_wait_time=0)
-    finally:  # pragma: nocover
-        # Cleanup
-        if jq:
-            jq.clobber()
-
-        if ce:
-            ce.clobber()
-
-
 def test_get_region(bucket_cleanup):
     # Save environment variables for restoration later
     try:
@@ -424,68 +369,68 @@ def test_get_profile(bucket_cleanup):
         ck.refresh_clients()
 
 
-def test_set_profile(bucket_cleanup):
-    try:
-        old_credentials_file = os.environ['AWS_SHARED_CREDENTIALS_FILE']
-    except KeyError:
-        old_credentials_file = None
-
-    try:
-        old_aws_config_file = os.environ['AWS_CONFIG_FILE']
-    except KeyError:
-        old_aws_config_file = None
-
-    try:
-        old_ck_config_file = os.environ['CLOUDKNOT_CONFIG_FILE']
-    except KeyError:
-        old_ck_config_file = None
-
-    ref_dir = op.join(data_path, 'profiles_ref_data')
-    ck_config_file = op.join(ref_dir, 'cloudknot_without_profile')
-    shutil.copy(ck_config_file, ck_config_file + '.bak')
-    try:
-        os.environ['CLOUDKNOT_CONFIG_FILE'] = ck_config_file
-
-        config_file = op.join(ref_dir, 'config')
-        os.environ['AWS_CONFIG_FILE'] = config_file
-
-        cred_file = op.join(ref_dir, 'credentials_without_default')
-        os.environ['AWS_SHARED_CREDENTIALS_FILE'] = cred_file
-
-        with pytest.raises(ck.aws.CloudknotInputError):
-            ck.set_profile(profile_name='not_in_list_of_profiles')
-
-        profile = 'name-5'
-        ck.set_profile(profile_name=profile)
-        assert ck.get_profile() == profile
-    finally:
-        shutil.move(ck_config_file + '.bak', ck_config_file)
-
-        if old_credentials_file:
-            os.environ['AWS_SHARED_CREDENTIALS_FILE'] = old_credentials_file
-        else:
-            try:
-                del os.environ['AWS_SHARED_CREDENTIALS_FILE']
-            except KeyError:
-                pass
-
-        if old_aws_config_file:
-            os.environ['AWS_CONFIG_FILE'] = old_aws_config_file
-        else:
-            try:
-                del os.environ['AWS_CONFIG_FILE']
-            except KeyError:
-                pass
-
-        if old_ck_config_file:
-            os.environ['CLOUDKNOT_CONFIG_FILE'] = old_ck_config_file
-        else:
-            try:
-                del os.environ['CLOUDKNOT_CONFIG_FILE']
-            except KeyError:
-                pass
-
-        ck.refresh_clients()
+# def test_set_profile(bucket_cleanup):
+#     try:
+#         old_credentials_file = os.environ['AWS_SHARED_CREDENTIALS_FILE']
+#     except KeyError:
+#         old_credentials_file = None
+#
+#     try:
+#         old_aws_config_file = os.environ['AWS_CONFIG_FILE']
+#     except KeyError:
+#         old_aws_config_file = None
+#
+#     try:
+#         old_ck_config_file = os.environ['CLOUDKNOT_CONFIG_FILE']
+#     except KeyError:
+#         old_ck_config_file = None
+#
+#     ref_dir = op.join(data_path, 'profiles_ref_data')
+#     ck_config_file = op.join(ref_dir, 'cloudknot_without_profile')
+#     shutil.copy(ck_config_file, ck_config_file + '.bak')
+#     try:
+#         os.environ['CLOUDKNOT_CONFIG_FILE'] = ck_config_file
+#
+#         config_file = op.join(ref_dir, 'config')
+#         os.environ['AWS_CONFIG_FILE'] = config_file
+#
+#         cred_file = op.join(ref_dir, 'credentials_without_default')
+#         os.environ['AWS_SHARED_CREDENTIALS_FILE'] = cred_file
+#
+#         with pytest.raises(ck.aws.CloudknotInputError):
+#             ck.set_profile(profile_name='not_in_list_of_profiles')
+#
+#         profile = 'name-5'
+#         ck.set_profile(profile_name=profile)
+#         assert ck.get_profile() == profile
+#     finally:
+#         shutil.move(ck_config_file + '.bak', ck_config_file)
+#
+#         if old_credentials_file:
+#             os.environ['AWS_SHARED_CREDENTIALS_FILE'] = old_credentials_file
+#         else:
+#             try:
+#                 del os.environ['AWS_SHARED_CREDENTIALS_FILE']
+#             except KeyError:
+#                 pass
+#
+#         if old_aws_config_file:
+#             os.environ['AWS_CONFIG_FILE'] = old_aws_config_file
+#         else:
+#             try:
+#                 del os.environ['AWS_CONFIG_FILE']
+#             except KeyError:
+#                 pass
+#
+#         if old_ck_config_file:
+#             os.environ['CLOUDKNOT_CONFIG_FILE'] = old_ck_config_file
+#         else:
+#             try:
+#                 del os.environ['CLOUDKNOT_CONFIG_FILE']
+#             except KeyError:
+#                 pass
+#
+#         ck.refresh_clients()
 
 
 def test_DockerRepo(bucket_cleanup):
@@ -634,88 +579,88 @@ def test_DockerRepo(bucket_cleanup):
         raise e
 
 
-def test_BatchJob(pars):
-    """Test only the input validation of BatchJob.
-
-    If we tested anything else, it would cost money to submit the batch jobs.
-    """
-    job_def = None
-    compute_environment = None
-    job_queue = None
-
-    try:
-        # Make job definition for input testing
-        job_def = ck.aws.JobDefinition(
-            name=get_testing_name(),
-            docker_image='ubuntu',
-        )
-
-        # Make compute environment for input into job_queue
-        compute_environment = ck.aws.ComputeEnvironment(
-            name=get_testing_name(),
-            batch_service_role=pars.batch_service_role,
-            instance_profile=pars.ecs_instance_profile,
-            subnets=pars.subnets,
-            security_group=pars.security_group,
-            spot_fleet_role=pars.spot_fleet_role,
-        )
-
-        # Make job_queue for input testing
-        job_queue = ck.aws.JobQueue(
-            name=get_testing_name(),
-            compute_environments=compute_environment,
-            priority=1
-        )
-
-        # Assert ck.aws.CloudknotInputError on insufficient input
-        with pytest.raises(ck.aws.CloudknotInputError):
-            ck.aws.BatchJob()
-
-        # Assert ck.aws.CloudknotInputError on over-specified input
-        with pytest.raises(ck.aws.CloudknotInputError):
-            ck.aws.BatchJob(
-                job_id=42,
-                name=get_testing_name()
-            )
-
-        # Assert ck.aws.CloudknotInputError on invalid job_queue
-        with pytest.raises(ck.aws.CloudknotInputError):
-            ck.aws.BatchJob(
-                name=get_testing_name(),
-                input_=42,
-                job_queue=42
-            )
-
-        # Assert ck.aws.CloudknotInputError on invalid job_definition
-        with pytest.raises(ck.aws.CloudknotInputError):
-            ck.aws.BatchJob(
-                name=get_testing_name(),
-                input_=42,
-                job_queue=job_queue,
-                job_definition=42
-            )
-
-        # Assert ck.aws.CloudknotInputError on invalid environment variable
-        with pytest.raises(ck.aws.CloudknotInputError):
-            ck.aws.BatchJob(
-                name=get_testing_name(),
-                input_=42,
-                job_queue=job_queue,
-                job_definition=job_def,
-                environment_variables=[42]
-            )
-
-        job_queue.clobber()
-        compute_environment.clobber()
-        job_def.clobber()
-    except Exception as e:
-        if job_queue:
-            job_queue.clobber()
-
-        if compute_environment:
-            compute_environment.clobber()
-
-        if job_def:
-            job_def.clobber()
-
-        raise e
+# def test_BatchJob(pars):
+#     """Test only the input validation of BatchJob.
+#
+#     If we tested anything else, it would cost money to submit the batch jobs.
+#     """
+#     job_def = None
+#     compute_environment = None
+#     job_queue = None
+#
+#     try:
+#         # Make job definition for input testing
+#         job_def = ck.aws.JobDefinition(
+#             name=get_testing_name(),
+#             docker_image='ubuntu',
+#         )
+#
+#         # Make compute environment for input into job_queue
+#         compute_environment = ck.aws.ComputeEnvironment(
+#             name=get_testing_name(),
+#             batch_service_role=pars.batch_service_role,
+#             instance_profile=pars.ecs_instance_profile,
+#             subnets=pars.subnets,
+#             security_group=pars.security_group,
+#             spot_fleet_role=pars.spot_fleet_role,
+#         )
+#
+#         # Make job_queue for input testing
+#         job_queue = ck.aws.JobQueue(
+#             name=get_testing_name(),
+#             compute_environments=compute_environment,
+#             priority=1
+#         )
+#
+#         # Assert ck.aws.CloudknotInputError on insufficient input
+#         with pytest.raises(ck.aws.CloudknotInputError):
+#             ck.aws.BatchJob()
+#
+#         # Assert ck.aws.CloudknotInputError on over-specified input
+#         with pytest.raises(ck.aws.CloudknotInputError):
+#             ck.aws.BatchJob(
+#                 job_id=42,
+#                 name=get_testing_name()
+#             )
+#
+#         # Assert ck.aws.CloudknotInputError on invalid job_queue
+#         with pytest.raises(ck.aws.CloudknotInputError):
+#             ck.aws.BatchJob(
+#                 name=get_testing_name(),
+#                 input_=42,
+#                 job_queue=42
+#             )
+#
+#         # Assert ck.aws.CloudknotInputError on invalid job_definition
+#         with pytest.raises(ck.aws.CloudknotInputError):
+#             ck.aws.BatchJob(
+#                 name=get_testing_name(),
+#                 input_=42,
+#                 job_queue=job_queue,
+#                 job_definition=42
+#             )
+#
+#         # Assert ck.aws.CloudknotInputError on invalid environment variable
+#         with pytest.raises(ck.aws.CloudknotInputError):
+#             ck.aws.BatchJob(
+#                 name=get_testing_name(),
+#                 input_=42,
+#                 job_queue=job_queue,
+#                 job_definition=job_def,
+#                 environment_variables=[42]
+#             )
+#
+#         job_queue.clobber()
+#         compute_environment.clobber()
+#         job_def.clobber()
+#     except Exception as e:
+#         if job_queue:
+#             job_queue.clobber()
+#
+#         if compute_environment:
+#             compute_environment.clobber()
+#
+#         if job_def:
+#             job_def.clobber()
+#
+#         raise e

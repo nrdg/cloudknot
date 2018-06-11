@@ -134,7 +134,7 @@ class Pars(aws.NamedObject):
                         'by re-running your previous command.',
                         self._stack_id
                     )
-                else:
+                else:  # pragma: nocover
                     raise e
 
             no_stack = (
@@ -249,7 +249,7 @@ class Pars(aws.NamedObject):
                             'unauthorized operation. You might have resources '
                             'in EC2-Classic in the current region.'
                         )
-                    else:
+                    else:  # pragma: nocover
                         raise e
 
                 # Retrieve the subnets for the default VPC
@@ -377,7 +377,7 @@ class Pars(aws.NamedObject):
                 # Get list of subnet CIDR blocks
                 subnet_ipv4_cidrs = list(cidr.subnets(new_prefix=20))
 
-                if len(subnet_ipv4_cidrs) < 2:
+                if len(subnet_ipv4_cidrs) < 2:  # pragma: nocover
                     raise aws.CloudknotInputError(
                         "If provided, ipv4_cidr must be large enough to "
                         "accomodate two subnets. If you don't know what this "

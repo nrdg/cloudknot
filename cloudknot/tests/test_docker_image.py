@@ -24,6 +24,7 @@ def get_testing_name():
 
 @pytest.fixture(scope='module')
 def bucket_cleanup():
+    old_params = ck.get_s3_params()
     ck.set_s3_params(bucket='cloudknot-travis-build-45814031-351c-'
                             '4b27-9a40-672c971f7e83')
     yield None
@@ -73,6 +74,10 @@ def bucket_cleanup():
         )
 
     iam.delete_policy(PolicyArn=arn)
+
+    ck.set_s3_params(bucket=old_params.bucket,
+                     policy=old_params.policy,
+                     sse=old_params.sse)
 
 
 @pytest.fixture(scope='module')

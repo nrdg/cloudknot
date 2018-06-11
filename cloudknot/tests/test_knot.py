@@ -19,6 +19,7 @@ def get_testing_name():
 
 @pytest.fixture(scope='module')
 def bucket_cleanup():
+    old_params = ck.get_s3_params()
     ck.set_s3_params(bucket='cloudknot-travis-build-45814031-351c-'
                             '4b27-9a40-672c971f7e83')
     yield None
@@ -68,6 +69,10 @@ def bucket_cleanup():
         )
 
     iam.delete_policy(PolicyArn=arn)
+
+    ck.set_s3_params(bucket=old_params.bucket,
+                     policy=old_params.policy,
+                     sse=old_params.sse)
 
 
 @pytest.fixture(scope='module')
@@ -135,14 +140,14 @@ def unit_testing_func(name=None, no_capitalize=False):
     return 'Hello world!'
 
 
-def test_Knot(cleanup_repos):
+def test_knot(cleanup_repos):
     config_file = ck.config.get_config_file()
     knot, knot2 = None, None
 
     try:
         pars = ck.Pars(name=get_testing_name())
-
         name = get_testing_name()
+
         knot = ck.Knot(name=name, pars=pars, func=unit_testing_func)
 
         # Now remove the images and repo-uri from the docker-image
@@ -168,131 +173,70 @@ def test_Knot(cleanup_repos):
         assert knot.docker_repo.name == 'cloudknot'
         pre = name + '-cloudknot-'
         assert knot.job_definition.name == pre + 'job-definition'
-        assert knot.job_queue.name == pre + 'job-queue'
-        assert knot.compute_environment.name == pre + 'compute-environment'
 
-        # Now remove the knot section from config file
+        # Delete the stack using boto3 to check for an error from Pars
+        # on reinstantiation
+        ck.aws.clients['cloudformation'].delete_stack(
+            StackName=knot.stack_id
+        )
+
+        waiter = ck.aws.clients['cloudformation'].get_waiter(
+            'stack_delete_complete'
+        )
+        waiter.wait(StackName=knot.stack_id, WaiterConfig={'Delay': 10})
+
+        # Confirm error on retrieving the deleted stack
+        with pytest.raises(ck.aws.ResourceDoesNotExistException) as e:
+            ck.Knot(name=name)
+
+        assert e.value.resource_id == knot.stack_id
+
+        # Confirm that the previous error deleted
+        # the stack from the config file
+        config_file = ck.config.get_config_file()
         config = configparser.ConfigParser()
         with ck.config.rlock:
             config.read(config_file)
-            config.remove_section('knot ' + name)
-            with open(config_file, 'w') as f:
-                config.write(f)
+            assert knot.knot_name not in config.sections()
 
-        # And re-instantiate by supplying resource names
-        knot2 = ck.Knot(
-            name=name,
-            pars=knot.pars,
-            docker_image=knot.docker_image,
-            job_definition_name=knot.job_definition.name,
-            compute_environment_name=knot.compute_environment.name,
-            job_queue_name=knot.job_queue.name
+        name = get_testing_name()
+        knot = ck.Knot(name=name, func=unit_testing_func)
+        knot.clobber(clobber_pars=True, clobber_image=True, clobber_repo=True)
+        assert knot.clobbered
+
+        # Clobbering twice shouldn't be a problem
+        knot.clobber()
+
+        response = ck.aws.clients['cloudformation'].describe_stacks(
+            StackName=knot.stack_id
         )
 
-        # Assert properties are as expected
-        assert knot2.name == name
-        assert knot2.knot_name == 'knot ' + name
-        assert knot2.pars.name == pars.name
-        assert knot2.docker_image.name == unit_testing_func.__name__
-        assert knot2.docker_repo is None
-        assert knot2.job_definition.name == pre + 'job-definition'
-        assert knot2.job_queue.name == pre + 'job-queue'
-        assert knot2.compute_environment.name == pre + 'compute-environment'
+        status = response.get('Stacks')[0]['StackStatus']
+        assert status in ['DELETE_IN_PROGRESS', 'DELETE_COMPLETE']
 
-        knot2.clobber(clobber_pars=True, clobber_image=True)
+        waiter = ck.aws.clients['cloudformation'].get_waiter(
+            'stack_delete_complete'
+        )
+        waiter.wait(StackName=knot.stack_id, WaiterConfig={'Delay': 10})
+
+        # Confirm that clobber deleted the stack from the config file
+        config_file = ck.config.get_config_file()
+        config = configparser.ConfigParser()
+        with ck.config.rlock:
+            config.read(config_file)
+            assert knot.knot_name not in config.sections()
+
     except Exception as e:
         try:
-            if knot2:
-                knot2.clobber(clobber_pars=True, clobber_image=True)
-            elif knot:
+            if knot:
                 knot.clobber(clobber_pars=True, clobber_image=True)
         except Exception:
             pass
 
         raise e
 
-    pars = None
-    ce = None
-    jd = None
-    jq = None
-    knot = None
 
-    # The next tests will use the default pars, if it already exists in the
-    # config file, we shouldn't delete it when we're done.
-    # Otherwise, clobber it
-    config = configparser.ConfigParser()
-    with ck.config.rlock:
-        config.read(config_file)
-
-    clobber_pars = 'pars default' not in config.sections()
-
-    try:
-        pars = ck.Pars()
-
-        # Make a job definition for input testing
-        jd = ck.aws.JobDefinition(
-            name=get_testing_name(),
-            job_role=pars.batch_service_role,
-            docker_image='ubuntu',
-        )
-
-        # Make a compute environment for input testing
-        ce = ck.aws.ComputeEnvironment(
-            name=get_testing_name(),
-            batch_service_role=pars.batch_service_role,
-            instance_role=pars.ecs_instance_role, vpc=pars.vpc,
-            security_group=pars.security_group,
-            spot_fleet_role=pars.spot_fleet_role,
-        )
-
-        ck.aws.wait_for_compute_environment(
-            arn=ce.arn, name=ce.name
-        )
-
-        # Make a job queue for input testing
-        jq = ck.aws.JobQueue(
-            name=get_testing_name(),
-            compute_environments=ce,
-            priority=1
-        )
-
-        with pytest.raises(ck.aws.CloudknotInputError):
-            knot = ck.Knot(
-                name=get_testing_name(),
-                func=unit_testing_func,
-                job_definition_name=jd.name,
-                job_def_vcpus=42
-            )
-
-        with pytest.raises(ck.aws.CloudknotInputError):
-            knot = ck.Knot(
-                name=get_testing_name(),
-                func=unit_testing_func,
-                compute_environment_name=ce.name,
-                desired_vcpus=42
-            )
-
-        with pytest.raises(ck.aws.CloudknotInputError):
-            knot = ck.Knot(
-                name=get_testing_name(),
-                func=unit_testing_func,
-                job_queue_name=jq.name,
-                priority=42
-            )
-    finally:
-        try:
-            if knot:
-                knot.clobber()
-
-            for resource in [jq, ce, jd]:
-                if resource:
-                    resource.clobber()
-
-            if pars and clobber_pars:
-                pars.clobber()
-        except Exception:
-            pass
-
+def test_knot_errors(cleanup_repos):
     # Test Exceptions on invalid input
     # --------------------------------
     # Assert ck.aws.CloudknotInputError on invalid name
@@ -302,3 +246,67 @@ def test_Knot(cleanup_repos):
     # Assert ck.aws.CloudknotInputError on invalid pars input
     with pytest.raises(ck.aws.CloudknotInputError):
         ck.Knot(func=unit_testing_func, pars=42)
+
+    # Assert ck.aws.CloudknotInputError on redundant docker_image and func
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.Knot(func=unit_testing_func, docker_image=42)
+
+    # Assert ck.aws.CloudknotInputError on invalid docker_image input
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.Knot(docker_image=42)
+
+    # Assert ck.aws.CloudknotInputError on invalid retries
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.Knot(retries=0)
+
+    # Assert ck.aws.CloudknotInputError on invalid retries
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.Knot(retries=11)
+
+    # Assert ck.aws.CloudknotInputError on invalid memory
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.Knot(memory=0)
+
+    # Assert ck.aws.CloudknotInputError on invalid job_def_vcpus
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.Knot(job_def_vcpus=-42)
+
+    # Assert ck.aws.CloudknotInputError on invalid priority
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.Knot(priority=-42)
+
+    # Assert ck.aws.CloudknotInputError on SPOT without bid percentage
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.Knot(resource_type='SPOT')
+
+    # Assert ck.aws.CloudknotInputError on invalid min_vcpus
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.Knot(min_vcpus=-1)
+
+    # Assert ck.aws.CloudknotInputError on invalid desired_vcpus
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.Knot(desired_vcpus=-1)
+
+    # Assert ck.aws.CloudknotInputError on invalid max_vcpus
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.Knot(max_vcpus=-1)
+
+    # Assert ck.aws.CloudknotInputError on invalid instance_types
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.Knot(instance_types=[42])
+
+    # Assert ck.aws.CloudknotInputError on invalid instance_types
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.Knot(instance_types='not a valid instance')
+
+    # Assert ck.aws.CloudknotInputError on invalid instance_types
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.Knot(instance_types=['not', 'a', 'valid', 'instance'])
+
+    # Assert ck.aws.CloudknotInputError on invalid image_id
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.Knot(image_id=42)
+
+    # Assert ck.aws.CloudknotInputError on invalid ec2_key_pair
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.Knot(ec2_key_pair=42)

@@ -20,7 +20,6 @@ __all__ = [
     "BatchJobFailedError", "CKTimeoutError",
     "CloudknotInputError", "CloudknotConfigurationError",
     "NamedObject", "clients", "refresh_clients",
-    "wait_for_compute_environment", "wait_for_job_queue",
     "get_region", "set_region",
     "get_ecr_repo", "set_ecr_repo",
     "get_s3_params", "set_s3_params",
@@ -980,98 +979,3 @@ class NamedObject(object):
             raise RegionException(resource_region=self.region)
 
         self.check_profile()
-
-
-# noinspection PyPropertyAccess,PyAttributeOutsideInit
-def wait_for_compute_environment(arn, name, log=True, max_wait_time=60):
-    """Wait for a compute environment to finish updating or creating
-
-    Parameters
-    ----------
-    arn : string
-        Compute environment ARN
-
-    name : string
-        Compute environment name
-
-    log : boolean
-        Whether or not to log waiting info to the application log
-        Default: True
-
-    max_wait_time : int
-        Maximum time to wait (in seconds)
-        Default: 60
-    """
-    # Initialize waiting and num_waits for the while loop
-    waiting = True
-    num_waits = 0
-    while waiting:
-        if log:
-            # Log waiting info
-            mod_logger.info(
-                'Waiting for AWS to finish modifying compute environment '
-                '{name:s}.'.format(name=name)
-            )
-
-        # Get compute environment info
-        response = clients['batch'].describe_compute_environments(
-            computeEnvironments=[arn]
-        )
-
-        # If compute environment has status == CREATING/UPDATING, keep waiting
-        waiting = (response.get('computeEnvironments') == []
-                   or response.get('computeEnvironments')[0]['status']
-                   in ['CREATING', 'UPDATING'])
-
-        # Wait a second
-        time.sleep(1)
-        num_waits += 1
-
-        if num_waits > max_wait_time:
-            # Timeout if max_wait_time exceeded
-            sys.exit('Waiting too long for AWS to modify compute '
-                     'environment. Aborting.')
-
-
-# noinspection PyPropertyAccess,PyAttributeOutsideInit
-def wait_for_job_queue(name, log=True, max_wait_time=60):
-    """Wait for a job queue to finish updating or creating
-
-    Parameters
-    ----------
-    name : string
-        Job Queue name
-
-    log : boolean
-        Whether or not to log waiting info to the application log
-        Default: True
-
-    max_wait_time : int
-        Maximum time to wait (in seconds)
-        Default: 60
-    """
-    # Initialize waiting and num_waits for the while loop
-    waiting = True
-    num_waits = 0
-    while waiting:
-        if log:  # pragma: nocover
-            # Log waiting info
-            mod_logger.info(
-                'Waiting for AWS to finish modifying job queue '
-                '{name:s}.'.format(name=name)
-            )
-
-        # If job queue has status == CREATING/UPDATING, keep waiting
-        response = clients['batch'].describe_job_queues(jobQueues=[name])
-        waiting = (response.get('jobQueues') == []
-                   or response.get('jobQueues')[0]['status']
-                   in ['CREATING', 'UPDATING'])
-
-        # Wait a second
-        time.sleep(1)
-        num_waits += 1
-
-        if num_waits > max_wait_time:
-            # Timeout if max_wait_time exceeded
-            sys.exit('Waiting too long for AWS to modify job queue. '
-                     'Aborting.')
