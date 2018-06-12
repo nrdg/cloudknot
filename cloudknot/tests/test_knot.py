@@ -19,10 +19,10 @@ def get_testing_name():
 
 @pytest.fixture(scope='module')
 def bucket_cleanup():
-    config_file = ck.get_config_file()
+    config_file = ck.config.get_config_file()
     config = configparser.ConfigParser()
 
-    with ck.rlock:
+    with ck.config.rlock:
         config.read(config_file)
 
     option = 's3-bucket'
