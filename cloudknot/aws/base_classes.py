@@ -6,8 +6,6 @@ import configparser
 import json
 import logging
 import os
-import sys
-import time
 import uuid
 from collections import namedtuple
 
@@ -106,15 +104,18 @@ def get_s3_params():
     For the bucket name, first check the cloudknot config file for the bucket
     option. If that fails, check for the CLOUDKNOT_S3_BUCKET environment
     variable. If that fails, use
-    'cloudknot-' + getpass.getuser().lower() + '-' + uuid4()
+    'cloudknot-' + get_user().lower() + '-' + uuid4()
 
     For the policy name, first check the cloudknot config file. If that fails,
     use 'cloudknot-bucket-access-' + str(uuid.uuid4())
 
+    For the region, first check the cloudknot config file. If that fails,
+    use the current cloudknot region
+
     Returns
     -------
     bucket : NamedTuple
-        A namedtuple with fields ['bucket', 'policy', 'sse']
+        A namedtuple with fields ['bucket', 'policy', 'policy_arn', 'sse']
     """
     config_file = get_config_file()
     config = configparser.ConfigParser()
@@ -255,8 +256,18 @@ def set_s3_params(bucket, policy=None, sse=None):
             error_code = e.response['Error']['Code']
             if error_code in ['IllegalLocationConstraintException',
                               'InvalidLocationConstraint']:
+                response = clients['s3'].get_bucket_location(Bucket=bucket)
+                location = response.get('LocationConstraint')
                 try:
-                    clients['s3'].create_bucket(Bucket=bucket)
+                    if location == 'us-east-1':
+                        clients['s3'].create_bucket(Bucket=bucket)
+                    else:
+                        clients['s3'].create_bucket(
+                            Bucket=bucket,
+                            CreateBucketConfiguration={
+                                'LocationConstraint': location
+                            }
+                        )
                 except clients['s3'].exceptions.BucketAlreadyOwnedByYou:
                     pass
                 except clients['s3'].exceptions.BucketAlreadyExists:

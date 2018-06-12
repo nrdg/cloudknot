@@ -46,9 +46,23 @@ def get_testing_name():
 
 @pytest.fixture(scope='module')
 def bucket_cleanup():
+    config_file = ck.get_config_file()
+    config = configparser.ConfigParser()
+
+    with ck.rlock:
+        config.read(config_file)
+
+    option = 's3-bucket'
+    if config.has_section('aws') and config.has_option('aws', option):
+        old_s3_params = ck.get_s3_params()
+    else:
+        old_s3_params = None
+
     ck.set_s3_params(bucket='cloudknot-travis-build-45814031-351c-'
                             '4b27-9a40-672c971f7e83')
+
     yield None
+
     s3_params = ck.get_s3_params()
     bucket = s3_params.bucket
     bucket_policy = s3_params.policy
@@ -86,6 +100,13 @@ def bucket_cleanup():
         iam.delete_policy(PolicyArn=arn)
     except Exception:
         pass
+
+    if old_s3_params:
+        ck.set_s3_params(
+            bucket=old_s3_params.bucket,
+            policy=old_s3_params.policy,
+            sse=old_s3_params.sse
+        )
 
 
 @pytest.fixture(scope='module')
