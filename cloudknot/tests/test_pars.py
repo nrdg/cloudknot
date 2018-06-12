@@ -52,7 +52,8 @@ def cleanup():
     config = configparser.ConfigParser()
     with ck.config.rlock:
         config.read(config_file)
-        for section in config:
+        sections = list(config.sections())
+        for section in sections:
             if UNIT_TEST_PREFIX in section:
                 config.remove_section(section)
 

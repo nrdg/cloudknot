@@ -31,55 +31,57 @@ def bucket_cleanup():
     else:
         old_s3_params = None
 
-    ck.set_s3_params(bucket='cloudknot-travis-build-45814031-351c-'
-                            '4b27-9a40-672c971f7e83')
+    new_bucket = 'cloudknot-travis-build-45814031-351c-4b27-9a40-672c971f7e83'
+    ck.set_s3_params(bucket=new_bucket)
+
     yield None
+
     s3_params = ck.get_s3_params()
-    bucket = s3_params.bucket
     bucket_policy = s3_params.policy
 
-    s3 = ck.aws.clients['s3']
-    s3.delete_bucket(Bucket=bucket)
-
-    iam = ck.aws.clients['iam']
-    response = iam.list_policies(
-        Scope='Local',
-        PathPrefix='/cloudknot/'
-    )
-
-    policy_dict = [p for p in response.get('Policies')
-                   if p['PolicyName'] == bucket_policy][0]
-
-    arn = policy_dict['Arn']
-
-    response = iam.list_policy_versions(
-        PolicyArn=arn
-    )
-
-    # Get non-default versions
-    versions = [v for v in response.get('Versions')
-                if not v['IsDefaultVersion']]
-
-    # Get the oldest version and delete it
-    for v in versions:
-        iam.delete_policy_version(
-            PolicyArn=arn,
-            VersionId=v['VersionId']
+    if (old_s3_params is None) or bucket_policy == old_s3_params.policy:
+        iam = ck.aws.clients['iam']
+        response = iam.list_policies(
+            Scope='Local',
+            PathPrefix='/cloudknot/'
         )
 
-    response = iam.list_entities_for_policy(
-        PolicyArn=arn,
-        EntityFilter='Role'
-    )
+        policy_dict = [p for p in response.get('Policies')
+                       if p['PolicyName'] == bucket_policy][0]
 
-    roles = response.get('PolicyRoles')
-    for role in roles:
-        iam.detach_role_policy(
-            RoleName=role['RoleName'],
+        arn = policy_dict['Arn']
+
+        response = iam.list_policy_versions(
             PolicyArn=arn
         )
 
-    iam.delete_policy(PolicyArn=arn)
+        # Get non-default versions
+        versions = [v for v in response.get('Versions')
+                    if not v['IsDefaultVersion']]
+
+        # Delete the non-default versions
+        for v in versions:
+            iam.delete_policy_version(
+                PolicyArn=arn,
+                VersionId=v['VersionId']
+            )
+
+        response = iam.list_entities_for_policy(
+            PolicyArn=arn,
+            EntityFilter='Role'
+        )
+
+        roles = response.get('PolicyRoles')
+        for role in roles:
+            iam.detach_role_policy(
+                RoleName=role['RoleName'],
+                PolicyArn=arn
+            )
+
+        try:
+            iam.delete_policy(PolicyArn=arn)
+        except Exception:
+            pass
 
     if old_s3_params:
         ck.set_s3_params(
@@ -159,7 +161,7 @@ def test_knot(cleanup_repos):
     knot = None
 
     try:
-        pars = ck.Pars(name=get_testing_name())
+        pars = ck.Pars(name=get_testing_name(), use_default_vpc=False)
         name = get_testing_name()
 
         knot = ck.Knot(name=name, pars=pars, func=unit_testing_func)
@@ -243,7 +245,11 @@ def test_knot(cleanup_repos):
     except Exception as e:
         try:
             if knot:
-                knot.clobber(clobber_pars=True, clobber_image=True)
+                knot.clobber(
+                    clobber_pars=True,
+                    clobber_image=True,
+                    clobber_repo=True
+                )
         except Exception:
             pass
 

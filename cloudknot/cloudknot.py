@@ -941,7 +941,7 @@ class Knot(aws.NamedObject):
 
             # Set default memory
             try:
-                memory = int(memory) if memory else 8000
+                memory = int(memory) if memory is not None else 8000
                 if memory < 1:
                     raise aws.CloudknotInputError('memory must be positive')
             except ValueError:
@@ -949,7 +949,7 @@ class Knot(aws.NamedObject):
 
             # Validate retries input
             try:
-                retries = int(retries) if retries else 1
+                retries = int(retries) if retries is not None else 1
                 if retries < 1:
                     raise aws.CloudknotInputError('retries must be > 0')
                 elif retries > 10:
@@ -959,7 +959,7 @@ class Knot(aws.NamedObject):
 
             # Validate priority
             try:
-                priority = int(priority) if priority else 1
+                priority = int(priority) if priority is not None else 1
                 if priority < 1:
                     raise aws.CloudknotInputError('priority must be positive')
             except ValueError:
@@ -993,13 +993,14 @@ class Knot(aws.NamedObject):
                 )
 
             # Validate desired_vcpus input, default to 8
-            desired_vcpus = int(desired_vcpus) if desired_vcpus else 8
+            desired_vcpus = (int(desired_vcpus)
+                             if desired_vcpus is not None else 8)
             if desired_vcpus < 0:
                 raise aws.CloudknotInputError('desired_vcpus must be '
                                               'non-negative')
 
             # Validate max_vcpus, default to 256
-            max_vcpus = int(max_vcpus) if max_vcpus else 256
+            max_vcpus = int(max_vcpus) if max_vcpus is not None else 256
             if max_vcpus < 0:
                 raise aws.CloudknotInputError('max_vcpus must be non-negative')
 
@@ -1104,7 +1105,12 @@ class Knot(aws.NamedObject):
                     ))
                     pars_cleanup_ = False
                 else:
-                    pars_ = Pars(name=knot_name, policies=pars_policies_)
+                    try:
+                        pars_ = Pars(name=knot_name, policies=pars_policies_)
+                    except aws.CannotCreateResourceException:
+                        pars_ = Pars(name=knot_name,
+                                     policies=pars_policies_,
+                                     use_default_vpc=False)
 
                     mod_logger.info('knot {name:s} created PARS {p:s}'.format(
                         name=knot_name, p=pars_.name

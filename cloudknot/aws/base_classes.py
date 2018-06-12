@@ -241,12 +241,17 @@ def set_s3_params(bucket, policy=None, sse=None):
 
         # Create the bucket
         try:
-            clients['s3'].create_bucket(
-                Bucket=bucket,
-                CreateBucketConfiguration={
-                    'LocationConstraint': get_region()
-                }
-            )
+            if get_region() == 'us-east-1':
+                clients['s3'].create_bucket(
+                    Bucket=bucket
+                )
+            else:
+                clients['s3'].create_bucket(
+                    Bucket=bucket,
+                    CreateBucketConfiguration={
+                        'LocationConstraint': get_region()
+                    }
+                )
         except clients['s3'].exceptions.BucketAlreadyOwnedByYou:
             pass
         except clients['s3'].exceptions.BucketAlreadyExists:
@@ -259,7 +264,7 @@ def set_s3_params(bucket, policy=None, sse=None):
                 response = clients['s3'].get_bucket_location(Bucket=bucket)
                 location = response.get('LocationConstraint')
                 try:
-                    if location == 'us-east-1':
+                    if location == 'us-east-1' or location is None:
                         clients['s3'].create_bucket(Bucket=bucket)
                     else:
                         clients['s3'].create_bucket(
