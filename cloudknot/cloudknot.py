@@ -866,8 +866,8 @@ class Knot(aws.NamedObject):
             job_def = response.get('jobDefinitions')[0]
             job_def_name = job_def['jobDefinitionName']
             job_def_env = job_def['containerProperties']['environment']
-            bucket_env = [e for e in job_def_env
-                          if e['name'] == 'CLOUDKNOT_JOBS_S3_BUCKET']
+            bucket_env = [env for env in job_def_env
+                          if env['name'] == 'CLOUDKNOT_JOBS_S3_BUCKET']
             output_bucket = bucket_env[0]['value'] if bucket_env else None
             job_def_retries = job_def['retryStrategy']['attempts']
 
