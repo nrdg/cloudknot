@@ -38,6 +38,14 @@ UNIT_TEST_PREFIX = 'cloudknot-unit-test'
 data_path = op.join(ck.__path__[0], 'data')
 
 
+def test_NamedObject():
+    named = ck.aws.NamedObject(name='test_test')
+    assert named.name == 'test-test'
+
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.aws.NamedObject(name='42test')
+
+
 def get_testing_name():
     u = str(uuid.uuid4()).replace('-', '')[:8]
     name = UNIT_TEST_PREFIX + '-' + u

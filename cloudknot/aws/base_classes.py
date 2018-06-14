@@ -6,6 +6,7 @@ import configparser
 import json
 import logging
 import os
+import re
 import uuid
 from collections import namedtuple
 
@@ -940,7 +941,8 @@ class NamedObject(object):
         Parameters
         ----------
         name : string
-            Name of the object
+            Name of the object. Must satisfy regular expression
+            pattern: [a-zA-Z][-a-zA-Z0-9]*
         """
         config_file = get_config_file()
         conf = configparser.ConfigParser()
@@ -952,7 +954,13 @@ class NamedObject(object):
                     and conf.get('aws', 'configured') == 'True'):
                 raise CloudknotConfigurationError(config_file)
 
-        self._name = str(name)
+        name = str(name).replace('_', '-')
+        pattern = re.compile('[a-zA-Z][-a-zA-Z0-9]*')
+        if not pattern.match(name):
+            raise CloudknotInputError('name must satisfy regular expression '
+                                      'pattern: [a-zA-Z][-a-zA-Z0-9]*')
+
+        self._name = name
         self._clobbered = False
         self._region = get_region()
         self._profile = get_profile()
