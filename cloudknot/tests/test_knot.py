@@ -185,7 +185,8 @@ def test_knot(cleanup_repos):
         assert knot.name == name
         assert knot.knot_name == 'knot ' + name
         assert knot.pars.name == pars.name
-        assert knot.docker_image.name == unit_testing_func.__name__.replace('_', '-')
+        func_name = unit_testing_func.__name__.replace('_', '-')
+        assert knot.docker_image.name == func_name
         assert knot.docker_repo.name == 'cloudknot'
         pre = name + '-cloudknot-'
         assert knot.job_definition.name == pre + 'job-definition'
