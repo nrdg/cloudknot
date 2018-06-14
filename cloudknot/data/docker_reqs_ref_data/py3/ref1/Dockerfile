@@ -1,5 +1,5 @@
 ###############################################################################
-# Dockerfile to build unit_testing_func application container
+# Dockerfile to build unit-testing-func application container
 # Based on python:3
 ###############################################################################
 
@@ -21,10 +21,10 @@ RUN (id -u cloudknot-user >/dev/null 2>&1 || useradd cloudknot-user) \
 ENV HOME /home/cloudknot-user
 
 # Copy the python script
-COPY unit_testing_func.py /home/cloudknot-user/
+COPY unit-testing-func.py /home/cloudknot-user/
 
 # Set working directory
 WORKDIR /home/cloudknot-user
 
 # Set entrypoint
-ENTRYPOINT ["python", "/home/cloudknot-user/unit_testing_func.py"]
+ENTRYPOINT ["python", "/home/cloudknot-user/unit-testing-func.py"]

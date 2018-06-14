@@ -109,9 +109,9 @@ def cleanup_repos(bucket_cleanup):
     # Get all repos with unit test prefix in the name
     response = ecr.describe_repositories()
     repos = [r for r in response.get('repositories')
-             if ('unit_testing_func' in r['repositoryName']
-                 or 'test_func_input' in r['repositoryName']
-                 or 'simple_unit_testing_func' in r['repositoryName']
+             if ('unit-testing-func' in r['repositoryName']
+                 or 'test-func-input' in r['repositoryName']
+                 or 'simple-unit-testing-func' in r['repositoryName']
                  or UNIT_TEST_PREFIX in r['repositoryName'])]
 
     # Delete the AWS ECR repo
@@ -181,7 +181,7 @@ def test_DockerImage(cleanup_repos):
         # ----------------------------------------------------
         di = ck.DockerImage(func=unit_testing_func)
 
-        assert di.name == unit_testing_func.__name__
+        assert di.name == unit_testing_func.__name__.replace('_', '-')
         import_names = set([d['name'] for d in di.pip_imports])
         assert import_names == correct_pip_imports
         assert di.missing_imports == ['AFQ']
@@ -197,7 +197,7 @@ def test_DockerImage(cleanup_repos):
         correct_req_path = op.join(correct_dir, 'requirements.txt')
         correct_dockerfile = op.join(correct_dir, 'Dockerfile')
 
-        correct_script_path = op.join(correct_dir, 'unit_testing_func.py')
+        correct_script_path = op.join(correct_dir, 'unit-testing-func.py')
 
         with open(correct_req_path) as f:
             correct_reqs = set([s.split('=')[0] for s in f.readlines()])
@@ -256,7 +256,7 @@ def test_DockerImage(cleanup_repos):
             dir_name=dir_name
         )
 
-        assert di.name == unit_testing_func.__name__
+        assert di.name == unit_testing_func.__name__.replace('_', '-')
         import_names = set([d['name'] for d in di.pip_imports])
         assert import_names == correct_pip_imports
         assert di.missing_imports == ['AFQ']
@@ -300,7 +300,7 @@ def test_DockerImage(cleanup_repos):
         correct_dir = op.join(
             data_path, 'docker_reqs_ref_data', py_dir, 'ref2'
         )
-        script_path = op.join(correct_dir, 'test_func_input.py')
+        script_path = op.join(correct_dir, 'test-func-input.py')
 
         # Put the results in a temp dir with a pre-existing file
         dir_name = tempfile.mkdtemp(dir=os.getcwd())
@@ -512,7 +512,7 @@ def test_DockerImage(cleanup_repos):
         c = docker.from_env().api
         unit_test_images = [
             im for im in c.images()
-            if any(('unit_testing_func' in tag or 'test_func_input' in tag)
+            if any(('unit-testing-func' in tag or 'test-func-input' in tag)
                    for tag in im['RepoTags'])
         ]
 
@@ -527,8 +527,8 @@ def test_DockerImage(cleanup_repos):
             config.read(config_file)
 
             for name in list(config.sections()):
-                if name in ['docker-image unit_testing_func',
-                            'docker-image test_func_input.py']:
+                if name in ['docker-image unit-testing-func',
+                            'docker-image test-func-input']:
                     config.remove_section(name)
 
             try:

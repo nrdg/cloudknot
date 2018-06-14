@@ -1,5 +1,5 @@
 ###############################################################################
-# Dockerfile to build test_func_input.py application container
+# Dockerfile to build test-func-input.py application container
 # Based on python:2
 ###############################################################################
 
@@ -21,10 +21,10 @@ RUN (id -u unit-test-username >/dev/null 2>&1 || useradd unit-test-username) \
 ENV HOME /home/unit-test-username
 
 # Copy the python script
-COPY test_func_input.py /home/unit-test-username/
+COPY test-func-input.py /home/unit-test-username/
 
 # Set working directory
 WORKDIR /home/unit-test-username
 
 # Set entrypoint
-ENTRYPOINT ["python", "/home/unit-test-username/test_func_input.py"]
+ENTRYPOINT ["python", "/home/unit-test-username/test-func-input.py"]
