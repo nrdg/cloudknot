@@ -608,9 +608,13 @@ def test_DockerRepo(bucket_cleanup):
         config = configparser.ConfigParser()
         with ck.config.rlock:
             config.read(config_file)
-            for name in config.options(repo_section_name):
-                if UNIT_TEST_PREFIX in name:
-                    config.remove_option(repo_section_name, name)
+            try:
+                for name in config.options(repo_section_name):
+                    if UNIT_TEST_PREFIX in name:
+                        config.remove_option(repo_section_name, name)
+            except configparser.NoSectionError:
+                pass
+
             with open(config_file, 'w') as f:
                 config.write(f)
 
