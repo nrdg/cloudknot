@@ -91,7 +91,13 @@
 <span class="kn">from</span> <span class="nn">.config</span> <span class="k">import</span> <span class="n">get_config_file</span><span class="p">,</span> <span class="n">rlock</span>
 <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">dockerimage</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Pars&quot;</span><span class="p">,</span> <span class="s2">&quot;Knot&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[]</span>
+
+
+<span class="k">def</span> <span class="nf">registered</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
+    <span class="n">__all__</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fn</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">fn</span>
+
 
 <span class="n">mod_logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
@@ -102,7 +108,8 @@
 
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
-<div class="viewcode-block" id="Pars"><a class="viewcode-back" href="../../documentation.html#cloudknot.Pars">[docs]</a><span class="k">class</span> <span class="nc">Pars</span><span class="p">(</span><span class="n">aws</span><span class="o">.</span><span class="n">NamedObject</span><span class="p">):</span>
+<div class="viewcode-block" id="Pars"><a class="viewcode-back" href="../../documentation.html#cloudknot.Pars">[docs]</a><span class="nd">@registered</span>
+<span class="k">class</span> <span class="nc">Pars</span><span class="p">(</span><span class="n">aws</span><span class="o">.</span><span class="n">NamedObject</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;PARS stands for Persistent AWS Resource Set</span>
 
 <span class="sd">    This object collects AWS resources that could, in theory, be created only</span>
@@ -654,7 +661,8 @@
 
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
-<div class="viewcode-block" id="Knot"><a class="viewcode-back" href="../../documentation.html#cloudknot.Knot">[docs]</a><span class="k">class</span> <span class="nc">Knot</span><span class="p">(</span><span class="n">aws</span><span class="o">.</span><span class="n">NamedObject</span><span class="p">):</span>
+<div class="viewcode-block" id="Knot"><a class="viewcode-back" href="../../documentation.html#cloudknot.Knot">[docs]</a><span class="nd">@registered</span>
+<span class="k">class</span> <span class="nc">Knot</span><span class="p">(</span><span class="n">aws</span><span class="o">.</span><span class="n">NamedObject</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;A collection of resources and methods to submit jobs to AWS Batch</span>
 
 <span class="sd">    This object collects AWS resources that should be created once for each</span>
