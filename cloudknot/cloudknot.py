@@ -12,7 +12,13 @@ from . import aws
 from .config import get_config_file, rlock
 from . import dockerimage
 
-__all__ = ["Pars", "Knot"]
+__all__ = []
+
+
+def registered(fn):
+    __all__.append(fn.__name__)
+    return fn
+
 
 mod_logger = logging.getLogger(__name__)
 
@@ -23,6 +29,7 @@ def _stack_out(key, outputs):
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
+@registered
 class Pars(aws.NamedObject):
     """PARS stands for Persistent AWS Resource Set
 
@@ -575,6 +582,7 @@ class Pars(aws.NamedObject):
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
+@registered
 class Knot(aws.NamedObject):
     """A collection of resources and methods to submit jobs to AWS Batch
 

@@ -6,12 +6,19 @@ from collections import namedtuple
 
 from .base_classes import NamedObject, clients, get_ecr_repo
 
-__all__ = ["DockerRepo"]
+__all__ = []
+
+
+def registered(fn):
+    __all__.append(fn.__name__)
+    return fn
+
 
 mod_logger = logging.getLogger(__name__)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
+@registered
 class DockerRepo(NamedObject):
     """Class for creating and managing remote docker repositories"""
     def __init__(self, name):
