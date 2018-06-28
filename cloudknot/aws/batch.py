@@ -13,12 +13,19 @@ from .base_classes import NamedObject, clients, \
     ResourceDoesNotExistException, ResourceClobberedException, \
     BatchJobFailedError, CKTimeoutError, CloudknotInputError, get_s3_params
 
-__all__ = ["BatchJob"]
+__all__ = []
+
+
+def registered(fn):
+    __all__.append(fn.__name__)
+    return fn
+
 
 mod_logger = logging.getLogger(__name__)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
+@registered
 class BatchJob(NamedObject):
     """Class for defining AWS Batch Job"""
     def __init__(self, job_id=None, name=None, job_queue=None,

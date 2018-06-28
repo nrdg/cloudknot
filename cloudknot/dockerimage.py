@@ -19,12 +19,19 @@ from .aws.base_classes import get_region, get_profile, \
     CloudknotInputError, CloudknotConfigurationError
 from .config import get_config_file, rlock
 
-__all__ = ["DockerImage"]
+__all__ = []
+
+
+def registered(fn):
+    __all__.append(fn.__name__)
+    return fn
+
 
 mod_logger = logging.getLogger(__name__)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
+@registered
 class DockerImage(aws.NamedObject):
     """Class for dockerizing a python script or function
 
