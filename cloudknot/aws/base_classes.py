@@ -3,12 +3,10 @@ from __future__ import absolute_import, division, print_function
 import boto3
 import botocore
 import configparser
-import getpass
 import json
 import logging
 import os
-import sys
-import time
+import re
 import uuid
 from collections import namedtuple
 
@@ -20,13 +18,11 @@ __all__ = [
     "CannotCreateResourceException", "RegionException", "ProfileException",
     "BatchJobFailedError", "CKTimeoutError",
     "CloudknotInputError", "CloudknotConfigurationError",
-    "NamedObject", "ObjectWithArn", "ObjectWithUsernameAndMemory",
-    "clients", "refresh_clients",
-    "wait_for_compute_environment", "wait_for_job_queue",
+    "NamedObject", "clients", "refresh_clients",
     "get_region", "set_region",
     "get_ecr_repo", "set_ecr_repo",
     "get_s3_params", "set_s3_params",
-    "get_profile", "set_profile", "list_profiles",
+    "get_profile", "set_profile", "list_profiles", "get_user",
 ]
 
 mod_logger = logging.getLogger(__name__)
@@ -109,20 +105,24 @@ def get_s3_params():
     For the bucket name, first check the cloudknot config file for the bucket
     option. If that fails, check for the CLOUDKNOT_S3_BUCKET environment
     variable. If that fails, use
-    'cloudknot-' + getpass.getuser().lower() + '-' + uuid4()
+    'cloudknot-' + get_user().lower() + '-' + uuid4()
 
     For the policy name, first check the cloudknot config file. If that fails,
     use 'cloudknot-bucket-access-' + str(uuid.uuid4())
 
+    For the region, first check the cloudknot config file. If that fails,
+    use the current cloudknot region
+
     Returns
     -------
     bucket : NamedTuple
-        A namedtuple with fields ['bucket', 'policy', 'sse']
+        A namedtuple with fields ['bucket', 'policy', 'policy_arn', 'sse']
     """
     config_file = get_config_file()
     config = configparser.ConfigParser()
 
-    BucketInfo = namedtuple('BucketInfo', ['bucket', 'policy', 'sse'])
+    BucketInfo = namedtuple('BucketInfo',
+                            ['bucket', 'policy', 'policy_arn', 'sse'])
 
     with rlock:
         config.read(config_file)
@@ -146,7 +146,7 @@ def get_s3_params():
             except KeyError:
                 # Use the fallback bucket b/c the cloudknot
                 # bucket environment variable is not set
-                bucket = ('cloudknot-' + getpass.getuser().lower()
+                bucket = ('cloudknot-' + get_user().lower()
                           + '-' + str(uuid.uuid4()))
 
             if policy is not None:
@@ -176,7 +176,15 @@ def get_s3_params():
             config.read(config_file)
             policy = config.get('aws', 's3-bucket-policy')
 
-    return BucketInfo(bucket=bucket, policy=policy, sse=sse)
+    response = clients['iam'].list_policies(Scope='Local',
+                                            PathPrefix='/cloudknot/')
+    policy_arn = list(filter(
+        lambda d: d['PolicyName'] == policy,
+        response.get('Policies')
+    ))[0]['Arn']
+
+    return BucketInfo(bucket=bucket, policy=policy,
+                      policy_arn=policy_arn, sse=sse)
 
 
 def set_s3_params(bucket, policy=None, sse=None):
@@ -234,12 +242,17 @@ def set_s3_params(bucket, policy=None, sse=None):
 
         # Create the bucket
         try:
-            clients['s3'].create_bucket(
-                Bucket=bucket,
-                CreateBucketConfiguration={
-                    'LocationConstraint': get_region()
-                }
-            )
+            if get_region() == 'us-east-1':
+                clients['s3'].create_bucket(
+                    Bucket=bucket
+                )
+            else:
+                clients['s3'].create_bucket(
+                    Bucket=bucket,
+                    CreateBucketConfiguration={
+                        'LocationConstraint': get_region()
+                    }
+                )
         except clients['s3'].exceptions.BucketAlreadyOwnedByYou:
             pass
         except clients['s3'].exceptions.BucketAlreadyExists:
@@ -249,8 +262,18 @@ def set_s3_params(bucket, policy=None, sse=None):
             error_code = e.response['Error']['Code']
             if error_code in ['IllegalLocationConstraintException',
                               'InvalidLocationConstraint']:
+                response = clients['s3'].get_bucket_location(Bucket=bucket)
+                location = response.get('LocationConstraint')
                 try:
-                    clients['s3'].create_bucket(Bucket=bucket)
+                    if location == 'us-east-1' or location is None:
+                        clients['s3'].create_bucket(Bucket=bucket)
+                    else:
+                        clients['s3'].create_bucket(
+                            Bucket=bucket,
+                            CreateBucketConfiguration={
+                                'LocationConstraint': location
+                            }
+                        )
                 except clients['s3'].exceptions.BucketAlreadyOwnedByYou:
                     pass
                 except clients['s3'].exceptions.BucketAlreadyExists:
@@ -467,15 +490,20 @@ def set_region(region='us-east-1'):
         max_pool = clients['iam'].meta.config.max_pool_connections
         boto_config = botocore.config.Config(max_pool_connections=max_pool)
         session = boto3.Session(profile_name=get_profile(fallback=None))
-        clients['iam'] = session.client('iam', region_name=region,
-                                        config=boto_config)
-        clients['ec2'] = session.client('ec2', region_name=region,
-                                        config=boto_config)
         clients['batch'] = session.client('batch', region_name=region,
                                           config=boto_config)
+        clients['cloudformation'] = session.client('cloudformation',
+                                                   region_name=region,
+                                                   config=boto_config)
         clients['ecr'] = session.client('ecr', region_name=region,
                                         config=boto_config)
         clients['ecs'] = session.client('ecs', region_name=region,
+                                        config=boto_config)
+        clients['ec2'] = session.client('ec2', region_name=region,
+                                        config=boto_config)
+        clients['iam'] = session.client('iam', region_name=region,
+                                        config=boto_config)
+        clients['sts'] = session.client('sts', region_name=region,
                                         config=boto_config)
         clients['s3'] = session.client('s3', region_name=region,
                                        config=boto_config)
@@ -534,6 +562,10 @@ def list_profiles():
         credentials_file=credentials_file,
         aws_config_file=aws_config_file
     )
+
+
+def get_user():
+    return clients['sts'].get_caller_identity().get('Arn').split('/')[-1]
 
 
 def get_profile(fallback='from-env'):
@@ -626,15 +658,20 @@ def set_profile(profile_name):
         max_pool = clients['iam'].meta.config.max_pool_connections
         boto_config = botocore.config.Config(max_pool_connections=max_pool)
         session = boto3.Session(profile_name=profile_name)
-        clients['iam'] = session.client('iam', region_name=get_region(),
-                                        config=boto_config)
-        clients['ec2'] = session.client('ec2', region_name=get_region(),
-                                        config=boto_config)
         clients['batch'] = session.client('batch', region_name=get_region(),
                                           config=boto_config)
+        clients['cloudformation'] = session.client('cloudformation',
+                                                   region_name=get_region(),
+                                                   config=boto_config)
         clients['ecr'] = session.client('ecr', region_name=get_region(),
                                         config=boto_config)
         clients['ecs'] = session.client('ecs', region_name=get_region(),
+                                        config=boto_config)
+        clients['ec2'] = session.client('ec2', region_name=get_region(),
+                                        config=boto_config)
+        clients['iam'] = session.client('iam', region_name=get_region(),
+                                        config=boto_config)
+        clients['sts'] = session.client('sts', region_name=get_region(),
                                         config=boto_config)
         clients['s3'] = session.client('s3', region_name=get_region(),
                                        config=boto_config)
@@ -642,26 +679,32 @@ def set_profile(profile_name):
 
 #: module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, ECS, S3.
 clients = {
-    'iam': boto3.Session(profile_name=get_profile(fallback=None)).client(
-        'iam', region_name=get_region()
-    ),
-    'ec2': boto3.Session(profile_name=get_profile(fallback=None)).client(
-        'ec2', region_name=get_region()
-    ),
     'batch': boto3.Session(profile_name=get_profile(fallback=None)).client(
         'batch', region_name=get_region()
     ),
+    'cloudformation': boto3.Session(
+        profile_name=get_profile(fallback=None)
+    ).client('cloudformation', region_name=get_region()),
     'ecr': boto3.Session(profile_name=get_profile(fallback=None)).client(
         'ecr', region_name=get_region()
     ),
     'ecs': boto3.Session(profile_name=get_profile(fallback=None)).client(
         'ecs', region_name=get_region()
     ),
+    'ec2': boto3.Session(profile_name=get_profile(fallback=None)).client(
+        'ec2', region_name=get_region()
+    ),
+    'iam': boto3.Session(profile_name=get_profile(fallback=None)).client(
+        'iam', region_name=get_region()
+    ),
+    'sts': boto3.Session(profile_name=get_profile(fallback=None)).client(
+        'sts', region_name=get_region()
+    ),
     's3': boto3.Session(profile_name=get_profile(fallback=None)).client(
         's3', region_name=get_region()
-    )
+    ),
 }
-"""module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, ECS, S3.
+"""module-level dictionary of boto3 clients.
 
 Storing the boto3 clients in a module-level dictionary allows us to change
 the region and profile and have those changes reflected globally.
@@ -689,6 +732,9 @@ def refresh_clients(max_pool=10):
                                         config=config)
         clients['s3'] = session.client('s3', region_name=get_region(),
                                        config=config)
+        clients['cloudformation'] = session.client('cloudformation',
+                                                   region_name=get_region(),
+                                                   config=config)
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -895,7 +941,8 @@ class NamedObject(object):
         Parameters
         ----------
         name : string
-            Name of the object
+            Name of the object. Must satisfy regular expression
+            pattern: [a-zA-Z][-a-zA-Z0-9]*
         """
         config_file = get_config_file()
         conf = configparser.ConfigParser()
@@ -907,7 +954,13 @@ class NamedObject(object):
                     and conf.get('aws', 'configured') == 'True'):
                 raise CloudknotConfigurationError(config_file)
 
-        self._name = str(name)
+        name = str(name).replace('_', '-')
+        pattern = re.compile('[a-zA-Z][-a-zA-Z0-9]*')
+        if not pattern.match(name):
+            raise CloudknotInputError('name must satisfy regular expression '
+                                      'pattern: [a-zA-Z][-a-zA-Z0-9]*')
+
+        self._name = name
         self._clobbered = False
         self._region = get_region()
         self._profile = get_profile()
@@ -950,167 +1003,3 @@ class NamedObject(object):
             raise RegionException(resource_region=self.region)
 
         self.check_profile()
-
-
-# noinspection PyPropertyAccess,PyAttributeOutsideInit
-class ObjectWithArn(NamedObject):
-    """Base class for building objects with an Amazon Resource Name (ARN)
-
-    Inherits from NamedObject
-    """
-    def __init__(self, name):
-        """Initialize a base class with name and Amazon Resource Number (ARN)
-
-        Parameters
-        ----------
-        name : string
-            Name of the object
-        """
-        super(ObjectWithArn, self).__init__(name=name)
-        self._arn = None
-
-    @property
-    def arn(self):
-        """Amazon resource number (ARN) of this resource"""
-        return self._arn
-
-
-# noinspection PyPropertyAccess,PyAttributeOutsideInit
-class ObjectWithUsernameAndMemory(ObjectWithArn):
-    """Base class for building objects with properties memory and username
-
-    Inherits from ObjectWithArn
-    """
-    def __init__(self, name, memory=32000, username='cloudknot-user'):
-        """Initialize a base class with name, memory, and username properties
-
-        Parameters
-        ----------
-        name : string
-            Name of the object
-
-        memory : int
-            memory (MiB) to be used for this resource
-            Default: 32000
-
-        username : string
-            username for be used for this resource
-            Default: cloudknot-user
-        """
-        super(ObjectWithUsernameAndMemory, self).__init__(name=name)
-
-        try:
-            mem = int(memory)
-            if mem < 1:
-                raise CloudknotInputError('memory must be positive')
-            else:
-                self._memory = mem
-        except ValueError:
-            raise CloudknotInputError('memory must be an integer')
-
-        self._username = str(username)
-
-    @property
-    def memory(self):
-        """Memory to be used for this resource"""
-        return self._memory
-
-    @property
-    def username(self):
-        """Username for this resource"""
-        return self._username
-
-
-# noinspection PyPropertyAccess,PyAttributeOutsideInit
-def wait_for_compute_environment(arn, name, log=True, max_wait_time=60):
-    """Wait for a compute environment to finish updating or creating
-
-    Parameters
-    ----------
-    arn : string
-        Compute environment ARN
-
-    name : string
-        Compute environment name
-
-    log : boolean
-        Whether or not to log waiting info to the application log
-        Default: True
-
-    max_wait_time : int
-        Maximum time to wait (in seconds)
-        Default: 60
-    """
-    # Initialize waiting and num_waits for the while loop
-    waiting = True
-    num_waits = 0
-    while waiting:
-        if log:
-            # Log waiting info
-            mod_logger.info(
-                'Waiting for AWS to finish modifying compute environment '
-                '{name:s}.'.format(name=name)
-            )
-
-        # Get compute environment info
-        response = clients['batch'].describe_compute_environments(
-            computeEnvironments=[arn]
-        )
-
-        # If compute environment has status == CREATING/UPDATING, keep waiting
-        waiting = (response.get('computeEnvironments') == []
-                   or response.get('computeEnvironments')[0]['status']
-                   in ['CREATING', 'UPDATING'])
-
-        # Wait a second
-        time.sleep(1)
-        num_waits += 1
-
-        if num_waits > max_wait_time:
-            # Timeout if max_wait_time exceeded
-            sys.exit('Waiting too long for AWS to modify compute '
-                     'environment. Aborting.')
-
-
-# noinspection PyPropertyAccess,PyAttributeOutsideInit
-def wait_for_job_queue(name, log=True, max_wait_time=60):
-    """Wait for a job queue to finish updating or creating
-
-    Parameters
-    ----------
-    name : string
-        Job Queue name
-
-    log : boolean
-        Whether or not to log waiting info to the application log
-        Default: True
-
-    max_wait_time : int
-        Maximum time to wait (in seconds)
-        Default: 60
-    """
-    # Initialize waiting and num_waits for the while loop
-    waiting = True
-    num_waits = 0
-    while waiting:
-        if log:  # pragma: nocover
-            # Log waiting info
-            mod_logger.info(
-                'Waiting for AWS to finish modifying job queue '
-                '{name:s}.'.format(name=name)
-            )
-
-        # If job queue has status == CREATING/UPDATING, keep waiting
-        response = clients['batch'].describe_job_queues(jobQueues=[name])
-        waiting = (response.get('jobQueues') == []
-                   or response.get('jobQueues')[0]['status']
-                   in ['CREATING', 'UPDATING'])
-
-        # Wait a second
-        time.sleep(1)
-        num_waits += 1
-
-        if num_waits > max_wait_time:
-            # Timeout if max_wait_time exceeded
-            sys.exit('Waiting too long for AWS to modify job queue. '
-                     'Aborting.')

@@ -23,7 +23,7 @@ Usage
       return np.dot(A, x)
 
    # Create a `Knot`, the primary object in cloudknot (read the docs)
-   knot = ck.Knot(name='random_mv_prod', func=random_mv_prod)
+   knot = ck.Knot(name='random-mv-prod', func=random_mv_prod)
 
    # Submit the jobs
    import numpy as np

@@ -1,0 +1,245 @@
+{
+    "AWSTemplateFormatVersion" : "2010-09-09",
+        "Description" : "Cloudknot Knot AWS CloudFormation Template: This template contains an AWS Batch job definition, compute environment, and job queue. It also references an input PARS stack.",
+        "Parameters" : {
+            "ParsStackName" : {
+                "Type" : "String",
+                "Description" : "The Cloudformation stack containing the PARS resources."
+            },
+            "DockerImage" : {
+                "Type" : "String",
+                "Description" : "URI for AWS ECR Repository containing the container to be run",
+                "MinLength" : "1",
+                "MaxLength" : "100",
+                "ConstraintDescription" : "The job definition name must be between 1 and 100 characters"
+            },
+            "JdName" : {
+                "Type" : "String",
+                "Description" : "Name of the job definition.",
+                "MinLength" : "1",
+                "MaxLength" : "100",
+                "ConstraintDescription" : "The job definition name must be between 1 and 50 characters"
+            },
+            "JdvCpus" : {
+                "Type" : "Number",
+                "Default" : "1",
+                "Description" : "Number of virtual CPUs required for the job definition. Default=1",
+                "MinValue" : "0",
+                "ConstraintDescription" : "vCpus must be greater than zero."
+            },
+            "JdMemory" : {
+                "Type" : "Number",
+                "Default" : "8000",
+                "Description" : "Memory (MiB) required for the job definition. Default=8000",
+                "MinValue" : "0",
+                "ConstraintDescription" : "Memory must be greater than zero."
+            },
+            "JdUser" : {
+                "Type" : "String",
+                "Description" : "Username for the job definition. Default='cloudknot-user'",
+                "Default" : "cloudknot-user",
+                "MinLength" : "1",
+                "MaxLength" : "30",
+                "ConstraintDescription" : "The username must be between 1 and 20 characters"
+            },
+            "JdOutputBucket" : {
+                "Type" : "String",
+                "Description" : "The S3 bucket to which the jobs will send their output."
+            },
+            "JdRetries" : {
+                "Type" : "Number",
+                "Default" : "1",
+                "Description" : "Number of times a job can be moved back to 'RUNNABLE' status. Default=1",
+                "MinValue" : "1",
+                "MaxValue" : "10",
+                "ConstraintDescription" : "The number of retries must be between 1 and 10."
+            },
+            "JqName" : {
+                "Type" : "String",
+                "Description" : "Name of the job queue.",
+                "MinLength" : "1",
+                "MaxLength" : "100",
+                "ConstraintDescription" : "The job queue name must be between 1 and 50 characters"
+            },
+            "JqPriority" : {
+                "Type" : "Number",
+                "Default" : "1",
+                "Description" : "Priority for jobs in the job queue. Default=1",
+                "MinValue" : "1",
+                "ConstraintDescription" : "The priority must be greater than one."
+            },
+            "CeName" : {
+                "Type" : "String",
+                "Description" : "Name of the compute environment.",
+                "MinLength" : "1",
+                "MaxLength" : "100",
+                "ConstraintDescription" : "The compute environment name must be between 1 and 50 characters"
+            },
+            "CeResourceType" : {
+                "Type" : "String",
+                "Default" : "EC2",
+                "Description" : "The compute environment resource type. Default='EC2'",
+                "AllowedValues" : ["EC2", "SPOT"],
+                "ConstraintDescription" : "The resource type must be either 'EC2' or 'SPOT.'"
+            },
+            "CeMinvCpus" : {
+                "Type" : "Number",
+                "Default" : "0",
+                "Description" : "Minimum number of virtual CPUs for instances launched in the compute environment. Default=0",
+                "MinValue" : "0",
+                "ConstraintDescription" : "MinvCpus must be greater than zero."
+            },
+            "CeDesiredvCpus" : {
+                "Type" : "Number",
+                "Default" : "8",
+                "Description" : "Desired number of virtual CPUs for instances launched in the compute environment. Default=8",
+                "MinValue" : "0",
+                "ConstraintDescription" : "DesiredvCpus must be greater than zero."
+            },
+            "CeMaxvCpus" : {
+                "Type" : "Number",
+                "Default" : "256",
+                "Description" : "Maximum number of virtual CPUs for instances launched in the compute environment. Default=256",
+                "MinValue" : "0",
+                "ConstraintDescription" : "MaxvCpus must be greater than zero."
+            },
+            "CeInstanceTypes" : {
+                "Type" : "CommaDelimitedList",
+                "Default" : "optimal",
+                "Description" : "Instance types that may be launched in the compute environment. Default='optimal'"
+            },
+            "CeBidPercentage" : {
+                "Type" : "Number",
+                "Default" : "50",
+                "Description" : "Bid percentage if using spot instances in the compute environment. Default=50",
+                "MinValue" : "0",
+                "MaxValue" : "100",
+                "ConstraintDescription" : "Bid percentage must be between zero and 100."
+            },
+            "CeAmiId" : {
+                "Type" : "String",
+                "Description" : "Optional AMI id used for instances launched in the compute environment.",
+                "Default" : ":default",
+                "MinLength" : "1",
+                "MaxLength" : "100",
+                "ConstraintDescription" : "The AMI ID must be between 1 and 50 characters"
+            },
+            "CeEc2KeyPair" : {
+                "Type" : "String",
+                "Description" : "Optional EC2 key pair used for instances launched in the compute environment.",
+                "Default" : ":default",
+                "MinLength" : "1",
+                "MaxLength" : "100",
+                "ConstraintDescription" : "The key pair must be between 1 and 50 characters"
+            }
+        },
+        "Conditions" : {
+            "SpotInstances" : { "Fn::Equals" : [{"Ref" : "CeResourceType"}, "SPOT"] },
+            "AmiProvided" : { "Fn::Not" : [{
+                "Fn::Equals" : [{"Ref" : "CeAmiId"}, ":default"]
+            }]},
+            "KeyPairProvided" : { "Fn::Not" : [{
+                "Fn::Equals" : [{"Ref" : "CeEc2KeyPair"}, ":default"]
+            }]}
+        },
+        "Resources" : {
+            "JobDefinition" : {
+                "Type" : "AWS::Batch::JobDefinition",
+                "Properties" : {
+                    "JobDefinitionName" : { "Ref" : "JdName" },
+                    "Type" : "container",
+                    "ContainerProperties" : {
+                        "Image" : { "Ref" : "DockerImage" },
+                        "Vcpus" : { "Ref" : "JdvCpus" },
+                        "Memory" : { "Ref" : "JdMemory" },
+                        "Command" : [],
+                        "User" : { "Ref" : "JdUser" },
+                        "Environment" : [
+                            {
+                                "Name" : "CLOUDKNOT_JOBS_S3_BUCKET",
+                                "Value" : { "Ref" : "JdOutputBucket" }
+                            },
+                            {
+                                "Name" : "CLOUDKNOT_S3_JOBDEF_KEY",
+                                "Value" : { "Ref" : "JdName" }
+                            }
+                        ]
+                    },
+                    "RetryStrategy" : {
+                        "Attempts" : { "Ref" : "JdRetries" }
+                    }
+                }
+            },
+            "JobQueue" : {
+                "Type" : "AWS::Batch::JobQueue",
+                "Properties" : {
+                    "JobQueueName" : { "Ref" : "JqName" },
+                    "Priority" : { "Ref" : "JqPriority" },
+                    "State" : "ENABLED",
+                    "ComputeEnvironmentOrder" : [
+                    {
+                        "Order" : 1,
+                        "ComputeEnvironment" : { "Ref" : "ComputeEnvironment" }
+                    }
+                    ]
+                }
+            },
+            "ComputeEnvironment" : {
+                "Type" : "AWS::Batch::ComputeEnvironment",
+                "Properties" : {
+                    "ComputeEnvironmentName" : { "Ref" : "CeName" },
+                    "Type" : "MANAGED",
+                    "ComputeResources" : {
+                        "Type" : { "Ref" : "CeResourceType" },
+                        "MinvCpus" : { "Ref" : "CeMinvCpus" },
+                        "DesiredvCpus" : { "Ref" : "CeDesiredvCpus" },
+                        "MaxvCpus" : { "Ref" : "CeMaxvCpus" },
+                        "InstanceTypes" : { "Ref" : "CeInstanceTypes" },
+                        "Subnets" : {
+                            "Fn::Split" : [",", { "Fn::ImportValue" : { "Fn::Sub" : "${ParsStackName}-SubnetIds" }}]
+                        },
+                        "SecurityGroupIds" : [{ "Fn::ImportValue" : { "Fn::Sub" : "${ParsStackName}-SecurityGroupId" }}],
+                        "InstanceRole" : { "Fn::ImportValue" : { "Fn::Sub" : "${ParsStackName}-InstanceProfile" }},
+                        "SpotIamFleetRole" : {
+                            "Fn::If": [ "SpotInstances",
+                                { "Fn::ImportValue" : { "Fn::Sub" : "${ParsStackName}-SpotFleetRole" }},
+                                { "Ref" : "AWS::NoValue" }
+                            ]
+                        },
+                        "BidPercentage" : {
+                            "Fn::If": [ "SpotInstances",
+                                { "Ref": "CeBidPercentage" },
+                                { "Ref" : "AWS::NoValue" }
+                            ]
+                        },
+                        "ImageId" : {
+                            "Fn::If": [ "AmiProvided",
+                                { "Ref": "CeAmiId" },
+                                { "Ref" : "AWS::NoValue" }
+                            ]
+                        },
+                        "Ec2KeyPair" : {
+                            "Fn::If": [ "KeyPairProvided",
+                                { "Ref": "CeEc2KeyPair" },
+                                { "Ref" : "AWS::NoValue" }
+                            ]
+                        },
+                    },
+                    "ServiceRole" : { "Fn::ImportValue" : { "Fn::Sub" : "${ParsStackName}-BatchServiceRole" }},
+                    "State" : "ENABLED"
+                }
+            }
+        },
+        "Outputs" : {
+            "ComputeEnvironment" : {
+                "Value" : { "Ref" : "ComputeEnvironment" }
+            },
+            "JobQueue" : {
+                "Value" : { "Ref" : "JobQueue" }
+            },
+            "JobDefinition": {
+                "Value" : { "Ref" : "JobDefinition" }
+            }
+        }
+}
+
