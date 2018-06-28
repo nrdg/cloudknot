@@ -82,12 +82,10 @@
 <span class="kn">import</span> <span class="nn">boto3</span>
 <span class="kn">import</span> <span class="nn">botocore</span>
 <span class="kn">import</span> <span class="nn">configparser</span>
-<span class="kn">import</span> <span class="nn">getpass</span>
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">sys</span>
-<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">uuid</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">namedtuple</span>
 
@@ -99,13 +97,11 @@
     <span class="s2">&quot;CannotCreateResourceException&quot;</span><span class="p">,</span> <span class="s2">&quot;RegionException&quot;</span><span class="p">,</span> <span class="s2">&quot;ProfileException&quot;</span><span class="p">,</span>
     <span class="s2">&quot;BatchJobFailedError&quot;</span><span class="p">,</span> <span class="s2">&quot;CKTimeoutError&quot;</span><span class="p">,</span>
     <span class="s2">&quot;CloudknotInputError&quot;</span><span class="p">,</span> <span class="s2">&quot;CloudknotConfigurationError&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;NamedObject&quot;</span><span class="p">,</span> <span class="s2">&quot;ObjectWithArn&quot;</span><span class="p">,</span> <span class="s2">&quot;ObjectWithUsernameAndMemory&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;clients&quot;</span><span class="p">,</span> <span class="s2">&quot;refresh_clients&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;wait_for_compute_environment&quot;</span><span class="p">,</span> <span class="s2">&quot;wait_for_job_queue&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;NamedObject&quot;</span><span class="p">,</span> <span class="s2">&quot;clients&quot;</span><span class="p">,</span> <span class="s2">&quot;refresh_clients&quot;</span><span class="p">,</span>
     <span class="s2">&quot;get_region&quot;</span><span class="p">,</span> <span class="s2">&quot;set_region&quot;</span><span class="p">,</span>
     <span class="s2">&quot;get_ecr_repo&quot;</span><span class="p">,</span> <span class="s2">&quot;set_ecr_repo&quot;</span><span class="p">,</span>
     <span class="s2">&quot;get_s3_params&quot;</span><span class="p">,</span> <span class="s2">&quot;set_s3_params&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;get_profile&quot;</span><span class="p">,</span> <span class="s2">&quot;set_profile&quot;</span><span class="p">,</span> <span class="s2">&quot;list_profiles&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;get_profile&quot;</span><span class="p">,</span> <span class="s2">&quot;set_profile&quot;</span><span class="p">,</span> <span class="s2">&quot;list_profiles&quot;</span><span class="p">,</span> <span class="s2">&quot;get_user&quot;</span><span class="p">,</span>
 <span class="p">]</span>
 
 <span class="n">mod_logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
@@ -188,20 +184,24 @@
 <span class="sd">    For the bucket name, first check the cloudknot config file for the bucket</span>
 <span class="sd">    option. If that fails, check for the CLOUDKNOT_S3_BUCKET environment</span>
 <span class="sd">    variable. If that fails, use</span>
-<span class="sd">    &#39;cloudknot-&#39; + getpass.getuser().lower() + &#39;-&#39; + uuid4()</span>
+<span class="sd">    &#39;cloudknot-&#39; + get_user().lower() + &#39;-&#39; + uuid4()</span>
 
 <span class="sd">    For the policy name, first check the cloudknot config file. If that fails,</span>
 <span class="sd">    use &#39;cloudknot-bucket-access-&#39; + str(uuid.uuid4())</span>
 
+<span class="sd">    For the region, first check the cloudknot config file. If that fails,</span>
+<span class="sd">    use the current cloudknot region</span>
+
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    bucket : NamedTuple</span>
-<span class="sd">        A namedtuple with fields [&#39;bucket&#39;, &#39;policy&#39;, &#39;sse&#39;]</span>
+<span class="sd">        A namedtuple with fields [&#39;bucket&#39;, &#39;policy&#39;, &#39;policy_arn&#39;, &#39;sse&#39;]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">config_file</span> <span class="o">=</span> <span class="n">get_config_file</span><span class="p">()</span>
     <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
 
-    <span class="n">BucketInfo</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;BucketInfo&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;bucket&#39;</span><span class="p">,</span> <span class="s1">&#39;policy&#39;</span><span class="p">,</span> <span class="s1">&#39;sse&#39;</span><span class="p">])</span>
+    <span class="n">BucketInfo</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;BucketInfo&#39;</span><span class="p">,</span>
+                            <span class="p">[</span><span class="s1">&#39;bucket&#39;</span><span class="p">,</span> <span class="s1">&#39;policy&#39;</span><span class="p">,</span> <span class="s1">&#39;policy_arn&#39;</span><span class="p">,</span> <span class="s1">&#39;sse&#39;</span><span class="p">])</span>
 
     <span class="k">with</span> <span class="n">rlock</span><span class="p">:</span>
         <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
@@ -225,7 +225,7 @@
             <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
                 <span class="c1"># Use the fallback bucket b/c the cloudknot</span>
                 <span class="c1"># bucket environment variable is not set</span>
-                <span class="n">bucket</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;cloudknot-&#39;</span> <span class="o">+</span> <span class="n">getpass</span><span class="o">.</span><span class="n">getuser</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                <span class="n">bucket</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;cloudknot-&#39;</span> <span class="o">+</span> <span class="n">get_user</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
                           <span class="o">+</span> <span class="s1">&#39;-&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()))</span>
 
             <span class="k">if</span> <span class="n">policy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -255,7 +255,15 @@
             <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
             <span class="n">policy</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="s1">&#39;s3-bucket-policy&#39;</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">BucketInfo</span><span class="p">(</span><span class="n">bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="n">policy</span><span class="p">,</span> <span class="n">sse</span><span class="o">=</span><span class="n">sse</span><span class="p">)</span></div>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">list_policies</span><span class="p">(</span><span class="n">Scope</span><span class="o">=</span><span class="s1">&#39;Local&#39;</span><span class="p">,</span>
+                                            <span class="n">PathPrefix</span><span class="o">=</span><span class="s1">&#39;/cloudknot/&#39;</span><span class="p">)</span>
+    <span class="n">policy_arn</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span>
+        <span class="k">lambda</span> <span class="n">d</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;PolicyName&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">policy</span><span class="p">,</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Policies&#39;</span><span class="p">)</span>
+    <span class="p">))[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;Arn&#39;</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">BucketInfo</span><span class="p">(</span><span class="n">bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="n">policy</span><span class="p">,</span>
+                      <span class="n">policy_arn</span><span class="o">=</span><span class="n">policy_arn</span><span class="p">,</span> <span class="n">sse</span><span class="o">=</span><span class="n">sse</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="set_s3_params"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.set_s3_params.html#cloudknot.aws.set_s3_params">[docs]</a><span class="k">def</span> <span class="nf">set_s3_params</span><span class="p">(</span><span class="n">bucket</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sse</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -313,12 +321,17 @@
 
         <span class="c1"># Create the bucket</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">create_bucket</span><span class="p">(</span>
-                <span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span>
-                <span class="n">CreateBucketConfiguration</span><span class="o">=</span><span class="p">{</span>
-                    <span class="s1">&#39;LocationConstraint&#39;</span><span class="p">:</span> <span class="n">get_region</span><span class="p">()</span>
-                <span class="p">}</span>
-            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">get_region</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;us-east-1&#39;</span><span class="p">:</span>
+                <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">create_bucket</span><span class="p">(</span>
+                    <span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">create_bucket</span><span class="p">(</span>
+                    <span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span>
+                    <span class="n">CreateBucketConfiguration</span><span class="o">=</span><span class="p">{</span>
+                        <span class="s1">&#39;LocationConstraint&#39;</span><span class="p">:</span> <span class="n">get_region</span><span class="p">()</span>
+                    <span class="p">}</span>
+                <span class="p">)</span>
         <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">BucketAlreadyOwnedByYou</span><span class="p">:</span>
             <span class="k">pass</span>
         <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">BucketAlreadyExists</span><span class="p">:</span>
@@ -328,8 +341,18 @@
             <span class="n">error_code</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">response</span><span class="p">[</span><span class="s1">&#39;Error&#39;</span><span class="p">][</span><span class="s1">&#39;Code&#39;</span><span class="p">]</span>
             <span class="k">if</span> <span class="n">error_code</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;IllegalLocationConstraintException&#39;</span><span class="p">,</span>
                               <span class="s1">&#39;InvalidLocationConstraint&#39;</span><span class="p">]:</span>
+                <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get_bucket_location</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">)</span>
+                <span class="n">location</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;LocationConstraint&#39;</span><span class="p">)</span>
                 <span class="k">try</span><span class="p">:</span>
-                    <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">create_bucket</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">location</span> <span class="o">==</span> <span class="s1">&#39;us-east-1&#39;</span> <span class="ow">or</span> <span class="n">location</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">create_bucket</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">create_bucket</span><span class="p">(</span>
+                            <span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span>
+                            <span class="n">CreateBucketConfiguration</span><span class="o">=</span><span class="p">{</span>
+                                <span class="s1">&#39;LocationConstraint&#39;</span><span class="p">:</span> <span class="n">location</span>
+                            <span class="p">}</span>
+                        <span class="p">)</span>
                 <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">BucketAlreadyOwnedByYou</span><span class="p">:</span>
                     <span class="k">pass</span>
                 <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">BucketAlreadyExists</span><span class="p">:</span>
@@ -546,15 +569,20 @@
         <span class="n">max_pool</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">max_pool_connections</span>
         <span class="n">boto_config</span> <span class="o">=</span> <span class="n">botocore</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">Config</span><span class="p">(</span><span class="n">max_pool_connections</span><span class="o">=</span><span class="n">max_pool</span><span class="p">)</span>
         <span class="n">session</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
-        <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;iam&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">,</span>
-                                        <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span>
-        <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ec2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ec2&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">,</span>
-                                        <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span>
         <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;batch&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;batch&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">,</span>
                                           <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span>
+        <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;cloudformation&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;cloudformation&#39;</span><span class="p">,</span>
+                                                   <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">,</span>
+                                                   <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span>
         <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ecr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ecr&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">,</span>
                                         <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span>
         <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ecs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ecs&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">,</span>
+                                        <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span>
+        <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ec2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ec2&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">,</span>
+                                        <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span>
+        <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;iam&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">,</span>
+                                        <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span>
+        <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;sts&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;sts&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">,</span>
                                         <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span>
         <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;s3&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">,</span>
                                        <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span></div>
@@ -613,6 +641,10 @@
         <span class="n">credentials_file</span><span class="o">=</span><span class="n">credentials_file</span><span class="p">,</span>
         <span class="n">aws_config_file</span><span class="o">=</span><span class="n">aws_config_file</span>
     <span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">get_user</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;sts&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get_caller_identity</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Arn&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
 
 <div class="viewcode-block" id="get_profile"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.get_profile.html#cloudknot.aws.get_profile">[docs]</a><span class="k">def</span> <span class="nf">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="s1">&#39;from-env&#39;</span><span class="p">):</span>
@@ -705,15 +737,20 @@
         <span class="n">max_pool</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">max_pool_connections</span>
         <span class="n">boto_config</span> <span class="o">=</span> <span class="n">botocore</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">Config</span><span class="p">(</span><span class="n">max_pool_connections</span><span class="o">=</span><span class="n">max_pool</span><span class="p">)</span>
         <span class="n">session</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">profile_name</span><span class="p">)</span>
-        <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;iam&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">(),</span>
-                                        <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span>
-        <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ec2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ec2&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">(),</span>
-                                        <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span>
         <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;batch&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;batch&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">(),</span>
                                           <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span>
+        <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;cloudformation&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;cloudformation&#39;</span><span class="p">,</span>
+                                                   <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">(),</span>
+                                                   <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span>
         <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ecr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ecr&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">(),</span>
                                         <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span>
         <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ecs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ecs&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">(),</span>
+                                        <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span>
+        <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ec2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ec2&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">(),</span>
+                                        <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span>
+        <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;iam&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">(),</span>
+                                        <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span>
+        <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;sts&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;sts&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">(),</span>
                                         <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span>
         <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;s3&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">(),</span>
                                        <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span></div>
@@ -721,26 +758,32 @@
 
 <span class="c1">#: module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, ECS, S3.</span>
 <span class="n">clients</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;iam&#39;</span><span class="p">:</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
-        <span class="s1">&#39;iam&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
-    <span class="p">),</span>
-    <span class="s1">&#39;ec2&#39;</span><span class="p">:</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
-        <span class="s1">&#39;ec2&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
-    <span class="p">),</span>
     <span class="s1">&#39;batch&#39;</span><span class="p">:</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
         <span class="s1">&#39;batch&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
     <span class="p">),</span>
+    <span class="s1">&#39;cloudformation&#39;</span><span class="p">:</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span>
+        <span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;cloudformation&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()),</span>
     <span class="s1">&#39;ecr&#39;</span><span class="p">:</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
         <span class="s1">&#39;ecr&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
     <span class="p">),</span>
     <span class="s1">&#39;ecs&#39;</span><span class="p">:</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
         <span class="s1">&#39;ecs&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
     <span class="p">),</span>
+    <span class="s1">&#39;ec2&#39;</span><span class="p">:</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
+        <span class="s1">&#39;ec2&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
+    <span class="p">),</span>
+    <span class="s1">&#39;iam&#39;</span><span class="p">:</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
+        <span class="s1">&#39;iam&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
+    <span class="p">),</span>
+    <span class="s1">&#39;sts&#39;</span><span class="p">:</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
+        <span class="s1">&#39;sts&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
+    <span class="p">),</span>
     <span class="s1">&#39;s3&#39;</span><span class="p">:</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
         <span class="s1">&#39;s3&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
-    <span class="p">)</span>
+    <span class="p">),</span>
 <span class="p">}</span>
-<span class="sd">&quot;&quot;&quot;module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, ECS, S3.</span>
+<span class="sd">&quot;&quot;&quot;module-level dictionary of boto3 clients.</span>
 
 <span class="sd">Storing the boto3 clients in a module-level dictionary allows us to change</span>
 <span class="sd">the region and profile and have those changes reflected globally.</span>
@@ -767,7 +810,10 @@
         <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;ecs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;ecs&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">(),</span>
                                         <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
         <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;s3&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;s3&#39;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">(),</span>
-                                       <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span></div>
+                                       <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+        <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;cloudformation&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s1">&#39;cloudformation&#39;</span><span class="p">,</span>
+                                                   <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">(),</span>
+                                                   <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span></div>
 
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
@@ -974,7 +1020,8 @@
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        name : string</span>
-<span class="sd">            Name of the object</span>
+<span class="sd">            Name of the object. Must satisfy regular expression</span>
+<span class="sd">            pattern: [a-zA-Z][-a-zA-Z0-9]*</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">config_file</span> <span class="o">=</span> <span class="n">get_config_file</span><span class="p">()</span>
         <span class="n">conf</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
@@ -986,7 +1033,13 @@
                     <span class="ow">and</span> <span class="n">conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="s1">&#39;configured&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;True&#39;</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="n">CloudknotConfigurationError</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">)</span>
+        <span class="n">pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s1">&#39;[a-zA-Z][-a-zA-Z0-9]*&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">pattern</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;name must satisfy regular expression &#39;</span>
+                                      <span class="s1">&#39;pattern: [a-zA-Z][-a-zA-Z0-9]*&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_clobbered</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_region</span> <span class="o">=</span> <span class="n">get_region</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_profile</span> <span class="o">=</span> <span class="n">get_profile</span><span class="p">()</span>
@@ -1029,170 +1082,6 @@
             <span class="k">raise</span> <span class="n">RegionException</span><span class="p">(</span><span class="n">resource_region</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">region</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">check_profile</span><span class="p">()</span>
-
-
-<span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
-<span class="k">class</span> <span class="nc">ObjectWithArn</span><span class="p">(</span><span class="n">NamedObject</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Base class for building objects with an Amazon Resource Name (ARN)</span>
-
-<span class="sd">    Inherits from NamedObject</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize a base class with name and Amazon Resource Number (ARN)</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        name : string</span>
-<span class="sd">            Name of the object</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">ObjectWithArn</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_arn</span> <span class="o">=</span> <span class="kc">None</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">arn</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Amazon resource number (ARN) of this resource&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_arn</span>
-
-
-<span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
-<span class="k">class</span> <span class="nc">ObjectWithUsernameAndMemory</span><span class="p">(</span><span class="n">ObjectWithArn</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Base class for building objects with properties memory and username</span>
-
-<span class="sd">    Inherits from ObjectWithArn</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">memory</span><span class="o">=</span><span class="mi">32000</span><span class="p">,</span> <span class="n">username</span><span class="o">=</span><span class="s1">&#39;cloudknot-user&#39;</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize a base class with name, memory, and username properties</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        name : string</span>
-<span class="sd">            Name of the object</span>
-
-<span class="sd">        memory : int</span>
-<span class="sd">            memory (MiB) to be used for this resource</span>
-<span class="sd">            Default: 32000</span>
-
-<span class="sd">        username : string</span>
-<span class="sd">            username for be used for this resource</span>
-<span class="sd">            Default: cloudknot-user</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">ObjectWithUsernameAndMemory</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
-
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">mem</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">memory</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">mem</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;memory must be positive&#39;</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_memory</span> <span class="o">=</span> <span class="n">mem</span>
-        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;memory must be an integer&#39;</span><span class="p">)</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">_username</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">username</span><span class="p">)</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">memory</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Memory to be used for this resource&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_memory</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">username</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Username for this resource&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_username</span>
-
-
-<span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
-<span class="k">def</span> <span class="nf">wait_for_compute_environment</span><span class="p">(</span><span class="n">arn</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">max_wait_time</span><span class="o">=</span><span class="mi">60</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Wait for a compute environment to finish updating or creating</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    arn : string</span>
-<span class="sd">        Compute environment ARN</span>
-
-<span class="sd">    name : string</span>
-<span class="sd">        Compute environment name</span>
-
-<span class="sd">    log : boolean</span>
-<span class="sd">        Whether or not to log waiting info to the application log</span>
-<span class="sd">        Default: True</span>
-
-<span class="sd">    max_wait_time : int</span>
-<span class="sd">        Maximum time to wait (in seconds)</span>
-<span class="sd">        Default: 60</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># Initialize waiting and num_waits for the while loop</span>
-    <span class="n">waiting</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="n">num_waits</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">while</span> <span class="n">waiting</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
-            <span class="c1"># Log waiting info</span>
-            <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                <span class="s1">&#39;Waiting for AWS to finish modifying compute environment &#39;</span>
-                <span class="s1">&#39;</span><span class="si">{name:s}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
-            <span class="p">)</span>
-
-        <span class="c1"># Get compute environment info</span>
-        <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;batch&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">describe_compute_environments</span><span class="p">(</span>
-            <span class="n">computeEnvironments</span><span class="o">=</span><span class="p">[</span><span class="n">arn</span><span class="p">]</span>
-        <span class="p">)</span>
-
-        <span class="c1"># If compute environment has status == CREATING/UPDATING, keep waiting</span>
-        <span class="n">waiting</span> <span class="o">=</span> <span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;computeEnvironments&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="p">[]</span>
-                   <span class="ow">or</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;computeEnvironments&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;status&#39;</span><span class="p">]</span>
-                   <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;CREATING&#39;</span><span class="p">,</span> <span class="s1">&#39;UPDATING&#39;</span><span class="p">])</span>
-
-        <span class="c1"># Wait a second</span>
-        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">num_waits</span> <span class="o">+=</span> <span class="mi">1</span>
-
-        <span class="k">if</span> <span class="n">num_waits</span> <span class="o">&gt;</span> <span class="n">max_wait_time</span><span class="p">:</span>
-            <span class="c1"># Timeout if max_wait_time exceeded</span>
-            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="s1">&#39;Waiting too long for AWS to modify compute &#39;</span>
-                     <span class="s1">&#39;environment. Aborting.&#39;</span><span class="p">)</span>
-
-
-<span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
-<span class="k">def</span> <span class="nf">wait_for_job_queue</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">max_wait_time</span><span class="o">=</span><span class="mi">60</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Wait for a job queue to finish updating or creating</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    name : string</span>
-<span class="sd">        Job Queue name</span>
-
-<span class="sd">    log : boolean</span>
-<span class="sd">        Whether or not to log waiting info to the application log</span>
-<span class="sd">        Default: True</span>
-
-<span class="sd">    max_wait_time : int</span>
-<span class="sd">        Maximum time to wait (in seconds)</span>
-<span class="sd">        Default: 60</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># Initialize waiting and num_waits for the while loop</span>
-    <span class="n">waiting</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="n">num_waits</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">while</span> <span class="n">waiting</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">log</span><span class="p">:</span>  <span class="c1"># pragma: nocover</span>
-            <span class="c1"># Log waiting info</span>
-            <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                <span class="s1">&#39;Waiting for AWS to finish modifying job queue &#39;</span>
-                <span class="s1">&#39;</span><span class="si">{name:s}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
-            <span class="p">)</span>
-
-        <span class="c1"># If job queue has status == CREATING/UPDATING, keep waiting</span>
-        <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s1">&#39;batch&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">describe_job_queues</span><span class="p">(</span><span class="n">jobQueues</span><span class="o">=</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
-        <span class="n">waiting</span> <span class="o">=</span> <span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;jobQueues&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="p">[]</span>
-                   <span class="ow">or</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;jobQueues&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;status&#39;</span><span class="p">]</span>
-                   <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;CREATING&#39;</span><span class="p">,</span> <span class="s1">&#39;UPDATING&#39;</span><span class="p">])</span>
-
-        <span class="c1"># Wait a second</span>
-        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">num_waits</span> <span class="o">+=</span> <span class="mi">1</span>
-
-        <span class="k">if</span> <span class="n">num_waits</span> <span class="o">&gt;</span> <span class="n">max_wait_time</span><span class="p">:</span>
-            <span class="c1"># Timeout if max_wait_time exceeded</span>
-            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="s1">&#39;Waiting too long for AWS to modify job queue. &#39;</span>
-                     <span class="s1">&#39;Aborting.&#39;</span><span class="p">)</span>
 </pre></div>
 
           </div>

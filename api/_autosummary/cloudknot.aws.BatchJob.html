@@ -17,7 +17,6 @@
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="cloudknot.aws.get_region" href="cloudknot.aws.get_region.html" />
-    <link rel="prev" title="cloudknot.aws.JobQueue" href="cloudknot.aws.JobQueue.html" />
    
   <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
   
@@ -58,13 +57,7 @@
 <li class="toctree-l2 current"><a class="reference internal" href="../../documentation.html#api">API</a><ul class="current">
 <li class="toctree-l3 current"><a class="reference internal" href="../aws.html">aws Module</a><ul class="current">
 <li class="toctree-l4 current"><a class="reference internal" href="../aws.html#classes">Classes</a><ul class="current">
-<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.IamRole.html">cloudknot.aws.IamRole</a></li>
-<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.Vpc.html">cloudknot.aws.Vpc</a></li>
-<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.SecurityGroup.html">cloudknot.aws.SecurityGroup</a></li>
 <li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.DockerRepo.html">cloudknot.aws.DockerRepo</a></li>
-<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.JobDefinition.html">cloudknot.aws.JobDefinition</a></li>
-<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.ComputeEnvironment.html">cloudknot.aws.ComputeEnvironment</a></li>
-<li class="toctree-l5"><a class="reference internal" href="cloudknot.aws.JobQueue.html">cloudknot.aws.JobQueue</a></li>
 <li class="toctree-l5 current"><a class="current reference internal" href="#">cloudknot.aws.BatchJob</a></li>
 </ul>
 </li>
@@ -122,16 +115,16 @@ submit a new job.</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>job_id</strong> (<em>string</em>) – The AWS jobID, if requesting a job that already exists</li>
 <li><strong>name</strong> (<em>string</em>) – Name of the job</li>
-<li><strong>job_queue</strong> (<a class="reference internal" href="cloudknot.aws.JobQueue.html#cloudknot.aws.JobQueue" title="cloudknot.aws.JobQueue"><em>JobQueue</em></a>) – JobQueue instance specifying the job queue to which this job
+<li><strong>job_queue</strong> (<em>string</em>) – Job queue ARN specifying the job queue to which this job
 will be submitted</li>
-<li><strong>job_definition</strong> (<a class="reference internal" href="cloudknot.aws.JobDefinition.html#cloudknot.aws.JobDefinition" title="cloudknot.aws.JobDefinition"><em>JobDefinition</em></a>) – JobDefinition instance specifying the job definition on which
-to base this job</li>
+<li><strong>job_definition</strong> (<em>namedtuple</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><em>object</em></a>) – namedtuple specifying the job definition on which to base this job.
+Must contain fields ‘name’, ‘arn’, ‘output_bucket’, and ‘retries’</li>
 <li><strong>input</strong> – The input to be pickled and sent to the batch job via S3</li>
-<li><strong>starmap</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.6)"><em>bool</em></a>) – If True, assume input is already grouped in
+<li><strong>starmap</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – If True, assume input is already grouped in
 tuples from a single iterable.</li>
 <li><strong>environment_variables</strong> (<em>list of dict</em>) – list of key/value pairs representing environment variables
 sent to the container</li>
-<li><strong>array_job</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.6)"><em>bool</em></a>) – If True, this batch job will be an array_job.
+<li><strong>array_job</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – If True, this batch job will be an array_job.
 Default: True</li>
 </ul>
 </td>
@@ -191,25 +184,14 @@ FAILED and the job has exceeded the max number of retry attempts</p>
 <dl class="attribute">
 <dt id="cloudknot.aws.BatchJob.job_definition">
 <code class="descname">job_definition</code><a class="headerlink" href="#cloudknot.aws.BatchJob.job_definition" title="Permalink to this definition">¶</a></dt>
-<dd><p>JobDefinition instance on which to base this job</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="cloudknot.aws.BatchJob.job_definition_arn">
-<code class="descname">job_definition_arn</code><a class="headerlink" href="#cloudknot.aws.BatchJob.job_definition_arn" title="Permalink to this definition">¶</a></dt>
-<dd><p>The ARN for the job definition on which to base this job</p>
+<dd><p>Job definition on which to base this job</p>
+<p>Has properties ‘name’, ‘arn’, ‘output_bucket’, and ‘retries’</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="cloudknot.aws.BatchJob.job_id">
 <code class="descname">job_id</code><a class="headerlink" href="#cloudknot.aws.BatchJob.job_id" title="Permalink to this definition">¶</a></dt>
 <dd><p>This job’s AWS jobID</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="cloudknot.aws.BatchJob.job_queue">
-<code class="descname">job_queue</code><a class="headerlink" href="#cloudknot.aws.BatchJob.job_queue" title="Permalink to this definition">¶</a></dt>
-<dd><p>JobQueue instance to which this job will be submitted</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -263,7 +245,7 @@ then a BatchJobFailedError is raised.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>timeout</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.6)"><em>float</em></a>) – timeout time in seconds. If timeout is not specified or None,
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>timeout</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) – timeout time in seconds. If timeout is not specified or None,
 there is no limit to the wait time.
 Default: None</td>
 </tr>
