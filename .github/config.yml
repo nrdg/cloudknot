@@ -1,0 +1,37 @@
+# Configuration for sentiment-bot - https://github.com/behaviorbot/sentiment-bot
+
+# *Required* toxicity threshold between 0 and .99 with the higher numbers being the most toxic
+# Anything higher than this threshold will be marked as toxic and commented on
+sentimentBotToxicityThreshold: .7
+
+# *Required* Comment to reply with
+sentimentBotReplyComment: >
+  SentimentBot thinks that this comment is toxic. Perhaps SentimentBot got it wrong. But then again, maybe you did.
+  
+  Please reread your comment and take advantage of any opportunities to "turn down the temperature." We want the Cloudknot community to be inclusive and welcoming. Please be respectful of other users and think about ways to communicate the same message in a more delicate manner. cc/ @richford
+
+#=======================================================================
+
+# Configuration for welcome - https://github.com/behaviorbot/welcome
+
+# Configuration for new-issue-welcome - https://github.com/behaviorbot/new-issue-welcome
+
+# Comment to be posted to on first time issues
+newIssueWelcomeComment: >
+  👋 Thanks for opening your first issue here! We appreciate your help making Cloudknot better.
+
+# Configuration for new-pr-welcome - https://github.com/behaviorbot/new-pr-welcome
+
+# Comment to be posted to on PRs from first time contributors in your repository
+newPRWelcomeComment: >
+  Thanks for opening this pull request! Please check out our contributing guidelines.
+
+# Configuration for first-pr-merge - https://github.com/behaviorbot/first-pr-merge
+
+# Comment to be posted to on pull requests merged by a first time user
+firstPRMergeComment: >
+  Congrats on merging your first pull request! We're proud of you! 🎉🎉🎉
+
+# It is recommended to include as many gifs and emojis as possible!
+
+#=======================================================================
