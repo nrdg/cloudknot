@@ -226,10 +226,24 @@ class Pars(aws.NamedObject):
             spot_fleet_role_name = validated_name(spot_fleet_role_name,
                                                   'spot-fleet-role')
 
-            # Validate policies
+            # Check the user supplied policies. Remove redundant entries
+            if isinstance(policies, six.string_types):
+                input_policies = {policies}
+            else:
+                try:
+                    if all(isinstance(x, six.string_types) for x in policies):
+                        input_policies = set(list(policies))
+                    else:
+                        raise CloudknotInputError('policies must be a string '
+                                                  'or a sequence of strings.')
+                except TypeError:
+                    raise CloudknotInputError('policies must be a string or a '
+                                              'sequence of strings')
+
+            # Validate policies against the available policies
             policy_arns = []
             policy_names = []
-            for policy in policies:
+            for policy in input_policies:
                 try:
                     aws.clients['iam'].get_policy(PolicyArn=policy)
                     policy_arns.append(policy)
