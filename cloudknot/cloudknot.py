@@ -234,11 +234,13 @@ class Pars(aws.NamedObject):
                     if all(isinstance(x, six.string_types) for x in policies):
                         input_policies = set(list(policies))
                     else:
-                        raise CloudknotInputError('policies must be a string '
-                                                  'or a sequence of strings.')
+                        raise aws.CloudknotInputError(
+                            'policies must be a string or a '
+                            'sequence of strings.'
+                        )
                 except TypeError:
-                    raise CloudknotInputError('policies must be a string or a '
-                                              'sequence of strings')
+                    raise aws.CloudknotInputError('policies must be a string '
+                                                  'or a sequence of strings')
 
             # Validate policies against the available policies
             policy_arns = []
