@@ -79,6 +79,7 @@
   <h1>Source code for cloudknot.cloudknot</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span>
 
+<span class="kn">import</span> <span class="nn">botocore</span>
 <span class="kn">import</span> <span class="nn">configparser</span>
 <span class="kn">import</span> <span class="nn">ipaddress</span>
 <span class="kn">import</span> <span class="nn">logging</span>
@@ -304,6 +305,70 @@
             <span class="n">spot_fleet_role_name</span> <span class="o">=</span> <span class="n">validated_name</span><span class="p">(</span><span class="n">spot_fleet_role_name</span><span class="p">,</span>
                                                   <span class="s1">&#39;spot-fleet-role&#39;</span><span class="p">)</span>
 
+            <span class="c1"># Check the user supplied policies. Remove redundant entries</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">policies</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+                <span class="n">input_policies</span> <span class="o">=</span> <span class="p">{</span><span class="n">policies</span><span class="p">}</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">policies</span><span class="p">):</span>
+                        <span class="n">input_policies</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">policies</span><span class="p">))</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span>
+                            <span class="s1">&#39;policies must be a string or a &#39;</span>
+                            <span class="s1">&#39;sequence of strings.&#39;</span>
+                        <span class="p">)</span>
+                <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span><span class="s1">&#39;policies must be a string &#39;</span>
+                                                  <span class="s1">&#39;or a sequence of strings&#39;</span><span class="p">)</span>
+
+            <span class="c1"># Validate policies against the available policies</span>
+            <span class="n">policy_arns</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">policy_names</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">policy</span> <span class="ow">in</span> <span class="n">input_policies</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">aws</span><span class="o">.</span><span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get_policy</span><span class="p">(</span><span class="n">PolicyArn</span><span class="o">=</span><span class="n">policy</span><span class="p">)</span>
+                    <span class="n">policy_arns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">policy</span><span class="p">)</span>
+                <span class="k">except</span> <span class="p">(</span>
+                    <span class="n">aws</span><span class="o">.</span><span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">InvalidInputException</span><span class="p">,</span>
+                    <span class="n">aws</span><span class="o">.</span><span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">NoSuchEntityException</span><span class="p">,</span>
+                    <span class="n">botocore</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">ParamValidationError</span><span class="p">,</span>
+                <span class="p">):</span>
+                    <span class="n">policy_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">policy</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">policy_names</span><span class="p">:</span>
+                <span class="c1"># Get all AWS policies</span>
+                <span class="n">response</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">list_policies</span><span class="p">()</span>
+                <span class="n">aws_policies</span> <span class="o">=</span> <span class="p">{</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;PolicyName&#39;</span><span class="p">]:</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;Arn&#39;</span><span class="p">]</span>
+                                <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Policies&#39;</span><span class="p">)}</span>
+
+                <span class="c1"># If results are paginated, continue appending to aws_policies,</span>
+                <span class="c1"># using `Marker` to tell next call where to start</span>
+                <span class="k">while</span> <span class="n">response</span><span class="p">[</span><span class="s1">&#39;IsTruncated&#39;</span><span class="p">]:</span>
+                    <span class="n">response</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">clients</span><span class="p">[</span><span class="s1">&#39;iam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">list_policies</span><span class="p">(</span>
+                        <span class="n">Marker</span><span class="o">=</span><span class="n">response</span><span class="p">[</span><span class="s1">&#39;Marker&#39;</span><span class="p">]</span>
+                    <span class="p">)</span>
+                    <span class="n">aws_policies</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                        <span class="p">{</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;PolicyName&#39;</span><span class="p">]:</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;Arn&#39;</span><span class="p">]</span>
+                         <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Policies&#39;</span><span class="p">)}</span>
+                    <span class="p">)</span>
+
+                <span class="c1"># If input policies are not subset of aws_policies, throw error</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">policy_names</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">set</span><span class="p">(</span><span class="n">aws_policies</span><span class="o">.</span><span class="n">keys</span><span class="p">())):</span>
+                    <span class="n">bad_policies</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">policy_names</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">aws_policies</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+                    <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span>
+                        <span class="s1">&#39;Could not find the policies </span><span class="si">{bad_policies!s}</span><span class="s1"> on &#39;</span>
+                        <span class="s1">&#39;AWS.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bad_policies</span><span class="o">=</span><span class="n">bad_policies</span><span class="p">)</span>
+                    <span class="p">)</span>
+
+                <span class="n">policy_arns</span> <span class="o">+=</span> <span class="p">[</span><span class="n">aws_policies</span><span class="p">[</span><span class="n">policy</span><span class="p">]</span>
+                                <span class="k">for</span> <span class="n">policy</span> <span class="ow">in</span> <span class="n">policy_names</span><span class="p">]</span>
+
+            <span class="n">s3_params</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">get_s3_params</span><span class="p">()</span>
+            <span class="n">policy_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">s3_params</span><span class="o">.</span><span class="n">policy_arn</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span>
+                <span class="n">policy</span> <span class="k">for</span> <span class="n">policy</span> <span class="ow">in</span> <span class="n">policy_arns</span>
+            <span class="p">]</span>
+            <span class="n">policies</span> <span class="o">=</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">policy_list</span><span class="p">)</span>
+
             <span class="k">if</span> <span class="n">use_default_vpc</span><span class="p">:</span>
                 <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">ipv4_cidr</span><span class="p">,</span> <span class="n">instance_tenancy</span><span class="p">]):</span>
                     <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span>
@@ -354,12 +419,6 @@
 
                 <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">template_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
                     <span class="n">template_body</span> <span class="o">=</span> <span class="n">fp</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-
-                <span class="n">s3_params</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">get_s3_params</span><span class="p">()</span>
-                <span class="n">policy_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">s3_params</span><span class="o">.</span><span class="n">policy_arn</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span>
-                    <span class="n">policy</span> <span class="k">for</span> <span class="n">policy</span> <span class="ow">in</span> <span class="n">policies</span>
-                <span class="p">]</span>
-                <span class="n">policies</span> <span class="o">=</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">policy_list</span><span class="p">)</span>
 
                 <span class="n">response</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">clients</span><span class="p">[</span><span class="s1">&#39;cloudformation&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">create_stack</span><span class="p">(</span>
                     <span class="n">StackName</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;-pars&#39;</span><span class="p">,</span>
@@ -481,12 +540,6 @@
 
                 <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">template_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
                     <span class="n">template_body</span> <span class="o">=</span> <span class="n">fp</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-
-                <span class="n">s3_params</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">get_s3_params</span><span class="p">()</span>
-                <span class="n">policy_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">s3_params</span><span class="o">.</span><span class="n">policy_arn</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span>
-                    <span class="n">policy</span> <span class="k">for</span> <span class="n">policy</span> <span class="ow">in</span> <span class="n">policies</span>
-                <span class="p">]</span>
-                <span class="n">policies</span> <span class="o">=</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">policy_list</span><span class="p">)</span>
 
                 <span class="n">response</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">clients</span><span class="p">[</span><span class="s1">&#39;cloudformation&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">create_stack</span><span class="p">(</span>
                     <span class="n">StackName</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;-pars&#39;</span><span class="p">,</span>
