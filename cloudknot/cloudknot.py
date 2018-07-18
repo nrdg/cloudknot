@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division, print_function
 
+import botocore
 import configparser
 import ipaddress
 import logging
@@ -225,6 +226,70 @@ class Pars(aws.NamedObject):
             spot_fleet_role_name = validated_name(spot_fleet_role_name,
                                                   'spot-fleet-role')
 
+            # Check the user supplied policies. Remove redundant entries
+            if isinstance(policies, six.string_types):
+                input_policies = {policies}
+            else:
+                try:
+                    if all(isinstance(x, six.string_types) for x in policies):
+                        input_policies = set(list(policies))
+                    else:
+                        raise aws.CloudknotInputError(
+                            'policies must be a string or a '
+                            'sequence of strings.'
+                        )
+                except TypeError:
+                    raise aws.CloudknotInputError('policies must be a string '
+                                                  'or a sequence of strings')
+
+            # Validate policies against the available policies
+            policy_arns = []
+            policy_names = []
+            for policy in input_policies:
+                try:
+                    aws.clients['iam'].get_policy(PolicyArn=policy)
+                    policy_arns.append(policy)
+                except (
+                    aws.clients['iam'].exceptions.InvalidInputException,
+                    aws.clients['iam'].exceptions.NoSuchEntityException,
+                    botocore.exceptions.ParamValidationError,
+                ):
+                    policy_names.append(policy)
+
+            if policy_names:
+                # Get all AWS policies
+                response = aws.clients['iam'].list_policies()
+                aws_policies = {d['PolicyName']: d['Arn']
+                                for d in response.get('Policies')}
+
+                # If results are paginated, continue appending to aws_policies,
+                # using `Marker` to tell next call where to start
+                while response['IsTruncated']:
+                    response = aws.clients['iam'].list_policies(
+                        Marker=response['Marker']
+                    )
+                    aws_policies.update(
+                        {d['PolicyName']: d['Arn']
+                         for d in response.get('Policies')}
+                    )
+
+                # If input policies are not subset of aws_policies, throw error
+                if not (set(policy_names) < set(aws_policies.keys())):
+                    bad_policies = set(policy_names) - set(aws_policies.keys())
+                    raise aws.CloudknotInputError(
+                        'Could not find the policies {bad_policies!s} on '
+                        'AWS.'.format(bad_policies=bad_policies)
+                    )
+
+                policy_arns += [aws_policies[policy]
+                                for policy in policy_names]
+
+            s3_params = aws.get_s3_params()
+            policy_list = [s3_params.policy_arn] + [
+                policy for policy in policy_arns
+            ]
+            policies = ','.join(policy_list)
+
             if use_default_vpc:
                 if any([ipv4_cidr, instance_tenancy]):
                     raise aws.CloudknotInputError(
@@ -275,12 +340,6 @@ class Pars(aws.NamedObject):
 
                 with open(template_path, 'r') as fp:
                     template_body = fp.read()
-
-                s3_params = aws.get_s3_params()
-                policy_list = [s3_params.policy_arn] + [
-                    policy for policy in policies
-                ]
-                policies = ','.join(policy_list)
 
                 response = aws.clients['cloudformation'].create_stack(
                     StackName=self.name + '-pars',
@@ -402,12 +461,6 @@ class Pars(aws.NamedObject):
 
                 with open(template_path, 'r') as fp:
                     template_body = fp.read()
-
-                s3_params = aws.get_s3_params()
-                policy_list = [s3_params.policy_arn] + [
-                    policy for policy in policies
-                ]
-                policies = ','.join(policy_list)
 
                 response = aws.clients['cloudformation'].create_stack(
                     StackName=self.name + '-pars',

@@ -84,6 +84,15 @@ def test_pars_errors(cleanup):
     with pytest.raises(ck.aws.CloudknotInputError):
         ck.Pars(name=name, use_default_vpc=False, instance_tenancy=42)
 
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.Pars(name=name, use_default_vpc=False, policies=42)
+
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.Pars(name=name, use_default_vpc=False, policies=[42, 42])
+
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.Pars(name=name, use_default_vpc=False, policies=['foo'])
+
 
 def test_pars_with_default_vpc(cleanup):
     name = get_testing_name()
