@@ -5,5 +5,5 @@ cloudpickle
 docker>=2.0.0,<3.0.0
 pipreqs
 six
-tenacity
+tenacity==5.0.4
 configparser; python_version < '3.0'
