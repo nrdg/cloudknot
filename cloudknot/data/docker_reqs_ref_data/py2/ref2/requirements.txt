@@ -1,6 +1,6 @@
 boto3==1.9.148
 cloudpickle==1.1.1
-six==1.11.0
+six==1.12.0
 dask==1.2.2
 docker==3.7.2
 pytest==4.5.0
