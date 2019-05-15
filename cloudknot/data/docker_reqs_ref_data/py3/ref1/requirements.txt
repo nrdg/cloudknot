@@ -3,5 +3,5 @@ cloudpickle==1.1.1
 dask==1.2.2
 docker==3.7.2
 h5py==2.9.0
-pytest==3.2.2
+pytest==4.5.0
 six==1.11.0
