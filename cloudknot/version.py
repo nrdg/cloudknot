@@ -83,7 +83,7 @@ REQUIRES = [
     "boto3>=1.5.21",
     "botocore>=1.8.36",
     "cloudpickle",
-    "docker>=2.0.0, <3.0.0",
+    "docker>=3.0.0",
     "pipreqs",
     "six",
     "tenacity",
@@ -91,6 +91,6 @@ REQUIRES = [
 ]
 EXTRAS_REQUIRE = {
     ':python_version < "3.0"': ["configparser"],
-    "dev": ["pytest", "pytest-cov", "flake8"],
+    "dev": ["pytest>=3.6", "pytest-cov", "flake8", "coveralls"],
 }
 ENTRY_POINTS = {"console_scripts": ["cloudknot=cloudknot.cli:main"]}
