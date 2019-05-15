@@ -1,4 +1,4 @@
-boto3==1.4.7
+boto3==1.9.148
 cloudpickle==0.4.1
 six==1.11.0
 dask==0.15.3
