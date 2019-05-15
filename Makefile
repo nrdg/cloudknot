@@ -1,3 +1,5 @@
+.PHONY: clean clean-test clean-pyc clean-build
+
 flake:
 	@if command -v flake8 > /dev/null; then \
 		echo "Running flake8"; \
@@ -17,7 +19,7 @@ devtest:
     # Useful for development when tests are long
 	py.test -x --pyargs cloudknot --cov-report term-missing --cov=cloudknot
 
-clean: clean-build clean-pyc clean-test ## remove all build, test, coverage and Python artifacts
+clean: clean-build clean-pyc ## remove all build, test, coverage and Python artifacts
 
 clean-build: ## remove build artifacts
 	rm -fr build/
@@ -37,6 +39,6 @@ release: dist ## Package and upload a release
 
 dist: clean ## Build source and wheel package
 	python setup.py sdist
-	python setup.py bdist_wheel
+	python setup.py bdist_wheel --universal
 	ls -l dist
 

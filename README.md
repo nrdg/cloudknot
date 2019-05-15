@@ -1,6 +1,8 @@
 # cloudknot
 
 [![Build Status](https://travis-ci.org/richford/cloudknot.svg?branch=master)](https://travis-ci.org/richford/cloudknot)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Updates](https://pyup.io/repos/github/richford/cloudknot/shield.svg)](https://pyup.io/repos/github/richford/cloudknot/)
 [![DOI](https://zenodo.org/badge/102051437.svg)](https://zenodo.org/badge/latestdoi/102051437)
 
 A knot is a collective noun for a group of snakes. Cloudknot is a python
