@@ -4,6 +4,6 @@ botocore>=1.8.36
 cloudpickle==1.1.1
 docker==3.7.2
 pipreqs==0.4.9
-six
+six==1.12.0
 tenacity
 configparser; python_version < '3.0'
