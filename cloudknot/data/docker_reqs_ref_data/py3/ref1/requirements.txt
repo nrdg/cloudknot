@@ -1,5 +1,5 @@
 boto3==1.9.148
-cloudpickle==0.4.1
+cloudpickle==1.1.1
 dask==0.15.3
 docker==2.5.1
 h5py==2.7.1
