@@ -1,9 +1,9 @@
-awscli
+awscli==1.16.159
 boto3>=1.5.21
 botocore>=1.8.36
-cloudpickle
-docker>=2.0.0,<3.0.0
+cloudpickle==1.1.1
+docker==3.7.2
 pipreqs==0.4.9
-six
-tenacity
-configparser; python_version < '3.0'
+six==1.12.0
+tenacity==5.0.4
+configparser==3.7.4; python_version < '3.0'
