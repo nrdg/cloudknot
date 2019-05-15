@@ -42,17 +42,17 @@ def get_ecr_repo():
     with rlock:
         config.read(config_file)
 
-        option = 'ecr-repo'
-        if config.has_section('aws') and config.has_option('aws', option):
-            repo = config.get('aws', option)
+        option = "ecr-repo"
+        if config.has_section("aws") and config.has_option("aws", option):
+            repo = config.get("aws", option)
         else:
             # Set `repo`, the fallback repo in case the cloudknot
             # repo environment variable is not set
             try:
                 # Get the region from an environment variable
-                repo = os.environ['CLOUDKNOT_ECR_REPO']
+                repo = os.environ["CLOUDKNOT_ECR_REPO"]
             except KeyError:
-                repo = 'cloudknot'
+                repo = "cloudknot"
 
         # Use set_ecr_repo to check for name availability
         # and write to config file
@@ -79,21 +79,19 @@ def set_ecr_repo(repo):
     with rlock:
         config.read(config_file)
 
-        if not config.has_section('aws'):  # pragma: nocover
-            config.add_section('aws')
+        if not config.has_section("aws"):  # pragma: nocover
+            config.add_section("aws")
 
-        config.set('aws', 'ecr-repo', repo)
-        with open(config_file, 'w') as f:
+        config.set("aws", "ecr-repo", repo)
+        with open(config_file, "w") as f:
             config.write(f)
 
         try:
             # If repo exists, retrieve its info
-            clients['ecr'].describe_repositories(
-                repositoryNames=[repo]
-            )
-        except clients['ecr'].exceptions.RepositoryNotFoundException:
+            clients["ecr"].describe_repositories(repositoryNames=[repo])
+        except clients["ecr"].exceptions.RepositoryNotFoundException:
             # If it doesn't exists already, then create it
-            clients['ecr'].create_repository(repositoryName=repo)
+            clients["ecr"].create_repository(repositoryName=repo)
 
 
 @registered
@@ -119,43 +117,41 @@ def get_s3_params():
     config_file = get_config_file()
     config = configparser.ConfigParser()
 
-    BucketInfo = namedtuple('BucketInfo',
-                            ['bucket', 'policy', 'policy_arn', 'sse'])
+    BucketInfo = namedtuple("BucketInfo", ["bucket", "policy", "policy_arn", "sse"])
 
     with rlock:
         config.read(config_file)
 
-        option = 's3-bucket-policy'
-        if config.has_section('aws') and config.has_option('aws', option):
+        option = "s3-bucket-policy"
+        if config.has_section("aws") and config.has_option("aws", option):
             # Get policy name from the config file
-            policy = config.get('aws', option)
+            policy = config.get("aws", option)
         else:
             # or set policy to None to create it in the call to
             # set_s3_params()
             policy = None
 
-        option = 's3-bucket'
-        if config.has_section('aws') and config.has_option('aws', option):
-            bucket = config.get('aws', option)
+        option = "s3-bucket"
+        if config.has_section("aws") and config.has_option("aws", option):
+            bucket = config.get("aws", option)
         else:
             try:
                 # Get the bucket name from an environment variable
-                bucket = os.environ['CLOUDKNOT_S3_BUCKET']
+                bucket = os.environ["CLOUDKNOT_S3_BUCKET"]
             except KeyError:
                 # Use the fallback bucket b/c the cloudknot
                 # bucket environment variable is not set
-                bucket = ('cloudknot-' + get_user().lower()
-                          + '-' + str(uuid.uuid4()))
+                bucket = "cloudknot-" + get_user().lower() + "-" + str(uuid.uuid4())
 
             if policy is not None:
                 # In this case, the bucket name is new, but the policy is not.
                 # Update the policy to reflect the new bucket name.
                 update_s3_policy(policy=policy, bucket=bucket)
 
-        option = 's3-sse'
-        if config.has_section('aws') and config.has_option('aws', option):
-            sse = config.get('aws', option)
-            if sse not in ['AES256', 'aws:kms', 'None']:
+        option = "s3-sse"
+        if config.has_section("aws") and config.has_option("aws", option):
+            sse = config.get("aws", option)
+            if sse not in ["AES256", "aws:kms", "None"]:
                 raise CloudknotInputError(
                     'The server-side encryption option "sse" must must be '
                     'one of ["AES256", "aws:kms", "None"]'
@@ -163,7 +159,7 @@ def get_s3_params():
         else:
             sse = None
 
-        if sse == 'None':
+        if sse == "None":
             sse = None
 
         # Use set_s3_params to check for name availability
@@ -172,17 +168,14 @@ def get_s3_params():
 
         if policy is None:
             config.read(config_file)
-            policy = config.get('aws', 's3-bucket-policy')
+            policy = config.get("aws", "s3-bucket-policy")
 
-    response = clients['iam'].list_policies(Scope='Local',
-                                            PathPrefix='/cloudknot/')
-    policy_arn = list(filter(
-        lambda d: d['PolicyName'] == policy,
-        response.get('Policies')
-    ))[0]['Arn']
+    response = clients["iam"].list_policies(Scope="Local", PathPrefix="/cloudknot/")
+    policy_arn = list(
+        filter(lambda d: d["PolicyName"] == policy, response.get("Policies"))
+    )[0]["Arn"]
 
-    return BucketInfo(bucket=bucket, policy=policy,
-                      policy_arn=policy_arn, sse=sse)
+    return BucketInfo(bucket=bucket, policy=policy, policy_arn=policy_arn, sse=sse)
 
 
 @registered
@@ -203,105 +196,105 @@ def set_s3_params(bucket, policy=None, sse=None):
         ['AES256', 'aws:kms'].
         Default: None
     """
-    if sse is not None and sse not in ['AES256', 'aws:kms']:
-        raise CloudknotInputError('The server-side encryption option "sse" '
-                                  'must be one of ["AES256", "aws:kms"]')
+    if sse is not None and sse not in ["AES256", "aws:kms"]:
+        raise CloudknotInputError(
+            'The server-side encryption option "sse" '
+            'must be one of ["AES256", "aws:kms"]'
+        )
 
     # Update the config file
     config_file = get_config_file()
     config = configparser.ConfigParser()
 
     def test_bucket_put_get(bucket_, sse_):
-        key = 'cloudnot-test-permissions-key'
+        key = "cloudnot-test-permissions-key"
         try:
             if sse_:
-                clients['s3'].put_object(Bucket=bucket_, Body=b'test',
-                                         Key=key, ServerSideEncryption=sse_)
+                clients["s3"].put_object(
+                    Bucket=bucket_, Body=b"test", Key=key, ServerSideEncryption=sse_
+                )
             else:
-                clients['s3'].put_object(Bucket=bucket_, Body=b'test', Key=key)
+                clients["s3"].put_object(Bucket=bucket_, Body=b"test", Key=key)
 
-            clients['s3'].get_object(Bucket=bucket_, Key=key)
-        except clients['s3'].exceptions.ClientError:
-            raise CloudknotInputError('The requested bucket name already '
-                                      'exists and you do not have permission '
-                                      'to put or get objects in it.')
+            clients["s3"].get_object(Bucket=bucket_, Key=key)
+        except clients["s3"].exceptions.ClientError:
+            raise CloudknotInputError(
+                "The requested bucket name already "
+                "exists and you do not have permission "
+                "to put or get objects in it."
+            )
 
         try:
-            clients['s3'].delete_object(Bucket=bucket_, Key=key)
+            clients["s3"].delete_object(Bucket=bucket_, Key=key)
         except Exception:
             pass
 
     with rlock:
         config.read(config_file)
 
-        if not config.has_section('aws'):  # pragma: nocover
-            config.add_section('aws')
+        if not config.has_section("aws"):  # pragma: nocover
+            config.add_section("aws")
 
-        config.set('aws', 's3-bucket', bucket)
+        config.set("aws", "s3-bucket", bucket)
 
         # Create the bucket
         try:
-            if get_region() == 'us-east-1':
-                clients['s3'].create_bucket(
-                    Bucket=bucket
-                )
+            if get_region() == "us-east-1":
+                clients["s3"].create_bucket(Bucket=bucket)
             else:
-                clients['s3'].create_bucket(
+                clients["s3"].create_bucket(
                     Bucket=bucket,
-                    CreateBucketConfiguration={
-                        'LocationConstraint': get_region()
-                    }
+                    CreateBucketConfiguration={"LocationConstraint": get_region()},
                 )
-        except clients['s3'].exceptions.BucketAlreadyOwnedByYou:
+        except clients["s3"].exceptions.BucketAlreadyOwnedByYou:
             pass
-        except clients['s3'].exceptions.BucketAlreadyExists:
+        except clients["s3"].exceptions.BucketAlreadyExists:
             test_bucket_put_get(bucket, sse)
-        except clients['s3'].exceptions.ClientError as e:
+        except clients["s3"].exceptions.ClientError as e:
             # Check for Illegal Location Constraint
-            error_code = e.response['Error']['Code']
-            if error_code in ['IllegalLocationConstraintException',
-                              'InvalidLocationConstraint']:
-                response = clients['s3'].get_bucket_location(Bucket=bucket)
-                location = response.get('LocationConstraint')
+            error_code = e.response["Error"]["Code"]
+            if error_code in [
+                "IllegalLocationConstraintException",
+                "InvalidLocationConstraint",
+            ]:
+                response = clients["s3"].get_bucket_location(Bucket=bucket)
+                location = response.get("LocationConstraint")
                 try:
-                    if location == 'us-east-1' or location is None:
-                        clients['s3'].create_bucket(Bucket=bucket)
+                    if location == "us-east-1" or location is None:
+                        clients["s3"].create_bucket(Bucket=bucket)
                     else:
-                        clients['s3'].create_bucket(
+                        clients["s3"].create_bucket(
                             Bucket=bucket,
-                            CreateBucketConfiguration={
-                                'LocationConstraint': location
-                            }
+                            CreateBucketConfiguration={"LocationConstraint": location},
                         )
-                except clients['s3'].exceptions.BucketAlreadyOwnedByYou:
+                except clients["s3"].exceptions.BucketAlreadyOwnedByYou:
                     pass
-                except clients['s3'].exceptions.BucketAlreadyExists:
+                except clients["s3"].exceptions.BucketAlreadyExists:
                     test_bucket_put_get(bucket, sse)
             else:
                 # Pass exception to user
                 raise e
 
         if policy is None:
-            policy = 'cloudknot-bucket-access-' + str(uuid.uuid4())
+            policy = "cloudknot-bucket-access-" + str(uuid.uuid4())
 
         try:
             # Create the policy
             s3_policy_doc = bucket_policy_document(bucket)
 
-            clients['iam'].create_policy(
+            clients["iam"].create_policy(
                 PolicyName=policy,
-                Path='/cloudknot/',
+                Path="/cloudknot/",
                 PolicyDocument=json.dumps(s3_policy_doc),
-                Description='Grants access to S3 bucket {0:s}'
-                            ''.format(bucket)
+                Description="Grants access to S3 bucket {0:s}" "".format(bucket),
             )
-        except clients['iam'].exceptions.EntityAlreadyExistsException:
+        except clients["iam"].exceptions.EntityAlreadyExistsException:
             # Policy already exists, do nothing
             pass
 
-        config.set('aws', 's3-bucket-policy', policy)
-        config.set('aws', 's3-sse', str(sse))
-        with open(config_file, 'w') as f:
+        config.set("aws", "s3-bucket-policy", policy)
+        config.set("aws", "s3-sse", str(sse))
+        with open(config_file, "w") as f:
             config.write(f)
 
 
@@ -325,14 +318,14 @@ def bucket_policy_document(bucket):
             {
                 "Effect": "Allow",
                 "Action": ["s3:ListBucket"],
-                "Resource": ["arn:aws:s3:::{0:s}".format(bucket)]
+                "Resource": ["arn:aws:s3:::{0:s}".format(bucket)],
             },
             {
                 "Effect": "Allow",
                 "Action": ["s3:PutObject", "s3:GetObject"],
-                "Resource": ["arn:aws:s3:::{0:s}/*".format(bucket)]
+                "Resource": ["arn:aws:s3:::{0:s}/*".format(bucket)],
             },
-        ]
+        ],
     }
 
     return s3_policy_doc
@@ -352,46 +345,40 @@ def update_s3_policy(policy, bucket):
     s3_policy_doc = bucket_policy_document(bucket)
 
     # Get the ARN of the policy
-    response = clients['iam'].list_policies(
-        Scope='Local',
-        PathPrefix='/cloudknot/'
-    )
+    response = clients["iam"].list_policies(Scope="Local", PathPrefix="/cloudknot/")
 
-    policy_dict = [p for p in response.get('Policies')
-                   if p['PolicyName'] == policy][0]
+    policy_dict = [p for p in response.get("Policies") if p["PolicyName"] == policy][0]
 
-    arn = policy_dict['Arn']
+    arn = policy_dict["Arn"]
 
     with rlock:
         try:
             # Update the policy
-            clients['iam'].create_policy_version(
+            clients["iam"].create_policy_version(
                 PolicyArn=arn,
                 PolicyDocument=json.dumps(s3_policy_doc),
-                SetAsDefault=True
+                SetAsDefault=True,
             )
-        except clients['iam'].exceptions.LimitExceededException:
+        except clients["iam"].exceptions.LimitExceededException:
             # Too many policy versions. List policy versions and delete oldest
-            response = clients['iam'].list_policy_versions(
-                PolicyArn=arn
-            )
+            response = clients["iam"].list_policy_versions(PolicyArn=arn)
 
             # Get non-default versions
-            versions = [v for v in response.get('Versions')
-                        if not v['IsDefaultVersion']]
+            versions = [
+                v for v in response.get("Versions") if not v["IsDefaultVersion"]
+            ]
 
             # Get the oldest version and delete it
-            oldest = sorted(versions, key=lambda ver: ver['CreateDate'])[0]
-            clients['iam'].delete_policy_version(
-                PolicyArn=arn,
-                VersionId=oldest['VersionId']
+            oldest = sorted(versions, key=lambda ver: ver["CreateDate"])[0]
+            clients["iam"].delete_policy_version(
+                PolicyArn=arn, VersionId=oldest["VersionId"]
             )
 
             # Update the policy not that there's room for another version
-            clients['iam'].create_policy_version(
+            clients["iam"].create_policy_version(
                 PolicyArn=arn,
                 PolicyDocument=json.dumps(s3_policy_doc),
-                SetAsDefault=True
+                SetAsDefault=True,
             )
 
 
@@ -415,46 +402,46 @@ def get_region():
     with rlock:
         config.read(config_file)
 
-        if config.has_section('aws') and config.has_option('aws', 'region'):
-            return config.get('aws', 'region')
+        if config.has_section("aws") and config.has_option("aws", "region"):
+            return config.get("aws", "region")
         else:
             # Set `region`, the fallback region in case the cloudknot
             # config file has no region set
             try:
                 # Get the region from an environment variable
-                region = os.environ['AWS_DEFAULT_REGION']
+                region = os.environ["AWS_DEFAULT_REGION"]
             except KeyError:
                 # Get the default region from the AWS config file
-                home = os.path.expanduser('~')
-                aws_config_file = os.path.join(home, '.aws', 'config')
+                home = os.path.expanduser("~")
+                aws_config_file = os.path.join(home, ".aws", "config")
 
-                fallback_region = 'us-east-1'
+                fallback_region = "us-east-1"
                 if os.path.isfile(aws_config_file):
                     aws_config = configparser.ConfigParser()
                     aws_config.read(aws_config_file)
                     try:
                         region = aws_config.get(
-                            'default', 'region', fallback=fallback_region
+                            "default", "region", fallback=fallback_region
                         )
                     except TypeError:  # pragma: nocover
                         # python 2.7 compatibility
-                        region = aws_config.get('default', 'region')
+                        region = aws_config.get("default", "region")
                         region = region if region else fallback_region
                 else:
                     region = fallback_region
 
-            if not config.has_section('aws'):
-                config.add_section('aws')
+            if not config.has_section("aws"):
+                config.add_section("aws")
 
-            config.set('aws', 'region', region)
-            with open(config_file, 'w') as f:
+            config.set("aws", "region", region)
+            with open(config_file, "w") as f:
                 config.write(f)
 
             return region
 
 
 @registered
-def set_region(region='us-east-1'):
+def set_region(region="us-east-1"):
     """Set the AWS region that cloudknot will use
 
     Set region by modifying the cloudknot config file and clients
@@ -465,13 +452,13 @@ def set_region(region='us-east-1'):
         An AWS region.
         Default: 'us-east-1'
     """
-    response = clients['ec2'].describe_regions()
-    region_names = [d['RegionName'] for d in response.get('Regions')]
+    response = clients["ec2"].describe_regions()
+    region_names = [d["RegionName"] for d in response.get("Regions")]
 
     if region not in region_names:
-        raise CloudknotInputError('`region` must be in {regions!s}'.format(
-            regions=region_names
-        ))
+        raise CloudknotInputError(
+            "`region` must be in {regions!s}".format(regions=region_names)
+        )
 
     config_file = get_config_file()
     config = configparser.ConfigParser()
@@ -479,35 +466,30 @@ def set_region(region='us-east-1'):
     with rlock:
         config.read(config_file)
 
-        if not config.has_section('aws'):  # pragma: nocover
-            config.add_section('aws')
+        if not config.has_section("aws"):  # pragma: nocover
+            config.add_section("aws")
 
-        config.set('aws', 'region', region)
-        with open(config_file, 'w') as f:
+        config.set("aws", "region", region)
+        with open(config_file, "w") as f:
             config.write(f)
 
         # Update the boto3 clients so that the region change is reflected
         # throughout the package
-        max_pool = clients['iam'].meta.config.max_pool_connections
+        max_pool = clients["iam"].meta.config.max_pool_connections
         boto_config = botocore.config.Config(max_pool_connections=max_pool)
         session = boto3.Session(profile_name=get_profile(fallback=None))
-        clients['batch'] = session.client('batch', region_name=region,
-                                          config=boto_config)
-        clients['cloudformation'] = session.client('cloudformation',
-                                                   region_name=region,
-                                                   config=boto_config)
-        clients['ecr'] = session.client('ecr', region_name=region,
-                                        config=boto_config)
-        clients['ecs'] = session.client('ecs', region_name=region,
-                                        config=boto_config)
-        clients['ec2'] = session.client('ec2', region_name=region,
-                                        config=boto_config)
-        clients['iam'] = session.client('iam', region_name=region,
-                                        config=boto_config)
-        clients['sts'] = session.client('sts', region_name=region,
-                                        config=boto_config)
-        clients['s3'] = session.client('s3', region_name=region,
-                                       config=boto_config)
+        clients["batch"] = session.client(
+            "batch", region_name=region, config=boto_config
+        )
+        clients["cloudformation"] = session.client(
+            "cloudformation", region_name=region, config=boto_config
+        )
+        clients["ecr"] = session.client("ecr", region_name=region, config=boto_config)
+        clients["ecs"] = session.client("ecs", region_name=region, config=boto_config)
+        clients["ec2"] = session.client("ec2", region_name=region, config=boto_config)
+        clients["iam"] = session.client("iam", region_name=region, config=boto_config)
+        clients["sts"] = session.client("sts", region_name=region, config=boto_config)
+        clients["s3"] = session.client("s3", region_name=region, config=boto_config)
 
 
 @registered
@@ -524,23 +506,23 @@ def list_profiles():
         `credentials_file`, a path to the aws shared credentials file;
         and `aws_config_file`, a path to the aws config file
     """
-    aws = os.path.join(os.path.expanduser('~'), '.aws')
+    aws = os.path.join(os.path.expanduser("~"), ".aws")
 
     try:
         # Get aws credentials file from environment variable
-        env_file = os.environ['AWS_SHARED_CREDENTIALS_FILE']
+        env_file = os.environ["AWS_SHARED_CREDENTIALS_FILE"]
         credentials_file = os.path.abspath(env_file)
     except KeyError:
         # Fallback on default credentials file path
-        credentials_file = os.path.join(aws, 'credentials')
+        credentials_file = os.path.join(aws, "credentials")
 
     try:
         # Get aws config file from environment variable
-        env_file = os.environ['AWS_CONFIG_FILE']
+        env_file = os.environ["AWS_CONFIG_FILE"]
         aws_config_file = os.path.abspath(env_file)
     except KeyError:
         # Fallback on default aws config file path
-        aws_config_file = os.path.join(aws, 'config')
+        aws_config_file = os.path.join(aws, "config")
 
     credentials = configparser.ConfigParser()
     credentials.read(credentials_file)
@@ -548,31 +530,33 @@ def list_profiles():
     aws_config = configparser.ConfigParser()
     aws_config.read(aws_config_file)
 
-    profile_names = [s.split()[1] for s in aws_config.sections()
-                     if s.split()[0] == 'profile' and len(s.split()) == 2]
+    profile_names = [
+        s.split()[1]
+        for s in aws_config.sections()
+        if s.split()[0] == "profile" and len(s.split()) == 2
+    ]
 
     profile_names += credentials.sections()
 
     # define a namedtuple for return value type
     ProfileInfo = namedtuple(
-        'ProfileInfo',
-        ['profile_names', 'credentials_file', 'aws_config_file']
+        "ProfileInfo", ["profile_names", "credentials_file", "aws_config_file"]
     )
 
     return ProfileInfo(
         profile_names=profile_names,
         credentials_file=credentials_file,
-        aws_config_file=aws_config_file
+        aws_config_file=aws_config_file,
     )
 
 
 @registered
 def get_user():
-    return clients['sts'].get_caller_identity().get('Arn').split('/')[-1]
+    return clients["sts"].get_caller_identity().get("Arn").split("/")[-1]
 
 
 @registered
-def get_profile(fallback='from-env'):
+def get_profile(fallback="from-env"):
     """Get the AWS profile to use
 
     First, check the cloudknot config file for the profile option.
@@ -598,24 +582,24 @@ def get_profile(fallback='from-env'):
     with rlock:
         config.read(config_file)
 
-        if config.has_section('aws') and config.has_option('aws', 'profile'):
-            return config.get('aws', 'profile')
+        if config.has_section("aws") and config.has_option("aws", "profile"):
+            return config.get("aws", "profile")
         else:
             # Set profile from environment variable
             try:
-                profile = os.environ['AWS_PROFILE']
+                profile = os.environ["AWS_PROFILE"]
             except KeyError:
-                if 'default' in list_profiles().profile_names:
+                if "default" in list_profiles().profile_names:
                     # Set profile in cloudknot config to 'default'
-                    profile = 'default'
+                    profile = "default"
                 else:
                     return fallback
 
-            if not config.has_section('aws'):
-                config.add_section('aws')
+            if not config.has_section("aws"):
+                config.add_section("aws")
 
-            config.set('aws', 'profile', profile)
-            with open(config_file, 'w') as f:
+            config.set("aws", "profile", profile)
+            with open(config_file, "w") as f:
                 config.write(f)
 
             return profile
@@ -637,11 +621,10 @@ def set_profile(profile_name):
 
     if profile_name not in profile_info.profile_names:
         raise CloudknotInputError(
-            'The profile you specified does not exist in either the AWS '
-            'config file at {conf:s} or the AWS shared credentials file at '
-            '{cred:s}.'.format(
-                conf=profile_info.aws_config_file,
-                cred=profile_info.credentials_file
+            "The profile you specified does not exist in either the AWS "
+            "config file at {conf:s} or the AWS shared credentials file at "
+            "{cred:s}.".format(
+                conf=profile_info.aws_config_file, cred=profile_info.credentials_file
             )
         )
 
@@ -651,62 +634,69 @@ def set_profile(profile_name):
     with rlock:
         config.read(config_file)
 
-        if not config.has_section('aws'):  # pragma: nocover
-            config.add_section('aws')
+        if not config.has_section("aws"):  # pragma: nocover
+            config.add_section("aws")
 
-        config.set('aws', 'profile', profile_name)
-        with open(config_file, 'w') as f:
+        config.set("aws", "profile", profile_name)
+        with open(config_file, "w") as f:
             config.write(f)
 
         # Update the boto3 clients so that the profile change is reflected
         # throughout the package
-        max_pool = clients['iam'].meta.config.max_pool_connections
+        max_pool = clients["iam"].meta.config.max_pool_connections
         boto_config = botocore.config.Config(max_pool_connections=max_pool)
         session = boto3.Session(profile_name=profile_name)
-        clients['batch'] = session.client('batch', region_name=get_region(),
-                                          config=boto_config)
-        clients['cloudformation'] = session.client('cloudformation',
-                                                   region_name=get_region(),
-                                                   config=boto_config)
-        clients['ecr'] = session.client('ecr', region_name=get_region(),
-                                        config=boto_config)
-        clients['ecs'] = session.client('ecs', region_name=get_region(),
-                                        config=boto_config)
-        clients['ec2'] = session.client('ec2', region_name=get_region(),
-                                        config=boto_config)
-        clients['iam'] = session.client('iam', region_name=get_region(),
-                                        config=boto_config)
-        clients['sts'] = session.client('sts', region_name=get_region(),
-                                        config=boto_config)
-        clients['s3'] = session.client('s3', region_name=get_region(),
-                                       config=boto_config)
+        clients["batch"] = session.client(
+            "batch", region_name=get_region(), config=boto_config
+        )
+        clients["cloudformation"] = session.client(
+            "cloudformation", region_name=get_region(), config=boto_config
+        )
+        clients["ecr"] = session.client(
+            "ecr", region_name=get_region(), config=boto_config
+        )
+        clients["ecs"] = session.client(
+            "ecs", region_name=get_region(), config=boto_config
+        )
+        clients["ec2"] = session.client(
+            "ec2", region_name=get_region(), config=boto_config
+        )
+        clients["iam"] = session.client(
+            "iam", region_name=get_region(), config=boto_config
+        )
+        clients["sts"] = session.client(
+            "sts", region_name=get_region(), config=boto_config
+        )
+        clients["s3"] = session.client(
+            "s3", region_name=get_region(), config=boto_config
+        )
 
 
 #: module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, ECS, S3.
 clients = {
-    'batch': boto3.Session(profile_name=get_profile(fallback=None)).client(
-        'batch', region_name=get_region()
+    "batch": boto3.Session(profile_name=get_profile(fallback=None)).client(
+        "batch", region_name=get_region()
     ),
-    'cloudformation': boto3.Session(
-        profile_name=get_profile(fallback=None)
-    ).client('cloudformation', region_name=get_region()),
-    'ecr': boto3.Session(profile_name=get_profile(fallback=None)).client(
-        'ecr', region_name=get_region()
+    "cloudformation": boto3.Session(profile_name=get_profile(fallback=None)).client(
+        "cloudformation", region_name=get_region()
     ),
-    'ecs': boto3.Session(profile_name=get_profile(fallback=None)).client(
-        'ecs', region_name=get_region()
+    "ecr": boto3.Session(profile_name=get_profile(fallback=None)).client(
+        "ecr", region_name=get_region()
     ),
-    'ec2': boto3.Session(profile_name=get_profile(fallback=None)).client(
-        'ec2', region_name=get_region()
+    "ecs": boto3.Session(profile_name=get_profile(fallback=None)).client(
+        "ecs", region_name=get_region()
     ),
-    'iam': boto3.Session(profile_name=get_profile(fallback=None)).client(
-        'iam', region_name=get_region()
+    "ec2": boto3.Session(profile_name=get_profile(fallback=None)).client(
+        "ec2", region_name=get_region()
     ),
-    'sts': boto3.Session(profile_name=get_profile(fallback=None)).client(
-        'sts', region_name=get_region()
+    "iam": boto3.Session(profile_name=get_profile(fallback=None)).client(
+        "iam", region_name=get_region()
     ),
-    's3': boto3.Session(profile_name=get_profile(fallback=None)).client(
-        's3', region_name=get_region()
+    "sts": boto3.Session(profile_name=get_profile(fallback=None)).client(
+        "sts", region_name=get_region()
+    ),
+    "s3": boto3.Session(profile_name=get_profile(fallback=None)).client(
+        "s3", region_name=get_region()
     ),
 }
 """module-level dictionary of boto3 clients.
@@ -726,27 +716,24 @@ def refresh_clients(max_pool=10):
     with rlock:
         config = botocore.config.Config(max_pool_connections=max_pool)
         session = boto3.Session(profile_name=get_profile(fallback=None))
-        clients['iam'] = session.client('iam', region_name=get_region(),
-                                        config=config)
-        clients['ec2'] = session.client('ec2', region_name=get_region(),
-                                        config=config)
-        clients['batch'] = session.client('batch', region_name=get_region(),
-                                          config=config)
-        clients['ecr'] = session.client('ecr', region_name=get_region(),
-                                        config=config)
-        clients['ecs'] = session.client('ecs', region_name=get_region(),
-                                        config=config)
-        clients['s3'] = session.client('s3', region_name=get_region(),
-                                       config=config)
-        clients['cloudformation'] = session.client('cloudformation',
-                                                   region_name=get_region(),
-                                                   config=config)
+        clients["iam"] = session.client("iam", region_name=get_region(), config=config)
+        clients["ec2"] = session.client("ec2", region_name=get_region(), config=config)
+        clients["batch"] = session.client(
+            "batch", region_name=get_region(), config=config
+        )
+        clients["ecr"] = session.client("ecr", region_name=get_region(), config=config)
+        clients["ecs"] = session.client("ecs", region_name=get_region(), config=config)
+        clients["s3"] = session.client("s3", region_name=get_region(), config=config)
+        clients["cloudformation"] = session.client(
+            "cloudformation", region_name=get_region(), config=config
+        )
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 @registered
 class ResourceExistsException(Exception):
     """Exception indicating that the requested AWS resource already exists"""
+
     def __init__(self, message, resource_id):
         """Initialize the Exception
 
@@ -766,6 +753,7 @@ class ResourceExistsException(Exception):
 @registered
 class ResourceDoesNotExistException(Exception):
     """Exception indicating that the requested AWS resource does not exists"""
+
     def __init__(self, message, resource_id):
         """Initialize the Exception
 
@@ -785,6 +773,7 @@ class ResourceDoesNotExistException(Exception):
 @registered
 class ResourceClobberedException(Exception):
     """Exception indicating that this AWS resource has been clobbered"""
+
     def __init__(self, message, resource_id):
         """Initialize the Exception
 
@@ -804,6 +793,7 @@ class ResourceClobberedException(Exception):
 @registered
 class CannotDeleteResourceException(Exception):
     """Exception indicating that an AWS resource cannot be deleted"""
+
     def __init__(self, message, resource_id):
         """Initialize the Exception
 
@@ -823,6 +813,7 @@ class CannotDeleteResourceException(Exception):
 @registered
 class CannotCreateResourceException(Exception):
     """Exception indicating that an AWS resource cannot be created"""
+
     def __init__(self, message):
         """Initialize the Exception
 
@@ -838,6 +829,7 @@ class CannotCreateResourceException(Exception):
 @registered
 class RegionException(Exception):
     """Exception indicating the current region is not this resource's region"""
+
     def __init__(self, resource_region):
         """Initialize the Exception
 
@@ -860,6 +852,7 @@ class RegionException(Exception):
 @registered
 class ProfileException(Exception):
     """Exception indicating the current profile isn't the resource's profile"""
+
     def __init__(self, resource_profile):
         """Initialize the Exception
 
@@ -886,11 +879,12 @@ class CKTimeoutError(Exception):
     Error indicating an AWS Batch job failed to return results within
     the requested time period
     """
+
     def __init__(self, job_id):
         """Initialize the Exception"""
         super(CKTimeoutError, self).__init__(
-            'The job with job-id {jid:s} did not finish within the '
-            'requested timeout period'.format(jid=job_id)
+            "The job with job-id {jid:s} did not finish within the "
+            "requested timeout period".format(jid=job_id)
         )
         self.job_id = job_id
 
@@ -899,6 +893,7 @@ class CKTimeoutError(Exception):
 @registered
 class BatchJobFailedError(Exception):
     """Error indicating an AWS Batch job failed"""
+
     def __init__(self, job_id):
         """Initialize the Exception
 
@@ -917,6 +912,7 @@ class BatchJobFailedError(Exception):
 @registered
 class CloudknotConfigurationError(Exception):
     """Error indicating an cloudknot has not been properly configured"""
+
     def __init__(self, config_file):
         """Initialize the Exception
 
@@ -938,6 +934,7 @@ class CloudknotConfigurationError(Exception):
 @registered
 class CloudknotInputError(Exception):
     """Error indicating an input argument has an invalid value"""
+
     def __init__(self, msg):
         """Initialize the Exception
 
@@ -953,6 +950,7 @@ class CloudknotInputError(Exception):
 @registered
 class NamedObject(object):
     """Base class for building objects with name property"""
+
     def __init__(self, name):
         """Initialize a base class with a name
 
@@ -967,16 +965,19 @@ class NamedObject(object):
         with rlock:
             conf.read(config_file)
 
-            if not (conf.has_section('aws')
-                    and conf.has_option('aws', 'configured')
-                    and conf.get('aws', 'configured') == 'True'):
+            if not (
+                conf.has_section("aws")
+                and conf.has_option("aws", "configured")
+                and conf.get("aws", "configured") == "True"
+            ):
                 raise CloudknotConfigurationError(config_file)
 
-        name = str(name).replace('_', '-')
-        pattern = re.compile('[a-zA-Z][-a-zA-Z0-9]*')
+        name = str(name).replace("_", "-")
+        pattern = re.compile("[a-zA-Z][-a-zA-Z0-9]*")
         if not pattern.match(name):
-            raise CloudknotInputError('name must satisfy regular expression '
-                                      'pattern: [a-zA-Z][-a-zA-Z0-9]*')
+            raise CloudknotInputError(
+                "name must satisfy regular expression " "pattern: [a-zA-Z][-a-zA-Z0-9]*"
+            )
 
         self._name = name
         self._clobbered = False
@@ -1008,7 +1009,7 @@ class NamedObject(object):
 
         Append profile and region to the resource type name
         """
-        return ' '.join([resource_type, self.profile, self.region])
+        return " ".join([resource_type, self.profile, self.region])
 
     def check_profile(self):
         """Check for profile exception"""

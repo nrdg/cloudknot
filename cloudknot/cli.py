@@ -26,6 +26,7 @@ from . import __version__ as VERSION
 def main():
     """Main CLI entrypoint"""
     import cloudknot.commands
+
     options = docopt(__doc__, version=VERSION)
 
     # Here we try to dynamically match the command the user is trying to run
@@ -34,7 +35,8 @@ def main():
         if hasattr(cloudknot.commands, k) and v:
             module = getattr(cloudknot.commands, k)
             cloudknot.commands = getmembers(module, isclass)
-            command = [command[1] for command in cloudknot.commands
-                       if command[0] != 'Base'][0]
+            command = [
+                command[1] for command in cloudknot.commands if command[0] != "Base"
+            ][0]
             command = command(options)
             command.run()

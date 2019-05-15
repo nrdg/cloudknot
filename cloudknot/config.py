@@ -43,12 +43,12 @@ def get_config_file():
     """
     try:
         # Get config file from environment variable
-        env_file = os.environ['CLOUDKNOT_CONFIG_FILE']
+        env_file = os.environ["CLOUDKNOT_CONFIG_FILE"]
         config_file = os.path.abspath(env_file)
     except KeyError:
         # Fallback on default config file path
-        home = os.path.expanduser('~')
-        config_file = os.path.join(home, '.aws', 'cloudknot')
+        home = os.path.expanduser("~")
+        config_file = os.path.join(home, ".aws", "cloudknot")
 
     with rlock:
         if not os.path.isfile(config_file):
@@ -57,26 +57,21 @@ def get_config_file():
             try:
                 os.makedirs(configdir)
             except OSError as e:
-                pre_existing = (e.errno == errno.EEXIST
-                                and os.path.isdir(configdir))
+                pre_existing = e.errno == errno.EEXIST and os.path.isdir(configdir)
                 if pre_existing:
                     pass
                 else:
                     raise e
 
             # If the config file does not exist, create it
-            with open(config_file, 'w') as f:
-                f.write('# cloudknot configuration file')
+            with open(config_file, "w") as f:
+                f.write("# cloudknot configuration file")
 
             mod_logger.info(
-                'Created new cloudknot config file at {path:s}'.format(
-                    path=config_file
-                )
+                "Created new cloudknot config file at {path:s}".format(path=config_file)
             )
 
-    mod_logger.debug('Using cloudknot config file {path:s}'.format(
-        path=config_file
-    ))
+    mod_logger.debug("Using cloudknot config file {path:s}".format(path=config_file))
 
     return config_file
 
@@ -104,7 +99,7 @@ def add_resource(section, option, value):
         if section not in config.sections():
             config.add_section(section)
         config.set(section=section, option=option, value=value)
-        with open(config_file, 'w') as f:
+        with open(config_file, "w") as f:
             config.write(f)
 
 
@@ -129,7 +124,7 @@ def remove_resource(section, option):
             config.remove_option(section, option)
         except configparser.NoSectionError:
             pass
-        with open(config_file, 'w') as f:
+        with open(config_file, "w") as f:
             config.write(f)
 
 
@@ -142,20 +137,28 @@ def verify_sections():
         config.read(config_file)
 
         approved_sections = [
-            'aws', 'roles', 'vpc', 'security-groups', 'docker-repos',
-            'job-definitions', 'compute-environments', 'job-queues',
-            'batch-jobs', 'pars', 'knot', 'docker-image'
+            "aws",
+            "roles",
+            "vpc",
+            "security-groups",
+            "docker-repos",
+            "job-definitions",
+            "compute-environments",
+            "job-queues",
+            "batch-jobs",
+            "pars",
+            "knot",
+            "docker-image",
         ]
 
         def section_approved(sec):
-            return any([
-                sec in approved_sections,
-                sec.split(' ', 1)[0] in approved_sections
-            ])
+            return any(
+                [sec in approved_sections, sec.split(" ", 1)[0] in approved_sections]
+            )
 
         for section in config.sections():
             if not section_approved(section):
                 config.remove_section(section)
 
-        with open(config_file, 'w') as f:
+        with open(config_file, "w") as f:
             config.write(f)

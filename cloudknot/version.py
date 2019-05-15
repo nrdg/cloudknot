@@ -7,7 +7,7 @@ _version_major = 0
 _version_minor = 3
 _version_micro = 1  # use '' for first of series, number for 1 and above
 # _version_extra = 'dev'
-_version_extra = ''  # Uncomment this for full releases
+_version_extra = ""  # Uncomment this for full releases
 
 # Construct full version string from these.
 _ver = [_version_major, _version_minor]
@@ -16,19 +16,23 @@ if _version_micro:
 if _version_extra:
     _ver.append(_version_extra)
 
-__version__ = '.'.join(map(str, _ver))
+__version__ = ".".join(map(str, _ver))
 
-CLASSIFIERS = ["Development Status :: 3 - Alpha",
-               "Environment :: Console",
-               "Intended Audience :: Science/Research",
-               "License :: OSI Approved :: MIT License",
-               "Operating System :: OS Independent",
-               "Programming Language :: Python",
-               "Topic :: Scientific/Engineering"]
+CLASSIFIERS = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Topic :: Scientific/Engineering",
+]
 
 # Description should be a one-liner:
-description = ("cloudknot: a python library designed to run "
-               "your existing python code on AWS Batch")
+description = (
+    "cloudknot: a python library designed to run "
+    "your existing python code on AWS Batch"
+)
 # Long description will go up on the pypi page
 long_description = """
 Cloudknot
@@ -71,13 +75,22 @@ MAJOR = _version_major
 MINOR = _version_minor
 MICRO = _version_micro
 VERSION = __version__
-PACKAGE_DATA = {'cloudknot': [pjoin('data', '*', '*', '*', '*'),
-                              pjoin('templates', '*')]}
-REQUIRES = ["awscli", "boto3>=1.5.21", "botocore>=1.8.36", "cloudpickle",
-            "docker>=2.0.0, <3.0.0", "pipreqs", "six", "tenacity",
-            'configparser;python_version<"3.0"', ]
+PACKAGE_DATA = {
+    "cloudknot": [pjoin("data", "*", "*", "*", "*"), pjoin("templates", "*")]
+}
+REQUIRES = [
+    "awscli",
+    "boto3>=1.5.21",
+    "botocore>=1.8.36",
+    "cloudpickle",
+    "docker>=2.0.0, <3.0.0",
+    "pipreqs",
+    "six",
+    "tenacity",
+    'configparser;python_version<"3.0"',
+]
 EXTRAS_REQUIRE = {
     ':python_version < "3.0"': ["configparser"],
-    'dev': ['pytest', 'pytest-cov', 'flake8',],
+    "dev": ["pytest", "pytest-cov", "flake8"],
 }
-ENTRY_POINTS = {'console_scripts': ['cloudknot=cloudknot.cli:main']}
+ENTRY_POINTS = {"console_scripts": ["cloudknot=cloudknot.cli:main"]}

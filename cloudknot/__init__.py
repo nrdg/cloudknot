@@ -17,9 +17,10 @@ from .dockerimage import *  # noqa
 from .version import __version__  # noqa
 
 try:
-    fnull = open(os.devnull, 'w')
-    subprocess.check_call('docker version', shell=True,
-                          stdout=fnull, stderr=subprocess.STDOUT)
+    fnull = open(os.devnull, "w")
+    subprocess.check_call(
+        "docker version", shell=True, stdout=fnull, stderr=subprocess.STDOUT
+    )
 except subprocess.CalledProcessError:
     raise ImportError(
         "It looks like you don't have Docker installed or running. Please go "
@@ -32,38 +33,36 @@ module_logger = logging.getLogger(__name__)
 
 # get the log level from environment variable
 if "CLOUDKNOT_LOGLEVEL" in os.environ:
-    loglevel = os.environ['CLOUDKNOT_LOGLEVEL']
+    loglevel = os.environ["CLOUDKNOT_LOGLEVEL"]
     module_logger.setLevel(getattr(logging, loglevel.upper()))
 else:
     module_logger.setLevel(logging.WARNING)
 
 # create a file handler
-logpath = os.path.join(os.path.expanduser('~'), '.cloudknot', 'cloudknot.log')
+logpath = os.path.join(os.path.expanduser("~"), ".cloudknot", "cloudknot.log")
 
 # Create the config directory if it doesn't exist
 logdir = os.path.dirname(logpath)
 try:
     os.makedirs(logdir)
 except OSError as e:
-    pre_existing = (e.errno == errno.EEXIST and os.path.isdir(logdir))
+    pre_existing = e.errno == errno.EEXIST and os.path.isdir(logdir)
     if pre_existing:
         pass
     else:
         raise e
 
-handler = logging.FileHandler(logpath, mode='w')
+handler = logging.FileHandler(logpath, mode="w")
 handler.setLevel(logging.DEBUG)
 
 # create a logging format
-formatter = logging.Formatter(
-    '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 handler.setFormatter(formatter)
 
 # add the handlers to the logger
 module_logger.addHandler(handler)
-module_logger.info('Started new cloudknot session')
+module_logger.info("Started new cloudknot session")
 
-logging.getLogger('boto').setLevel(logging.WARNING)
-logging.getLogger('boto3').setLevel(logging.WARNING)
-logging.getLogger('botocore').setLevel(logging.WARNING)
+logging.getLogger("boto").setLevel(logging.WARNING)
+logging.getLogger("boto3").setLevel(logging.WARNING)
+logging.getLogger("botocore").setLevel(logging.WARNING)

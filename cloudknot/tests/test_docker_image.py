@@ -12,17 +12,17 @@ import tempfile
 import uuid
 
 
-UNIT_TEST_PREFIX = 'ck-unit-test'
-data_path = op.join(ck.__path__[0], 'data')
+UNIT_TEST_PREFIX = "ck-unit-test"
+data_path = op.join(ck.__path__[0], "data")
 
 
 def get_testing_name():
-    u = str(uuid.uuid4()).replace('-', '')[:8]
-    name = UNIT_TEST_PREFIX + '-' + u
+    u = str(uuid.uuid4()).replace("-", "")[:8]
+    name = UNIT_TEST_PREFIX + "-" + u
     return name
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def bucket_cleanup():
     config_file = ck.config.get_config_file()
     config = configparser.ConfigParser()
@@ -30,13 +30,13 @@ def bucket_cleanup():
     with ck.config.rlock:
         config.read(config_file)
 
-    option = 's3-bucket'
-    if config.has_section('aws') and config.has_option('aws', option):
+    option = "s3-bucket"
+    if config.has_section("aws") and config.has_option("aws", option):
         old_s3_params = ck.get_s3_params()
     else:
         old_s3_params = None
 
-    new_bucket = 'cloudknot-travis-build-45814031-351c-4b27-9a40-672c971f7e83'
+    new_bucket = "cloudknot-travis-build-45814031-351c-4b27-9a40-672c971f7e83"
     ck.set_s3_params(bucket=new_bucket)
 
     yield None
@@ -45,43 +45,29 @@ def bucket_cleanup():
     bucket_policy = s3_params.policy
 
     if (old_s3_params is None) or bucket_policy == old_s3_params.policy:
-        iam = ck.aws.clients['iam']
-        response = iam.list_policies(
-            Scope='Local',
-            PathPrefix='/cloudknot/'
-        )
+        iam = ck.aws.clients["iam"]
+        response = iam.list_policies(Scope="Local", PathPrefix="/cloudknot/")
 
-        policy_dict = [p for p in response.get('Policies')
-                       if p['PolicyName'] == bucket_policy][0]
+        policy_dict = [
+            p for p in response.get("Policies") if p["PolicyName"] == bucket_policy
+        ][0]
 
-        arn = policy_dict['Arn']
+        arn = policy_dict["Arn"]
 
-        response = iam.list_policy_versions(
-            PolicyArn=arn
-        )
+        response = iam.list_policy_versions(PolicyArn=arn)
 
         # Get non-default versions
-        versions = [v for v in response.get('Versions')
-                    if not v['IsDefaultVersion']]
+        versions = [v for v in response.get("Versions") if not v["IsDefaultVersion"]]
 
         # Get the oldest versions and delete them
         for v in versions:
-            iam.delete_policy_version(
-                PolicyArn=arn,
-                VersionId=v['VersionId']
-            )
+            iam.delete_policy_version(PolicyArn=arn, VersionId=v["VersionId"])
 
-        response = iam.list_entities_for_policy(
-            PolicyArn=arn,
-            EntityFilter='Role'
-        )
+        response = iam.list_entities_for_policy(PolicyArn=arn, EntityFilter="Role")
 
-        roles = response.get('PolicyRoles')
+        roles = response.get("PolicyRoles")
         for role in roles:
-            iam.detach_role_policy(
-                RoleName=role['RoleName'],
-                PolicyArn=arn
-            )
+            iam.detach_role_policy(RoleName=role["RoleName"], PolicyArn=arn)
 
         try:
             iam.delete_policy(PolicyArn=arn)
@@ -92,34 +78,37 @@ def bucket_cleanup():
         ck.set_s3_params(
             bucket=old_s3_params.bucket,
             policy=old_s3_params.policy,
-            sse=old_s3_params.sse
+            sse=old_s3_params.sse,
         )
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def cleanup_repos(bucket_cleanup):
     yield None
-    ecr = ck.aws.clients['ecr']
+    ecr = ck.aws.clients["ecr"]
     config_file = ck.config.get_config_file()
-    section_suffix = ck.get_profile() + ' ' + ck.get_region()
-    repos_section_name = 'docker-repos ' + section_suffix
+    section_suffix = ck.get_profile() + " " + ck.get_region()
+    repos_section_name = "docker-repos " + section_suffix
 
     # Clean up repos from AWS
     # -----------------------
     # Get all repos with unit test prefix in the name
     response = ecr.describe_repositories()
-    repos = [r for r in response.get('repositories')
-             if ('unit-testing-func' in r['repositoryName']
-                 or 'test-func-input' in r['repositoryName']
-                 or 'simple-unit-testing-func' in r['repositoryName']
-                 or UNIT_TEST_PREFIX in r['repositoryName'])]
+    repos = [
+        r
+        for r in response.get("repositories")
+        if (
+            "unit-testing-func" in r["repositoryName"]
+            or "test-func-input" in r["repositoryName"]
+            or "simple-unit-testing-func" in r["repositoryName"]
+            or UNIT_TEST_PREFIX in r["repositoryName"]
+        )
+    ]
 
     # Delete the AWS ECR repo
     for r in repos:
         ecr.delete_repository(
-            registryId=r['registryId'],
-            repositoryName=r['repositoryName'],
-            force=True
+            registryId=r["registryId"], repositoryName=r["repositoryName"], force=True
         )
 
     # Clean up repos from config file
@@ -129,13 +118,13 @@ def cleanup_repos(bucket_cleanup):
         for repo_name in config.options(repos_section_name):
             if UNIT_TEST_PREFIX in repo_name:
                 config.remove_option(repos_section_name, repo_name)
-        with open(config_file, 'w') as f:
+        with open(config_file, "w") as f:
             config.write(f)
 
 
 def simple_unit_testing_func(name=None):
     """Simple test function with no imports for a small docker image"""
-    return 'Hello world!'
+    return "Hello world!"
 
 
 def unit_testing_func(name=None, no_capitalize=False):
@@ -148,6 +137,7 @@ def unit_testing_func(name=None, no_capitalize=False):
     import sys  # noqa: F401
     import boto3.ec2  # noqa: F401
     import AFQ  # noqa: F401
+
     if name:
         from docker import api  # noqa: F401
         from os.path import join  # noqa: F401
@@ -158,52 +148,55 @@ def unit_testing_func(name=None, no_capitalize=False):
 
             name = name.title()
 
-        return 'Hello {0}!'.format(name)
+        return "Hello {0}!".format(name)
 
     from six import binary_type as bt  # noqa: F401
     from dask.base import curry as dbc  # noqa: F401
 
-    return 'Hello world!'
+    return "Hello world!"
 
 
 def test_DockerImage(cleanup_repos):
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
-    ecr = ck.aws.clients['ecr']
+    ecr = ck.aws.clients["ecr"]
 
     try:
         correct_pip_imports = {
-            'boto3', 'six', 'dask', 'docker',
-            'pytest', 'h5py', 'cloudpickle'
+            "boto3",
+            "six",
+            "dask",
+            "docker",
+            "pytest",
+            "h5py",
+            "cloudpickle",
         }
 
         # First, test a DockerImage instance with `func` input
         # ----------------------------------------------------
         di = ck.DockerImage(func=unit_testing_func)
 
-        assert di.name == unit_testing_func.__name__.replace('_', '-')
-        import_names = set([d['name'] for d in di.pip_imports])
+        assert di.name == unit_testing_func.__name__.replace("_", "-")
+        import_names = set([d["name"] for d in di.pip_imports])
         assert import_names == correct_pip_imports
-        assert di.missing_imports == ['AFQ']
-        assert di.username == 'cloudknot-user'
+        assert di.missing_imports == ["AFQ"]
+        assert di.username == "cloudknot-user"
         assert di.func == unit_testing_func
 
-        py_dir = 'py3' if six.PY3 else 'py2'
+        py_dir = "py3" if six.PY3 else "py2"
 
         # Compare the created files with the reference files
-        correct_dir = op.join(
-            data_path, 'docker_reqs_ref_data', py_dir, 'ref1'
-        )
-        correct_req_path = op.join(correct_dir, 'requirements.txt')
-        correct_dockerfile = op.join(correct_dir, 'Dockerfile')
+        correct_dir = op.join(data_path, "docker_reqs_ref_data", py_dir, "ref1")
+        correct_req_path = op.join(correct_dir, "requirements.txt")
+        correct_dockerfile = op.join(correct_dir, "Dockerfile")
 
-        correct_script_path = op.join(correct_dir, 'unit-testing-func.py')
+        correct_script_path = op.join(correct_dir, "unit-testing-func.py")
 
         with open(correct_req_path) as f:
-            correct_reqs = set([s.split('=')[0] for s in f.readlines()])
+            correct_reqs = set([s.split("=")[0] for s in f.readlines()])
 
         with open(di.req_path) as f:
-            created_reqs = set([s.split('=')[0] for s in f.readlines()])
+            created_reqs = set([s.split("=")[0] for s in f.readlines()])
 
         assert created_reqs == correct_reqs
         assert filecmp.cmp(di.docker_path, correct_dockerfile, shallow=False)
@@ -214,7 +207,7 @@ def test_DockerImage(cleanup_repos):
         with ck.config.rlock:
             config.read(config_file)
 
-        assert 'docker-image ' + di.name in config.sections()
+        assert "docker-image " + di.name in config.sections()
 
         # Next, retrieve another instance with the same name, confirm that it
         # retrieves the same info from the config file
@@ -246,25 +239,22 @@ def test_DockerImage(cleanup_repos):
         with ck.config.rlock:
             config.read(config_file)
 
-        assert 'docker-image ' + di.name not in config.sections()
+        assert "docker-image " + di.name not in config.sections()
 
         # Second, test a DockerImage with a func and a dir_name
         # -----------------------------------------------------
         dir_name = tempfile.mkdtemp(dir=os.getcwd())
-        di = ck.DockerImage(
-            func=unit_testing_func,
-            dir_name=dir_name
-        )
+        di = ck.DockerImage(func=unit_testing_func, dir_name=dir_name)
 
-        assert di.name == unit_testing_func.__name__.replace('_', '-')
-        import_names = set([d['name'] for d in di.pip_imports])
+        assert di.name == unit_testing_func.__name__.replace("_", "-")
+        import_names = set([d["name"] for d in di.pip_imports])
         assert import_names == correct_pip_imports
-        assert di.missing_imports == ['AFQ']
-        assert di.username == 'cloudknot-user'
+        assert di.missing_imports == ["AFQ"]
+        assert di.username == "cloudknot-user"
         assert di.func == unit_testing_func
 
         with open(di.req_path) as f:
-            created_reqs = set([s.split('=')[0] for s in f.readlines()])
+            created_reqs = set([s.split("=")[0] for s in f.readlines()])
 
         assert created_reqs == correct_reqs
         assert filecmp.cmp(di.docker_path, correct_dockerfile, shallow=False)
@@ -275,7 +265,7 @@ def test_DockerImage(cleanup_repos):
         with ck.config.rlock:
             config.read(config_file)
 
-        assert 'docker-image ' + di.name in config.sections()
+        assert "docker-image " + di.name in config.sections()
 
         # Clobber and confirm that it deleted all the created files and dirs
         di.clobber()
@@ -293,46 +283,40 @@ def test_DockerImage(cleanup_repos):
         with ck.config.rlock:
             config.read(config_file)
 
-        assert 'docker-image ' + di.name not in config.sections()
+        assert "docker-image " + di.name not in config.sections()
 
         # Third, test a DockerImage with script_path and dir_name input
         # -------------------------------------------------------------
-        correct_dir = op.join(
-            data_path, 'docker_reqs_ref_data', py_dir, 'ref2'
-        )
-        script_path = op.join(correct_dir, 'test-func-input.py')
+        correct_dir = op.join(data_path, "docker_reqs_ref_data", py_dir, "ref2")
+        script_path = op.join(correct_dir, "test-func-input.py")
 
         # Put the results in a temp dir with a pre-existing file
         dir_name = tempfile.mkdtemp(dir=os.getcwd())
         _, tmp_file_name = tempfile.mkstemp(dir=dir_name)
 
         di = ck.DockerImage(
-            script_path=script_path,
-            dir_name=dir_name,
-            username='unit-test-username'
+            script_path=script_path, dir_name=dir_name, username="unit-test-username"
         )
 
         assert di.name == op.basename(script_path)
-        import_names = set([d['name'] for d in di.pip_imports])
+        import_names = set([d["name"] for d in di.pip_imports])
         assert import_names == correct_pip_imports
         assert di.missing_imports == []
-        assert di.username == 'unit-test-username'
+        assert di.username == "unit-test-username"
         assert di.func is None
         assert di.build_path == dir_name
         assert di.script_path == script_path
 
         # Compare the created files with the reference files
-        correct_dir = op.join(
-            data_path, 'docker_reqs_ref_data', py_dir, 'ref2'
-        )
-        correct_req_path = op.join(correct_dir, 'requirements.txt')
-        correct_dockerfile = op.join(correct_dir, 'Dockerfile')
+        correct_dir = op.join(data_path, "docker_reqs_ref_data", py_dir, "ref2")
+        correct_req_path = op.join(correct_dir, "requirements.txt")
+        correct_dockerfile = op.join(correct_dir, "Dockerfile")
 
         with open(correct_req_path) as f:
-            correct_reqs = set([s.split('=')[0] for s in f.readlines()])
+            correct_reqs = set([s.split("=")[0] for s in f.readlines()])
 
         with open(di.req_path) as f:
-            created_reqs = set([s.split('=')[0] for s in f.readlines()])
+            created_reqs = set([s.split("=")[0] for s in f.readlines()])
 
         assert created_reqs == correct_reqs
         assert filecmp.cmp(di.docker_path, correct_dockerfile, shallow=False)
@@ -342,7 +326,7 @@ def test_DockerImage(cleanup_repos):
         with ck.config.rlock:
             config.read(config_file)
 
-        assert 'docker-image ' + di.name in config.sections()
+        assert "docker-image " + di.name in config.sections()
 
         # Clobber and confirm that it deleted all the created files
         di.clobber()
@@ -368,7 +352,7 @@ def test_DockerImage(cleanup_repos):
         with ck.config.rlock:
             config.read(config_file)
 
-        assert 'docker-image ' + di.name not in config.sections()
+        assert "docker-image " + di.name not in config.sections()
 
         # Test for exception handling of incorrect input
         # ----------------------------------------------
@@ -394,7 +378,7 @@ def test_DockerImage(cleanup_repos):
             ck.DockerImage(
                 func=unit_testing_func,
                 script_path=correct_script_path,
-                dir_name=os.getcwd()
+                dir_name=os.getcwd(),
             )
 
         # Assert ck.aws.CloudknotInputError on invalid script path
@@ -403,14 +387,9 @@ def test_DockerImage(cleanup_repos):
 
         # Assert ck.aws.CloudknotInputError on invalid dir name
         with pytest.raises(ck.aws.CloudknotInputError):
-            ck.DockerImage(
-                script_path=correct_script_path,
-                dir_name=str(uuid.uuid4())
-            )
+            ck.DockerImage(script_path=correct_script_path, dir_name=str(uuid.uuid4()))
 
-        correct_dir = op.join(
-            data_path, 'docker_reqs_ref_data', py_dir, 'ref1'
-        )
+        correct_dir = op.join(data_path, "docker_reqs_ref_data", py_dir, "ref1")
         # Assert CloudknotInputError to prevent overwriting existing script
         with pytest.raises(ck.aws.CloudknotInputError):
             ck.DockerImage(func=unit_testing_func, dir_name=correct_dir)
@@ -422,11 +401,9 @@ def test_DockerImage(cleanup_repos):
         # Assert CloudknotInputError to prevent overwriting existing
         # requirements.txt
         # First, avoid the existing Dockerfile error by renaming the Dockerfile
-        old_dockerfile = op.join(op.dirname(correct_script_path), 'Dockerfile')
+        old_dockerfile = op.join(op.dirname(correct_script_path), "Dockerfile")
 
-        new_dockerfile = op.join(
-            op.dirname(correct_script_path), 'tmpdockerfile'
-        )
+        new_dockerfile = op.join(op.dirname(correct_script_path), "tmpdockerfile")
         os.rename(old_dockerfile, new_dockerfile)
 
         # Assert the ck.aws.CloudknotInputError
@@ -444,8 +421,8 @@ def test_DockerImage(cleanup_repos):
 
         # Create a repo to which to push this image
         response = ecr.create_repository(repositoryName=get_testing_name())
-        repo_name = response['repository']['repositoryName']
-        repo_uri = response['repository']['repositoryUri']
+        repo_name = response["repository"]["repositoryName"]
+        repo_uri = response["repository"]["repositoryUri"]
 
         repo = ck.aws.DockerRepo(name=repo_name)
 
@@ -467,19 +444,19 @@ def test_DockerImage(cleanup_repos):
 
         # Assert ck.aws.CloudknotInputError on 'latest' in tags
         with pytest.raises(ck.aws.CloudknotInputError):
-            di.build(tags=['testing', 'latest'])
+            di.build(tags=["testing", "latest"])
 
-        tags = ['testing', ['testing1', 'testing2']]
-        image_names = [None, 'testing_image']
+        tags = ["testing", ["testing1", "testing2"]]
+        image_names = [None, "testing_image"]
 
         for idx, (tag, n) in enumerate(zip(tags, image_names)):
             di.build(tags=tag, image_name=n)
 
-            n = n if n else 'cloudknot/' + di.name
+            n = n if n else "cloudknot/" + di.name
             if isinstance(tag, six.string_types):
                 tag = [tag]
 
-            images = [{'name': n, 'tag': t} for t in tag]
+            images = [{"name": n, "tag": t} for t in tag]
             for im in images:
                 assert im in di.images
 
@@ -502,7 +479,7 @@ def test_DockerImage(cleanup_repos):
 
         # Assert error on build after clobber
         with pytest.raises(ck.aws.ResourceClobberedException):
-            di.build(tags=['testing'])
+            di.build(tags=["testing"])
 
         # Assert ck.aws.CloudknotInputError on push with invalid repo_uri
         with pytest.raises(ck.aws.ResourceClobberedException):
@@ -511,14 +488,17 @@ def test_DockerImage(cleanup_repos):
         # Get all local images with unit test prefix in any of the repo tags
         c = docker.from_env().api
         unit_test_images = [
-            im for im in c.images()
-            if any(('unit-testing-func' in tag or 'test-func-input' in tag)
-                   for tag in im['RepoTags'])
+            im
+            for im in c.images()
+            if any(
+                ("unit-testing-func" in tag or "test-func-input" in tag)
+                for tag in im["RepoTags"]
+            )
         ]
 
         # Remove local images
         for im in unit_test_images:
-            for tag in im['RepoTags']:
+            for tag in im["RepoTags"]:
                 c.remove_image(tag, force=True)
 
         # Clean up config file
@@ -527,19 +507,21 @@ def test_DockerImage(cleanup_repos):
             config.read(config_file)
 
             for name in list(config.sections()):
-                if name in ['docker-image unit-testing-func',
-                            'docker-image test-func-input']:
+                if name in [
+                    "docker-image unit-testing-func",
+                    "docker-image test-func-input",
+                ]:
                     config.remove_section(name)
 
             try:
-                section_name = 'docker-repos' + ck.aws.get_region()
+                section_name = "docker-repos" + ck.aws.get_region()
                 for option in config.options(section_name):
                     if UNIT_TEST_PREFIX in option:
                         config.remove_option(section_name, option)
             except configparser.NoSectionError:
                 pass
 
-            with open(config_file, 'w') as f:
+            with open(config_file, "w") as f:
                 config.write(f)
 
         raise e

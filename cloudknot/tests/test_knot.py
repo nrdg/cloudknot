@@ -7,17 +7,17 @@ import pytest
 import uuid
 
 
-UNIT_TEST_PREFIX = 'ck-unit-test'
-data_path = op.join(ck.__path__[0], 'data')
+UNIT_TEST_PREFIX = "ck-unit-test"
+data_path = op.join(ck.__path__[0], "data")
 
 
 def get_testing_name():
-    u = str(uuid.uuid4()).replace('-', '')[:8]
-    name = UNIT_TEST_PREFIX + '-' + u
+    u = str(uuid.uuid4()).replace("-", "")[:8]
+    name = UNIT_TEST_PREFIX + "-" + u
     return name
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def bucket_cleanup():
     config_file = ck.config.get_config_file()
     config = configparser.ConfigParser()
@@ -25,13 +25,13 @@ def bucket_cleanup():
     with ck.config.rlock:
         config.read(config_file)
 
-    option = 's3-bucket'
-    if config.has_section('aws') and config.has_option('aws', option):
+    option = "s3-bucket"
+    if config.has_section("aws") and config.has_option("aws", option):
         old_s3_params = ck.get_s3_params()
     else:
         old_s3_params = None
 
-    new_bucket = 'cloudknot-travis-build-45814031-351c-4b27-9a40-672c971f7e83'
+    new_bucket = "cloudknot-travis-build-45814031-351c-4b27-9a40-672c971f7e83"
     ck.set_s3_params(bucket=new_bucket)
 
     yield None
@@ -40,43 +40,29 @@ def bucket_cleanup():
     bucket_policy = s3_params.policy
 
     if (old_s3_params is None) or bucket_policy == old_s3_params.policy:
-        iam = ck.aws.clients['iam']
-        response = iam.list_policies(
-            Scope='Local',
-            PathPrefix='/cloudknot/'
-        )
+        iam = ck.aws.clients["iam"]
+        response = iam.list_policies(Scope="Local", PathPrefix="/cloudknot/")
 
-        policy_dict = [p for p in response.get('Policies')
-                       if p['PolicyName'] == bucket_policy][0]
+        policy_dict = [
+            p for p in response.get("Policies") if p["PolicyName"] == bucket_policy
+        ][0]
 
-        arn = policy_dict['Arn']
+        arn = policy_dict["Arn"]
 
-        response = iam.list_policy_versions(
-            PolicyArn=arn
-        )
+        response = iam.list_policy_versions(PolicyArn=arn)
 
         # Get non-default versions
-        versions = [v for v in response.get('Versions')
-                    if not v['IsDefaultVersion']]
+        versions = [v for v in response.get("Versions") if not v["IsDefaultVersion"]]
 
         # Delete the non-default versions
         for v in versions:
-            iam.delete_policy_version(
-                PolicyArn=arn,
-                VersionId=v['VersionId']
-            )
+            iam.delete_policy_version(PolicyArn=arn, VersionId=v["VersionId"])
 
-        response = iam.list_entities_for_policy(
-            PolicyArn=arn,
-            EntityFilter='Role'
-        )
+        response = iam.list_entities_for_policy(PolicyArn=arn, EntityFilter="Role")
 
-        roles = response.get('PolicyRoles')
+        roles = response.get("PolicyRoles")
         for role in roles:
-            iam.detach_role_policy(
-                RoleName=role['RoleName'],
-                PolicyArn=arn
-            )
+            iam.detach_role_policy(RoleName=role["RoleName"], PolicyArn=arn)
 
         try:
             iam.delete_policy(PolicyArn=arn)
@@ -87,34 +73,37 @@ def bucket_cleanup():
         ck.set_s3_params(
             bucket=old_s3_params.bucket,
             policy=old_s3_params.policy,
-            sse=old_s3_params.sse
+            sse=old_s3_params.sse,
         )
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def cleanup_repos(bucket_cleanup):
     yield None
-    ecr = ck.aws.clients['ecr']
+    ecr = ck.aws.clients["ecr"]
     config_file = ck.config.get_config_file()
-    section_suffix = ck.get_profile() + ' ' + ck.get_region()
-    repos_section_name = 'docker-repos ' + section_suffix
+    section_suffix = ck.get_profile() + " " + ck.get_region()
+    repos_section_name = "docker-repos " + section_suffix
 
     # Clean up repos from AWS
     # -----------------------
     # Get all repos with unit test prefix in the name
     response = ecr.describe_repositories()
-    repos = [r for r in response.get('repositories')
-             if ('unit_testing_func' in r['repositoryName']
-                 or 'test_func_input' in r['repositoryName']
-                 or 'simple_unit_testing_func' in r['repositoryName']
-                 or UNIT_TEST_PREFIX in r['repositoryName'])]
+    repos = [
+        r
+        for r in response.get("repositories")
+        if (
+            "unit_testing_func" in r["repositoryName"]
+            or "test_func_input" in r["repositoryName"]
+            or "simple_unit_testing_func" in r["repositoryName"]
+            or UNIT_TEST_PREFIX in r["repositoryName"]
+        )
+    ]
 
     # Delete the AWS ECR repo
     for r in repos:
         ecr.delete_repository(
-            registryId=r['registryId'],
-            repositoryName=r['repositoryName'],
-            force=True
+            registryId=r["registryId"], repositoryName=r["repositoryName"], force=True
         )
 
     # Clean up repos from config file
@@ -124,7 +113,7 @@ def cleanup_repos(bucket_cleanup):
         for repo_name in config.options(repos_section_name):
             if UNIT_TEST_PREFIX in repo_name:
                 config.remove_option(repos_section_name, repo_name)
-        with open(config_file, 'w') as f:
+        with open(config_file, "w") as f:
             config.write(f)
 
 
@@ -138,6 +127,7 @@ def unit_testing_func(name=None, no_capitalize=False):
     import sys  # noqa: F401
     import boto3.ec2  # noqa: F401
     import AFQ  # noqa: F401
+
     if name:
         from docker import api  # noqa: F401
         from os.path import join  # noqa: F401
@@ -148,12 +138,12 @@ def unit_testing_func(name=None, no_capitalize=False):
 
             name = name.title()
 
-        return 'Hello {0}!'.format(name)
+        return "Hello {0}!".format(name)
 
     from six import binary_type as bt  # noqa: F401
     from dask.base import curry as dbc  # noqa: F401
 
-    return 'Hello world!'
+    return "Hello world!"
 
 
 def test_knot(cleanup_repos):
@@ -171,10 +161,9 @@ def test_knot(cleanup_repos):
         config = configparser.ConfigParser()
         with ck.config.rlock:
             config.read(config_file)
-            config.set('docker-image ' + knot.docker_image.name, 'images', '')
-            config.set('docker-image ' + knot.docker_image.name,
-                       'repo-uri', '')
-            with open(config_file, 'w') as f:
+            config.set("docker-image " + knot.docker_image.name, "images", "")
+            config.set("docker-image " + knot.docker_image.name, "repo-uri", "")
+            with open(config_file, "w") as f:
                 config.write(f)
 
         # Re-instantiate the knot so that it retrieves from config
@@ -183,24 +172,20 @@ def test_knot(cleanup_repos):
 
         # Assert properties are as expected
         assert knot.name == name
-        assert knot.knot_name == 'knot ' + name
+        assert knot.knot_name == "knot " + name
         assert knot.pars.name == pars.name
-        func_name = unit_testing_func.__name__.replace('_', '-')
+        func_name = unit_testing_func.__name__.replace("_", "-")
         assert knot.docker_image.name == func_name
-        assert knot.docker_repo.name == 'cloudknot'
-        pre = name + '-cloudknot-'
-        assert knot.job_definition.name == pre + 'job-definition'
+        assert knot.docker_repo.name == "cloudknot"
+        pre = name + "-cloudknot-"
+        assert knot.job_definition.name == pre + "job-definition"
 
         # Delete the stack using boto3 to check for an error from Pars
         # on reinstantiation
-        ck.aws.clients['cloudformation'].delete_stack(
-            StackName=knot.stack_id
-        )
+        ck.aws.clients["cloudformation"].delete_stack(StackName=knot.stack_id)
 
-        waiter = ck.aws.clients['cloudformation'].get_waiter(
-            'stack_delete_complete'
-        )
-        waiter.wait(StackName=knot.stack_id, WaiterConfig={'Delay': 10})
+        waiter = ck.aws.clients["cloudformation"].get_waiter("stack_delete_complete")
+        waiter.wait(StackName=knot.stack_id, WaiterConfig={"Delay": 10})
 
         # Confirm error on retrieving the deleted stack
         with pytest.raises(ck.aws.ResourceDoesNotExistException) as e:
@@ -224,17 +209,15 @@ def test_knot(cleanup_repos):
         # Clobbering twice shouldn't be a problem
         knot.clobber()
 
-        response = ck.aws.clients['cloudformation'].describe_stacks(
+        response = ck.aws.clients["cloudformation"].describe_stacks(
             StackName=knot.stack_id
         )
 
-        status = response.get('Stacks')[0]['StackStatus']
-        assert status in ['DELETE_IN_PROGRESS', 'DELETE_COMPLETE']
+        status = response.get("Stacks")[0]["StackStatus"]
+        assert status in ["DELETE_IN_PROGRESS", "DELETE_COMPLETE"]
 
-        waiter = ck.aws.clients['cloudformation'].get_waiter(
-            'stack_delete_complete'
-        )
-        waiter.wait(StackName=knot.stack_id, WaiterConfig={'Delay': 10})
+        waiter = ck.aws.clients["cloudformation"].get_waiter("stack_delete_complete")
+        waiter.wait(StackName=knot.stack_id, WaiterConfig={"Delay": 10})
 
         # Confirm that clobber deleted the stack from the config file
         config_file = ck.config.get_config_file()
@@ -246,11 +229,7 @@ def test_knot(cleanup_repos):
     except Exception as e:
         try:
             if knot:
-                knot.clobber(
-                    clobber_pars=True,
-                    clobber_image=True,
-                    clobber_repo=True
-                )
+                knot.clobber(clobber_pars=True, clobber_image=True, clobber_repo=True)
         except Exception:
             pass
 
@@ -298,7 +277,7 @@ def test_knot_errors(cleanup_repos):
 
     # Assert ck.aws.CloudknotInputError on SPOT without bid percentage
     with pytest.raises(ck.aws.CloudknotInputError):
-        ck.Knot(resource_type='SPOT')
+        ck.Knot(resource_type="SPOT")
 
     # Assert ck.aws.CloudknotInputError on invalid min_vcpus
     with pytest.raises(ck.aws.CloudknotInputError):
@@ -318,11 +297,11 @@ def test_knot_errors(cleanup_repos):
 
     # Assert ck.aws.CloudknotInputError on invalid instance_types
     with pytest.raises(ck.aws.CloudknotInputError):
-        ck.Knot(instance_types='not a valid instance')
+        ck.Knot(instance_types="not a valid instance")
 
     # Assert ck.aws.CloudknotInputError on invalid instance_types
     with pytest.raises(ck.aws.CloudknotInputError):
-        ck.Knot(instance_types=['not', 'a', 'valid', 'instance'])
+        ck.Knot(instance_types=["not", "a", "valid", "instance"])
 
     # Assert ck.aws.CloudknotInputError on invalid image_id
     with pytest.raises(ck.aws.CloudknotInputError):

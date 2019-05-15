@@ -3,6 +3,7 @@
 
 class Base(object):
     """A base command."""
+
     def __init__(self, options, *args, **kwargs):
         self.options = options
         self.args = args
@@ -10,6 +11,6 @@ class Base(object):
 
     def run(self):
         raise NotImplementedError(
-            'This is a base class. You must implement the run() '
-            'method yourself for child classes.'
+            "This is a base class. You must implement the run() "
+            "method yourself for child classes."
         )
