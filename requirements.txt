@@ -1,5 +1,5 @@
 awscli==1.16.159
-boto3==1.9.149
+boto3==1.9.150
 botocore==1.12.149
 cloudpickle==1.1.1
 docker==3.7.2
