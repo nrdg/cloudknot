@@ -1,4 +1,4 @@
-awscli==1.16.159
+awscli==1.16.160
 boto3==1.9.149
 botocore==1.12.149
 cloudpickle==1.1.1
