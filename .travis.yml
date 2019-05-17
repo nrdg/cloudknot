@@ -29,7 +29,7 @@ script:
 - travis_wait 50 py.test --pyargs cloudknot --cov-report term-missing --cov=cloudknot
 - cd ..
 after_success:
-- coveralls -v
+- coveralls -v --merge=for_test/.coverage
 - |
   if [[ $TRAVIS_PYTHON_VERSION == 3.6 ]]; then
     pip install sphinx sphinx-gallery
