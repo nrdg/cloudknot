@@ -1,13 +1,7 @@
 """The aws submodule contains classes representing AWS resources
 
 This module contains classes representing AWS resources:
-    - IamRole : AWS IAM role
-    - Vpc : Amazon virtual private cloud
-    - SecurityGroup : AWS security group
     - DockerRepo : AWS ECR repository
-    - JobDefinition : AWS Batch job definition
-    - ComputeEnvironment : AWS Batch compute environment
-    - JobQueue : AWS Batch job queue
     - BatchJob : AWS Batch job
 
 For each class, you may specify an identifier for an existing AWS resource
