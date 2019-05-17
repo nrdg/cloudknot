@@ -1,11 +1,11 @@
-# cloudknot
-
 [![Build Status](https://travis-ci.org/richford/cloudknot.svg?branch=master)](https://travis-ci.org/richford/cloudknot)
 [![Coverage Status](https://coveralls.io/repos/github/richford/cloudknot/badge.svg?branch=master)](https://coveralls.io/github/richford/cloudknot?branch=master)
 [![Updates](https://pyup.io/repos/github/richford/cloudknot/shield.svg)](https://pyup.io/repos/github/richford/cloudknot/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/python/black)
 [![DOI](https://zenodo.org/badge/102051437.svg)](https://zenodo.org/badge/latestdoi/102051437)
+
+# cloudknot
 
 A knot is a collective noun for a group of snakes. Cloudknot is a python
 library designed to run your existing python code on
