@@ -1,11 +1,9 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta charset="utf-8" />
     <title>Frequently Asked Questions &#8212; cloudknot 0.1 documentation</title>
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -14,6 +12,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="prev" title="config Module" href="api/config.html" />
@@ -63,8 +62,6 @@
     <form class="search" action="search.html" method="get">
       <input type="text" name="q" />
       <input type="submit" value="Go" />
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
     </form>
     </div>
 </div>
@@ -81,7 +78,8 @@
 <h1>Frequently Asked Questions<a class="headerlink" href="#frequently-asked-questions" title="Permalink to this headline">¶</a></h1>
 <div class="toggle docutils container">
 <div class="header docutils container">
-How much is this thing going to cost?</div>
+<p>How much is this thing going to cost?</p>
+</div>
 <div class="content docutils container">
 <p>EC2 and Spot instances launched from AWS Batch are <a class="reference external" href="https://aws.amazon.com/blogs/aws/new-per-second-billing-for-ec2-instances-and-ebs-volumes/">billed on a per-second basis</a>.
 So feel free to submit jobs that complete in less than an hour. You can
@@ -97,7 +95,8 @@ the lowest required memory to <cite>Knot</cite>’s <cite>memory</cite> input ar
 </div>
 <div class="toggle docutils container">
 <div class="header docutils container">
-My Batch jobs finished but my <cite>future.result()</cite> returns an error or exception. What gives?</div>
+<p>My Batch jobs finished but my <cite>future.result()</cite> returns an error or exception. What gives?</p>
+</div>
 <div class="content docutils container">
 <p>First off, sorry about the error. Please submit a <a class="reference external" href="https://github.com/richford/cloudknot/issues">bug report</a> so that we can try to prevent this
 error from happening again. But fear not, if the job succeeded, your results are
@@ -121,13 +120,15 @@ you can also access the <cite>result()</cite> method of each job in <cite>Knot.j
 </div>
 <div class="toggle docutils container">
 <div class="header docutils container">
-I’m having trouble installing or configuring cloudknot on an Amazon EC2 instance. Help!</div>
+<p>I’m having trouble installing or configuring cloudknot on an Amazon EC2 instance. Help!</p>
+</div>
 <div class="content docutils container">
-Do your error messages look similar to the ones reported in
+<p>Do your error messages look similar to the ones reported in
 <a class="reference external" href="https://github.com/richford/cloudknot/issues/131">this issue</a>?
 If so, you need to install Docker such that you can run Docker
 commands without sudo. See <a class="reference internal" href="getting_started.html#install-label"><span class="std std-ref">Installation and configuration</span></a> for
-installation instructions on an EC2 instance.</div>
+installation instructions on an EC2 instance.</p>
+</div>
 </div>
 </div>
 
@@ -143,8 +144,8 @@ installation instructions on an EC2 instance.</div>
       &copy;2017, Adam Richie-Halford, Ariel Rokem.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.6</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |
       <a href="_sources/faq.rst.txt"

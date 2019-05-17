@@ -10,13 +10,7 @@ Classes
    :template: autosummary/class.rst
    :toctree: _autosummary
 
-   cloudknot.aws.IamRole
-   cloudknot.aws.Vpc
-   cloudknot.aws.SecurityGroup
    cloudknot.aws.DockerRepo
-   cloudknot.aws.JobDefinition
-   cloudknot.aws.ComputeEnvironment
-   cloudknot.aws.JobQueue
    cloudknot.aws.BatchJob
 
 Functions

@@ -1,11 +1,9 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta charset="utf-8" />
     <title>aws Module &#8212; cloudknot 0.1 documentation</title>
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -14,8 +12,10 @@
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="cloudknot.aws.DockerRepo" href="_autosummary/cloudknot.aws.DockerRepo.html" />
     <link rel="prev" title="Documentation" href="../documentation.html" />
    
   <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
@@ -102,8 +102,6 @@
     <form class="search" action="../search.html" method="get">
       <input type="text" name="q" />
       <input type="submit" value="Go" />
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
     </form>
     </div>
 </div>
@@ -119,17 +117,10 @@
   <div class="section" id="module-cloudknot.aws">
 <span id="aws-module"></span><h1>aws Module<a class="headerlink" href="#module-cloudknot.aws" title="Permalink to this headline">¶</a></h1>
 <p>The aws submodule contains classes representing AWS resources</p>
-<dl class="docutils">
-<dt>This module contains classes representing AWS resources:</dt>
-<dd><ul class="first last simple">
-<li>IamRole : AWS IAM role</li>
-<li>Vpc : Amazon virtual private cloud</li>
-<li>SecurityGroup : AWS security group</li>
-<li>DockerRepo : AWS ECR repository</li>
-<li>JobDefinition : AWS Batch job definition</li>
-<li>ComputeEnvironment : AWS Batch compute environment</li>
-<li>JobQueue : AWS Batch job queue</li>
-<li>BatchJob : AWS Batch job</li>
+<dl class="simple">
+<dt>This module contains classes representing AWS resources:</dt><dd><ul class="simple">
+<li><p>DockerRepo : AWS ECR repository</p></li>
+<li><p>BatchJob : AWS Batch job</p></li>
 </ul>
 </dd>
 </dl>
@@ -138,70 +129,52 @@ or specify parameters to create a new resource on AWS. Higher level resources
 (e.g. ComputeEnvironment) take subordinate resources (e.g. IamRole) as input.</p>
 <div class="section" id="classes">
 <h2>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h2>
-<table border="1" class="longtable docutils">
+<table class="longtable docutils align-center">
 <colgroup>
-<col width="10%" />
-<col width="90%" />
+<col style="width: 10%" />
+<col style="width: 90%" />
 </colgroup>
-<tbody valign="top">
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.IamRole</span></code></td>
-<td></td>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/cloudknot.aws.DockerRepo.html#cloudknot.aws.DockerRepo" title="cloudknot.aws.DockerRepo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.DockerRepo</span></code></a>(name)</p></td>
+<td><p>Class for creating and managing remote docker repositories</p></td>
 </tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.Vpc</span></code></td>
-<td></td>
-</tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.SecurityGroup</span></code></td>
-<td></td>
-</tr>
-<tr class="row-even"><td><a class="reference internal" href="_autosummary/cloudknot.aws.DockerRepo.html#cloudknot.aws.DockerRepo" title="cloudknot.aws.DockerRepo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.DockerRepo</span></code></a>(name)</td>
-<td>Class for creating and managing remote docker repositories</td>
-</tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.JobDefinition</span></code></td>
-<td></td>
-</tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.ComputeEnvironment</span></code></td>
-<td></td>
-</tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.JobQueue</span></code></td>
-<td></td>
-</tr>
-<tr class="row-even"><td><a class="reference internal" href="_autosummary/cloudknot.aws.BatchJob.html#cloudknot.aws.BatchJob" title="cloudknot.aws.BatchJob"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.BatchJob</span></code></a>([job_id,&nbsp;name,&nbsp;…])</td>
-<td>Class for defining AWS Batch Job</td>
+<tr class="row-even"><td><p><a class="reference internal" href="_autosummary/cloudknot.aws.BatchJob.html#cloudknot.aws.BatchJob" title="cloudknot.aws.BatchJob"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.BatchJob</span></code></a>([job_id, name, …])</p></td>
+<td><p>Class for defining AWS Batch Job</p></td>
 </tr>
 </tbody>
 </table>
 </div>
 <div class="section" id="functions">
 <h2>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h2>
-<table border="1" class="longtable docutils">
+<table class="longtable docutils align-center">
 <colgroup>
-<col width="10%" />
-<col width="90%" />
+<col style="width: 10%" />
+<col style="width: 90%" />
 </colgroup>
-<tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="_autosummary/cloudknot.aws.get_region.html#cloudknot.aws.get_region" title="cloudknot.aws.get_region"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.get_region</span></code></a>()</td>
-<td>Get the default AWS region</td>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/cloudknot.aws.get_region.html#cloudknot.aws.get_region" title="cloudknot.aws.get_region"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.get_region</span></code></a>()</p></td>
+<td><p>Get the default AWS region</p></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="_autosummary/cloudknot.aws.set_region.html#cloudknot.aws.set_region" title="cloudknot.aws.set_region"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.set_region</span></code></a>([region])</td>
-<td>Set the AWS region that cloudknot will use</td>
+<tr class="row-even"><td><p><a class="reference internal" href="_autosummary/cloudknot.aws.set_region.html#cloudknot.aws.set_region" title="cloudknot.aws.set_region"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.set_region</span></code></a>([region])</p></td>
+<td><p>Set the AWS region that cloudknot will use</p></td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="_autosummary/cloudknot.aws.get_profile.html#cloudknot.aws.get_profile" title="cloudknot.aws.get_profile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.get_profile</span></code></a>([fallback])</td>
-<td>Get the AWS profile to use</td>
+<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/cloudknot.aws.get_profile.html#cloudknot.aws.get_profile" title="cloudknot.aws.get_profile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.get_profile</span></code></a>([fallback])</p></td>
+<td><p>Get the AWS profile to use</p></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="_autosummary/cloudknot.aws.set_profile.html#cloudknot.aws.set_profile" title="cloudknot.aws.set_profile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.set_profile</span></code></a>(profile_name)</td>
-<td>Set the AWS profile that cloudknot will use</td>
+<tr class="row-even"><td><p><a class="reference internal" href="_autosummary/cloudknot.aws.set_profile.html#cloudknot.aws.set_profile" title="cloudknot.aws.set_profile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.set_profile</span></code></a>(profile_name)</p></td>
+<td><p>Set the AWS profile that cloudknot will use</p></td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="_autosummary/cloudknot.aws.list_profiles.html#cloudknot.aws.list_profiles" title="cloudknot.aws.list_profiles"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.list_profiles</span></code></a>()</td>
-<td>Return a list of available AWS profile names</td>
+<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/cloudknot.aws.list_profiles.html#cloudknot.aws.list_profiles" title="cloudknot.aws.list_profiles"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.list_profiles</span></code></a>()</p></td>
+<td><p>Return a list of available AWS profile names</p></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="_autosummary/cloudknot.aws.refresh_clients.html#cloudknot.aws.refresh_clients" title="cloudknot.aws.refresh_clients"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.refresh_clients</span></code></a>([max_pool])</td>
-<td>Refresh the boto3 clients dictionary</td>
+<tr class="row-even"><td><p><a class="reference internal" href="_autosummary/cloudknot.aws.refresh_clients.html#cloudknot.aws.refresh_clients" title="cloudknot.aws.refresh_clients"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.refresh_clients</span></code></a>([max_pool])</p></td>
+<td><p>Refresh the boto3 clients dictionary</p></td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="_autosummary/cloudknot.aws.get_s3_params.html#cloudknot.aws.get_s3_params" title="cloudknot.aws.get_s3_params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.get_s3_params</span></code></a>()</td>
-<td>Get the cloudknot S3 bucket and corresponding access policy</td>
+<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/cloudknot.aws.get_s3_params.html#cloudknot.aws.get_s3_params" title="cloudknot.aws.get_s3_params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.get_s3_params</span></code></a>()</p></td>
+<td><p>Get the cloudknot S3 bucket and corresponding access policy</p></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="_autosummary/cloudknot.aws.set_s3_params.html#cloudknot.aws.set_s3_params" title="cloudknot.aws.set_s3_params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.set_s3_params</span></code></a>(bucket[,&nbsp;…])</td>
-<td>Set the cloudknot S3 bucket</td>
+<tr class="row-even"><td><p><a class="reference internal" href="_autosummary/cloudknot.aws.set_s3_params.html#cloudknot.aws.set_s3_params" title="cloudknot.aws.set_s3_params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.set_s3_params</span></code></a>(bucket[, …])</p></td>
+<td><p>Set the cloudknot S3 bucket</p></td>
 </tr>
 </tbody>
 </table>
@@ -210,7 +183,7 @@ or specify parameters to create a new resource on AWS. Higher level resources
 <h2>Clients<a class="headerlink" href="#clients" title="Permalink to this headline">¶</a></h2>
 <dl class="attribute">
 <dt id="cloudknot.aws.clients">
-<code class="descclassname">aws.</code><code class="descname">clients</code><em class="property"> = {'batch': &lt;botocore.client.Batch object at 0x2b0bda99dd30&gt;, 'cloudformation': &lt;botocore.client.CloudFormation object at 0x2b0bdab8f400&gt;, 'ec2': &lt;botocore.client.EC2 object at 0x2b0bdb107dd8&gt;, 'ecr': &lt;botocore.client.ECR object at 0x2b0bdace3f60&gt;, 'ecs': &lt;botocore.client.ECS object at 0x2b0bdaec3b00&gt;, 'iam': &lt;botocore.client.IAM object at 0x2b0bdb70d588&gt;, 's3': &lt;botocore.client.S3 object at 0x2b0bdbac4240&gt;, 'sts': &lt;botocore.client.STS object at 0x2b0bdb84d2e8&gt;}</em><a class="headerlink" href="#cloudknot.aws.clients" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">aws.</code><code class="descname">clients</code><em class="property"> = {'batch': &lt;botocore.client.Batch object&gt;, 'cloudformation': &lt;botocore.client.CloudFormation object&gt;, 'ec2': &lt;botocore.client.EC2 object&gt;, 'ecr': &lt;botocore.client.ECR object&gt;, 'ecs': &lt;botocore.client.ECS object&gt;, 'iam': &lt;botocore.client.IAM object&gt;, 's3': &lt;botocore.client.S3 object&gt;, 'sts': &lt;botocore.client.STS object&gt;}</em><a class="headerlink" href="#cloudknot.aws.clients" title="Permalink to this definition">¶</a></dt>
 <dd><p>Module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, and ECS.</p>
 <p>Storing the boto3 clients in a module-level dictionary allows us to change
 the region and profile and have those changes reflected globally.</p>
@@ -222,29 +195,29 @@ and region.</p>
 </div>
 <div class="section" id="exceptions">
 <h2>Exceptions<a class="headerlink" href="#exceptions" title="Permalink to this headline">¶</a></h2>
-<table border="1" class="longtable docutils">
+<table class="longtable docutils align-center">
 <colgroup>
-<col width="10%" />
-<col width="90%" />
+<col style="width: 10%" />
+<col style="width: 90%" />
 </colgroup>
-<tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="_autosummary/cloudknot.aws.ResourceDoesNotExistException.html#cloudknot.aws.ResourceDoesNotExistException" title="cloudknot.aws.ResourceDoesNotExistException"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.ResourceDoesNotExistException</span></code></a>(…)</td>
-<td>Exception indicating that the requested AWS resource does not exists</td>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/cloudknot.aws.ResourceDoesNotExistException.html#cloudknot.aws.ResourceDoesNotExistException" title="cloudknot.aws.ResourceDoesNotExistException"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.ResourceDoesNotExistException</span></code></a>(…)</p></td>
+<td><p>Exception indicating that the requested AWS resource does not exists</p></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="_autosummary/cloudknot.aws.ResourceClobberedException.html#cloudknot.aws.ResourceClobberedException" title="cloudknot.aws.ResourceClobberedException"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.ResourceClobberedException</span></code></a>(…)</td>
-<td>Exception indicating that this AWS resource has been clobbered</td>
+<tr class="row-even"><td><p><a class="reference internal" href="_autosummary/cloudknot.aws.ResourceClobberedException.html#cloudknot.aws.ResourceClobberedException" title="cloudknot.aws.ResourceClobberedException"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.ResourceClobberedException</span></code></a>(…)</p></td>
+<td><p>Exception indicating that this AWS resource has been clobbered</p></td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="_autosummary/cloudknot.aws.ResourceExistsException.html#cloudknot.aws.ResourceExistsException" title="cloudknot.aws.ResourceExistsException"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.ResourceExistsException</span></code></a>(…)</td>
-<td>Exception indicating that the requested AWS resource already exists</td>
+<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/cloudknot.aws.ResourceExistsException.html#cloudknot.aws.ResourceExistsException" title="cloudknot.aws.ResourceExistsException"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.ResourceExistsException</span></code></a>(…)</p></td>
+<td><p>Exception indicating that the requested AWS resource already exists</p></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="_autosummary/cloudknot.aws.CannotDeleteResourceException.html#cloudknot.aws.CannotDeleteResourceException" title="cloudknot.aws.CannotDeleteResourceException"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.CannotDeleteResourceException</span></code></a>(…)</td>
-<td>Exception indicating that an AWS resource cannot be deleted</td>
+<tr class="row-even"><td><p><a class="reference internal" href="_autosummary/cloudknot.aws.CannotDeleteResourceException.html#cloudknot.aws.CannotDeleteResourceException" title="cloudknot.aws.CannotDeleteResourceException"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.CannotDeleteResourceException</span></code></a>(…)</p></td>
+<td><p>Exception indicating that an AWS resource cannot be deleted</p></td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="_autosummary/cloudknot.aws.CannotCreateResourceException.html#cloudknot.aws.CannotCreateResourceException" title="cloudknot.aws.CannotCreateResourceException"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.CannotCreateResourceException</span></code></a>(message)</td>
-<td>Exception indicating that an AWS resource cannot be created</td>
+<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/cloudknot.aws.CannotCreateResourceException.html#cloudknot.aws.CannotCreateResourceException" title="cloudknot.aws.CannotCreateResourceException"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.CannotCreateResourceException</span></code></a>(message)</p></td>
+<td><p>Exception indicating that an AWS resource cannot be created</p></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="_autosummary/cloudknot.aws.RegionException.html#cloudknot.aws.RegionException" title="cloudknot.aws.RegionException"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.RegionException</span></code></a>(resource_region)</td>
-<td>Exception indicating the current region is not this resource’s region</td>
+<tr class="row-even"><td><p><a class="reference internal" href="_autosummary/cloudknot.aws.RegionException.html#cloudknot.aws.RegionException" title="cloudknot.aws.RegionException"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cloudknot.aws.RegionException</span></code></a>(resource_region)</p></td>
+<td><p>Exception indicating the current region is not this resource’s region</p></td>
 </tr>
 </tbody>
 </table>
@@ -263,8 +236,8 @@ and region.</p>
       &copy;2017, Adam Richie-Halford, Ariel Rokem.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.6</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |
       <a href="../_sources/api/aws.rst.txt"

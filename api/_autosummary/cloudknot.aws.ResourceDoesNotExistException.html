@@ -1,11 +1,9 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta charset="utf-8" />
     <title>cloudknot.aws.ResourceDoesNotExistException &#8212; cloudknot 0.1 documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
@@ -14,6 +12,7 @@
     <script type="text/javascript" src="../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="cloudknot.aws.ResourceClobberedException" href="cloudknot.aws.ResourceClobberedException.html" />
@@ -89,8 +88,6 @@
     <form class="search" action="../../search.html" method="get">
       <input type="text" name="q" />
       <input type="submit" value="Go" />
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
     </form>
     </div>
 </div>
@@ -110,18 +107,14 @@
 <em class="property">class </em><code class="descclassname">cloudknot.aws.</code><code class="descname">ResourceDoesNotExistException</code><span class="sig-paren">(</span><em>message</em>, <em>resource_id</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cloudknot/aws/base_classes.html#ResourceDoesNotExistException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.aws.ResourceDoesNotExistException" title="Permalink to this definition">¶</a></dt>
 <dd><p>Exception indicating that the requested AWS resource does not exists</p>
 <p>Initialize the Exception</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>message</strong> (<em>string</em>) – The error message to display to the user</li>
-<li><strong>resource_id</strong> (<em>string</em>) – The resource ID (e.g. ARN, VPC-ID) of the requested resource</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>message</strong> (<em>string</em>) – The error message to display to the user</p></li>
+<li><p><strong>resource_id</strong> (<em>string</em>) – The resource ID (e.g. ARN, VPC-ID) of the requested resource</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 <dl class="method">
 <dt id="cloudknot.aws.ResourceDoesNotExistException.with_traceback">
 <code class="descname">with_traceback</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cloudknot.aws.ResourceDoesNotExistException.with_traceback" title="Permalink to this definition">¶</a></dt>
@@ -145,8 +138,8 @@ set self.__traceback__ to tb and return self.</p>
       &copy;2017, Adam Richie-Halford, Ariel Rokem.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.6</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |
       <a href="../../_sources/api/_autosummary/cloudknot.aws.ResourceDoesNotExistException.rst.txt"
