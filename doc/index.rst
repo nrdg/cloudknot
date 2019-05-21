@@ -102,10 +102,13 @@ The project is licensed under the `MIT license
 Acknowledgements
 ----------------
 
-Cloudknot development is supported through a grant from the
-`Gordon and Betty Moore Foundation <https://www.moore.org/>`_ and from the
-`Alfred P. Sloan Foundation <https://sloan.org/>`_ to the
-`University of Washington eScience Institute <http://escience.washington.edu/>`_.
+Cloudknot development is supported through a grant from the `Gordon and Betty
+Moore Foundation <https://www.moore.org/>`_ and from the `Alfred P. Sloan
+Foundation <https://sloan.org/>`_ to the `University of Washington eScience
+Institute <http://escience.washington.edu/>`_, as well as NIH Collaborative
+Research in Computational Neuroscience grant R01EB027585-01 through the National
+Institute of Biomedical Imaging and Bioengineering to Eleftherios Garyfallidis
+(Indiana University) and Ariel Rokem (University of Washington).
 
 .. toctree::
    :hidden:
