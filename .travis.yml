@@ -19,14 +19,16 @@ python:
 install:
 - travis_retry pip install -r requirements.txt
 - travis_retry pip install -e .[dev]
+- travis_retry pip install codacy-coverage
 script:
 - flake8 `find . -name \*.py | grep -v setup.py | grep -v
   version.py | grep -v __init__.py | grep -v /doc/`
 - mkdir ~/config_files
 - printf "[aws]\nconfigured = True\n" > ~/config_files/cloudknot
 - travis_wait 50 py.test --pyargs cloudknot --cov-report term-missing --cov=cloudknot
+- coverage xml
 after_success:
-- coveralls -v
+- python-codacy-coverage -r coverage.xml
 - |
   if [[ $TRAVIS_PYTHON_VERSION == 3.6 ]]; then
     pip install sphinx sphinx-gallery
