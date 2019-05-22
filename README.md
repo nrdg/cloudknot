@@ -16,7 +16,6 @@ issues, and contribute to cloudknot's development. If you are just getting
 started, you should look at the
 [cloudknot documentation](https://richford.github.io/cloudknot/).
 
-
 ## Contributing
 
 We love contributions! Cloudknot is open source, built on open source,
@@ -48,7 +47,6 @@ most valuable to the project as a whole, because you're coming to the
 project with fresh eyes, so you can see the errors and assumptions that
 seasoned contributors have glossed over.
 
-
 ## Credits
 
 This package was created with
@@ -59,4 +57,3 @@ The imposter syndrome disclaimer was originally written by
 talk](https://www.youtube.com/watch?v=6Uj746j9Heo), and was
 adapted based on its use in the README file for the [MetPy
 project](https://github.com/Unidata/MetPy).
-
