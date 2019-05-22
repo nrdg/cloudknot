@@ -2,6 +2,7 @@
 [![Build Status](https://travis-ci.org/richford/cloudknot.svg?branch=master)](https://travis-ci.org/richford/cloudknot)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/d6fa3a18646f4a8089c7c897819d0342)](https://www.codacy.com/app/richford/cloudknot?utm_source=github.com&utm_medium=referral&utm_content=richford/cloudknot&utm_campaign=Badge_Grade)
 [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/d6fa3a18646f4a8089c7c897819d0342)](https://www.codacy.com/app/richford/cloudknot?utm_source=github.com&utm_medium=referral&utm_content=richford/cloudknot&utm_campaign=Badge_Coverage)
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/python/black)
 [![DOI](https://zenodo.org/badge/102051437.svg)](https://zenodo.org/badge/latestdoi/102051437)
