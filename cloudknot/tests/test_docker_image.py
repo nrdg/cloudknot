@@ -137,7 +137,6 @@ def unit_testing_func(name=None, no_capitalize=False):
     """
     import sys  # noqa: F401
     import boto3.ec2  # noqa: F401
-    import AFQ  # noqa: F401
 
     if name:
         from docker import api  # noqa: F401
@@ -180,7 +179,7 @@ def test_DockerImage(cleanup_repos):
         assert di.name == unit_testing_func.__name__.replace("_", "-")
         import_names = set([d["name"] for d in di.pip_imports])
         assert import_names == correct_pip_imports
-        assert di.missing_imports == ["AFQ"]
+        assert di.missing_imports == []
         assert di.username == "cloudknot-user"
         assert di.func == unit_testing_func
 
@@ -250,7 +249,7 @@ def test_DockerImage(cleanup_repos):
         assert di.name == unit_testing_func.__name__.replace("_", "-")
         import_names = set([d["name"] for d in di.pip_imports])
         assert import_names == correct_pip_imports
-        assert di.missing_imports == ["AFQ"]
+        assert di.missing_imports == []
         assert di.username == "cloudknot-user"
         assert di.func == unit_testing_func
 
