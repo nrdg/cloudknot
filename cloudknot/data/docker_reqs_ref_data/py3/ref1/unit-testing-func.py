@@ -63,7 +63,6 @@ def unit_testing_func(name=None, no_capitalize=False):
 
         if not no_capitalize:
             import pytest as pt  # noqa: F401
-            import h5py.utils as h5utils  # noqa: F401
 
             name = name.title()
 
