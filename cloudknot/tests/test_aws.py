@@ -33,6 +33,7 @@ import shutil
 import tempfile
 import tenacity
 import uuid
+from . import bucket_name
 
 UNIT_TEST_PREFIX = "cloudknot-unit-test"
 data_path = op.join(ck.__path__[0], "data")
@@ -66,7 +67,7 @@ def bucket_cleanup():
     else:
         old_s3_params = None
 
-    new_bucket = "cloudknot-travis-build-45814031-351c-4b27-9a40-672c971f7e83"
+    new_bucket = bucket_name
     ck.set_s3_params(bucket=new_bucket)
 
     yield None
