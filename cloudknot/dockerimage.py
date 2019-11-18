@@ -178,7 +178,7 @@ class DockerImage(aws.NamedObject):
             if base_image is not None:
                 self._base_image = base_image
             else:
-                py_ver = "3.7" if six.PY3 else "2"
+                py_ver = "3" if six.PY3 else "2"
                 self._base_image = "python:" + py_ver
 
             # Validate dir_name input
