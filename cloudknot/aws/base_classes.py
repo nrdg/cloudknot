@@ -171,9 +171,10 @@ def get_s3_params():
             policy = config.get("aws", "s3-bucket-policy")
 
     response = clients["iam"].list_policies(Scope="Local", PathPrefix="/cloudknot/")
-    policy_arn = list(
-        filter(lambda d: d["PolicyName"] == policy, response.get("Policies"))
-    )[0]["Arn"]
+    for pp in response.get("Policies"):
+        if pp["PolicyName"] == policy:
+            break
+    policy_arn = pp["Arn"]
 
     return BucketInfo(bucket=bucket, policy=policy, policy_arn=policy_arn, sse=sse)
 
