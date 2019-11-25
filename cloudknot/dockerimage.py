@@ -683,7 +683,7 @@ class DockerImage(aws.NamedObject):
             pass
 
         cli = docker.from_env().images
-        # Get local images first (lol stands for list_of_lists
+        # Get local images first (lol stands for list_of_lists)
         local_image_lol = [im.tags for im in cli.list()]
         # Flatten the list of lists
         local_images = [im for sublist in local_image_lol for im in sublist]
