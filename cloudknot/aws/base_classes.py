@@ -170,11 +170,23 @@ def get_s3_params():
             config.read(config_file)
             policy = config.get("aws", "s3-bucket-policy")
 
-    response = clients["iam"].list_policies(Scope="Local", PathPrefix="/cloudknot/")
-    for pp in response.get("Policies"):
-        if pp["PolicyName"] == policy:
-            break
-    policy_arn = pp["Arn"]
+    # Get all local policies with cloudknot prefix
+    paginator = clients["iam"].get_paginator("list_policies")
+    response_iterator = paginator.paginate(
+        Scope="Local",
+        PathPrefix="/cloudknot/"
+    )
+
+    # response_iterator is a list of dicts. First convert to list of lists
+    # and then flatten to a single list
+    policies = [response["Policies"] for response in response_iterator]
+    policies = [l for sublist in policies for l in sublist]
+
+    aws_policies = {
+        d["PolicyName"]: d["Arn"] for d in policies
+    }
+
+    policy_arn = aws_policies[policy]
 
     return BucketInfo(bucket=bucket, policy=policy, policy_arn=policy_arn, sse=sse)
 
@@ -345,12 +357,23 @@ def update_s3_policy(policy, bucket):
     """
     s3_policy_doc = bucket_policy_document(bucket)
 
-    # Get the ARN of the policy
-    response = clients["iam"].list_policies(Scope="Local", PathPrefix="/cloudknot/")
+    # Get all local policies with cloudknot prefix
+    paginator = clients["iam"].get_paginator("list_policies")
+    response_iterator = paginator.paginate(
+        Scope="Local",
+        PathPrefix="/cloudknot/"
+    )
 
-    policy_dict = [p for p in response.get("Policies") if p["PolicyName"] == policy][0]
+    # response_iterator is a list of dicts. First convert to list of lists
+    # and then flatten to a single list
+    policies = [response["Policies"] for response in response_iterator]
+    policies = [l for sublist in policies for l in sublist]
 
-    arn = policy_dict["Arn"]
+    aws_policies = {
+        d["PolicyName"]: d["Arn"] for d in policies
+    }
+
+    arn = aws_policies[policy]
 
     with rlock:
         try:
@@ -362,11 +385,16 @@ def update_s3_policy(policy, bucket):
             )
         except clients["iam"].exceptions.LimitExceededException:
             # Too many policy versions. List policy versions and delete oldest
-            response = clients["iam"].list_policy_versions(PolicyArn=arn)
+            paginator = clients["iam"].get_paginator("list_policy_versions")
+            response_iterator = paginator.paginate(PolicyArn=arn)
 
             # Get non-default versions
+            # response_iterator is a list of dicts. First convert to list of lists
+            # and then flatten to a single list and filter on default status
+            versions = [response["Versions"] for response in response_iterator]
+            versions = [l for sublist in versions for l in sublist]
             versions = [
-                v for v in response.get("Versions") if not v["IsDefaultVersion"]
+                v for v in versions if not v["IsDefaultVersion"]
             ]
 
             # Get the oldest version and delete it

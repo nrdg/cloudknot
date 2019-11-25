@@ -278,20 +278,21 @@ class Pars(aws.NamedObject):
 
             if policy_names:
                 # Get all AWS policies
-                response = aws.clients["iam"].list_policies()
-                aws_policies = {
-                    d["PolicyName"]: d["Arn"] for d in response.get("Policies")
-                }
+                paginator = aws.clients["iam"].get_paginator("list_policies")
+                response_iterator = paginator.paginate()
 
-                # If results are paginated, continue appending to aws_policies,
-                # using `Marker` to tell next call where to start
-                while response["IsTruncated"]:
-                    response = aws.clients["iam"].list_policies(
-                        Marker=response["Marker"]
-                    )
-                    aws_policies.update(
-                        {d["PolicyName"]: d["Arn"] for d in response.get("Policies")}
-                    )
+                # response_iterator is a list of dicts. First convert to list of lists
+                # and the flatten to a single list
+                reponse_policies = [
+                    response["Policies"] for response in response_iterator
+                ]
+                response_policies = [
+                    l for sublist in response_policies for l in sublist
+                ]
+
+                aws_policies = {
+                    d["PolicyName"]: d["Arn"] for d in response_policies
+                }
 
                 # If input policies are not subset of aws_policies, throw error
                 if not (set(policy_names) < set(aws_policies.keys())):
@@ -321,6 +322,7 @@ class Pars(aws.NamedObject):
                 except aws.clients["ec2"].exceptions.ClientError as e:
                     error_code = e.response.get("Error").get("Code")
                     if error_code == "DefaultVpcAlreadyExists":
+                        # Then use first default VPC
                         response = aws.clients["ec2"].describe_vpcs(
                             Filters=[{"Name": "isDefault", "Values": ["true"]}]
                         )
@@ -341,11 +343,16 @@ class Pars(aws.NamedObject):
                         raise e
 
                 # Retrieve the subnets for the default VPC
-                response = aws.clients["ec2"].describe_subnets(
+                paginator = aws.clients["ec2"].get_paginator("describe_subnets")
+                response_iterator = paginator.paginate(
                     Filters=[{"Name": "vpc-id", "Values": [vpc_id]}]
                 )
 
-                subnet_ids = [d["SubnetId"] for d in response.get("Subnets")]
+                # response_iterator is a list of dicts. First convert to list of lists
+                # and then flatten to a single list
+                response_subnets = [response["Subnets"] for response in response_iterator]
+                response_subnets = [l for sublist in response_subnets for l in sublist]
+                subnet_ids = [d["SubnetId"] for d in response_subnets]
 
                 template_path = os.path.abspath(
                     os.path.join(
