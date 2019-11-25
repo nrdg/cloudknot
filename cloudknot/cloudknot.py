@@ -283,7 +283,7 @@ class Pars(aws.NamedObject):
 
                 # response_iterator is a list of dicts. First convert to list of lists
                 # and the flatten to a single list
-                reponse_policies = [
+                response_policies = [
                     response["Policies"] for response in response_iterator
                 ]
                 policies_list = [
