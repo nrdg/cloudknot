@@ -179,8 +179,10 @@ def get_s3_params():
 
     # response_iterator is a list of dicts. First convert to list of lists
     # and then flatten to a single list
-    policies = [response["Policies"] for response in response_iterator]
-    policies = [l for sublist in policies for l in sublist]
+    response_policies = [
+        response["Policies"] for response in response_iterator
+    ]
+    policies = [l for sublist in response_policies for l in sublist]
 
     aws_policies = {
         d["PolicyName"]: d["Arn"] for d in policies
@@ -366,8 +368,10 @@ def update_s3_policy(policy, bucket):
 
     # response_iterator is a list of dicts. First convert to list of lists
     # and then flatten to a single list
-    policies = [response["Policies"] for response in response_iterator]
-    policies = [l for sublist in policies for l in sublist]
+    response_policies = [
+        response["Policies"] for response in response_iterator
+    ]
+    policies = [l for sublist in response_policies for l in sublist]
 
     aws_policies = {
         d["PolicyName"]: d["Arn"] for d in policies
@@ -389,10 +393,12 @@ def update_s3_policy(policy, bucket):
             response_iterator = paginator.paginate(PolicyArn=arn)
 
             # Get non-default versions
-            # response_iterator is a list of dicts. First convert to list of lists
-            # and then flatten to a single list and filter on default status
-            versions = [response["Versions"] for response in response_iterator]
-            versions = [l for sublist in versions for l in sublist]
+            # response_iterator is a list of dicts. First convert to list of
+            # lists. Then flatten to a single list and filter
+            response_versions = [
+                response["Versions"] for response in response_iterator
+            ]
+            versions = [l for sublist in response_versions for l in sublist]
             versions = [
                 v for v in versions if not v["IsDefaultVersion"]
             ]

@@ -283,15 +283,15 @@ class Pars(aws.NamedObject):
 
                 # response_iterator is a list of dicts. First convert to list of lists
                 # and the flatten to a single list
-                reponse_policies = [
+                response_policies = [
                     response["Policies"] for response in response_iterator
                 ]
-                response_policies = [
+                policies_list = [
                     l for sublist in response_policies for l in sublist
                 ]
 
                 aws_policies = {
-                    d["PolicyName"]: d["Arn"] for d in response_policies
+                    d["PolicyName"]: d["Arn"] for d in policies_list
                 }
 
                 # If input policies are not subset of aws_policies, throw error
@@ -350,9 +350,13 @@ class Pars(aws.NamedObject):
 
                 # response_iterator is a list of dicts. First convert to list of lists
                 # and then flatten to a single list
-                response_subnets = [response["Subnets"] for response in response_iterator]
-                response_subnets = [l for sublist in response_subnets for l in sublist]
-                subnet_ids = [d["SubnetId"] for d in response_subnets]
+                response_subnets = [
+                    response["Subnets"] for response in response_iterator
+                ]
+                subnets_list = [
+                    l for sublist in response_subnets for l in sublist
+                ]
+                subnet_ids = [d["SubnetId"] for d in subnets_list]
 
                 template_path = os.path.abspath(
                     os.path.join(
