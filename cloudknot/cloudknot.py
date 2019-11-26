@@ -348,8 +348,8 @@ class Pars(aws.NamedObject):
                     Filters=[{"Name": "vpc-id", "Values": [vpc_id]}]
                 )
 
-                # response_iterator is a list of dicts. First convert to list of lists
-                # and then flatten to a single list
+                # response_iterator is a list of dicts. First convert to list
+                # of lists and then flatten to a single list
                 response_subnets = [
                     response["Subnets"] for response in response_iterator
                 ]
@@ -357,6 +357,36 @@ class Pars(aws.NamedObject):
                     l for sublist in response_subnets for l in sublist
                 ]
                 subnet_ids = [d["SubnetId"] for d in subnets_list]
+                subnet_zones = [d["AvailabilityZone"] for d in subnets_list]
+
+                response = aws.clients["ec2"].describe_availability_zones()
+                zones = [
+                    d["ZoneName"] for d in response.get("AvailabilityZones")
+                    if d["State"] == "available"
+                ]
+
+                # If this region doesn't have a subnet in each availability
+                # zone, then create the required subnets and repopulate
+                # the subnet list
+                if set(subnet_zones) < set(zones):
+                    for z in set(zones) - set(subnet_zones):
+                        aws.clients["ec2"].create_default_subnet(
+                            AvailabilityZone=z
+                        )
+
+                    response_iterator = paginator.paginate(
+                        Filters=[{"Name": "vpc-id", "Values": [vpc_id]}]
+                    )
+
+                    # response_iterator is a list of dicts. First convert to
+                    # list of lists and then flatten to a single list
+                    response_subnets = [
+                        response["Subnets"] for response in response_iterator
+                    ]
+                    subnets_list = [
+                        l for sublist in response_subnets for l in sublist
+                    ]
+                    subnet_ids = [d["SubnetId"] for d in subnets_list]
 
                 template_path = os.path.abspath(
                     os.path.join(
