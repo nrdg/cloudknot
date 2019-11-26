@@ -596,10 +596,10 @@ class DockerImage(aws.NamedObject):
         login_cmd = subprocess.check_output(cmd)
 
         # Login
-        login_cmd = login_cmd.decode("ASCII").rstrip("\n").split(" ")
+        login_cmd_list = login_cmd.decode("ASCII").rstrip("\n").split(" ")
         fnull = open(os.devnull, "w")
         login_result = subprocess.call(
-            login_cmd, stdout=fnull, stderr=subprocess.STDOUT
+            login_cmd_list, stdout=fnull, stderr=subprocess.STDOUT
         )
 
         # If login failed, pass error to user
