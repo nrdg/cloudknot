@@ -5,6 +5,7 @@ import configparser
 import os.path as op
 import pytest
 import uuid
+from . import bucket_name
 
 
 UNIT_TEST_PREFIX = "ck-unit-test"
@@ -31,7 +32,7 @@ def bucket_cleanup():
     else:
         old_s3_params = None
 
-    new_bucket = "cloudknot-travis-build-45814031-351c-4b27-9a40-672c971f7e83"
+    new_bucket = bucket_name
     ck.set_s3_params(bucket=new_bucket)
 
     yield None
@@ -126,7 +127,6 @@ def unit_testing_func(name=None, no_capitalize=False):
     """
     import sys  # noqa: F401
     import boto3.ec2  # noqa: F401
-    import AFQ  # noqa: F401
 
     if name:
         from docker import api  # noqa: F401
@@ -134,7 +134,6 @@ def unit_testing_func(name=None, no_capitalize=False):
 
         if not no_capitalize:
             import pytest as pt  # noqa: F401
-            import h5py.utils as h5utils  # noqa: F401
 
             name = name.title()
 

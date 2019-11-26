@@ -56,7 +56,6 @@ def unit_testing_func(name=None, no_capitalize=False):
     """
     import sys  # noqa: F401
     import boto3.ec2  # noqa: F401
-    import AFQ  # noqa: F401
 
     if name:
         from docker import api  # noqa: F401
@@ -64,7 +63,6 @@ def unit_testing_func(name=None, no_capitalize=False):
 
         if not no_capitalize:
             import pytest as pt  # noqa: F401
-            import h5py.utils as h5utils  # noqa: F401
 
             name = name.title()
 

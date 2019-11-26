@@ -304,7 +304,7 @@
                         ]
                     },
                     "ManagedPolicyArns" : [
-                        "arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetRole"
+                        "arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole"
                     ]
                 }
             }
