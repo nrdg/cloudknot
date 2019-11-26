@@ -42,18 +42,37 @@ def bucket_cleanup():
 
     if (old_s3_params is None) or bucket_policy == old_s3_params.policy:
         iam = ck.aws.clients["iam"]
-        response = iam.list_policies(Scope="Local", PathPrefix="/cloudknot/")
+        paginator = iam.get_paginator("list_policies")
+        response_iterator = paginator.paginate(
+            Scope="Local",
+            PathPrefix="/cloudknot/"
+        )
 
-        policy_dict = [
-            p for p in response.get("Policies") if p["PolicyName"] == bucket_policy
-        ][0]
+        # response_iterator is a list of dicts. First convert to list of lists
+        # and then flatten to a single list
+        response_policies = [
+            response["Policies"] for response in response_iterator
+        ]
+        policies = [l for sublist in response_policies for l in sublist]
 
-        arn = policy_dict["Arn"]
+        aws_policies = {
+            d["PolicyName"]: d["Arn"] for d in policies
+        }
 
-        response = iam.list_policy_versions(PolicyArn=arn)
+        arn = aws_policies[bucket_policy]
+        paginator = clients["iam"].get_paginator("list_policy_versions")
+        response_iterator = paginator.paginate(PolicyArn=arn)
 
         # Get non-default versions
-        versions = [v for v in response.get("Versions") if not v["IsDefaultVersion"]]
+        # response_iterator is a list of dicts. First convert to list of
+        # lists. Then flatten to a single list and filter
+        response_versions = [
+            response["Versions"] for response in response_iterator
+        ]
+        versions = [l for sublist in response_versions for l in sublist]
+        versions = [
+            v for v in versions if not v["IsDefaultVersion"]
+        ]
 
         # Delete the non-default versions
         for v in versions:
