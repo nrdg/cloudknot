@@ -60,7 +60,7 @@ def bucket_cleanup():
         }
 
         arn = aws_policies[bucket_policy]
-        paginator =iam.get_paginator("list_policy_versions")
+        paginator = iam.get_paginator("list_policy_versions")
         response_iterator = paginator.paginate(PolicyArn=arn)
 
         # Get non-default versions
