@@ -596,17 +596,21 @@ class DockerImage(aws.NamedObject):
         login_cmd = subprocess.check_output(cmd)
 
         # Login
-        login_cmd = login_cmd.decode("ASCII").rstrip("\n").split(" ")
-        fnull = open(os.devnull, "w")
-        login_result = subprocess.call(
-            login_cmd, stdout=fnull, stderr=subprocess.STDOUT
+        login_cmd_list = login_cmd.decode("ASCII").rstrip("\n").split(" ")
+        login_result = subprocess.run(
+            login_cmd_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
 
         # If login failed, pass error to user
-        if login_result:  # pragma: nocover
+        if login_result.returncode:  # pragma: nocover
             raise CloudknotConfigurationError(
-                "Unable to login to AWS ECR using `{login:s}`".format(
-                    login=login_cmd.decode()
+                "Unable to login to AWS ECR using the command:\n"
+                "\t{login:s}\nReturned exit code = {code}\n"
+                "STDOUT: {out:s}\nSTDERR: {err:s}\n".format(
+                    login=login_cmd.decode(),
+                    code=login_result.returncode,
+                    out=login_result.stdout.decode(),
+                    err=login_result.stderr.decode()
                 )
             )
 
