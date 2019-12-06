@@ -181,6 +181,14 @@ class DockerImage(aws.NamedObject):
                 py_ver = "3" if six.PY3 else "2"
                 self._base_image = "python:" + py_ver
 
+            if self._base_image == "python:3":
+                mod_logger.warning(
+                    "Warning, your Dockerfile will have a base image of python:3, "
+                    "which may default to Python 3.8. This may cause dependency "
+                    "conflicts. If this build fails, consider rerunning with the "
+                    "`base_image='python:3.7' parameter."
+                )
+
             # Validate dir_name input
             if dir_name and not os.path.isdir(dir_name):
                 raise CloudknotInputError("`dir_name` is not an existing " "directory")
