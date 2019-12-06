@@ -181,7 +181,7 @@ class DockerImage(aws.NamedObject):
                 py_ver = "3" if six.PY3 else "2"
                 self._base_image = "python:" + py_ver
 
-            if self._base_image == "python:3":
+            if self._base_image in ["python:3", "python:3.8"]:
                 mod_logger.warning(
                     "Warning, your Dockerfile will have a base image of python:3, "
                     "which may default to Python 3.8. This may cause dependency "
