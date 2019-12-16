@@ -523,7 +523,6 @@ def set_region(region="us-east-1"):
         clients["ecs"] = session.client("ecs", region_name=region, config=boto_config)
         clients["ec2"] = session.client("ec2", region_name=region, config=boto_config)
         clients["iam"] = session.client("iam", region_name=region, config=boto_config)
-        clients["sts"] = session.client("sts", region_name=region, config=boto_config)
         clients["s3"] = session.client("s3", region_name=region, config=boto_config)
 
 
@@ -699,9 +698,6 @@ def set_profile(profile_name):
         clients["iam"] = session.client(
             "iam", region_name=get_region(), config=boto_config
         )
-        clients["sts"] = session.client(
-            "sts", region_name=get_region(), config=boto_config
-        )
         clients["s3"] = session.client(
             "s3", region_name=get_region(), config=boto_config
         )
@@ -726,9 +722,6 @@ clients = {
     ),
     "iam": boto3.Session(profile_name=get_profile(fallback=None)).client(
         "iam", region_name=get_region()
-    ),
-    "sts": boto3.Session(profile_name=get_profile(fallback=None)).client(
-        "sts", region_name=get_region()
     ),
     "s3": boto3.Session(profile_name=get_profile(fallback=None)).client(
         "s3", region_name=get_region()
