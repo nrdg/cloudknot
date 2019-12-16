@@ -586,7 +586,12 @@ def list_profiles():
 
 @registered
 def get_user():
-    return clients["iam"].get_user().get("UserName")
+    user_info = clients["iam"].get_user()
+    username = user_info.get("UserName")
+    if username is None:
+        username = user_info.get("Arn").split(":")[-1]
+
+    return username
 
 
 @registered
