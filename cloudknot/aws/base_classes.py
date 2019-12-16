@@ -587,7 +587,7 @@ def list_profiles():
 
 @registered
 def get_user():
-    return clients["sts"].get_caller_identity().get("Arn").split("/")[-1]
+    return clients["iam"].get_user().get("UserName")
 
 
 @registered
