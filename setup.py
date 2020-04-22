@@ -25,6 +25,7 @@ with open(op.join(here, 'requirements.txt')) as f:
 with open(op.join(here, 'README.md'), encoding='utf-8') as f:
     LONG_DESCRIPTION = f.read()
 
+PACKAGES = find_packages()
 
 def local_version(version):
     """
