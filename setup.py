@@ -1,11 +1,46 @@
-import os
-from setuptools import setup, find_packages
-PACKAGES = find_packages()
+from setuptools import find_packages
+import string
+import os.path as op
+from setuptools_scm import get_version
 
-# Get version and release info, which is all stored in cloudknot/version.py
-ver_file = os.path.join('cloudknot', 'version.py')
-with open(ver_file) as f:
+try:
+    from setuptools import setup
+except ImportError:
+    from distutils.core import setup
+
+here = op.abspath(op.dirname(__file__))
+
+# Get metadata from the cloudknot/_meta.py file:
+meta_file = op.join(here, 'cloudknot', '_meta.py')
+with open(meta_file) as f:
     exec(f.read())
+
+REQUIRES = []
+with open(op.join(here, 'requirements.txt')) as f:
+    ll = f.readline()[:-1]
+    while ll:
+        REQUIRES.append(ll)
+        ll = f.readline()[:-1]
+
+with open(op.join(here, 'README.md'), encoding='utf-8') as f:
+    LONG_DESCRIPTION = f.read()
+
+
+def local_version(version):
+    """
+    Patch in a version that can be uploaded to test PyPI
+    """
+    scm_version = get_version()
+    if "dev" in scm_version:
+        gh_in_int = []
+        for char in version.node:
+            if char.isdigit():
+                gh_in_int.append(str(char))
+            else:
+                gh_in_int.append(str(string.ascii_letters.find(char)))
+        return "".join(gh_in_int)
+    else:
+        return ""
 
 opts = dict(name=NAME,
             maintainer=MAINTAINER,
@@ -19,7 +54,10 @@ opts = dict(name=NAME,
             author=AUTHOR,
             author_email=AUTHOR_EMAIL,
             platforms=PLATFORMS,
-            version=VERSION,
+            use_scm_version={"root": ".", "relative_to": __file__,
+                             "write_to": "AFQ/version.py",
+                             "local_scheme": local_version},
+            setup_requires=['setuptools_scm'],
             packages=PACKAGES,
             package_data=PACKAGE_DATA,
             install_requires=REQUIRES,
