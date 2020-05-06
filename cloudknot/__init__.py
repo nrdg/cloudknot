@@ -17,9 +17,13 @@ from .dockerimage import *  # noqa
 from .version import __version__  # noqa
 
 try:
+    is_windows = (os.name == 'nt')
     fnull = open(os.devnull, "w")
     subprocess.check_call(
-        "docker version", shell=True, stdout=fnull, stderr=subprocess.STDOUT
+        "docker version",
+        shell=is_windows,
+        stdout=fnull,
+        stderr=subprocess.STDOUT
     )
 except subprocess.CalledProcessError:
     raise ImportError(

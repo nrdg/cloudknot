@@ -20,7 +20,7 @@ from ..aws import (
 from ..config import add_resource
 
 module_logger = logging.getLogger(__name__)
-
+is_windows = (os.name == 'nt')
 
 def pull_and_push_base_images(region, profile, ecr_repo):
     # Use docker low-level APIClient for tagging
@@ -50,12 +50,12 @@ def pull_and_push_base_images(region, profile, ecr_repo):
         cmd = ["aws", "ecr", "get-login", "--no-include-email", "--region", region]
 
     # Refresh the aws ecr login credentials
-    login_cmd = subprocess.check_output(cmd)
+    login_cmd = subprocess.check_output(cmd, shell=is_windows)
 
     # Login
     login_cmd = login_cmd.decode("ASCII").rstrip("\n").split(" ")
     fnull = open(os.devnull, "w")
-    subprocess.call(login_cmd, stdout=fnull, stderr=subprocess.STDOUT)
+    subprocess.call(login_cmd, stdout=fnull, stderr=subprocess.STDOUT, shell=is_windows)
 
     repo = DockerRepo(name=ecr_repo)
 
@@ -87,7 +87,7 @@ class Configure(Base):
             "please follow the prompts to start using cloudknot.\n"
         )
 
-        subprocess.call("aws configure".split(" "))
+        subprocess.call("aws configure".split(" "), shell=is_windows)
 
         print(
             "\n`aws configure` complete. Resuming configuration with "
