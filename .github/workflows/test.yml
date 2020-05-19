@@ -25,10 +25,10 @@ jobs:
     - name: Install software
       run: |
         pip install .[dev]
-    - name: Configure
-      run: |
-        mkdir ~/config_files
-        printf "[aws]\nconfigured = True\n" > ~/config_files/cloudknot
+    # - name: Configure
+    #   run: |
+    #     mkdir ~/config_files
+    #     printf "[aws]\nconfigured = True\n" > ~/config_files/cloudknot
     - name: Test
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
