@@ -28,6 +28,7 @@ jobs:
     - name: Configure
       run: |
         export AWS_SDK_LOAD_CONFIG=1
+        export AWS_PROFILE=foo
         mkdir ~/config_files
         printf "[aws]\nconfigured = True\n" > ~/config_files/cloudknot
     - name: Configure AWS Credentials
