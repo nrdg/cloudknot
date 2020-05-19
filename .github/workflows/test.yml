@@ -25,20 +25,17 @@ jobs:
     - name: Install software
       run: |
         pip install .[dev]
-    - name: Set up AWS SDK config
+    - name: Configure
       run: |
-        export AWS_SDK_LOAD_CONFIG=0
-
+        export AWS_SDK_LOAD_CONFIG=1
+        mkdir ~/config_files
+        printf "[aws]\nconfigured = True\n" > ~/config_files/cloudknot
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-1
-    - name: Configure
-      run: |
-        mkdir ~/config_files
-        printf "[aws]\nconfigured = True\n" > ~/config_files/cloudknot
     - name: Test
       run: |
         make test
