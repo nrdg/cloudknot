@@ -27,7 +27,7 @@ jobs:
         pip install .[dev]
     - name: Set up AWS SDK config
       run: |
-        export AWS_SDK_LOAD_CONFIG=1
+        export AWS_SDK_LOAD_CONFIG=0
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
