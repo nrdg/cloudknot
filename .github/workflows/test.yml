@@ -30,7 +30,7 @@ jobs:
         mkdir ~/config_files
         printf "[aws]\nconfigured = True\n" > ~/config_files/cloudknot
     - name: foo
-      with:
+      env:
         SUPER_SECRET: ${{ secrets.SUPER_SECRET }}
       run: |
         echo $SUPER_SECRET
