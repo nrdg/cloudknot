@@ -29,14 +29,10 @@ jobs:
       run: |
         mkdir ~/config_files
         printf "[aws]\nconfigured = True\n" > ~/config_files/cloudknot
-    - name: foo
-      env:
-        SUPER_SECRET: ${{ secrets.SUPER_SECRET }}
-      run: |
-        echo $SUPER_SECRET
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
+        super-secret: ${{ secrets.SUPER_SECRET }}
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-1
