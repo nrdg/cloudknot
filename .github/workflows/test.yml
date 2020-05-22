@@ -32,6 +32,8 @@ jobs:
     - name: foo
       with:
         SUPER_SECRET: ${{ secrets.SUPER_SECRET }}
+      run: |
+        echo $SUPER_SECRET
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
