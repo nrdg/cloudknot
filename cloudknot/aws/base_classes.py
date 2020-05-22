@@ -710,25 +710,25 @@ def set_profile(profile_name):
 
 #: module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, ECS, S3.
 clients = {
-    "batch": boto3.Session(profile_name=get_profile(fallback=None)).client(
+    "batch": boto3.Session(profile_name=get_profile()).client(
         "batch", region_name=get_region()
     ),
-    "cloudformation": boto3.Session(profile_name=get_profile(fallback=None)).client(
+    "cloudformation": boto3.Session(profile_name=get_profile()).client(
         "cloudformation", region_name=get_region()
     ),
-    "ecr": boto3.Session(profile_name=get_profile(fallback=None)).client(
+    "ecr": boto3.Session(profile_name=get_profile()).client(
         "ecr", region_name=get_region()
     ),
-    "ecs": boto3.Session(profile_name=get_profile(fallback=None)).client(
+    "ecs": boto3.Session(profile_name=get_profile()).client(
         "ecs", region_name=get_region()
     ),
-    "ec2": boto3.Session(profile_name=get_profile(fallback=None)).client(
+    "ec2": boto3.Session(profile_name=get_profile()).client(
         "ec2", region_name=get_region()
     ),
-    "iam": boto3.Session(profile_name=get_profile(fallback=None)).client(
+    "iam": boto3.Session(profile_name=get_profile()).client(
         "iam", region_name=get_region()
     ),
-    "s3": boto3.Session(profile_name=get_profile(fallback=None)).client(
+    "s3": boto3.Session(profile_name=get_profile()).client(
         "s3", region_name=get_region()
     ),
 }

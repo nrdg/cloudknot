@@ -28,7 +28,7 @@ jobs:
     - name: Configure
       run: |
         mkdir ~/config_files
-        printf "[aws]\nconfigured = True\nprofile=default\n" > ~/config_files/cloudknot
+        printf "[aws]\nconfigured = True\n" > ~/config_files/cloudknot
     - name: Test
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
