@@ -27,8 +27,8 @@ jobs:
         pip install .[dev]
     - name: Configure
       run: |
-        mkdir ~/config_files
-        printf "[aws]\nconfigured = True\n" > ~/config_files/cloudknot
+        mkdir ~/.aws
+        printf "[aws]\nconfigured = True\n" > ~/.aws/cloudknot
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
