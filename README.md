@@ -1,4 +1,3 @@
-[![Known Vulnerabilities](https://snyk.io/test/github/richford/cloudknot/badge.svg)](https://snyk.io/test/github/richford/cloudknot)
 [![Build Status](https://travis-ci.org/richford/cloudknot.svg?branch=master)](https://travis-ci.org/richford/cloudknot)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/d6fa3a18646f4a8089c7c897819d0342)](https://www.codacy.com/app/richford/cloudknot?utm_source=github.com&utm_medium=referral&utm_content=richford/cloudknot&utm_campaign=Badge_Grade)
 [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/d6fa3a18646f4a8089c7c897819d0342)](https://www.codacy.com/app/richford/cloudknot?utm_source=github.com&utm_medium=referral&utm_content=richford/cloudknot&utm_campaign=Badge_Coverage)
@@ -16,7 +15,7 @@ library designed to run your existing python code on
 This is the cloudknot development site. You can view the source code, file new
 issues, and contribute to cloudknot's development. If you are just getting
 started, you should look at the
-[cloudknot documentation](https://richford.github.io/cloudknot/).
+[cloudknot documentation](https://nrdg.github.io/cloudknot/).
 
 ## Contributing
 
