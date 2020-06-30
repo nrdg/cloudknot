@@ -29,6 +29,9 @@ jobs:
       run: |
         mkdir ~/.aws
         printf "[aws]\nconfigured = True\n" > ~/.aws/cloudknot
+    - name: Check data folder
+      run: |
+        python -c"import cloudknot as ck; import os; print(os.listdir(os.path.join(ck.__path__[0], 'data')))"
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
