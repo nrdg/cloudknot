@@ -27,6 +27,7 @@ with open(op.join(here, 'README.md'), encoding='utf-8') as f:
 
 PACKAGES = find_packages()
 
+
 def local_version(version):
     """
     Patch in a version that can be uploaded to test PyPI

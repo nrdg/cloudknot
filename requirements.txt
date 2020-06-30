@@ -7,3 +7,4 @@ pipreqs==0.4.9
 six==1.12.0
 tenacity==5.0.4
 configparser==3.7.4; python_version < '3.0'
+setuptools_scm
