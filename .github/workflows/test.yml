@@ -24,7 +24,7 @@ jobs:
         pip install -r requirements.txt
     - name: Install software
       run: |
-        pip install .[dev]
+        python setup.py install
     - name: Configure
       run: |
         mkdir ~/.aws
