@@ -7,7 +7,10 @@ import logging
 import pickle
 import six
 import time
-from collections import namedtuple
+try:
+    from collections.abc import namedtuple
+except ImportError:
+    from collections import namedtuple
 
 from .base_classes import (
     NamedObject,

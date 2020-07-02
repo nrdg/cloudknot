@@ -8,7 +8,10 @@ import logging
 import os
 import re
 import uuid
-from collections import namedtuple
+try:
+    from collections.abc import namedtuple
+except ImportError:
+    from collections import namedtuple
 
 from ..config import get_config_file, rlock
 

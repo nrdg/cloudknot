@@ -2,7 +2,10 @@ from __future__ import absolute_import, division, print_function
 
 import cloudknot.config
 import logging
-from collections import namedtuple
+try:
+    from collections.abc import namedtuple
+except ImportError:
+    from collections import namedtuple
 
 from .base_classes import NamedObject, clients, get_ecr_repo
 
