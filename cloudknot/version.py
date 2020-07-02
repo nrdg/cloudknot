@@ -75,28 +75,10 @@ MAJOR = _version_major
 MINOR = _version_minor
 MICRO = _version_micro
 VERSION = __version__
-PACKAGE_DATA = {
-    "cloudknot": ['data/docker_reqs_ref_data/py3/ref2/requirements.txt',
-                  'data/docker_reqs_ref_data/py3/ref2/Dockerfile',
-                  'data/docker_reqs_ref_data/py3/ref2/test-func-input.py',
-                  'data/docker_reqs_ref_data/py3/ref1/unit-testing-func.py',
-                  'data/docker_reqs_ref_data/py3/ref1/requirements.txt',
-                  'data/docker_reqs_ref_data/py3/ref1/Dockerfile',
-                  'data/docker_reqs_ref_data/py2/ref2/requirements.txt',
-                  'data/docker_reqs_ref_data/py2/ref2/Dockerfile',
-                  'data/docker_reqs_ref_data/py2/ref2/test-func-input.py',
-                  'data/docker_reqs_ref_data/py2/ref1/unit-testing-func.py',
-                  'data/docker_reqs_ref_data/py2/ref1/requirements.txt',
-                  'data/docker_reqs_ref_data/py2/ref1/Dockerfile',
-                  'templates/pars-with-default-vpc.template',
-                  'templates/script.template',
-                  'templates/Dockerfile.template',
-                  'templates/pars-with-new-vpc.template',
-                  'templates/batch-environment.template']}
 
-# PACKAGE_DATA = {
-#     "cloudknot": [pjoin("data", "*", "*", "*", "*"), pjoin("templates", "*")]
-# }
+PACKAGE_DATA = {
+    "cloudknot": [pjoin("data", "*"), pjoin("data", "*", "*"), pjoin("data", "*", "*", "*"), pjoin("data", "*", "*", "*", "*"), pjoin("templates", "*")]
+}
 REQUIRES = [
     "awscli",
     "boto3>=1.5.21",
