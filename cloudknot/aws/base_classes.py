@@ -100,15 +100,22 @@ def set_ecr_repo(repo):
 
         try:
             # If repo exists, retrieve its info
-            clients["ecr"].describe_repositories(repositoryNames=[repo])
+            response = clients["ecr"].describe_repositories(
+                repositoryNames=[repo]
+            )
+
+            clients["ecr"].tag_resource(
+                resourceArn=response["repositories"][0]["repositoryArn"],
+                tags=get_tags(repo)
+            )
         except clients["ecr"].exceptions.RepositoryNotFoundException:
             # If it doesn't exists already, then create it
-            clients["ecr"].create_repository(repositoryName=repo)
-        except botocore.exceptions.ClientError as e:
-            error_code = e.response["Error"]["Code"]
-            if error_code == "RepositoryNotFoundException":
-                # If it doesn't exists already, then create it
-                clients["ecr"].create_repository(repositoryName=repo)
+            response = clients["ecr"].create_repository(repositoryName=repo)
+
+            clients["ecr"].tag_resource(
+                resourceArn=response["repository"]["repositoryArn"],
+                tags=get_tags(repo)
+            )
 
 
 @registered
@@ -134,7 +141,10 @@ def get_s3_params():
     config_file = get_config_file()
     config = configparser.ConfigParser()
 
-    BucketInfo = namedtuple("BucketInfo", ["bucket", "policy", "policy_arn", "sse"])
+    BucketInfo = namedtuple(
+        "BucketInfo",
+        ["bucket", "policy", "policy_arn", "sse"]
+    )
 
     with rlock:
         config.read(config_file)

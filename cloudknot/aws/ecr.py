@@ -8,7 +8,7 @@ try:
 except ImportError:
     from collections import namedtuple
 
-from .base_classes import NamedObject, clients, get_ecr_repo
+from .base_classes import NamedObject, clients, get_ecr_repo, get_tags
 
 __all__ = []
 
@@ -70,11 +70,18 @@ class DockerRepo(NamedObject):
         """
         try:
             # If repo exists, retrieve its info
-            response = clients["ecr"].describe_repositories(repositoryNames=[self.name])
+            response = clients["ecr"].describe_repositories(
+                repositoryNames=[self.name]
+            )
 
             repo_name = response["repositories"][0]["repositoryName"]
             repo_uri = response["repositories"][0]["repositoryUri"]
             repo_registry_id = response["repositories"][0]["registryId"]
+
+            clients["ecr"].tag_resource(
+                resourceArn=response["repositories"][0]["repositoryArn"],
+                tags=get_tags(self.name)
+            )
 
             mod_logger.info(
                 "Repository {name:s} already exists at "
@@ -82,11 +89,18 @@ class DockerRepo(NamedObject):
             )
         except clients["ecr"].exceptions.RepositoryNotFoundException:
             # If it doesn't exists already, then create it
-            response = clients["ecr"].create_repository(repositoryName=self.name)
+            response = clients["ecr"].create_repository(
+                repositoryName=self.name
+            )
 
             repo_name = response["repository"]["repositoryName"]
             repo_uri = response["repository"]["repositoryUri"]
             repo_registry_id = response["repository"]["registryId"]
+
+            clients["ecr"].tag_resource(
+                resourceArn=response["repository"]["repositoryArn"],
+                tags=get_tags(self.name)
+            )
 
             mod_logger.info(
                 "Created repository {name:s} at {uri:s}".format(
