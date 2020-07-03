@@ -95,9 +95,9 @@ def test_pars_errors(cleanup):
 def test_pars_with_default_vpc(cleanup):
     name = get_testing_name()
 
-    batch_service_role_name = "ck-unit-test-batch-service-role"
-    ecs_instance_role_name = "ck-unit-test-ecs-instance-role"
-    spot_fleet_role_name = "ck-unit-test-spot-fleet-role"
+    batch_service_role_name = "ck-unit-test-batch-service-role-1"
+    ecs_instance_role_name = "ck-unit-test-ecs-instance-role-1"
+    spot_fleet_role_name = "ck-unit-test-spot-fleet-role-1"
 
     try:
         p = ck.Pars(

@@ -75,8 +75,9 @@ MAJOR = _version_major
 MINOR = _version_minor
 MICRO = _version_micro
 VERSION = __version__
+
 PACKAGE_DATA = {
-    "cloudknot": [pjoin("data", "*", "*", "*", "*"), pjoin("templates", "*")]
+    "cloudknot": [pjoin("data", "*"), pjoin("data", "*", "*"), pjoin("data", "*", "*", "*"), pjoin("data", "*", "*", "*", "*"), pjoin("templates", "*")]
 }
 REQUIRES = [
     "awscli",
