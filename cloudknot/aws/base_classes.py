@@ -27,6 +27,15 @@ mod_logger = logging.getLogger(__name__)
 
 
 @registered
+def get_tags(name):
+    return [
+        {"Key": "Name", "Value": name},
+        {"Key": "Owner", "Value": get_user()},
+        {"Key": "Environment", "Value": "cloudknot"},
+    ]
+
+
+@registered
 def get_ecr_repo():
     """Get the cloudknot ECR repository
 
@@ -297,6 +306,12 @@ def set_s3_params(bucket, policy=None, sse=None):
             else:
                 # Pass exception to user
                 raise e
+
+        # Add the cloudknot tags to the bucket
+        clients.put_bucket_tagging(
+            Bucket=bucket,
+            Tagging={'TagSet': get_tags(bucket)}
+        )
 
         if policy is None:
             policy = "cloudknot-bucket-access-" + str(uuid.uuid4())

@@ -440,11 +440,7 @@ class Pars(aws.NamedObject):
                         },
                     ],
                     Capabilities=["CAPABILITY_NAMED_IAM"],
-                    Tags=[
-                        {"Key": "Name", "Value": self.name},
-                        {"Key": "Owner", "Value": aws.get_user()},
-                        {"Key": "Environment", "Value": "cloudknot"},
-                    ],
+                    Tags=aws.get_tags(self.name),
                 )
 
                 self._stack_id = response["StackId"]
@@ -552,11 +548,7 @@ class Pars(aws.NamedObject):
                         },
                     ],
                     Capabilities=["CAPABILITY_NAMED_IAM"],
-                    Tags=[
-                        {"Key": "Name", "Value": self.name},
-                        {"Key": "Owner", "Value": aws.get_user()},
-                        {"Key": "Environment", "Value": "cloudknot"},
-                    ],
+                    Tags=aws.get_tags(self.name),
                 )
 
                 self._stack_id = response["StackId"]
@@ -1567,11 +1559,7 @@ class Knot(aws.NamedObject):
                 TemplateBody=template_body,
                 Parameters=params,
                 Capabilities=["CAPABILITY_NAMED_IAM"],
-                Tags=[
-                    {"Key": "Name", "Value": self.name},
-                    {"Key": "Owner", "Value": aws.get_user()},
-                    {"Key": "Environment", "Value": "cloudknot"},
-                ],
+                Tags=aws.get_tags(self.name),
             )
 
             self._stack_id = response["StackId"]
