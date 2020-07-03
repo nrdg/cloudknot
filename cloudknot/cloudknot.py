@@ -1518,6 +1518,9 @@ class Knot(aws.NamedObject):
                 {"ParameterKey": "CeName", "ParameterValue": compute_environment_name},
                 {"ParameterKey": "CeResourceType", "ParameterValue": resource_type},
                 {"ParameterKey": "CeMinvCpus", "ParameterValue": str(min_vcpus)},
+                {"ParameterKey": "CeTagNameValue", "ParameterValue": self.name},
+                {"ParameterKey": "CeTagOwnerValue", "ParameterValue": aws.get_user()},
+                {"ParameterKey": "CeTagEnvironmentValue", "ParameterValue": "cloudknot"},
                 {
                     "ParameterKey": "CeDesiredvCpus",
                     "ParameterValue": str(desired_vcpus),
