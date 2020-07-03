@@ -838,7 +838,7 @@ class Knot(aws.NamedObject):
 
         bid_percentage : int, optional
             Compute environment bid percentage if using spot instances
-            Default: 50
+            Default: None
 
         job_queue_name : str, optional
             Name for this knot's AWS Batch job queue
@@ -1139,7 +1139,10 @@ class Knot(aws.NamedObject):
                 )
 
             # Validate resource type, default to 'EC2'
-            resource_type = resource_type if resource_type else "EC2"
+            if bid_percentage is not None and resource_type is None:
+                resource_type = "SPOT"
+
+            resource_type = resource_type.upper() if resource_type else "EC2"
             if resource_type not in ("EC2", "SPOT"):
                 raise aws.CloudknotInputError(
                     "resource_type must " 'be "EC2" or "SPOT"'
