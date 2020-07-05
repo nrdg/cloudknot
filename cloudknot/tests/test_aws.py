@@ -23,6 +23,7 @@ The tests for each resource all follow the same pattern:
 """
 from __future__ import absolute_import, division, print_function
 
+import botocore
 import cloudknot as ck
 import configparser
 import errno
@@ -34,6 +35,22 @@ import tempfile
 import tenacity
 import uuid
 from . import bucket_name
+from moto import mock_batch, mock_cloudformation, mock_ec2, mock_ecr
+from moto import mock_ecs, mock_iam, mock_s3
+
+
+def composed(*decs):
+    def deco(f):
+        for dec in reversed(decs):
+            f = dec(f)
+        return f
+    return deco
+
+
+mock_all = composed(
+    mock_ecr, mock_batch, mock_cloudformation, mock_ec2, mock_ecs,
+    mock_iam, mock_s3
+)
 
 UNIT_TEST_PREFIX = "cloudknot-unit-test"
 data_path = op.join(ck.__path__[0], "data")
@@ -54,6 +71,7 @@ def get_testing_name():
 
 
 @pytest.fixture(scope="module")
+@mock_all
 def bucket_cleanup():
     config_file = ck.config.get_config_file()
     config = configparser.ConfigParser()
@@ -134,12 +152,14 @@ def bucket_cleanup():
 
 
 @pytest.fixture(scope="module")
+@mock_all
 def pars(bucket_cleanup):
     p = ck.Pars(name="unit-test")
     yield p
     p.clobber()
 
 
+@mock_all
 def test_get_region(bucket_cleanup):
     # Save environment variables for restoration later
     try:
@@ -256,6 +276,7 @@ def test_get_region(bucket_cleanup):
         ck.refresh_clients()
 
 
+@mock_all
 def test_set_region(bucket_cleanup):
     with pytest.raises(ck.aws.CloudknotInputError):
         ck.set_region(region="not a valid region name")
@@ -294,6 +315,7 @@ def test_set_region(bucket_cleanup):
         ck.refresh_clients()
 
 
+@mock_all
 def test_list_profiles(bucket_cleanup):
     try:
         old_credentials_file = os.environ["AWS_SHARED_CREDENTIALS_FILE"]
@@ -337,6 +359,7 @@ def test_list_profiles(bucket_cleanup):
                 pass
 
 
+@mock_all
 def test_get_profile(bucket_cleanup):
     try:
         old_credentials_file = os.environ["AWS_SHARED_CREDENTIALS_FILE"]
@@ -474,6 +497,7 @@ def test_get_profile(bucket_cleanup):
 #         ck.refresh_clients()
 
 
+@mock_all
 def test_DockerRepo(bucket_cleanup):
     ecr = ck.aws.clients["ecr"]
     config = configparser.ConfigParser()
@@ -510,13 +534,17 @@ def test_DockerRepo(bucket_cleanup):
         retry = tenacity.Retrying(
             wait=tenacity.wait_exponential(max=16),
             stop=tenacity.stop_after_delay(180),
-            retry=tenacity.retry_unless_exception_type(
-                ecr.exceptions.RepositoryNotFoundException
-            ),
+            retry=tenacity.retry_unless_exception_type((
+                ecr.exceptions.RepositoryNotFoundException,
+                botocore.exceptions.ClientError
+            )),
         )
 
         # Assert that it was removed from AWS
-        with pytest.raises(ecr.exceptions.RepositoryNotFoundException):
+        with pytest.raises((
+            ecr.exceptions.RepositoryNotFoundException,
+            botocore.exceptions.ClientError
+        )):
             retry.call(ecr.describe_repositories, repositoryNames=[name])
 
         # Assert that it was removed from the config file
@@ -538,9 +566,10 @@ def test_DockerRepo(bucket_cleanup):
         retry = tenacity.Retrying(
             wait=tenacity.wait_exponential(max=16),
             stop=tenacity.stop_after_delay(60),
-            retry=tenacity.retry_if_exception_type(
-                ecr.exceptions.RepositoryNotFoundException
-            ),
+            retry=tenacity.retry_if_exception_type((
+                ecr.exceptions.RepositoryNotFoundException,
+                botocore.exceptions.ClientError
+            )),
         )
 
         response = retry.call(ecr.describe_repositories, repositoryNames=[name])
@@ -571,13 +600,17 @@ def test_DockerRepo(bucket_cleanup):
         retry = tenacity.Retrying(
             wait=tenacity.wait_exponential(max=16),
             stop=tenacity.stop_after_delay(180),
-            retry=tenacity.retry_unless_exception_type(
-                ecr.exceptions.RepositoryNotFoundException
-            ),
+            retry=tenacity.retry_unless_exception_type((
+                ecr.exceptions.RepositoryNotFoundException,
+                botocore.exceptions.ClientError
+            )),
         )
 
         # Assert that it was removed from AWS
-        with pytest.raises(ecr.exceptions.RepositoryNotFoundException):
+        with pytest.raises((
+            ecr.exceptions.RepositoryNotFoundException,
+            botocore.exceptions.ClientError
+        )):
             retry.call(ecr.describe_repositories, repositoryNames=[name])
 
         # Assert that it was removed from the config file

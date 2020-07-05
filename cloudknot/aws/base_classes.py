@@ -95,6 +95,11 @@ def set_ecr_repo(repo):
         except clients["ecr"].exceptions.RepositoryNotFoundException:
             # If it doesn't exists already, then create it
             clients["ecr"].create_repository(repositoryName=repo)
+        except botocore.exceptions.ClientError as e:
+            error_code = e.response["Error"]["Code"]
+            if error_code == "RepositoryNotFoundException":
+                # If it doesn't exists already, then create it
+                clients["ecr"].create_repository(repositoryName=repo)
 
 
 @registered
