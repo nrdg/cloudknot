@@ -1503,7 +1503,7 @@ class Knot(aws.NamedObject):
                 {"ParameterKey": "DockerImage", "ParameterValue": repo_uri},
                 {"ParameterKey": "JdName", "ParameterValue": job_definition_name},
                 {"ParameterKey": "JdvCpus", "ParameterValue": str(job_def_vcpus)},
-                {"ParameterKey": "JdMemory", "ParameterValue": str(memory)},
+                {"ParameterKey": "JdMemory", "ParameterValue": int(memory)},
                 {"ParameterKey": "JdUser", "ParameterValue": username},
                 {"ParameterKey": "JdOutputBucket", "ParameterValue": output_bucket},
                 {"ParameterKey": "JdRetries", "ParameterValue": str(retries)},

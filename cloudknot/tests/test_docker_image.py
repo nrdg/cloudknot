@@ -11,7 +11,22 @@ import six
 import tempfile
 import uuid
 from . import bucket_name
+from moto import mock_batch, mock_cloudformation, mock_ec2, mock_ecr
+from moto import mock_ecs, mock_iam, mock_s3
 
+
+def composed(*decs):
+    def deco(f):
+        for dec in reversed(decs):
+            f = dec(f)
+        return f
+    return deco
+
+
+mock_all = composed(
+    mock_batch, mock_cloudformation, mock_ec2, mock_ecr, mock_ecs,
+    mock_iam, mock_s3
+)
 
 UNIT_TEST_PREFIX = "ck-unit-test"
 data_path = op.join(ck.__path__[0], "data")
@@ -24,6 +39,7 @@ def get_testing_name():
 
 
 @pytest.fixture(scope="module")
+@mock_all
 def bucket_cleanup():
     config_file = ck.config.get_config_file()
     config = configparser.ConfigParser()
@@ -104,6 +120,7 @@ def bucket_cleanup():
 
 
 @pytest.fixture(scope="module")
+@mock_all
 def cleanup_repos(bucket_cleanup):
     yield None
     ecr = ck.aws.clients["ecr"]
@@ -175,6 +192,7 @@ def unit_testing_func(name=None, no_capitalize=False):
     return "Hello world!"
 
 
+@mock_all
 def test_DockerImage(cleanup_repos):
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
