@@ -71,8 +71,8 @@ def pull_and_push_base_images(region, profile, ecr_repo):
         "".format(name=py_base, repo=repo.repo_uri)
     )
 
-    for l in cli.push(repository=repo.repo_uri, tag=ecr_tag, stream=True):
-        module_logger.debug(l)
+    for line in cli.push(repository=repo.repo_uri, tag=ecr_tag, stream=True):
+        module_logger.debug(line)
 
 
 class Configure(Base):

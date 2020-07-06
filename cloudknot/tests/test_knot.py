@@ -53,7 +53,7 @@ def bucket_cleanup():
         response_policies = [
             response["Policies"] for response in response_iterator
         ]
-        policies = [l for sublist in response_policies for l in sublist]
+        policies = [li for sublist in response_policies for li in sublist]
 
         aws_policies = {
             d["PolicyName"]: d["Arn"] for d in policies
@@ -69,7 +69,7 @@ def bucket_cleanup():
         response_versions = [
             response["Versions"] for response in response_iterator
         ]
-        versions = [l for sublist in response_versions for l in sublist]
+        versions = [li for sublist in response_versions for li in sublist]
         versions = [
             v for v in versions if not v["IsDefaultVersion"]
         ]
