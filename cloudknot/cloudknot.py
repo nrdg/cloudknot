@@ -191,7 +191,7 @@ class Pars(aws.NamedObject):
             self._security_group = _stack_out("SecurityGroupId", outs)
 
             vpc_response = aws.clients["ec2"].describe_vpcs(
-                    VpcIds=[self._vpc]
+                VpcIds=[self._vpc]
             )["Vpcs"][0]
             stack_instance_tenancy = vpc_response["InstanceTenancy"]
             stack_ipv4_cidr = vpc_response["CidrBlock"]
@@ -202,7 +202,7 @@ class Pars(aws.NamedObject):
                 d["PolicyName"] for d in ecs_response["AttachedPolicies"]
             ])
 
-            # Pars exists, check that user did not provide any conflicting 
+            # Pars exists, check that user did not provide any conflicting
             # resource names. This dict has values that are tuples, the first
             # value of which is the provided input parameter in __init__
             # and the second of which is the resource name in the AWS stack
@@ -226,7 +226,7 @@ class Pars(aws.NamedObject):
                 raise aws.CloudknotInputError(
                     "You provided resources for a PARS that already exists in "
                     "config file {fn:s} but the ".format(fn=get_config_file())
-                    "AWS resources in that PARS stack conflict with some of "
+                    + "AWS resources in that PARS stack conflict with some of "
                     "your input parameters. The conflicting parameters you "
                     "provided were {l}".format(
                         l=list(conflicting_params.keys())
