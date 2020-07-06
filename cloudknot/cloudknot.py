@@ -116,22 +116,6 @@ class Pars(aws.NamedObject):
             self._profile = config.get(self._pars_name, "profile")
             self.check_profile_and_region()
 
-            # Pars exists, check that user did not provide any resource names
-            if any(
-                [
-                    batch_service_role_name,
-                    ecs_instance_role_name,
-                    spot_fleet_role_name,
-                    ipv4_cidr,
-                    instance_tenancy,
-                    policies,
-                ]
-            ):
-                raise aws.CloudknotInputError(
-                    "You provided resources for a pars that already exists in "
-                    "configuration file {fn:s}.".format(fn=get_config_file())
-                )
-
             mod_logger.info("Found PARS {name:s} in config".format(name=name))
 
             self._stack_id = config.get(self._pars_name, "stack-id")
@@ -153,8 +137,9 @@ class Pars(aws.NamedObject):
                         with open(get_config_file(), "w") as f:
                             config.write(f)
                     raise aws.ResourceDoesNotExistException(
-                        "The PARS stack that you requested does not exist. "
-                        "Cloudknot has deleted this PARS from the config "
+                        "Cloudknot found this PARS in its config file, but "
+                        "the PARS stack that you requested does not exist on "
+                        "AWS. Cloudknot has deleted this PARS from the config "
                         "file, so you may be able to create a new one simply "
                         "by re-running your previous command.",
                         self._stack_id,
@@ -162,18 +147,21 @@ class Pars(aws.NamedObject):
                 else:  # pragma: nocover
                     raise e
 
-            no_stack = len(response.get("Stacks")) == 0 or response.get("Stacks")[0][
-                "StackStatus"
-            ] in [
-                "CREATE_FAILED",
-                "ROLLBACK_COMPLETE",
-                "ROLLBACK_IN_PROGRESS",
-                "ROLLBACK_FAILED",
-                "DELETE_IN_PROGRESS",
-                "DELETE_FAILED",
-                "DELETE_COMPLETE",
-                "UPDATE_ROLLBACK_FAILED",
-            ]
+            no_stack = (
+                len(response.get("Stacks")) == 0
+                or response.get("Stacks")[0][
+                    "StackStatus"
+                ] in [
+                    "CREATE_FAILED",
+                    "ROLLBACK_COMPLETE",
+                    "ROLLBACK_IN_PROGRESS",
+                    "ROLLBACK_FAILED",
+                    "DELETE_IN_PROGRESS",
+                    "DELETE_FAILED",
+                    "DELETE_COMPLETE",
+                    "UPDATE_ROLLBACK_FAILED",
+                ]
+            )
 
             if no_stack:
                 # Remove this section from the config file
@@ -184,10 +172,11 @@ class Pars(aws.NamedObject):
                         config.write(f)
 
                 raise aws.ResourceDoesNotExistException(
-                    "The PARS stack that you requested does not exist. "
-                    "Cloudknot has deleted this PARS from the config file, "
-                    "so you may be able to create a new one simply by "
-                    "re-running your previous command.",
+                    "Cloudknot found this PARS in its config file, but "
+                    "the PARS stack that you requested does not exist on "
+                    "AWS. Cloudknot has deleted this PARS from the config "
+                    "file, so you may be able to create a new one simply "
+                    "by re-running your previous command.",
                     self._stack_id,
                 )
 
@@ -200,6 +189,53 @@ class Pars(aws.NamedObject):
             self._vpc = _stack_out("VpcId", outs)
             self._subnets = _stack_out("SubnetIds", outs).split(",")
             self._security_group = _stack_out("SecurityGroupId", outs)
+
+            vpc_response = aws.clients["ec2"].describe_vpcs(
+                    VpcIds=[self._vpc]
+            )["Vpcs"][0]
+            stack_instance_tenancy = vpc_response["InstanceTenancy"]
+            stack_ipv4_cidr = vpc_response["CidrBlock"]
+            ecs_response = aws.clients["iam"].list_attached_role_policies(
+                RoleName=self._ecs_instance_role
+            )
+            stack_policies = set([
+                d["PolicyName"] for d in ecs_response["AttachedPolicies"]
+            ])
+
+            # Pars exists, check that user did not provide any conflicting 
+            # resource names. This dict has values that are tuples, the first
+            # value of which is the provided input parameter in __init__
+            # and the second of which is the resource name in the AWS stack
+            input_params = {
+                "batch_service_role_name": (batch_service_role_name,
+                                            self._batch_service_role),
+                "ecs_instance_role_name": (ecs_instance_role_name,
+                                           self._ecs_instance_role),
+                "spot_fleet_role_name": (spot_fleet_role_name,
+                                         self._spot_fleet_role),
+                "ipv4_cidr": (ipv4_cidr, stack_ipv4_cidr),
+                "instance_tenancy": (instance_tenancy, stack_instance_tenancy),
+                "policies": (set(policies), stack_policies),
+            }
+
+            conflicting_params = {
+                k: v for k, v in input_params
+                if v[0] and (v[1] is None or v[1] != v[0])
+            }
+
+            if conflicting_params:
+                conflicting_params = {}
+                for param, value in provided_params.items():
+
+                raise aws.CloudknotInputError(
+                    "You provided resources for a PARS that already exists in "
+                    "config file {fn:s} but the ".format(fn=get_config_file())
+                    "AWS resources in that PARS stack conflict with some of "
+                    "your input parameters. The conflicting parameters you "
+                    "provided were {l}".format(
+                        l=list(conflicting_params.keys())
+                    )
+                )
 
             conf_bsr = config.get(self._pars_name, "batch-service-role")
             conf_sfr = config.get(self._pars_name, "spot-fleet-role")
