@@ -219,8 +219,7 @@ class Pars(aws.NamedObject):
             }
 
             conflicting_params = {
-                k: v for k, v in input_params
-                if v[0] and (v[1] is None or v[1] != v[0])
+                k: v for k, v in input_params if v[0] and v[1] != v[0]
             }
 
             if conflicting_params:
