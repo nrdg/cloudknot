@@ -223,9 +223,6 @@ class Pars(aws.NamedObject):
             }
 
             if conflicting_params:
-                conflicting_params = {}
-                for param, value in provided_params.items():
-
                 raise aws.CloudknotInputError(
                     "You provided resources for a PARS that already exists in "
                     "config file {fn:s} but the ".format(fn=get_config_file())
