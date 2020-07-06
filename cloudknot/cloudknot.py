@@ -837,7 +837,8 @@ class Knot(aws.NamedObject):
         # Validate name input
         if name is not None and not isinstance(name, six.string_types):
             raise aws.CloudknotInputError(
-                "Knot name must be a string. You passed a " "{t!s}".format(t=type(name))
+                "Knot name must be a string. You passed a "
+                "{t!s}".format(t=type(name))
             )
 
         if name is None:
