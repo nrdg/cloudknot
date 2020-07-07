@@ -196,7 +196,7 @@ class Pars(aws.NamedObject):
             stack_instance_tenancy = vpc_response["InstanceTenancy"]
             stack_ipv4_cidr = vpc_response["CidrBlock"]
             ecs_response = aws.clients["iam"].list_attached_role_policies(
-                RoleName=self._ecs_instance_role
+                RoleName=self._ecs_instance_role.split('/')[-1]
             )
             stack_policies = set([
                 d["PolicyName"] for d in ecs_response["AttachedPolicies"]
