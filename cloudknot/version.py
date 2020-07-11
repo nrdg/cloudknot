@@ -95,7 +95,7 @@ EXTRAS_REQUIRE = {
         "pytest>=3.6",
         "pytest-cov",
         "flake8",
-        "moto @ git+ssh://git@github.com/spulec/moto@master",
+        "moto>=1.3.15.dev959",
     ],
 }
 ENTRY_POINTS = {"console_scripts": ["cloudknot=cloudknot.cli:main"]}
