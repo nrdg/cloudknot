@@ -344,6 +344,20 @@ class Pars(aws.NamedObject):
                         )
                     else:  # pragma: nocover
                         raise e
+                except NotImplementedError as e:
+                    moto_msg = ("The create_default_vpc action has not "
+                                "been implemented")
+                    if moto_msg in e.args:
+                        # This exception is here for compatibility with
+                        # moto testing since the create_default_vpc
+                        # action has not been implemented in moto.
+                        # Pretend that the default vpc already exists
+                        response = aws.clients["ec2"].describe_vpcs(
+                            Filters=[{"Name": "isDefault", "Values": ["true"]}]
+                        )
+                        vpc_id = response.get("Vpcs")[0].get("VpcId")
+                    else:
+                        raise e
 
                 # Retrieve the subnets for the default VPC
                 paginator = aws.clients["ec2"].get_paginator("describe_subnets")

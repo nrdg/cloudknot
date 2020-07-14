@@ -211,6 +211,7 @@ def test_pars_with_new_vpc(cleanup):
     response = ck.aws.clients["cloudformation"].describe_stacks(
         StackName=name + "-pars"
     )
+
     stack_id = response.get("Stacks")[0]["StackId"]
     assert stack_id == p.stack_id
 
