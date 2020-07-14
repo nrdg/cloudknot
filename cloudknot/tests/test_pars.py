@@ -110,96 +110,96 @@ def test_pars_errors(cleanup):
         ck.Pars(name=name, use_default_vpc=False, policies=["foo"])
 
 
-# @mock_all
-# def test_pars_with_default_vpc(cleanup):
-#     name = get_testing_name()
+@mock_all
+def test_pars_with_default_vpc(cleanup):
+    name = get_testing_name()
 
-#     batch_service_role_name = "ck-unit-test-batch-service-role"
-#     ecs_instance_role_name = "ck-unit-test-ecs-instance-role"
-#     spot_fleet_role_name = "ck-unit-test-spot-fleet-role"
+    batch_service_role_name = "ck-unit-test-batch-service-role"
+    ecs_instance_role_name = "ck-unit-test-ecs-instance-role"
+    spot_fleet_role_name = "ck-unit-test-spot-fleet-role"
 
-#     try:
-#         p = ck.Pars(
-#             name=name,
-#             batch_service_role_name=batch_service_role_name,
-#             ecs_instance_role_name=ecs_instance_role_name,
-#             spot_fleet_role_name=spot_fleet_role_name,
-#         )
+    try:
+        p = ck.Pars(
+            name=name,
+            batch_service_role_name=batch_service_role_name,
+            ecs_instance_role_name=ecs_instance_role_name,
+            spot_fleet_role_name=spot_fleet_role_name,
+        )
 
-#         response = ck.aws.clients["cloudformation"].describe_stacks(
-#             StackName=name + "-pars"
-#         )
-#         stack_id = response.get("Stacks")[0]["StackId"]
-#         assert stack_id == p.stack_id
+        response = ck.aws.clients["cloudformation"].describe_stacks(
+            StackName=name + "-pars"
+        )
+        stack_id = response.get("Stacks")[0]["StackId"]
+        assert stack_id == p.stack_id
 
-#         response = ck.aws.clients["iam"].get_role(RoleName=batch_service_role_name)
-#         bsr_arn = response.get("Role")["Arn"]
-#         assert bsr_arn == p.batch_service_role
+        response = ck.aws.clients["iam"].get_role(RoleName=batch_service_role_name)
+        bsr_arn = response.get("Role")["Arn"]
+        assert bsr_arn == p.batch_service_role
 
-#         response = ck.aws.clients["iam"].get_role(RoleName=ecs_instance_role_name)
-#         ecs_arn = response.get("Role")["Arn"]
-#         assert ecs_arn == p.ecs_instance_role
+        response = ck.aws.clients["iam"].get_role(RoleName=ecs_instance_role_name)
+        ecs_arn = response.get("Role")["Arn"]
+        assert ecs_arn == p.ecs_instance_role
 
-#         response = ck.aws.clients["iam"].get_role(RoleName=spot_fleet_role_name)
-#         sfr_arn = response.get("Role")["Arn"]
-#         assert sfr_arn == p.spot_fleet_role
+        response = ck.aws.clients["iam"].get_role(RoleName=spot_fleet_role_name)
+        sfr_arn = response.get("Role")["Arn"]
+        assert sfr_arn == p.spot_fleet_role
 
-#         response = ck.aws.clients["iam"].list_instance_profiles_for_role(
-#             RoleName=ecs_instance_role_name
-#         )
-#         ecs_profile_arn = response.get("InstanceProfiles")[0]["Arn"]
-#         assert ecs_profile_arn == p.ecs_instance_profile
+        response = ck.aws.clients["iam"].list_instance_profiles_for_role(
+            RoleName=ecs_instance_role_name
+        )
+        ecs_profile_arn = response.get("InstanceProfiles")[0]["Arn"]
+        assert ecs_profile_arn == p.ecs_instance_profile
 
-#         # Check for a default VPC
-#         response = ck.aws.clients["ec2"].describe_vpcs(
-#             Filters=[{"Name": "isDefault", "Values": ["true"]}]
-#         )
+        # Check for a default VPC
+        response = ck.aws.clients["ec2"].describe_vpcs(
+            Filters=[{"Name": "isDefault", "Values": ["true"]}]
+        )
 
-#         vpc_id = response.get("Vpcs")[0]["VpcId"]
-#         assert vpc_id == p.vpc
+        vpc_id = response.get("Vpcs")[0]["VpcId"]
+        assert vpc_id == p.vpc
 
-#         response = ck.aws.clients["ec2"].describe_subnets(
-#             Filters=[{"Name": "vpc-id", "Values": [vpc_id]}]
-#         )
+        response = ck.aws.clients["ec2"].describe_subnets(
+            Filters=[{"Name": "vpc-id", "Values": [vpc_id]}]
+        )
 
-#         subnet_ids = [d["SubnetId"] for d in response.get("Subnets")]
-#         assert set(subnet_ids) == set(p.subnets)
+        subnet_ids = [d["SubnetId"] for d in response.get("Subnets")]
+        assert set(subnet_ids) == set(p.subnets)
 
-#         response = ck.aws.clients["ec2"].describe_security_groups(
-#             Filters=[
-#                 {"Name": "vpc-id", "Values": [vpc_id]},
-#                 {"Name": "tag-key", "Values": ["Name"]},
-#                 {"Name": "tag-value", "Values": [p.name]},
-#             ]
-#         )
+        response = ck.aws.clients["ec2"].describe_security_groups(
+            Filters=[
+                {"Name": "vpc-id", "Values": [vpc_id]},
+                {"Name": "tag-key", "Values": ["Name"]},
+                {"Name": "tag-value", "Values": [p.name]},
+            ]
+        )
 
-#         sg_id = response.get("SecurityGroups")[0]["GroupId"]
-#         assert sg_id == p.security_group
+        sg_id = response.get("SecurityGroups")[0]["GroupId"]
+        assert sg_id == p.security_group
 
-#         # Delete the stack using boto3 to check for an error from Pars
-#         # on reinstantiation
-#         ck.aws.clients["cloudformation"].delete_stack(StackName=p.stack_id)
+        # Delete the stack using boto3 to check for an error from Pars
+        # on reinstantiation
+        ck.aws.clients["cloudformation"].delete_stack(StackName=p.stack_id)
 
-#         waiter = ck.aws.clients["cloudformation"].get_waiter("stack_delete_complete")
-#         waiter.wait(StackName=p.stack_id, WaiterConfig={"Delay": 10})
+        waiter = ck.aws.clients["cloudformation"].get_waiter("stack_delete_complete")
+        waiter.wait(StackName=p.stack_id, WaiterConfig={"Delay": 10})
 
-#         # Confirm error on retrieving the deleted stack
-#         with pytest.raises(ck.aws.ResourceDoesNotExistException) as e:
-#             ck.Pars(name=name)
+        # Confirm error on retrieving the deleted stack
+        with pytest.raises(ck.aws.ResourceDoesNotExistException) as e:
+            ck.Pars(name=name)
 
-#         assert e.value.resource_id == p.stack_id
+        assert e.value.resource_id == p.stack_id
 
-#         # Confirm that the previous error deleted
-#         # the stack from the config file
-#         config_file = ck.config.get_config_file()
-#         config = configparser.ConfigParser()
-#         with ck.config.rlock:
-#             config.read(config_file)
-#             assert p.pars_name not in config.sections()
-#     except ck.aws.CannotCreateResourceException:
-#         # Cannot create a default VPC in this account
-#         # Ignore test
-#         pass
+        # Confirm that the previous error deleted
+        # the stack from the config file
+        config_file = ck.config.get_config_file()
+        config = configparser.ConfigParser()
+        with ck.config.rlock:
+            config.read(config_file)
+            assert p.pars_name not in config.sections()
+    except ck.aws.CannotCreateResourceException:
+        # Cannot create a default VPC in this account
+        # Ignore test
+        pass
 
 
 @mock_all
@@ -211,21 +211,10 @@ def test_pars_with_new_vpc(cleanup):
     response = ck.aws.clients["cloudformation"].describe_stacks(
         StackName=name + "-pars"
     )
-    print(response)
     stack_id = response.get("Stacks")[0]["StackId"]
     assert stack_id == p.stack_id
 
     response = ck.aws.clients["iam"].list_roles()
-    for role in response["Roles"]:
-        print()
-        print(role)
-
-    print()
-    print(p.batch_service_role)
-    print()
-    print(p.ecs_instance_role)
-    print()
-    print(p.spot_fleet_role)
 
     response = ck.aws.clients["iam"].get_role(RoleName=name + "-batch-service-role")
     bsr_arn = response.get("Role")["Arn"]
