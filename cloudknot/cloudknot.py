@@ -1584,12 +1584,22 @@ class Knot(aws.NamedObject):
                 # Set the image id to use the ECS-optimized Amazon Linux
                 # 2 image
                 response = aws.clients['ec2'].describe_images(
-                    Filters=[{
-                        'Name': 'description',
-                        'Values': ['Amazon ECS-Optimized Amazon Linux 2 AMI']
-                    }]
+                    Owners=["amazon"]
+                )
+                ecs_optimized_images = sorted(
+                    [
+                        image for image in response["Images"]
+                        if image.get("Description") is not None
+                        and "amazon linux ami 2" in image["Description"].lower()
+                        and "x86_64 ecs hvm gp2" in image["Description"].lower()
+                        and "gpu" not in image["Name"].lower()
+                        and len(image["BlockDeviceMappings"]) == 1
+                    ],
+                    key=lambda image: image["CreationDate"],
+                    reverse=True
                 )
                 image_id = response["Images"][0]["ImageId"]
+
                 params.append({
                     "ParameterKey": "CeAmiId",
                     "ParameterValue": image_id
