@@ -1,14 +1,7 @@
 .PHONY: clean clean-test clean-pyc clean-build
 
 flake:
-	@if command -v flake8 > /dev/null; then \
-		echo "Running flake8"; \
-		flake8 flake8 `find . -name \*.py | grep -v setup.py | grep -v /doc/`; \
-	else \
-		echo "flake8 not found, please install it!"; \
-		exit 1; \
-	fi;
-	@echo "flake8 passed"
+	flake8
 
 test:
     # Unit testing using pytest
