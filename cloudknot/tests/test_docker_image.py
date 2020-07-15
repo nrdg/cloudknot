@@ -23,7 +23,7 @@ def composed(*decs):
     return deco
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope='module')
 def aws_credentials():
     """Mocked AWS Credentials for moto."""
     os.environ['AWS_ACCESS_KEY_ID'] = 'testing'

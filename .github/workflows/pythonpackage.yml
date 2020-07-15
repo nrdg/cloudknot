@@ -25,6 +25,7 @@ jobs:
     - name: Configure
       run: |
         mkdir ~/.aws
+        touch ~/.aws/credentials
         printf "[aws]\nconfigured = True\n" > ~/.aws/cloudknot
     - name: Lint with flake8
       run: |
