@@ -58,7 +58,7 @@ def aws_credentials():
 
 mock_all = composed(
     mock_ecr, mock_batch, mock_cloudformation, mock_ec2, mock_ecs,
-    mock_iam, mock_s3, aws_credentials
+    mock_iam, mock_s3
 )
 
 
@@ -82,7 +82,7 @@ def get_testing_name():
 
 @pytest.fixture(scope="module")
 @mock_all
-def bucket_cleanup():
+def bucket_cleanup(aws_credentials):
     config_file = ck.config.get_config_file()
     config = configparser.ConfigParser()
 

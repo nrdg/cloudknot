@@ -29,7 +29,7 @@ def aws_credentials():
 
 mock_all = composed(
     mock_ecr, mock_batch, mock_cloudformation, mock_ec2, mock_ecs,
-    mock_iam, mock_s3, aws_credentials
+    mock_iam, mock_s3
 )
 
 UNIT_TEST_PREFIX = "ck-unit-test"
@@ -44,10 +44,9 @@ def get_testing_name():
 
 @pytest.fixture(scope="module")
 @mock_all
-def cleanup():
+def cleanup(aws_credentials):
     """Use this fixture to delete all unit testing resources
     regardless of of the failure or success of the test"""
-    os.environ["CI"] = "true"
     yield None
     response = ck.aws.clients["cloudformation"].list_stacks(
         StackStatusFilter=[
