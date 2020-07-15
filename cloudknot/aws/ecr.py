@@ -96,8 +96,10 @@ class DockerRepo(NamedObject):
         except botocore.exceptions.ClientError as e:
             error_code = e.response["Error"]["Code"]
             message = e.response["Error"]["Message"]
-            if (error_code == "RepositoryNotFoundException"
-                or "RepositoryNotFoundException" in message):
+            if (
+                error_code == "RepositoryNotFoundException"
+                or "RepositoryNotFoundException" in message
+            ):
                 # If it doesn't exists already, then create it
                 response = clients["ecr"].create_repository(repositoryName=self.name)
 
@@ -136,8 +138,10 @@ class DockerRepo(NamedObject):
             except botocore.exceptions.ClientError as e:
                 error_code = e.response["Error"]["Code"]
                 message = e.response["Error"]["Message"]
-                if (error_code == "RepositoryNotFoundException"
-                    or "RepositoryNotFoundException" in message):
+                if (
+                    error_code == "RepositoryNotFoundException"
+                    or "RepositoryNotFoundException" in message
+                ):
                     pass
 
         # Remove from the config file

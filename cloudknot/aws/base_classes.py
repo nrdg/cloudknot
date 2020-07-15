@@ -190,7 +190,7 @@ def get_s3_params():
     response_policies = [
         response["Policies"] for response in response_iterator
     ]
-    policies = [l for sublist in response_policies for l in sublist]
+    policies = [lst for sublist in response_policies for lst in sublist]
 
     aws_policies = {
         d["PolicyName"]: d["Arn"] for d in policies
@@ -379,7 +379,7 @@ def update_s3_policy(policy, bucket):
     response_policies = [
         response["Policies"] for response in response_iterator
     ]
-    policies = [l for sublist in response_policies for l in sublist]
+    policies = [lst for sublist in response_policies for lst in sublist]
 
     aws_policies = {
         d["PolicyName"]: d["Arn"] for d in policies
@@ -406,7 +406,7 @@ def update_s3_policy(policy, bucket):
             response_versions = [
                 response["Versions"] for response in response_iterator
             ]
-            versions = [l for sublist in response_versions for l in sublist]
+            versions = [lst for sublist in response_versions for lst in sublist]
             versions = [
                 v for v in versions if not v["IsDefaultVersion"]
             ]

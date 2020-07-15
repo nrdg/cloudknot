@@ -290,7 +290,7 @@ class Pars(aws.NamedObject):
                     response["Policies"] for response in response_iterator
                 ]
                 policies_list = [
-                    l for sublist in response_policies for l in sublist
+                    lst for sublist in response_policies for lst in sublist
                 ]
 
                 aws_policies = {
@@ -371,7 +371,7 @@ class Pars(aws.NamedObject):
                     response["Subnets"] for response in response_iterator
                 ]
                 subnets_list = [
-                    l for sublist in response_subnets for l in sublist
+                    lst for sublist in response_subnets for lst in sublist
                 ]
                 subnet_ids = [d["SubnetId"] for d in subnets_list]
                 subnet_zones = [d["AvailabilityZone"] for d in subnets_list]
@@ -401,7 +401,7 @@ class Pars(aws.NamedObject):
                         response["Subnets"] for response in response_iterator
                     ]
                     subnets_list = [
-                        l for sublist in response_subnets for l in sublist
+                        lst for sublist in response_subnets for lst in sublist
                     ]
                     subnet_ids = [d["SubnetId"] for d in subnets_list]
 

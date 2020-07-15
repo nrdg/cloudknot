@@ -738,8 +738,8 @@ class DockerImage(aws.NamedObject):
                     )
                 )
 
-                for l in cli.push(repository=self.repo_uri, tag=im["tag"], stream=True):
-                    mod_logger.debug(l)
+                for line in cli.push(repository=self.repo_uri, tag=im["tag"], stream=True):
+                    mod_logger.debug(line)
 
             self._repo_uri = self._repo_uri + ":" + self.images[-1]["tag"]
 
