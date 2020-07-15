@@ -600,6 +600,16 @@ class DockerImage(aws.NamedObject):
                 get_region(),
             ]
 
+        if os.environ.get("CI") == "true":
+            # The CI environment variable is always set to "true" when
+            # running in a GitHub CI workflow. We use this test to
+            # see if we are running on a moto server, in which case
+            # we need to add the moto server's endpoint url
+            cmd.append("--endpoint-url")
+            cmd.append(aws.clients["ecr"].meta.endpoint_url)
+            print("Added --endpoint-url ",
+                  aws.clients["ecr"].meta.endpoint_url)
+
         # Refresh the aws ecr login credentials
         login_cmd = subprocess.check_output(cmd)
 

@@ -2,6 +2,7 @@ from __future__ import absolute_import, division, print_function
 
 import cloudknot as ck
 import configparser
+import os
 import os.path as op
 import pytest
 import uuid
@@ -37,6 +38,7 @@ def get_testing_name():
 def cleanup():
     """Use this fixture to delete all unit testing resources
     regardless of of the failure or success of the test"""
+    os.environ["CI"] = "true"
     yield None
     response = ck.aws.clients["cloudformation"].list_stacks(
         StackStatusFilter=[
