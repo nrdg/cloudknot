@@ -2,6 +2,7 @@ from __future__ import absolute_import, division, print_function
 
 import cloudknot as ck
 import configparser
+import os
 import os.path as op
 import pytest
 import uuid
@@ -36,6 +37,7 @@ def get_testing_name():
 @pytest.fixture(scope="module")
 @mock_all
 def bucket_cleanup():
+    os.environ["CI"] = "true"
     config_file = ck.config.get_config_file()
     config = configparser.ConfigParser()
 
