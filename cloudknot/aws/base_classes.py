@@ -98,24 +98,42 @@ def set_ecr_repo(repo):
         with open(config_file, "w") as f:
             config.write(f)
 
+        # Flake8 will see that repo_arn is set in the try/except clauses
+        # and claim that we are referencing it before assignment below
+        # so we predefine it here. Also, it should be predefined as a
+        # string to pass parameter validation by boto.
+        repo_arn = "test"
         try:
             # If repo exists, retrieve its info
             response = clients["ecr"].describe_repositories(
                 repositoryNames=[repo]
             )
-
-            clients["ecr"].tag_resource(
-                resourceArn=response["repositories"][0]["repositoryArn"],
-                tags=get_tags(repo)
-            )
+            repo_arn = response["repositories"][0]["repositoryArn"]
         except clients["ecr"].exceptions.RepositoryNotFoundException:
             # If it doesn't exists already, then create it
             response = clients["ecr"].create_repository(repositoryName=repo)
+            repo_arn = response["repository"]["repositoryArn"]
+        except botocore.exceptions.ClientError as e:
+            error_code = e.response["Error"]["Code"]
+            if error_code == "RepositoryNotFoundException":
+                # If it doesn't exist already, then create it
+                response = clients["ecr"].create_repository(repositoryName=repo)
+                repo_arn = response["repository"]["repositoryArn"]
 
+        try:
             clients["ecr"].tag_resource(
-                resourceArn=response["repository"]["repositoryArn"],
+                resourceArn=repo_arn,
                 tags=get_tags(repo)
             )
+        except NotImplementedError as e:
+            moto_msg = "The tag_resource action has not been implemented"
+            if moto_msg in e.args:
+                # This exception is here for compatibility with moto
+                # testing since the tag_resource action has not been
+                # implemented in moto. Simply move on.
+                pass
+            else:
+                raise e
 
 
 @registered
