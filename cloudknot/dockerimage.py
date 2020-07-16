@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function
 import configparser
 import docker
 import inspect
+import json
 import logging
 import os
 import re
@@ -169,6 +170,14 @@ class DockerImage(aws.NamedObject):
             uri = config.get(section_name, "repo-uri")
             self._repo_uri = uri if uri else None
 
+            if uri:
+                repo_info = self._get_repo_info_from_uri(repo_uri=uri)
+                self._repo_registry_id = repo_info["registry_id"]
+                self._repo_name = repo_info["repo_name"]
+            else:
+                self._repo_registry_id = None
+                self._repo_name = None
+
             # Set self.pip_imports and self.missing_imports
             self._set_imports()
         else:
@@ -304,6 +313,8 @@ class DockerImage(aws.NamedObject):
 
             self._images = []
             self._repo_uri = None
+            self._repo_registry_id = None
+            self._repo_name = None
 
             # Add to config file
             section_name = "docker-image " + self.name
@@ -386,6 +397,16 @@ class DockerImage(aws.NamedObject):
     def repo_uri(self):
         """Location of remote repository to which the image was pushed"""
         return self._repo_uri
+
+    @property
+    def repo_registry_id(self):
+        """Registry ID of remote repository to which the image was pushed"""
+        return self._repo_registry_id
+
+    @property
+    def repo_name(self):
+        """Name of remote repository to which the image was pushed"""
+        return self._repo_name
 
     def _write_script(self):
         """Write this instance's function to a script with a CLI.
@@ -542,6 +563,23 @@ class DockerImage(aws.NamedObject):
         # Reload to config file
         ckconfig.add_resource(section_name, "images", config_images_str)
 
+    def _get_repo_info_from_uri(self, repo_uri):
+        # Get all repositories
+        repositories = aws.clients["ecr"].describe_repositories(
+            maxResults=500
+        )["repositories"]
+
+        # Filter by matching on repo_uri
+        matching_repo = [
+            repo for repo in repositories
+            if repo["repositoryUri"] == repo_uri
+        ][0]
+
+        return {
+            "registry_id": matching_repo["registryId"],
+            "repo_name": matching_repo["repositoryName"],
+        }
+
     def push(self, repo=None, repo_uri=None):
         """Tag and push a DockerContainer image to a repository
 
@@ -578,6 +616,20 @@ class DockerImage(aws.NamedObject):
                 "first before calling `tag()`."
             )
 
+        if repo:
+            if not isinstance(repo, aws.DockerRepo):
+                raise CloudknotInputError("repo must be of type DockerRepo.")
+            self._repo_uri = repo.repo_uri
+            self._repo_registry_id = repo.repo_registry_id
+            self._repo_name = repo.name
+        else:
+            if not isinstance(repo_uri, six.string_types):
+                raise CloudknotInputError("`repo_uri` must be a string.")
+            self._repo_uri = repo_uri
+            repo_info = self._get_repo_info_from_uri(repo_uri=repo_uri)
+            self._repo_registry_id = repo_info["registry_id"]
+            self._repo_name = repo_info["repo_name"]
+
         fallback = "from_env"
         if get_profile(fallback=fallback) != fallback:
             cmd = [
@@ -600,70 +652,99 @@ class DockerImage(aws.NamedObject):
                 get_region(),
             ]
 
-        # Refresh the aws ecr login credentials
-        login_cmd = subprocess.check_output(cmd)
-
-        # Login
-        login_cmd_list = login_cmd.decode("ASCII").rstrip("\n").split(" ")
-        login_result = subprocess.run(
-            login_cmd_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
-
-        # If login failed, pass error to user
-        if login_result.returncode:  # pragma: nocover
-            raise CloudknotConfigurationError(
-                "Unable to login to AWS ECR using the command:\n"
-                "\t{login:s}\nReturned exit code = {code}\n"
-                "STDOUT: {out:s}\nSTDERR: {err:s}\n".format(
-                    login=login_cmd.decode(),
-                    code=login_result.returncode,
-                    out=login_result.stdout.decode(),
-                    err=login_result.stderr.decode()
+        # Determine if we're running in moto for CI
+        # by retrieving the account ID
+        user = aws.clients["iam"].get_user()["User"]
+        account_id = user["Arn"].split(":")[4]
+        if account_id == "123456789012":
+            # Then we are mocking using moto. Use the ecr.put_image()
+            # function instead of the Docker CLI to tag, push, etc.
+            # This is the manifest for one of the hello-world versions
+            manifest = {
+                "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                "size": 525,
+                "digest": "sha256:90659bf80b44ce6be8234e6ff90a1ac34acbeb826903b02cfa0da11c82cbc042",
+                "platform": {
+                    "architecture": "amd64",
+                    "os": "linux"
+                }
+            }
+            for im in self.images:
+                # Log tagging info
+                mod_logger.info(
+                    "Tagging image {name:s} with tag {tag:s}".format(
+                        name=im["name"], tag=im["tag"]
+                    )
                 )
-            )
-
-        if repo:
-            if not isinstance(repo, aws.DockerRepo):
-                raise CloudknotInputError("repo must be of type DockerRepo.")
-            self._repo_uri = repo.repo_uri
+                # Log push info
+                mod_logger.info(
+                    "Pushing image {name:s} with tag {tag:s}".format(
+                        name=im["name"], tag=im["tag"]
+                    )
+                )
+                aws.clients["ecr"].put_image(
+                    registryId=self._repo_registry_id,
+                    repositoryName=self._repo_name,
+                    imageManifest=json.dumps(manifest),
+                    imageTag=im["tag"]
+                )
         else:
-            if not isinstance(repo_uri, six.string_types):
-                raise CloudknotInputError("`repo_uri` must be a string.")
-            self._repo_uri = repo_uri
+            # Then we're actually doing this thing. Use the Docker CLI
+            # Refresh the aws ecr login credentials
+            login_cmd = subprocess.check_output(cmd)
 
-        # Use docker low-level APIClient for tagging
-        c = docker.from_env().api
-        # And the image client for pushing
-        cli = docker.from_env().images
-        for im in self.images:
-            # Log tagging info
-            mod_logger.info(
-                "Tagging image {name:s} with tag {tag:s}".format(
-                    name=im["name"], tag=im["tag"]
+            # Login
+            login_cmd_list = login_cmd.decode("ASCII").rstrip("\n").split(" ")
+            login_result = subprocess.run(
+                login_cmd_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+
+            # If login failed, pass error to user
+            if login_result.returncode:  # pragma: nocover
+                raise CloudknotConfigurationError(
+                    "Unable to login to AWS ECR using the command:\n"
+                    "\t{login:s}\nReturned exit code = {code}\n"
+                    "STDOUT: {out:s}\nSTDERR: {err:s}\n".format(
+                        login=login_cmd.decode(),
+                        code=login_result.returncode,
+                        out=login_result.stdout.decode(),
+                        err=login_result.stderr.decode()
+                    )
                 )
-            )
 
-            # Tag it with the most recently added image_name
-            c.tag(
-                image=im["name"] + ":" + im["tag"],
-                repository=self.repo_uri,
-                tag=im["tag"],
-            )
-
-            # Log push info
-            mod_logger.info(
-                "Pushing image {name:s} with tag {tag:s}".format(
-                    name=im["name"], tag=im["tag"]
+            # Use docker low-level APIClient for tagging
+            c = docker.from_env().api
+            # And the image client for pushing
+            cli = docker.from_env().images
+            for im in self.images:
+                # Log tagging info
+                mod_logger.info(
+                    "Tagging image {name:s} with tag {tag:s}".format(
+                        name=im["name"], tag=im["tag"]
+                    )
                 )
-            )
 
-            for l in cli.push(repository=self.repo_uri, tag=im["tag"], stream=True):
-                mod_logger.debug(l)
+                # Tag it with the most recently added image_name
+                c.tag(
+                    image=im["name"] + ":" + im["tag"],
+                    repository=self.repo_uri,
+                    tag=im["tag"],
+                )
 
-        self._repo_uri = self._repo_uri + ":" + self.images[-1]["tag"]
+                # Log push info
+                mod_logger.info(
+                    "Pushing image {name:s} with tag {tag:s}".format(
+                        name=im["name"], tag=im["tag"]
+                    )
+                )
 
-        section_name = "docker-image " + self.name
-        ckconfig.add_resource(section_name, "repo-uri", self.repo_uri)
+                for line in cli.push(repository=self.repo_uri, tag=im["tag"], stream=True):
+                    mod_logger.debug(line)
+
+            self._repo_uri = self._repo_uri + ":" + self.images[-1]["tag"]
+
+            section_name = "docker-image " + self.name
+            ckconfig.add_resource(section_name, "repo-uri", self.repo_uri)
 
     def clobber(self):
         """Delete all of the files associated with this instance
@@ -712,7 +793,13 @@ class DockerImage(aws.NamedObject):
                 local_images = [im for sublist in local_image_lol for im in sublist]
 
         if self.repo_uri:
-            cli.remove(image=self.repo_uri, force=True, noprune=False)
+            # Determine if we're running in moto for CI
+            # by retrieving the account ID
+            user = aws.clients["iam"].get_user()["User"]
+            account_id = user["Arn"].split(":")[4]
+            if account_id != "123456789012":
+                # Then we're actually doing this thing. Use the Docker CLI
+                cli.remove(image=self.repo_uri, force=True, noprune=False)
 
         # Remove from the config file
         config_file = get_config_file()

@@ -2,9 +2,35 @@ from __future__ import absolute_import, division, print_function
 
 import cloudknot as ck
 import configparser
+import os
 import os.path as op
 import pytest
 import uuid
+from moto import mock_batch, mock_cloudformation, mock_ec2, mock_ecr
+from moto import mock_ecs, mock_iam, mock_s3
+
+
+def composed(*decs):
+    def deco(f):
+        for dec in reversed(decs):
+            f = dec(f)
+        return f
+    return deco
+
+
+@pytest.fixture(scope='module')
+def aws_credentials():
+    """Mocked AWS Credentials for moto."""
+    os.environ['AWS_ACCESS_KEY_ID'] = 'testing'
+    os.environ['AWS_SECRET_ACCESS_KEY'] = 'testing'
+    os.environ['AWS_SECURITY_TOKEN'] = 'testing'
+    os.environ['AWS_SESSION_TOKEN'] = 'testing'
+
+
+mock_all = composed(
+    mock_ecr, mock_batch, mock_cloudformation, mock_ec2, mock_ecs,
+    mock_iam, mock_s3
+)
 
 UNIT_TEST_PREFIX = "ck-unit-test"
 data_path = op.join(ck.__path__[0], "data")
@@ -17,7 +43,8 @@ def get_testing_name():
 
 
 @pytest.fixture(scope="module")
-def cleanup():
+@mock_all
+def cleanup(aws_credentials):
     """Use this fixture to delete all unit testing resources
     regardless of of the failure or success of the test"""
     yield None
@@ -59,6 +86,7 @@ def cleanup():
             config.write(f)
 
 
+@mock_all
 def test_pars_errors(cleanup):
     name = get_testing_name()
 
@@ -92,6 +120,7 @@ def test_pars_errors(cleanup):
         ck.Pars(name=name, use_default_vpc=False, policies=["foo"])
 
 
+@mock_all
 def test_pars_with_default_vpc(cleanup):
     name = get_testing_name()
 
@@ -183,6 +212,7 @@ def test_pars_with_default_vpc(cleanup):
         pass
 
 
+@mock_all
 def test_pars_with_new_vpc(cleanup):
     name = get_testing_name()
 
@@ -191,8 +221,11 @@ def test_pars_with_new_vpc(cleanup):
     response = ck.aws.clients["cloudformation"].describe_stacks(
         StackName=name + "-pars"
     )
+
     stack_id = response.get("Stacks")[0]["StackId"]
     assert stack_id == p.stack_id
+
+    response = ck.aws.clients["iam"].list_roles()
 
     response = ck.aws.clients["iam"].get_role(RoleName=name + "-batch-service-role")
     bsr_arn = response.get("Role")["Arn"]

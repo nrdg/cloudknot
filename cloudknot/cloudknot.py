@@ -290,7 +290,7 @@ class Pars(aws.NamedObject):
                     response["Policies"] for response in response_iterator
                 ]
                 policies_list = [
-                    l for sublist in response_policies for l in sublist
+                    lst for sublist in response_policies for lst in sublist
                 ]
 
                 aws_policies = {
@@ -344,6 +344,20 @@ class Pars(aws.NamedObject):
                         )
                     else:  # pragma: nocover
                         raise e
+                except NotImplementedError as e:
+                    moto_msg = ("The create_default_vpc action has not "
+                                "been implemented")
+                    if moto_msg in e.args:
+                        # This exception is here for compatibility with
+                        # moto testing since the create_default_vpc
+                        # action has not been implemented in moto.
+                        # Pretend that the default vpc already exists
+                        response = aws.clients["ec2"].describe_vpcs(
+                            Filters=[{"Name": "isDefault", "Values": ["true"]}]
+                        )
+                        vpc_id = response.get("Vpcs")[0].get("VpcId")
+                    else:
+                        raise e
 
                 # Retrieve the subnets for the default VPC
                 paginator = aws.clients["ec2"].get_paginator("describe_subnets")
@@ -357,7 +371,7 @@ class Pars(aws.NamedObject):
                     response["Subnets"] for response in response_iterator
                 ]
                 subnets_list = [
-                    l for sublist in response_subnets for l in sublist
+                    lst for sublist in response_subnets for lst in sublist
                 ]
                 subnet_ids = [d["SubnetId"] for d in subnets_list]
                 subnet_zones = [d["AvailabilityZone"] for d in subnets_list]
@@ -387,7 +401,7 @@ class Pars(aws.NamedObject):
                         response["Subnets"] for response in response_iterator
                     ]
                     subnets_list = [
-                        l for sublist in response_subnets for l in sublist
+                        lst for sublist in response_subnets for lst in sublist
                     ]
                     subnet_ids = [d["SubnetId"] for d in subnets_list]
 

@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division, print_function
 
+import botocore
 import cloudknot.config
 import logging
 try:
@@ -92,6 +93,25 @@ class DockerRepo(NamedObject):
                     name=self.name, uri=repo_uri
                 )
             )
+        except botocore.exceptions.ClientError as e:
+            error_code = e.response["Error"]["Code"]
+            message = e.response["Error"]["Message"]
+            if (
+                error_code == "RepositoryNotFoundException"
+                or "RepositoryNotFoundException" in message
+            ):
+                # If it doesn't exists already, then create it
+                response = clients["ecr"].create_repository(repositoryName=self.name)
+
+                repo_name = response["repository"]["repositoryName"]
+                repo_uri = response["repository"]["repositoryUri"]
+                repo_registry_id = response["repository"]["registryId"]
+
+                mod_logger.info(
+                    "Created repository {name:s} at {uri:s}".format(
+                        name=self.name, uri=repo_uri
+                    )
+                )
 
         # Define and return namedtuple with repo info
         RepoInfo = namedtuple("RepoInfo", ["name", "uri", "registry_id"])
@@ -115,6 +135,14 @@ class DockerRepo(NamedObject):
             except clients["ecr"].exceptions.RepositoryNotFoundException:
                 # It doesn't exist anyway, so carry on
                 pass
+            except botocore.exceptions.ClientError as e:
+                error_code = e.response["Error"]["Code"]
+                message = e.response["Error"]["Message"]
+                if (
+                    error_code == "RepositoryNotFoundException"
+                    or "RepositoryNotFoundException" in message
+                ):
+                    pass
 
         # Remove from the config file
         cloudknot.config.remove_resource(self._section_name, self.name)
