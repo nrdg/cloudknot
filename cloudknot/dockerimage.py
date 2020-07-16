@@ -691,7 +691,7 @@ class DockerImage(aws.NamedObject):
         else:
             # Then we're actually doing this thing. Use the Docker CLI
             # Refresh the aws ecr login credentials
-            login_cmd = subprocess.check_output(cmd)
+            login_cmd = subprocess.check_output(cmd, shell=is_windows)
 
             # Login
             login_cmd_list = login_cmd.decode("ASCII").rstrip("\n").split(" ")
