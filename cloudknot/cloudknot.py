@@ -833,7 +833,7 @@ class Knot(aws.NamedObject):
 
         bid_percentage : int, optional
             Compute environment bid percentage if using spot instances
-            Default: None
+            Default: None, which means that on-demand instances are provisioned.
 
         job_queue_name : str, optional
             Name for this knot's AWS Batch job queue
