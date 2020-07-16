@@ -8,6 +8,7 @@ import logging
 import os
 import re
 import uuid
+
 try:
     from collections.abc import namedtuple
 except ImportError:
@@ -105,9 +106,7 @@ def set_ecr_repo(repo):
         repo_arn = "test"
         try:
             # If repo exists, retrieve its info
-            response = clients["ecr"].describe_repositories(
-                repositoryNames=[repo]
-            )
+            response = clients["ecr"].describe_repositories(repositoryNames=[repo])
             repo_arn = response["repositories"][0]["repositoryArn"]
         except clients["ecr"].exceptions.RepositoryNotFoundException:
             # If it doesn't exists already, then create it
@@ -121,10 +120,7 @@ def set_ecr_repo(repo):
                 repo_arn = response["repository"]["repositoryArn"]
 
         try:
-            clients["ecr"].tag_resource(
-                resourceArn=repo_arn,
-                tags=get_tags(repo)
-            )
+            clients["ecr"].tag_resource(resourceArn=repo_arn, tags=get_tags(repo))
         except NotImplementedError as e:
             moto_msg = "The tag_resource action has not been implemented"
             if moto_msg in e.args:
@@ -159,10 +155,7 @@ def get_s3_params():
     config_file = get_config_file()
     config = configparser.ConfigParser()
 
-    BucketInfo = namedtuple(
-        "BucketInfo",
-        ["bucket", "policy", "policy_arn", "sse"]
-    )
+    BucketInfo = namedtuple("BucketInfo", ["bucket", "policy", "policy_arn", "sse"])
 
     with rlock:
         config.read(config_file)
@@ -217,21 +210,14 @@ def get_s3_params():
 
     # Get all local policies with cloudknot prefix
     paginator = clients["iam"].get_paginator("list_policies")
-    response_iterator = paginator.paginate(
-        Scope="Local",
-        PathPrefix="/cloudknot/"
-    )
+    response_iterator = paginator.paginate(Scope="Local", PathPrefix="/cloudknot/")
 
     # response_iterator is a list of dicts. First convert to list of lists
     # and then flatten to a single list
-    response_policies = [
-        response["Policies"] for response in response_iterator
-    ]
+    response_policies = [response["Policies"] for response in response_iterator]
     policies = [lst for sublist in response_policies for lst in sublist]
 
-    aws_policies = {
-        d["PolicyName"]: d["Arn"] for d in policies
-    }
+    aws_policies = {d["PolicyName"]: d["Arn"] for d in policies}
 
     policy_arn = aws_policies[policy]
 
@@ -337,8 +323,7 @@ def set_s3_params(bucket, policy=None, sse=None):
 
         # Add the cloudknot tags to the bucket
         clients["s3"].put_bucket_tagging(
-            Bucket=bucket,
-            Tagging={'TagSet': get_tags(bucket)}
+            Bucket=bucket, Tagging={"TagSet": get_tags(bucket)}
         )
 
         if policy is None:
@@ -412,21 +397,14 @@ def update_s3_policy(policy, bucket):
 
     # Get all local policies with cloudknot prefix
     paginator = clients["iam"].get_paginator("list_policies")
-    response_iterator = paginator.paginate(
-        Scope="Local",
-        PathPrefix="/cloudknot/"
-    )
+    response_iterator = paginator.paginate(Scope="Local", PathPrefix="/cloudknot/")
 
     # response_iterator is a list of dicts. First convert to list of lists
     # and then flatten to a single list
-    response_policies = [
-        response["Policies"] for response in response_iterator
-    ]
+    response_policies = [response["Policies"] for response in response_iterator]
     policies = [lst for sublist in response_policies for lst in sublist]
 
-    aws_policies = {
-        d["PolicyName"]: d["Arn"] for d in policies
-    }
+    aws_policies = {d["PolicyName"]: d["Arn"] for d in policies}
 
     arn = aws_policies[policy]
 
@@ -446,13 +424,9 @@ def update_s3_policy(policy, bucket):
             # Get non-default versions
             # response_iterator is a list of dicts. First convert to list of
             # lists. Then flatten to a single list and filter
-            response_versions = [
-                response["Versions"] for response in response_iterator
-            ]
+            response_versions = [response["Versions"] for response in response_iterator]
             versions = [lst for sublist in response_versions for lst in sublist]
-            versions = [
-                v for v in versions if not v["IsDefaultVersion"]
-            ]
+            versions = [v for v in versions if not v["IsDefaultVersion"]]
 
             # Get the oldest version and delete it
             oldest = sorted(versions, key=lambda ver: ver["CreateDate"])[0]
