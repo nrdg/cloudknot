@@ -1598,7 +1598,7 @@ class Knot(aws.NamedObject):
                     key=lambda image: image["CreationDate"],
                     reverse=True
                 )
-                image_id = response["Images"][0]["ImageId"]
+                image_id = ecs_optimized_images[0]["ImageId"]
 
                 params.append({
                     "ParameterKey": "CeAmiId",
