@@ -171,6 +171,7 @@ def pars(bucket_cleanup):
 
 @mock_all
 def test_get_region(bucket_cleanup):
+    ck.refresh_clients()
     # Save environment variables for restoration later
     try:
         old_region_env = os.environ["AWS_DEFAULT_REGION"]
@@ -288,6 +289,7 @@ def test_get_region(bucket_cleanup):
 
 @mock_all
 def test_set_region(bucket_cleanup):
+    ck.refresh_clients()
     with pytest.raises(ck.aws.CloudknotInputError):
         ck.set_region(region="not a valid region name")
 
