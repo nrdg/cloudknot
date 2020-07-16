@@ -78,10 +78,20 @@ class DockerRepo(NamedObject):
             repo_uri = response["repositories"][0]["repositoryUri"]
             repo_registry_id = response["repositories"][0]["registryId"]
 
-            clients["ecr"].tag_resource(
-                resourceArn=response["repositories"][0]["repositoryArn"],
-                tags=get_tags(self.name)
-            )
+            try:
+                clients["ecr"].tag_resource(
+                    resourceArn=response["repositories"][0]["repositoryArn"],
+                    tags=get_tags(self.name)
+                )
+            except NotImplementedError as e:
+                moto_msg = "The tag_resource action has not been implemented"
+                if moto_msg in e.args:
+                    # This exception is here for compatibility with moto
+                    # testing since the tag_resource action has not been
+                    # implemented in moto. Simply move on.
+                    pass
+                else:
+                    raise e
 
             mod_logger.info(
                 "Repository {name:s} already exists at "

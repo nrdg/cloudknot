@@ -318,7 +318,7 @@ def set_s3_params(bucket, policy=None, sse=None):
                 raise e
 
         # Add the cloudknot tags to the bucket
-        clients.put_bucket_tagging(
+        clients["s3"].put_bucket_tagging(
             Bucket=bucket,
             Tagging={'TagSet': get_tags(bucket)}
         )
