@@ -27,6 +27,15 @@ mod_logger = logging.getLogger(__name__)
 
 
 @registered
+def get_tags(name):
+    return [
+        {"Key": "Name", "Value": name},
+        {"Key": "Owner", "Value": get_user()},
+        {"Key": "Environment", "Value": "cloudknot"},
+    ]
+
+
+@registered
 def get_ecr_repo():
     """Get the cloudknot ECR repository
 
@@ -89,17 +98,42 @@ def set_ecr_repo(repo):
         with open(config_file, "w") as f:
             config.write(f)
 
+        # Flake8 will see that repo_arn is set in the try/except clauses
+        # and claim that we are referencing it before assignment below
+        # so we predefine it here. Also, it should be predefined as a
+        # string to pass parameter validation by boto.
+        repo_arn = "test"
         try:
             # If repo exists, retrieve its info
-            clients["ecr"].describe_repositories(repositoryNames=[repo])
+            response = clients["ecr"].describe_repositories(
+                repositoryNames=[repo]
+            )
+            repo_arn = response["repositories"][0]["repositoryArn"]
         except clients["ecr"].exceptions.RepositoryNotFoundException:
             # If it doesn't exists already, then create it
-            clients["ecr"].create_repository(repositoryName=repo)
+            response = clients["ecr"].create_repository(repositoryName=repo)
+            repo_arn = response["repository"]["repositoryArn"]
         except botocore.exceptions.ClientError as e:
             error_code = e.response["Error"]["Code"]
             if error_code == "RepositoryNotFoundException":
-                # If it doesn't exists already, then create it
-                clients["ecr"].create_repository(repositoryName=repo)
+                # If it doesn't exist already, then create it
+                response = clients["ecr"].create_repository(repositoryName=repo)
+                repo_arn = response["repository"]["repositoryArn"]
+
+        try:
+            clients["ecr"].tag_resource(
+                resourceArn=repo_arn,
+                tags=get_tags(repo)
+            )
+        except NotImplementedError as e:
+            moto_msg = "The tag_resource action has not been implemented"
+            if moto_msg in e.args:
+                # This exception is here for compatibility with moto
+                # testing since the tag_resource action has not been
+                # implemented in moto. Simply move on.
+                pass
+            else:
+                raise e
 
 
 @registered
@@ -125,7 +159,10 @@ def get_s3_params():
     config_file = get_config_file()
     config = configparser.ConfigParser()
 
-    BucketInfo = namedtuple("BucketInfo", ["bucket", "policy", "policy_arn", "sse"])
+    BucketInfo = namedtuple(
+        "BucketInfo",
+        ["bucket", "policy", "policy_arn", "sse"]
+    )
 
     with rlock:
         config.read(config_file)
@@ -297,6 +334,12 @@ def set_s3_params(bucket, policy=None, sse=None):
             else:
                 # Pass exception to user
                 raise e
+
+        # Add the cloudknot tags to the bucket
+        clients["s3"].put_bucket_tagging(
+            Bucket=bucket,
+            Tagging={'TagSet': get_tags(bucket)}
+        )
 
         if policy is None:
             policy = "cloudknot-bucket-access-" + str(uuid.uuid4())

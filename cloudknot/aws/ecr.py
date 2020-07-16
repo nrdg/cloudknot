@@ -8,7 +8,7 @@ try:
 except ImportError:
     from collections import namedtuple
 
-from .base_classes import NamedObject, clients, get_ecr_repo
+from .base_classes import NamedObject, clients, get_ecr_repo, get_tags
 
 __all__ = []
 
@@ -68,31 +68,33 @@ class DockerRepo(NamedObject):
         RepoInfo : namedtuple
             a namedtuple with fields name, uri, and registry_id
         """
+        # Flake8 will see that repo_arn is set in the try/except clauses
+        # and claim that we are referencing it before assignment below
+        # so we predefine it here. Also, it should be predefined as a
+        # string to pass parameter validation by boto.
+        repo_arn = "test"
         try:
             # If repo exists, retrieve its info
-            response = clients["ecr"].describe_repositories(repositoryNames=[self.name])
+            response = clients["ecr"].describe_repositories(
+                repositoryNames=[self.name]
+            )
 
+            repo_arn = response["repositories"][0]["repositoryArn"]
             repo_name = response["repositories"][0]["repositoryName"]
             repo_uri = response["repositories"][0]["repositoryUri"]
             repo_registry_id = response["repositories"][0]["registryId"]
-
-            mod_logger.info(
-                "Repository {name:s} already exists at "
-                "{uri:s}".format(name=self.name, uri=repo_uri)
-            )
+            repo_created = False
         except clients["ecr"].exceptions.RepositoryNotFoundException:
             # If it doesn't exists already, then create it
-            response = clients["ecr"].create_repository(repositoryName=self.name)
+            response = clients["ecr"].create_repository(
+                repositoryName=self.name
+            )
 
+            repo_arn = response["repository"]["repositoryArn"]
             repo_name = response["repository"]["repositoryName"]
             repo_uri = response["repository"]["repositoryUri"]
             repo_registry_id = response["repository"]["registryId"]
-
-            mod_logger.info(
-                "Created repository {name:s} at {uri:s}".format(
-                    name=self.name, uri=repo_uri
-                )
-            )
+            repo_created = True
         except botocore.exceptions.ClientError as e:
             error_code = e.response["Error"]["Code"]
             message = e.response["Error"]["Message"]
@@ -103,15 +105,38 @@ class DockerRepo(NamedObject):
                 # If it doesn't exists already, then create it
                 response = clients["ecr"].create_repository(repositoryName=self.name)
 
+                repo_arn = response["repository"]["repositoryArn"]
                 repo_name = response["repository"]["repositoryName"]
                 repo_uri = response["repository"]["repositoryUri"]
                 repo_registry_id = response["repository"]["registryId"]
+                repo_created = True
 
-                mod_logger.info(
-                    "Created repository {name:s} at {uri:s}".format(
-                        name=self.name, uri=repo_uri
-                    )
+        if repo_created:
+            mod_logger.info(
+                "Created repository {name:s} at {uri:s}".format(
+                    name=self.name, uri=repo_uri
                 )
+            )
+        else:
+            mod_logger.info(
+                "Repository {name:s} already exists at "
+                "{uri:s}".format(name=self.name, uri=repo_uri)
+            )
+
+        try:
+            clients["ecr"].tag_resource(
+                resourceArn=repo_arn,
+                tags=get_tags(self.name)
+            )
+        except NotImplementedError as e:
+            moto_msg = "The tag_resource action has not been implemented"
+            if moto_msg in e.args:
+                # This exception is here for compatibility with moto
+                # testing since the tag_resource action has not been
+                # implemented in moto. Simply move on.
+                pass
+            else:
+                raise e
 
         # Define and return namedtuple with repo info
         RepoInfo = namedtuple("RepoInfo", ["name", "uri", "registry_id"])

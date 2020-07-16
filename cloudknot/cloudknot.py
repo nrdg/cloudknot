@@ -440,11 +440,7 @@ class Pars(aws.NamedObject):
                         },
                     ],
                     Capabilities=["CAPABILITY_NAMED_IAM"],
-                    Tags=[
-                        {"Key": "Name", "Value": self.name},
-                        {"Key": "Owner", "Value": aws.get_user()},
-                        {"Key": "Environment", "Value": "cloudknot"},
-                    ],
+                    Tags=aws.get_tags(self.name),
                 )
 
                 self._stack_id = response["StackId"]
@@ -552,11 +548,7 @@ class Pars(aws.NamedObject):
                         },
                     ],
                     Capabilities=["CAPABILITY_NAMED_IAM"],
-                    Tags=[
-                        {"Key": "Name", "Value": self.name},
-                        {"Key": "Owner", "Value": aws.get_user()},
-                        {"Key": "Environment", "Value": "cloudknot"},
-                    ],
+                    Tags=aws.get_tags(self.name),
                 )
 
                 self._stack_id = response["StackId"]
@@ -1526,6 +1518,9 @@ class Knot(aws.NamedObject):
                 {"ParameterKey": "CeName", "ParameterValue": compute_environment_name},
                 {"ParameterKey": "CeResourceType", "ParameterValue": resource_type},
                 {"ParameterKey": "CeMinvCpus", "ParameterValue": str(min_vcpus)},
+                {"ParameterKey": "CeTagNameValue", "ParameterValue": self.name},
+                {"ParameterKey": "CeTagOwnerValue", "ParameterValue": aws.get_user()},
+                {"ParameterKey": "CeTagEnvironmentValue", "ParameterValue": "cloudknot"},
                 {
                     "ParameterKey": "CeDesiredvCpus",
                     "ParameterValue": str(desired_vcpus),
@@ -1567,11 +1562,7 @@ class Knot(aws.NamedObject):
                 TemplateBody=template_body,
                 Parameters=params,
                 Capabilities=["CAPABILITY_NAMED_IAM"],
-                Tags=[
-                    {"Key": "Name", "Value": self.name},
-                    {"Key": "Owner", "Value": aws.get_user()},
-                    {"Key": "Environment", "Value": "cloudknot"},
-                ],
+                Tags=aws.get_tags(self.name),
             )
 
             self._stack_id = response["StackId"]
