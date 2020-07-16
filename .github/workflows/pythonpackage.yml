@@ -31,14 +31,12 @@ jobs:
       run: |
         pip install flake8
         flake8
-        # stop the build if there are Python syntax errors or undefined names
-        # flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        # flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: testing
+        aws-secret-access-key: testing
+        aws-region: us-east-1
     - name: Test
       run: |
-        export AWS_SECRET_ACCESS_KEY=testing
-        export AWS_ACCESS_KEY_ID=testing
-        export AWS_SECURITY_TOKEN=testing
-        export AWS_SESSION_TOKEN=testing
         make test
