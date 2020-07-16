@@ -736,6 +736,7 @@ class Knot(aws.NamedObject):
         min_vcpus=None,
         max_vcpus=None,
         desired_vcpus=None,
+        volume_size=None,
         image_id=None,
         ec2_key_pair=None,
         bid_percentage=None,
@@ -845,6 +846,17 @@ class Knot(aws.NamedObject):
             compute environment
             Default: 8
 
+        volume_size : int, optional
+            the size (in GiB) of the Amazon EBS volumes used for
+            instances launched by AWS Batch. If not provided, cloudknot
+            will use the default Amazon ECS-optimized AMI version based
+            on Amazon Linux 1, which has an 8-GiB root volume and an
+            additional 22-GiB volume used for the Docker image. If
+            provided, cloudknot will use the ECS-optimized AMI based on
+            Amazon Linux 2 and increase the attached volume size to the
+            value of `volume_size`. If this parameter is provided, you
+            may not specify the `image_id`.
+
         image_id : string or None, optional
             optional AMI id used for instances launched in this compute
             environment
@@ -909,6 +921,7 @@ class Knot(aws.NamedObject):
                     min_vcpus,
                     max_vcpus,
                     desired_vcpus,
+                    volume_size,
                     image_id,
                     ec2_key_pair,
                     bid_percentage,
@@ -1179,6 +1192,11 @@ class Knot(aws.NamedObject):
             max_vcpus = int(max_vcpus) if max_vcpus is not None else 256
             if max_vcpus < 0:
                 raise aws.CloudknotInputError("max_vcpus must be non-negative")
+
+            if volume_size is not None and image_id is not None:
+                raise aws.CloudknotInputError(
+                    "If you provide volume_size, you cannot specify the image_id"
+                )
 
             # Default instance type is 'optimal'
             instance_types = instance_types if instance_types else ["optimal"]
@@ -1568,11 +1586,55 @@ class Knot(aws.NamedObject):
                     {"ParameterKey": "CeEc2KeyPair", "ParameterValue": ec2_key_pair}
                 )
 
-            template_path = os.path.abspath(
-                os.path.join(
-                    os.path.dirname(__file__), "templates", "batch-environment.template"
+            if volume_size is not None:
+                params.append({
+                    "ParameterKey": "LtVolumeSize",
+                    "ParameterValue": volume_size
+                })
+                params.append({
+                    "ParameterKey": "LtName",
+                    "ParameterValue": name + "-cloudknot-launch-template"
+                })
+
+                # Set the image id to use the ECS-optimized Amazon Linux
+                # 2 image
+                response = aws.clients['ec2'].describe_images(
+                    Owners=["amazon"]
                 )
-            )
+                ecs_optimized_images = sorted(
+                    [
+                        image for image in response["Images"]
+                        if image.get("Description") is not None
+                        and "amazon linux ami 2" in image["Description"].lower()
+                        and "x86_64 ecs hvm gp2" in image["Description"].lower()
+                        and "gpu" not in image["Name"].lower()
+                        and len(image["BlockDeviceMappings"]) == 1
+                    ],
+                    key=lambda image: image["CreationDate"],
+                    reverse=True
+                )
+                image_id = ecs_optimized_images[0]["ImageId"]
+
+                params.append({
+                    "ParameterKey": "CeAmiId",
+                    "ParameterValue": image_id
+                })
+
+                template_path = os.path.abspath(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        "templates",
+                        "batch-environment-increase-ebs-volume.template"
+                    )
+                )
+            else:
+                template_path = os.path.abspath(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        "templates",
+                        "batch-environment.template"
+                    )
+                )
 
             with open(template_path, "r") as fp:
                 template_body = fp.read()
