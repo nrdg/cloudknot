@@ -31,12 +31,6 @@ jobs:
       run: |
         pip install flake8
         flake8
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: testing
-        aws-secret-access-key: testing
-        aws-region: us-east-1
     - name: Test
       run: |
         make test
