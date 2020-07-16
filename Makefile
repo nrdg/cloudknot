@@ -1,7 +1,9 @@
-.PHONY: clean clean-test clean-pyc clean-build
+.PHONY: clean clean-test clean-pyc clean-build flake lint
 
 flake:
 	flake8
+
+lint: flake
 
 test:
     # Unit testing using pytest
