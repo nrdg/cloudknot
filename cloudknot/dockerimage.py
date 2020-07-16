@@ -36,6 +36,7 @@ def registered(fn):
 mod_logger = logging.getLogger(__name__)
 is_windows = (os.name == 'nt')
 
+
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 @registered
 class DockerImage(aws.NamedObject):

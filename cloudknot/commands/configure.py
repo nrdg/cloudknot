@@ -22,6 +22,7 @@ from ..config import add_resource
 module_logger = logging.getLogger(__name__)
 is_windows = (os.name == 'nt')
 
+
 def pull_and_push_base_images(region, profile, ecr_repo):
     # Use docker low-level APIClient for tagging
     c = docker.from_env().api
