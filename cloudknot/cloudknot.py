@@ -733,7 +733,6 @@ class Knot(aws.NamedObject):
         retries=None,
         compute_environment_name=None,
         instance_types=None,
-        resource_type=None,
         min_vcpus=None,
         max_vcpus=None,
         desired_vcpus=None,
@@ -831,10 +830,6 @@ class Knot(aws.NamedObject):
             Compute environment instance types
             Default: ('optimal',)
 
-        resource_type : 'EC2' or 'SPOT'
-            Compute environment resource type, either "EC2" or "SPOT"
-            Default: 'EC2'
-
         min_vcpus : int, optional
             minimum number of virtual cpus for instances launched in this
             compute environment
@@ -862,7 +857,7 @@ class Knot(aws.NamedObject):
 
         bid_percentage : int, optional
             Compute environment bid percentage if using spot instances
-            Default: 50
+            Default: None, which means that on-demand instances are provisioned.
 
         job_queue_name : str, optional
             Name for this knot's AWS Batch job queue
@@ -911,7 +906,6 @@ class Knot(aws.NamedObject):
                     retries,
                     compute_environment_name,
                     instance_types,
-                    resource_type,
                     min_vcpus,
                     max_vcpus,
                     desired_vcpus,
@@ -1156,19 +1150,12 @@ class Knot(aws.NamedObject):
             except ValueError:
                 raise aws.CloudknotInputError("priority must be an integer")
 
-            # If resource type is 'SPOT', user must also specify
-            # a bid percentage and a spot fleet IAM role
-            if not bid_percentage and resource_type == "SPOT":
-                raise aws.CloudknotInputError(
-                    'if resource_type is "SPOT", bid_percentage ' "must be set."
-                )
-
-            # Validate resource type, default to 'EC2'
-            resource_type = resource_type if resource_type else "EC2"
-            if resource_type not in ("EC2", "SPOT"):
-                raise aws.CloudknotInputError(
-                    "resource_type must " 'be "EC2" or "SPOT"'
-                )
+            # Set resource type, default to 'EC2' unless bid_percentage
+            # is provided
+            if bid_percentage is not None:
+                resource_type = "SPOT"
+            else:
+                resource_type = "EC2"
 
             min_vcpus = int(min_vcpus) if min_vcpus else 0
             if min_vcpus < 0:

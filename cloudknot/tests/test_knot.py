@@ -324,10 +324,6 @@ def test_knot_errors(cleanup_repos):
     with pytest.raises(ck.aws.CloudknotInputError):
         ck.Knot(priority=-42)
 
-    # Assert ck.aws.CloudknotInputError on SPOT without bid percentage
-    with pytest.raises(ck.aws.CloudknotInputError):
-        ck.Knot(resource_type="SPOT")
-
     # Assert ck.aws.CloudknotInputError on invalid min_vcpus
     with pytest.raises(ck.aws.CloudknotInputError):
         ck.Knot(min_vcpus=-1)

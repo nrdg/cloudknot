@@ -20,7 +20,7 @@ Frequently Asked Questions
       the lowest required memory to `Knot`'s `memory` input argument.
 
       Another way to lower your expenses is to use spot instances by specifying `Knot`'s
-      `resource_type="SPOT"`. Then you can choose the cheapest region
+      `bid_percentage=bid`, where `bid` is an integer between 0 and 100. Then you can choose the cheapest region
       (see :ref:`region-shopping-label`).
 
 .. container:: toggle
