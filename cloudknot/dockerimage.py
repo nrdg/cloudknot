@@ -34,7 +34,7 @@ def registered(fn):
 
 
 mod_logger = logging.getLogger(__name__)
-is_windows = (os.name == 'nt')
+is_windows = os.name == "nt"
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -566,14 +566,13 @@ class DockerImage(aws.NamedObject):
 
     def _get_repo_info_from_uri(self, repo_uri):
         # Get all repositories
-        repositories = aws.clients["ecr"].describe_repositories(
-            maxResults=500
-        )["repositories"]
+        repositories = aws.clients["ecr"].describe_repositories(maxResults=500)[
+            "repositories"
+        ]
 
         # Filter by matching on repo_uri
         matching_repo = [
-            repo for repo in repositories
-            if repo["repositoryUri"] == repo_uri
+            repo for repo in repositories if repo["repositoryUri"] == repo_uri
         ][0]
 
         return {
@@ -665,10 +664,7 @@ class DockerImage(aws.NamedObject):
                 "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
                 "size": 525,
                 "digest": "sha256:90659bf80b44ce6be8234e6ff90a1ac34acbeb826903b02cfa0da11c82cbc042",
-                "platform": {
-                    "architecture": "amd64",
-                    "os": "linux"
-                }
+                "platform": {"architecture": "amd64", "os": "linux"},
             }
             for im in self.images:
                 # Log tagging info
@@ -687,7 +683,7 @@ class DockerImage(aws.NamedObject):
                     registryId=self._repo_registry_id,
                     repositoryName=self._repo_name,
                     imageManifest=json.dumps(manifest),
-                    imageTag=im["tag"]
+                    imageTag=im["tag"],
                 )
         else:
             # Then we're actually doing this thing. Use the Docker CLI
@@ -709,7 +705,7 @@ class DockerImage(aws.NamedObject):
                         login=login_cmd.decode(),
                         code=login_result.returncode,
                         out=login_result.stdout.decode(),
-                        err=login_result.stderr.decode()
+                        err=login_result.stderr.decode(),
                     )
                 )
 
@@ -739,7 +735,9 @@ class DockerImage(aws.NamedObject):
                     )
                 )
 
-                for line in cli.push(repository=self.repo_uri, tag=im["tag"], stream=True):
+                for line in cli.push(
+                    repository=self.repo_uri, tag=im["tag"], stream=True
+                ):
                     mod_logger.debug(line)
 
             self._repo_uri = self._repo_uri + ":" + self.images[-1]["tag"]

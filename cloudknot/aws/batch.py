@@ -7,6 +7,7 @@ import logging
 import pickle
 import six
 import time
+
 try:
     from collections.abc import namedtuple
 except ImportError:

@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function
 import botocore
 import cloudknot.config
 import logging
+
 try:
     from collections.abc import namedtuple
 except ImportError:
@@ -75,9 +76,7 @@ class DockerRepo(NamedObject):
         repo_arn = "test"
         try:
             # If repo exists, retrieve its info
-            response = clients["ecr"].describe_repositories(
-                repositoryNames=[self.name]
-            )
+            response = clients["ecr"].describe_repositories(repositoryNames=[self.name])
 
             repo_arn = response["repositories"][0]["repositoryArn"]
             repo_name = response["repositories"][0]["repositoryName"]
@@ -86,9 +85,7 @@ class DockerRepo(NamedObject):
             repo_created = False
         except clients["ecr"].exceptions.RepositoryNotFoundException:
             # If it doesn't exists already, then create it
-            response = clients["ecr"].create_repository(
-                repositoryName=self.name
-            )
+            response = clients["ecr"].create_repository(repositoryName=self.name)
 
             repo_arn = response["repository"]["repositoryArn"]
             repo_name = response["repository"]["repositoryName"]
@@ -124,10 +121,7 @@ class DockerRepo(NamedObject):
             )
 
         try:
-            clients["ecr"].tag_resource(
-                resourceArn=repo_arn,
-                tags=get_tags(self.name)
-            )
+            clients["ecr"].tag_resource(resourceArn=repo_arn, tags=get_tags(self.name))
         except NotImplementedError as e:
             moto_msg = "The tag_resource action has not been implemented"
             if moto_msg in e.args:

@@ -15,21 +15,21 @@ def composed(*decs):
         for dec in reversed(decs):
             f = dec(f)
         return f
+
     return deco
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def aws_credentials():
     """Mocked AWS Credentials for moto."""
-    os.environ['AWS_ACCESS_KEY_ID'] = 'testing'
-    os.environ['AWS_SECRET_ACCESS_KEY'] = 'testing'
-    os.environ['AWS_SECURITY_TOKEN'] = 'testing'
-    os.environ['AWS_SESSION_TOKEN'] = 'testing'
+    os.environ["AWS_ACCESS_KEY_ID"] = "testing"
+    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
+    os.environ["AWS_SECURITY_TOKEN"] = "testing"
+    os.environ["AWS_SESSION_TOKEN"] = "testing"
 
 
 mock_all = composed(
-    mock_ecr, mock_batch, mock_cloudformation, mock_ec2, mock_ecs,
-    mock_iam, mock_s3
+    mock_ecr, mock_batch, mock_cloudformation, mock_ec2, mock_ecs, mock_iam, mock_s3
 )
 
 UNIT_TEST_PREFIX = "ck-unit-test"
