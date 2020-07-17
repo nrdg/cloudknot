@@ -291,7 +291,7 @@ class DockerImage(aws.NamedObject):
                     "github_installs must be a string " "or a sequence of strings."
                 )
 
-            pattern = r"(https|git)(://github.com/).*/.*\.git($|@.*$)"
+            pattern = r"(https|git)(://github.com/).*/.*\.git($|@.*$|#egg=.*$)"
             for install in self._github_installs:
                 match_obj = re.match(pattern, install)
                 if match_obj is None:
@@ -300,8 +300,12 @@ class DockerImage(aws.NamedObject):
                         "correctly. It should look something like "
                         "git://github.com/user/repo.git, "
                         "git://github.com/user/repo.git@branch, "
-                        "https://github.com/user/repo.git, or "
-                        "https://github.com/user/repo.git@branch, "
+                        "git://github.com/user/repo.git#egg=project[extra], "
+                        "https://github.com/user/repo.git, "
+                        "https://github.com/user/repo.git@branch, or"
+                        "https://github.com/user/repo.git#egg=project[extra]. "
+                        "See https://pip.pypa.io/en/stable/reference/pip_install/#git "
+                        "for more info."
                     )
 
             # Set self.pip_imports and self.missing_imports
