@@ -1,0 +1,4 @@
+# Migrate code style to Black
+# Use this file with
+# `git blame [file] --ignore-revs-file .git-blame-ignore-revs`
+b69c8f70f5a90f858a7a37a64fb7aa8f3361bdf8
