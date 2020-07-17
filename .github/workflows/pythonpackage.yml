@@ -31,6 +31,7 @@ jobs:
       run: |
         pip install flake8 black
         flake8
+        black --diff --verbose .
         black --check --verbose .
     - name: Test
       run: |
