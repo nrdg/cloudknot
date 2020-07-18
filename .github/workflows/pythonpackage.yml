@@ -29,8 +29,9 @@ jobs:
         printf "[aws]\nconfigured = True\n" > ~/.aws/cloudknot
     - name: Lint with flake8
       run: |
-        pip install flake8
+        pip install flake8 black
         flake8
+        black --check .
     - name: Test
       run: |
         make test

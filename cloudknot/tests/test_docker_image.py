@@ -20,21 +20,21 @@ def composed(*decs):
         for dec in reversed(decs):
             f = dec(f)
         return f
+
     return deco
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def aws_credentials():
     """Mocked AWS Credentials for moto."""
-    os.environ['AWS_ACCESS_KEY_ID'] = 'testing'
-    os.environ['AWS_SECRET_ACCESS_KEY'] = 'testing'
-    os.environ['AWS_SECURITY_TOKEN'] = 'testing'
-    os.environ['AWS_SESSION_TOKEN'] = 'testing'
+    os.environ["AWS_ACCESS_KEY_ID"] = "testing"
+    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
+    os.environ["AWS_SECURITY_TOKEN"] = "testing"
+    os.environ["AWS_SESSION_TOKEN"] = "testing"
 
 
 mock_all = composed(
-    mock_ecr, mock_batch, mock_cloudformation, mock_ec2, mock_ecs,
-    mock_iam, mock_s3
+    mock_ecr, mock_batch, mock_cloudformation, mock_ec2, mock_ecs, mock_iam, mock_s3
 )
 
 UNIT_TEST_PREFIX = "ck-unit-test"
@@ -73,21 +73,14 @@ def bucket_cleanup(aws_credentials):
     if (old_s3_params is None) or bucket_policy == old_s3_params.policy:
         iam = ck.aws.clients["iam"]
         paginator = iam.get_paginator("list_policies")
-        response_iterator = paginator.paginate(
-            Scope="Local",
-            PathPrefix="/cloudknot/"
-        )
+        response_iterator = paginator.paginate(Scope="Local", PathPrefix="/cloudknot/")
 
         # response_iterator is a list of dicts. First convert to list of lists
         # and then flatten to a single list
-        response_policies = [
-            response["Policies"] for response in response_iterator
-        ]
+        response_policies = [response["Policies"] for response in response_iterator]
         policies = [lst for sublist in response_policies for lst in sublist]
 
-        aws_policies = {
-            d["PolicyName"]: d["Arn"] for d in policies
-        }
+        aws_policies = {d["PolicyName"]: d["Arn"] for d in policies}
 
         arn = aws_policies[bucket_policy]
 
@@ -97,13 +90,9 @@ def bucket_cleanup(aws_credentials):
         # Get non-default versions
         # response_iterator is a list of dicts. First convert to list of
         # lists. Then flatten to a single list and filter
-        response_versions = [
-            response["Versions"] for response in response_iterator
-        ]
+        response_versions = [response["Versions"] for response in response_iterator]
         versions = [lst for sublist in response_versions for lst in sublist]
-        versions = [
-            v for v in versions if not v["IsDefaultVersion"]
-        ]
+        versions = [v for v in versions if not v["IsDefaultVersion"]]
 
         # Get the oldest versions and delete them
         for v in versions:

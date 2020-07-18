@@ -3,9 +3,31 @@
 Contributions are welcome, and they are greatly appreciated! Every little bit
 helps, and credit will always be given.
 
-You can contribute in many ways:
+## Installing a development version of cloudknot
+
+You can install a development version of cloudknot by cloning in the repository
+and then typing
+
+```bash
+pip install -e .[dev]
+```
+
+Activate the pre-commit formatting hook by typing
+
+```bash
+pre-commit install
+```
+
+Before committing your work, you can check for formatting issues or errors by typing
+
+```bash
+make flake
+make test
+```
 
 ## Types of Contributions
+
+You can contribute in many ways:
 
 ### Report Bugs
 

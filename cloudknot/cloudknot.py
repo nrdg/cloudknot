@@ -6,6 +6,7 @@ import ipaddress
 import logging
 import os
 import six
+
 try:
     from collections.abc import Iterable, namedtuple
 except ImportError:
@@ -147,21 +148,18 @@ class Pars(aws.NamedObject):
                 else:  # pragma: nocover
                     raise e
 
-            no_stack = (
-                len(response.get("Stacks")) == 0
-                or response.get("Stacks")[0][
-                    "StackStatus"
-                ] in [
-                    "CREATE_FAILED",
-                    "ROLLBACK_COMPLETE",
-                    "ROLLBACK_IN_PROGRESS",
-                    "ROLLBACK_FAILED",
-                    "DELETE_IN_PROGRESS",
-                    "DELETE_FAILED",
-                    "DELETE_COMPLETE",
-                    "UPDATE_ROLLBACK_FAILED",
-                ]
-            )
+            no_stack = len(response.get("Stacks")) == 0 or response.get("Stacks")[0][
+                "StackStatus"
+            ] in [
+                "CREATE_FAILED",
+                "ROLLBACK_COMPLETE",
+                "ROLLBACK_IN_PROGRESS",
+                "ROLLBACK_FAILED",
+                "DELETE_IN_PROGRESS",
+                "DELETE_FAILED",
+                "DELETE_COMPLETE",
+                "UPDATE_ROLLBACK_FAILED",
+            ]
 
             if no_stack:
                 # Remove this section from the config file
@@ -190,29 +188,32 @@ class Pars(aws.NamedObject):
             self._subnets = _stack_out("SubnetIds", outs).split(",")
             self._security_group = _stack_out("SecurityGroupId", outs)
 
-            vpc_response = aws.clients["ec2"].describe_vpcs(
-                VpcIds=[self._vpc]
-            )["Vpcs"][0]
+            vpc_response = aws.clients["ec2"].describe_vpcs(VpcIds=[self._vpc])["Vpcs"][
+                0
+            ]
             stack_instance_tenancy = vpc_response["InstanceTenancy"]
             stack_ipv4_cidr = vpc_response["CidrBlock"]
             ecs_response = aws.clients["iam"].list_attached_role_policies(
-                RoleName=self._ecs_instance_role.split('/')[-1]
+                RoleName=self._ecs_instance_role.split("/")[-1]
             )
-            stack_policies = set([
-                d["PolicyName"] for d in ecs_response["AttachedPolicies"]
-            ])
+            stack_policies = set(
+                [d["PolicyName"] for d in ecs_response["AttachedPolicies"]]
+            )
 
             # Pars exists, check that user did not provide any conflicting
             # resource names. This dict has values that are tuples, the first
             # value of which is the provided input parameter in __init__
             # and the second of which is the resource name in the AWS stack
             input_params = {
-                "batch_service_role_name": (batch_service_role_name,
-                                            self._batch_service_role),
-                "ecs_instance_role_name": (ecs_instance_role_name,
-                                           self._ecs_instance_role),
-                "spot_fleet_role_name": (spot_fleet_role_name,
-                                         self._spot_fleet_role),
+                "batch_service_role_name": (
+                    batch_service_role_name,
+                    self._batch_service_role,
+                ),
+                "ecs_instance_role_name": (
+                    ecs_instance_role_name,
+                    self._ecs_instance_role,
+                ),
+                "spot_fleet_role_name": (spot_fleet_role_name, self._spot_fleet_role),
                 "ipv4_cidr": (ipv4_cidr, stack_ipv4_cidr),
                 "instance_tenancy": (instance_tenancy, stack_instance_tenancy),
                 "policies": (set(policies), stack_policies),
@@ -228,9 +229,7 @@ class Pars(aws.NamedObject):
                     "config file {fn:s} but the ".format(fn=get_config_file())
                     + "AWS resources in that PARS stack conflict with some of "
                     "your input parameters. The conflicting parameters you "
-                    "provided were {l}".format(
-                        l=list(conflicting_params.keys())
-                    )
+                    "provided were {l}".format(l=list(conflicting_params.keys()))
                 )
 
             conf_bsr = config.get(self._pars_name, "batch-service-role")
@@ -325,9 +324,7 @@ class Pars(aws.NamedObject):
                     lst for sublist in response_policies for lst in sublist
                 ]
 
-                aws_policies = {
-                    d["PolicyName"]: d["Arn"] for d in policies_list
-                }
+                aws_policies = {d["PolicyName"]: d["Arn"] for d in policies_list}
 
                 # If input policies are not subset of aws_policies, throw error
                 if not (set(policy_names) < set(aws_policies.keys())):
@@ -377,8 +374,9 @@ class Pars(aws.NamedObject):
                     else:  # pragma: nocover
                         raise e
                 except NotImplementedError as e:
-                    moto_msg = ("The create_default_vpc action has not "
-                                "been implemented")
+                    moto_msg = (
+                        "The create_default_vpc action has not " "been implemented"
+                    )
                     if moto_msg in e.args:
                         # This exception is here for compatibility with
                         # moto testing since the create_default_vpc
@@ -402,15 +400,14 @@ class Pars(aws.NamedObject):
                 response_subnets = [
                     response["Subnets"] for response in response_iterator
                 ]
-                subnets_list = [
-                    lst for sublist in response_subnets for lst in sublist
-                ]
+                subnets_list = [lst for sublist in response_subnets for lst in sublist]
                 subnet_ids = [d["SubnetId"] for d in subnets_list]
                 subnet_zones = [d["AvailabilityZone"] for d in subnets_list]
 
                 response = aws.clients["ec2"].describe_availability_zones()
                 zones = [
-                    d["ZoneName"] for d in response.get("AvailabilityZones")
+                    d["ZoneName"]
+                    for d in response.get("AvailabilityZones")
                     if d["State"] == "available"
                 ]
 
@@ -419,9 +416,7 @@ class Pars(aws.NamedObject):
                 # the subnet list
                 if set(subnet_zones) < set(zones):
                     for z in set(zones) - set(subnet_zones):
-                        aws.clients["ec2"].create_default_subnet(
-                            AvailabilityZone=z
-                        )
+                        aws.clients["ec2"].create_default_subnet(AvailabilityZone=z)
 
                     response_iterator = paginator.paginate(
                         Filters=[{"Name": "vpc-id", "Values": [vpc_id]}]
@@ -506,7 +501,7 @@ class Pars(aws.NamedObject):
                             "network range."
                         )
                 else:
-                    ipv4_cidr = str(ipaddress.IPv4Network(u"172.31.0.0/16"))
+                    ipv4_cidr = str(ipaddress.IPv4Network("172.31.0.0/16"))
 
                 # Validate instance_tenancy input
                 if instance_tenancy:
@@ -882,8 +877,7 @@ class Knot(aws.NamedObject):
         # Validate name input
         if name is not None and not isinstance(name, six.string_types):
             raise aws.CloudknotInputError(
-                "Knot name must be a string. You passed a "
-                "{t!s}".format(t=type(name))
+                "Knot name must be a string. You passed a " "{t!s}".format(t=type(name))
             )
 
         if name is None:
@@ -1558,7 +1552,10 @@ class Knot(aws.NamedObject):
                 {"ParameterKey": "CeMinvCpus", "ParameterValue": str(min_vcpus)},
                 {"ParameterKey": "CeTagNameValue", "ParameterValue": self.name},
                 {"ParameterKey": "CeTagOwnerValue", "ParameterValue": aws.get_user()},
-                {"ParameterKey": "CeTagEnvironmentValue", "ParameterValue": "cloudknot"},
+                {
+                    "ParameterKey": "CeTagEnvironmentValue",
+                    "ParameterValue": "cloudknot",
+                },
                 {
                     "ParameterKey": "CeDesiredvCpus",
                     "ParameterValue": str(desired_vcpus),
@@ -1587,23 +1584,23 @@ class Knot(aws.NamedObject):
                 )
 
             if volume_size is not None:
-                params.append({
-                    "ParameterKey": "LtVolumeSize",
-                    "ParameterValue": volume_size
-                })
-                params.append({
-                    "ParameterKey": "LtName",
-                    "ParameterValue": name + "-cloudknot-launch-template"
-                })
+                params.append(
+                    {"ParameterKey": "LtVolumeSize", "ParameterValue": volume_size}
+                )
+                params.append(
+                    {
+                        "ParameterKey": "LtName",
+                        "ParameterValue": name + "-cloudknot-launch-template",
+                    }
+                )
 
                 # Set the image id to use the ECS-optimized Amazon Linux
                 # 2 image
-                response = aws.clients['ec2'].describe_images(
-                    Owners=["amazon"]
-                )
+                response = aws.clients["ec2"].describe_images(Owners=["amazon"])
                 ecs_optimized_images = sorted(
                     [
-                        image for image in response["Images"]
+                        image
+                        for image in response["Images"]
                         if image.get("Description") is not None
                         and "amazon linux ami 2" in image["Description"].lower()
                         and "x86_64 ecs hvm gp2" in image["Description"].lower()
@@ -1611,20 +1608,17 @@ class Knot(aws.NamedObject):
                         and len(image["BlockDeviceMappings"]) == 1
                     ],
                     key=lambda image: image["CreationDate"],
-                    reverse=True
+                    reverse=True,
                 )
                 image_id = ecs_optimized_images[0]["ImageId"]
 
-                params.append({
-                    "ParameterKey": "CeAmiId",
-                    "ParameterValue": image_id
-                })
+                params.append({"ParameterKey": "CeAmiId", "ParameterValue": image_id})
 
                 template_path = os.path.abspath(
                     os.path.join(
                         os.path.dirname(__file__),
                         "templates",
-                        "batch-environment-increase-ebs-volume.template"
+                        "batch-environment-increase-ebs-volume.template",
                     )
                 )
             else:
@@ -1632,7 +1626,7 @@ class Knot(aws.NamedObject):
                     os.path.join(
                         os.path.dirname(__file__),
                         "templates",
-                        "batch-environment.template"
+                        "batch-environment.template",
                     )
                 )
 
