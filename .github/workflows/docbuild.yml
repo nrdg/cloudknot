@@ -26,14 +26,16 @@ jobs:
       run: |
         cd doc
         make html
-    - name: Understand the file-system structure 1
-      run: |
-        ls /home/runner/work/cloudknot/
 
-    - name: Understand the file-system structure 2
-      run: |
-        ls /home/runner/work/cloudknot/cloudknot/doc/
-
-    - name: Understand the file-system structure 3
-      run: |
-        ls /home/runner/work/cloudknot/cloudknot/doc/_build
+    - name: Upload docs
+      uses: actions/upload-artifact@v1
+      with:
+        name: docs
+        path: /home/runner/work/cloudknot/cloudknot/doc/_build/html
+    - name: Publish docs to Github Pages
+      if: startsWith(github.event.ref, 'refs/tags')
+      uses: JamesIves/github-pages-deploy-action@releases/v3
+      with:
+        ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        BRANCH: gh-pages # The branch the action should deploy to.
+        FOLDER: /home/runner/work/cloudknot/cloudknot/doc/_build # The folder the action should deploy.
