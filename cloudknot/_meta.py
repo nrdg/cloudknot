@@ -98,6 +98,13 @@ REQUIRES = [
 ]
 EXTRAS_REQUIRE = {
     ':python_version < "3.0"': ["configparser"],
-    "dev": ["pytest>=3.6", "pytest-cov", "flake8", "moto>=1.3.15.dev964", "pre-commit"],
+    "dev": [
+        "pytest>=3.6",
+        "pytest-cov",
+        "flake8",
+        "moto>=1.3.15.dev964",
+        "pre-commit",
+        "sphinx",
+    ],
 }
 ENTRY_POINTS = {"console_scripts": ["cloudknot=cloudknot.cli:main"]}
