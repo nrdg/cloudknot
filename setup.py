@@ -50,7 +50,7 @@ opts = dict(
     use_scm_version={
         "root": ".",
         "relative_to": __file__,
-        "write_to": "AFQ/version.py",
+        "write_to": "cloudknot/version.py",
         "local_scheme": local_version,
     },
     setup_requires=["setuptools_scm"],
