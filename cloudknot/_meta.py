@@ -4,7 +4,7 @@ from os.path import join as pjoin
 
 # Format expected by setup.py and doc/source/conf.py: string of form "X.Y.Z"
 _version_major = 0
-_version_minor = 3
+_version_minor = 4
 _version_micro = 1  # use '' for first of series, number for 1 and above
 # _version_extra = 'dev'
 _version_extra = ""  # Uncomment this for full releases
@@ -65,7 +65,7 @@ MAINTAINER = "Adam Richie-Halford"
 MAINTAINER_EMAIL = "richiehalford@gmail.com"
 DESCRIPTION = description
 LONG_DESCRIPTION = long_description
-URL = "http://github.com/richford/cloudknot"
+URL = "http://github.com/nrdg/cloudknot"
 DOWNLOAD_URL = ""
 LICENSE = "MIT"
 AUTHOR = "Adam Richie-Halford"
