@@ -36,7 +36,7 @@ description = (
 # Long description will go up on the pypi page
 long_description = """
 Cloudknot
-========
+=========
 Cloudknot is a python library designed to run your existing python code on
 AWS Batch
 
