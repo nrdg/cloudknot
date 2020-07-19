@@ -12,7 +12,7 @@ Examples:
   cloudknot configure
 Help:
   For help using this tool, please see the Github repository:
-  https://github.com/richford/cloudknot
+  https://github.com/nrdg/cloudknot
 """
 
 from __future__ import absolute_import, division, print_function

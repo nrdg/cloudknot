@@ -69,15 +69,15 @@ Bugs and issues
 ---------------
 
 If you are having issues, please let us know by `opening up a new issue
-<https://github.com/richford/cloudknot/issues>`_.
+<https://github.com/nrdg/cloudknot/issues>`_.
 You will probably want to tag your issue with the "bug" or "question" label.
 
 Contribute
 ----------
 
 We invite you to contribute to cloudknot. Take a look at the `source code
-<https://github.com/richford/cloudknot>`_. Or tackle one of the `open issues
-<https://github.com/richford/cloudknot/issues>`_. Issues labeled "help wanted"
+<https://github.com/nrdg/cloudknot>`_. Or tackle one of the `open issues
+<https://github.com/nrdg/cloudknot/issues>`_. Issues labeled "help wanted"
 or "good first issue" are particularly appropriate for beginners.
 
 AWS Batch vs AWS Lambda
@@ -97,7 +97,7 @@ License
 -------
 
 The project is licensed under the `MIT license
-<https://github.com/richford/cloudknot/blob/master/LICENSE>`_.
+<https://github.com/nrdg/cloudknot/blob/master/LICENSE>`_.
 
 Acknowledgements
 ----------------
@@ -116,6 +116,6 @@ Institute of Biomedical Imaging and Bioengineering to Eleftherios Garyfallidis
    getting started <getting_started>
    documentation <documentation>
    faq <faq>
-   examples <https://github.com/richford/cloudknot/tree/master/examples>
-   code <https://github.com/richford/cloudknot>
-   bugs <https://github.com/richford/cloudknot/issues>
+   examples <https://github.com/nrdg/cloudknot/tree/master/examples>
+   code <https://github.com/nrdg/cloudknot>
+   bugs <https://github.com/nrdg/cloudknot/issues>

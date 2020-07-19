@@ -32,7 +32,7 @@ Frequently Asked Questions
    .. container:: content
 
       First off, sorry about the error. Please submit a `bug report
-      <https://github.com/richford/cloudknot/issues>`_ so that we can try to prevent this
+      <https://github.com/nrdg/cloudknot/issues>`_ so that we can try to prevent this
       error from happening again. But fear not, if the job succeeded, your results are
       probably still there. In addition to the results futures returned by `Knot.map()`,
       you can also access the `result()` method of each job in `Knot.jobs`.
@@ -62,7 +62,7 @@ Frequently Asked Questions
    .. container:: content
 
       Do your error messages look similar to the ones reported in
-      `this issue <https://github.com/richford/cloudknot/issues/131>`_?
+      `this issue <https://github.com/nrdg/cloudknot/issues/131>`_?
       If so, you need to install Docker such that you can run Docker
       commands without sudo. See :ref:`install-label` for
       installation instructions on an EC2 instance.

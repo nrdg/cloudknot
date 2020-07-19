@@ -150,7 +150,7 @@ html_theme = "alabaster"
 # documentation.
 html_theme_options = {
     "description": "Run your existing python code on AWS Batch",
-    "github_user": "richford",
+    "github_user": "nrdg",
     "github_repo": "cloudknot",
     "github_type": "star",
     "show_powered_by": True,
@@ -249,7 +249,7 @@ latex_documents = [
         "cloudknot Documentation",
         "Adam Richie-Halford",
         "manual",
-    ),
+    )
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -299,7 +299,7 @@ texinfo_documents = [
         "cloudknot",
         "One line description of project.",
         "Miscellaneous",
-    ),
+    )
 ]
 
 # Documents to append as an appendix to all manuals.

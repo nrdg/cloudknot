@@ -47,7 +47,7 @@ inputs.
 
 To get started using cloudknot, please see the documentation_.
 
-.. _documentation: https://richford.github.io/cloudknot/
+.. _documentation: https://nrdg.github.io/cloudknot/
 
 License
 =======
