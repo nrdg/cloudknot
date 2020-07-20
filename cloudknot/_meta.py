@@ -75,6 +75,7 @@ REQUIRES = [
     "six",
     "tenacity",
     'configparser;python_version<"3.0"',
+    'importlib-metadata;python_version<"3.8"',
 ]
 EXTRAS_REQUIRE = {
     ':python_version < "3.0"': ["configparser"],
