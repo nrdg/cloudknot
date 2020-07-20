@@ -190,7 +190,7 @@ def test_knot(cleanup_repos):
     try:
         ec2 = ck.aws.clients["ec2"]
         instance = ec2.run_instances(MaxCount=1, MinCount=1)["Instances"][0]
-        image_response = ec2.create_image(
+        ec2.create_image(
             BlockDeviceMappings=[
                 {
                     "DeviceName": "/dev/xvda",
