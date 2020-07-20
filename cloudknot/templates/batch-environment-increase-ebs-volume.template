@@ -78,7 +78,7 @@
             "LtVolumeSize" : {
                 "Type" : "Number",
                 "Default" : "30",
-                "Description" : "Launch template volume size in GB"
+                "Description" : "Launch template volume size in GB",
                 "MinValue" : "1",
                 "ConstraintDescription" : "LtVolumeSize must be greater than zero."
             },
@@ -273,7 +273,7 @@
             },
             "JobDefinition": {
                 "Value" : { "Ref" : "JobDefinition" }
-            }
+            },
             "LaunchTemplate": {
                 "Value" : { "Ref" : "LaunchTemplate" }
             }

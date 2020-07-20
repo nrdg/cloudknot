@@ -88,6 +88,7 @@ def cleanup(aws_credentials):
 
 @mock_all
 def test_pars_errors(cleanup):
+    ck.refresh_clients()
     name = get_testing_name()
 
     # Confirm name input validation
@@ -122,6 +123,7 @@ def test_pars_errors(cleanup):
 
 @mock_all
 def test_pars_with_default_vpc(cleanup):
+    ck.refresh_clients()
     name = get_testing_name()
 
     batch_service_role_name = "ck-unit-test-batch-service-role-1"
@@ -214,6 +216,7 @@ def test_pars_with_default_vpc(cleanup):
 
 @mock_all
 def test_pars_with_new_vpc(cleanup):
+    ck.refresh_clients()
     name = get_testing_name()
 
     p = ck.Pars(name=name, use_default_vpc=False)

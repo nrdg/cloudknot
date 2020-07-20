@@ -216,12 +216,16 @@ class Pars(aws.NamedObject):
                 "spot_fleet_role_name": (spot_fleet_role_name, self._spot_fleet_role),
                 "ipv4_cidr": (ipv4_cidr, stack_ipv4_cidr),
                 "instance_tenancy": (instance_tenancy, stack_instance_tenancy),
-                "policies": (set(policies), stack_policies),
             }
 
             conflicting_params = {
                 k: v for k, v in input_params.items() if v[0] and v[1] != v[0]
             }
+
+            # Inspect policies separately since we only require policies
+            # the input to be a subset of the stack-defined policies
+            if not set(policies) <= stack_policies:
+                conflicting_params["policies"] = (set(policies), stack_policies)
 
             if conflicting_params:
                 raise aws.CloudknotInputError(
@@ -1192,6 +1196,14 @@ class Knot(aws.NamedObject):
                     "If you provide volume_size, you cannot specify the image_id"
                 )
 
+            if volume_size is not None:
+                if not isinstance(volume_size, int):
+                    raise aws.CloudknotInputError("volume_size must be an integer.")
+                if not volume_size > 0:
+                    raise aws.CloudknotInputError(
+                        "volume_size must be greater than zero."
+                    )
+
             # Default instance type is 'optimal'
             instance_types = instance_types if instance_types else ["optimal"]
             if isinstance(instance_types, six.string_types):
@@ -1585,7 +1597,7 @@ class Knot(aws.NamedObject):
 
             if volume_size is not None:
                 params.append(
-                    {"ParameterKey": "LtVolumeSize", "ParameterValue": volume_size}
+                    {"ParameterKey": "LtVolumeSize", "ParameterValue": str(volume_size)}
                 )
                 params.append(
                     {
@@ -1596,7 +1608,16 @@ class Knot(aws.NamedObject):
 
                 # Set the image id to use the ECS-optimized Amazon Linux
                 # 2 image
-                response = aws.clients["ec2"].describe_images(Owners=["amazon"])
+
+                # First, determine if we're running in moto for CI
+                # by retrieving the account ID
+                user = aws.clients["iam"].get_user()["User"]
+                account_id = user["Arn"].split(":")[4]
+                if account_id == "123456789012":
+                    response = aws.clients["ec2"].describe_images()
+                else:
+                    response = aws.clients["ec2"].describe_images(Owners=["amazon"])
+
                 ecs_optimized_images = sorted(
                     [
                         image

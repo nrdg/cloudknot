@@ -185,7 +185,28 @@ def test_knot(cleanup_repos):
     config_file = ck.config.get_config_file()
     knot = None
 
+    ck.refresh_clients()
+
     try:
+        ec2 = ck.aws.clients["ec2"]
+        instance = ec2.run_instances(MaxCount=1, MinCount=1)["Instances"][0]
+        ec2.create_image(
+            BlockDeviceMappings=[
+                {
+                    "DeviceName": "/dev/xvda",
+                    "Ebs": {
+                        "DeleteOnTermination": True,
+                        "VolumeSize": 30,
+                        "VolumeType": "gp2",
+                        "Encrypted": False,
+                    },
+                }
+            ],
+            Description="amazon linux ami 2 x86_64 ecs hvm gp2",
+            Name="unit-test-ecs-optimized-ami",
+            InstanceId=instance["InstanceId"],
+        )
+
         pars = ck.Pars(name=get_testing_name(), use_default_vpc=False)
         name = get_testing_name()
 
@@ -275,6 +296,8 @@ def test_knot(cleanup_repos):
 
 @mock_all
 def test_knot_errors(cleanup_repos):
+    ck.refresh_clients()
+
     # Test Exceptions on invalid input
     # --------------------------------
     # Assert ck.aws.CloudknotInputError on invalid name
@@ -344,3 +367,15 @@ def test_knot_errors(cleanup_repos):
     # Assert ck.aws.CloudknotInputError on invalid ec2_key_pair
     with pytest.raises(ck.aws.CloudknotInputError):
         ck.Knot(ec2_key_pair=42)
+
+    # Assert ck.aws.CloudknotInputError on invalid volume_size
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.Knot(volume_size="string")
+
+    # Assert ck.aws.CloudknotInputError on volume_size < 1
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.Knot(volume_size=0)
+
+    # Assert ck.aws.CloudknotInputError when providing both image_id and volume_size
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.Knot(image_id="test-string", volume_size=30)
