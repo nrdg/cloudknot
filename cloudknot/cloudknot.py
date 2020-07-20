@@ -1192,6 +1192,14 @@ class Knot(aws.NamedObject):
                     "If you provide volume_size, you cannot specify the image_id"
                 )
 
+            if volume_size is not None:
+                if not isinstance(volume_size, int):
+                    raise aws.CloudknotInputError("volume_size must be an integer.")
+                if not volume_size > 0:
+                    raise aws.CloudknotInputError(
+                        "volume_size must be greater than zero."
+                    )
+
             # Default instance type is 'optimal'
             instance_types = instance_types if instance_types else ["optimal"]
             if isinstance(instance_types, six.string_types):
@@ -1585,7 +1593,7 @@ class Knot(aws.NamedObject):
 
             if volume_size is not None:
                 params.append(
-                    {"ParameterKey": "LtVolumeSize", "ParameterValue": volume_size}
+                    {"ParameterKey": "LtVolumeSize", "ParameterValue": str(volume_size)}
                 )
                 params.append(
                     {

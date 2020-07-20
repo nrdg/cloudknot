@@ -189,7 +189,7 @@ def test_knot(cleanup_repos):
         pars = ck.Pars(name=get_testing_name(), use_default_vpc=False)
         name = get_testing_name()
 
-        knot = ck.Knot(name=name, pars=pars, func=unit_testing_func)
+        knot = ck.Knot(name=name, pars=pars, func=unit_testing_func, volume_size=42)
 
         # Now remove the images and repo-uri from the docker-image
         # Forcing the next call to Knot to rebuild and re-push the image.
@@ -344,3 +344,15 @@ def test_knot_errors(cleanup_repos):
     # Assert ck.aws.CloudknotInputError on invalid ec2_key_pair
     with pytest.raises(ck.aws.CloudknotInputError):
         ck.Knot(ec2_key_pair=42)
+
+    # Assert ck.aws.CloudknotInputError on invalid volume_size
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.Knot(volume_size="string")
+
+    # Assert ck.aws.CloudknotInputError on volume_size < 1
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.Knot(volume_size=0)
+
+    # Assert ck.aws.CloudknotInputError when providing both image_id and volume_size
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.Knot(image_id="test-string", volume_size=30)
