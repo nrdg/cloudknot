@@ -216,12 +216,16 @@ class Pars(aws.NamedObject):
                 "spot_fleet_role_name": (spot_fleet_role_name, self._spot_fleet_role),
                 "ipv4_cidr": (ipv4_cidr, stack_ipv4_cidr),
                 "instance_tenancy": (instance_tenancy, stack_instance_tenancy),
-                "policies": (set(policies), stack_policies),
             }
 
             conflicting_params = {
                 k: v for k, v in input_params.items() if v[0] and v[1] != v[0]
             }
+
+            # Inspect policies separately since we only require policies
+            # the input to be a subset of the stack-defined policies
+            if not set(policies) <= stack_policies:
+                conflicting_params["policies"] = (set(policies), stack_policies)
 
             if conflicting_params:
                 raise aws.CloudknotInputError(
