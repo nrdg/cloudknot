@@ -41,7 +41,6 @@ opts = dict(
     author=AUTHOR,
     author_email=AUTHOR_EMAIL,
     platforms=PLATFORMS,
-    version=VERSION,
     packages=PACKAGES,
     package_data=PACKAGE_DATA,
     install_requires=REQUIRES,
