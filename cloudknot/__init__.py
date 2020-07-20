@@ -14,7 +14,13 @@ from .aws.base_classes import get_s3_params, set_s3_params  # noqa
 from .aws.base_classes import refresh_clients  # noqa
 from .cloudknot import *  # noqa
 from .dockerimage import *  # noqa
-from .version import version as __version__  # noqa
+from importlib.metadata import version, PackageNotFoundError
+
+try:
+    __version__ = version(__name__)
+except PackageNotFoundError:
+    # package is not installed
+    pass
 
 try:
     fnull = open(os.devnull, "w")
