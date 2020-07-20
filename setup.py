@@ -5,7 +5,7 @@ from setuptools_scm import get_version
 
 PACKAGES = find_packages()
 
-# Get version and release info, which is all stored in cloudknot/_meta.py
+# Get release info, which is all stored in cloudknot/_meta.py
 ver_file = os.path.join("cloudknot", "_meta.py")
 with open(ver_file) as f:
     exec(f.read())
