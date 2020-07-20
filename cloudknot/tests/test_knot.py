@@ -185,11 +185,32 @@ def test_knot(cleanup_repos):
     config_file = ck.config.get_config_file()
     knot = None
 
+    ck.refresh_clients()
+
     try:
+        ec2 = ck.aws.clients["ec2"]
+        instance = ec2.run_instances(MaxCount=1, MinCount=1)["Instances"][0]
+        image_response = ec2.create_image(
+            BlockDeviceMappings=[
+                {
+                    "DeviceName": "/dev/xvda",
+                    "Ebs": {
+                        "DeleteOnTermination": True,
+                        "VolumeSize": 30,
+                        "VolumeType": "gp2",
+                        "Encrypted": False,
+                    },
+                }
+            ],
+            Description="amazon linux ami 2 x86_64 ecs hvm gp2",
+            Name="unit-test-ecs-optimized-ami",
+            InstanceId=instance["InstanceId"],
+        )
+
         pars = ck.Pars(name=get_testing_name(), use_default_vpc=False)
         name = get_testing_name()
 
-        knot = ck.Knot(name=name, pars=pars, func=unit_testing_func, volume_size=42)
+        knot = ck.Knot(name=name, pars=pars, func=unit_testing_func)
 
         # Now remove the images and repo-uri from the docker-image
         # Forcing the next call to Knot to rebuild and re-push the image.
@@ -275,6 +296,8 @@ def test_knot(cleanup_repos):
 
 @mock_all
 def test_knot_errors(cleanup_repos):
+    ck.refresh_clients()
+
     # Test Exceptions on invalid input
     # --------------------------------
     # Assert ck.aws.CloudknotInputError on invalid name

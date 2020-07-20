@@ -192,6 +192,7 @@ def unit_testing_func(name=None, no_capitalize=False):
 
 @mock_all
 def test_DockerImage(cleanup_repos):
+    ck.refresh_clients()
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
     ecr = ck.aws.clients["ecr"]

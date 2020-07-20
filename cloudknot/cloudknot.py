@@ -1608,7 +1608,16 @@ class Knot(aws.NamedObject):
 
                 # Set the image id to use the ECS-optimized Amazon Linux
                 # 2 image
-                response = aws.clients["ec2"].describe_images(Owners=["amazon"])
+
+                # First, determine if we're running in moto for CI
+                # by retrieving the account ID
+                user = aws.clients["iam"].get_user()["User"]
+                account_id = user["Arn"].split(":")[4]
+                if account_id == "123456789012":
+                    response = aws.clients["ec2"].describe_images()
+                else:
+                    response = aws.clients["ec2"].describe_images(Owners=["amazon"])
+
                 ecs_optimized_images = sorted(
                     [
                         image

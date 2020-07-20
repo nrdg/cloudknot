@@ -500,6 +500,7 @@ def test_get_profile(bucket_cleanup):
 
 @mock_all
 def test_DockerRepo(bucket_cleanup):
+    ck.refresh_clients()
     ecr = ck.aws.clients["ecr"]
     config = configparser.ConfigParser()
     config_file = ck.config.get_config_file()
