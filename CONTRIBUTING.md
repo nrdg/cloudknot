@@ -21,7 +21,7 @@ pre-commit install
 Before committing your work, you can check for formatting issues or errors by typing
 
 ```bash
-make flake
+make lint
 make test
 ```
 
@@ -74,3 +74,23 @@ If you are proposing a feature:
 
 -   Remember that this is a volunteer-driven project, and that contributions
     are welcome :)
+
+## Maintainers
+
+Cloudknot pushes a development version to
+[Test-PyPI](https://test.pypi.org/) on every pull request merged into
+the master branch. To release a new version of cloudknot, create a new
+tag using
+```bash
+git tag <tagname> -a
+```
+which will open up a text editor with which you can type the tag annotation.
+After saving that file, push the new tag with
+```bash
+git push upstream <tagname>
+```
+to push the new tag to the GitHub repository. After that, cloudknot's
+GitHub actions will take care of publishing the new release on PyPI.
+
+For now, you'll also need to create a new release on GitHub using the
+tag that you just pushed.
