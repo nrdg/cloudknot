@@ -84,7 +84,9 @@ tag using
 ```bash
 git tag <tagname> -a
 ```
-which will open up a text editor with which you can type the tag annotation.
+For releases, use the following format for <tagname>: "v<major>.<minor>.<micro>". 
+When executed, this will open up a text editor with which you can type the tag annotation --
+typically, something like: "Version <major>.<minor>.<micro> release".
 After saving that file, push the new tag with
 ```bash
 git push upstream <tagname>
