@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/nrdg/cloudknot.svg?branch=master)](https://travis-ci.org/nrdg/cloudknot)
+[![Build Status](https://github.com/nrdg/cloudknot/workflows/build/badge.svg)]
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/d6fa3a18646f4a8089c7c897819d0342)](https://www.codacy.com/app/nrdg/cloudknot?utm_source=github.com&utm_medium=referral&utm_content=nrdg/cloudknot&utm_campaign=Badge_Grade)
 [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/d6fa3a18646f4a8089c7c897819d0342)](https://www.codacy.com/app/nrdg/cloudknot?utm_source=github.com&utm_medium=referral&utm_content=nrdg/cloudknot&utm_campaign=Badge_Coverage)
 
