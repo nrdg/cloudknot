@@ -90,7 +90,5 @@ After saving that file, push the new tag with
 git push upstream <tagname>
 ```
 to push the new tag to the GitHub repository. After that, cloudknot's
-GitHub actions will take care of publishing the new release on PyPI.
-
-For now, you'll also need to create a new release on GitHub using the
-tag that you just pushed.
+GitHub actions will take care of publishing the new release on PyPI and
+creating a release on GitHub.
