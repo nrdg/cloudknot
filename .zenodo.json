@@ -1,0 +1,39 @@
+{
+  "contributors": [
+    {
+      "affiliation": "The University of Washington",
+      "name": "Kruper, John",
+      "type": "Researcher"
+    },
+  ],
+  "creators": [
+    {
+        "affiliation": "The University of Washington",
+        "name": "Richie-Halford, Adam",
+        "orcid": "0000-0001-9276-9084",
+        "type": "Researcher"
+      },
+    {
+      "affiliation": "The University of Washington",
+      "name": "Rokem, Ariel",
+      "orcid": "0000-0003-0679-1985"
+    }
+  ],
+  "description": "<p>Cloudknot is a python library designed to run your existing python code on AWS Batch.</p> <p>Cloudknot takes as input a python function, Dockerizes it for use in an Amazon ECS instance, and creates all the necessary AWS Batch constituent resources to submit jobs. You can then use cloudknot to submit and view jobs for a range of inputs.</p>",
+  "keywords": [
+    "Cloud",
+    "AWS",
+    "Distributed compution",
+    "Docker"
+  ],
+  "license": "MIT",
+  "related_identifiers": [
+    {
+      "identifier": "http://nrdg.github.io/cloudknkot",
+      "relation": "isPartOf",
+      "scheme": "url"
+    }
+  ],
+  "title": "Cloudknot: Run your existing python code on AWS Batch",
+  "upload_type": "software"
+}
