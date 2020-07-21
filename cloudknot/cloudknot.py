@@ -790,8 +790,8 @@ class Knot(aws.NamedObject):
 
         image_github_installs : string or sequence of strings
             Github addresses for packages to install from github rather than
-            PyPI (e.g. git://github.com/richford/cloudknot.git or
-            git://github.com/richford/cloudknot.git@newfeaturebranch)
+            PyPI (e.g. git://github.com/nrdg/cloudknot.git or
+            git://github.com/nrdg/cloudknot.git@newfeaturebranch)
             Default: ()
 
         username : string

@@ -44,7 +44,7 @@ using :code:`sudo`.  Then, you can install cloudknot from PyPI (recommended)
 
     $ pip install cloudknot
 
-or from the `github repository <https://github.com/richford/cloudknot>`_.
+or from the `github repository <https://github.com/nrdg/cloudknot>`_.
 This will install cloudknot and its python dependencies.
 
 After installation, you must configure cloudknot by running
@@ -121,7 +121,7 @@ Examples
 --------
 
 See the `examples directory
-<https://github.com/richford/cloudknot/tree/master/examples>`_ on github for
+<https://github.com/nrdg/cloudknot/tree/master/examples>`_ on github for
 (you guessed it) examples of how to use cloudknot.
 
 
