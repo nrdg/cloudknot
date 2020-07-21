@@ -24,7 +24,7 @@ fi
 
 # Elaborate today's release header
 HEADER="$1 ($(date '+%B %d, %Y'))"
-echo $HEADER >> THISRELEASE.rst
+echo $HEADER > THISRELEASE.rst
 echo $( printf "%${#HEADER}s" | tr " " "=" ) >> THISRELEASE.rst
 
 # Search for PRs since previous release
