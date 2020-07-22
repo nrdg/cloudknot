@@ -73,7 +73,7 @@
                 "Description" : "Name of the compute environment.",
                 "MinLength" : "1",
                 "MaxLength" : "100",
-                "ConstraintDescription" : "The compute environment name must be between 1 and 50 characters"
+                "ConstraintDescription" : "The compute environment name must be between 1 and 100 characters"
             },
             "CeResourceType" : {
                 "Type" : "String",
