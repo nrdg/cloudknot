@@ -574,9 +574,10 @@ class DockerImage(aws.NamedObject):
             "repositories"
         ]
 
+        _repo_uri = repo_uri.split(":")[0]
         # Filter by matching on repo_uri
         matching_repo = [
-            repo for repo in repositories if repo["repositoryUri"] == repo_uri
+            repo for repo in repositories if repo["repositoryUri"] == _repo_uri
         ][0]
 
         return {
