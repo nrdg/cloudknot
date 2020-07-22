@@ -122,6 +122,19 @@
                 "Default" : "optimal",
                 "Description" : "Instance types that may be launched in the compute environment. Default='optimal'"
             },
+            "CeTagNameValue" : {
+                "Type" : "String",
+                "Description" : "Tags are key-value pairs to be applied to resources that are launched in the compute environment. This parameter specifies the value associated with the Name key."
+            },
+            "CeTagOwnerValue" : {
+                "Type" : "String",
+                "Description" : "Tags are key-value pairs to be applied to resources that are launched in the compute environment. This parameter specifies the value associated with the Owner key."
+            },
+            "CeTagEnvironmentValue" : {
+                "Type" : "String",
+                "Description" : "Tags are key-value pairs to be applied to resources that are launched in the compute environment. This parameter specifies the value associated with the Environment key.",
+                "Default" : "cloudknot"
+            },
             "CeBidPercentage" : {
                 "Type" : "Number",
                 "Default" : "50",
@@ -258,6 +271,11 @@
                                 { "Ref" : "AWS::NoValue" }
                             ]
                         },
+                        "Tags" : {
+                            "Name": { "Ref": "CeTagNameValue" },
+                            "Owner": { "Ref": "CeTagOwnerValue" },
+                            "Environment": { "Ref": "CeTagEnvironmentValue" }
+                        }
                     },
                     "ServiceRole" : { "Fn::ImportValue" : { "Fn::Sub" : "${ParsStackName}-BatchServiceRole" }},
                     "State" : "ENABLED"
