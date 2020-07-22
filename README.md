@@ -1,6 +1,6 @@
 [![Build Status](https://github.com/nrdg/cloudknot/workflows/build/badge.svg)]
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/d6fa3a18646f4a8089c7c897819d0342)](https://www.codacy.com/app/nrdg/cloudknot?utm_source=github.com&utm_medium=referral&utm_content=nrdg/cloudknot&utm_campaign=Badge_Grade)
-[![Codacy Badge](https://api.codacy.com/project/badge/Coverage/d6fa3a18646f4a8089c7c897819d0342)](https://www.codacy.com/app/nrdg/cloudknot?utm_source=github.com&utm_medium=referral&utm_content=nrdg/cloudknot&utm_campaign=Badge_Coverage)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/d6fa3a18646f4a8089c7c897819d0342)](https://www.codacy.com/manual/richford/cloudknot?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=nrdg/cloudknot&amp;utm_campaign=Badge_Grade)
+[![Codacy Badge](https://app.codacy.com/project/badge/Coverage/d6fa3a18646f4a8089c7c897819d0342)](https://www.codacy.com/manual/richford/cloudknot?utm_source=github.com&utm_medium=referral&utm_content=nrdg/cloudknot&utm_campaign=Badge_Coverage)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/python/black)
