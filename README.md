@@ -48,7 +48,21 @@ most valuable to the project as a whole, because you're coming to the
 project with fresh eyes, so you can see the errors and assumptions that
 seasoned contributors have glossed over.
 
+## Citing cloudknot
+
+If you use cloudknot in a scientific publication, please see our [citation
+instructions](https://nrdg/github.io/cloudknot/index.html#citing-cloudknot).
+
 ## Credits
+
+Cloudknot development is supported through a grant from the [Gordon
+and Betty Moore Foundation](https://www.moore.org/) and from the
+[Alfred P. Sloan Foundation](https://sloan.org/) to the [University of
+Washington eScience Institute](http://escience.washington.edu/), as
+well as NIH Collaborative Research in Computational Neuroscience grant
+R01EB027585-01 through the National Institute of Biomedical Imaging and
+Bioengineering to Eleftherios Garyfallidis (Indiana University) and
+Ariel Rokem (University of Washington).
 
 This package was created with
 [shablona](https://github.com/uwescience/shablona).
