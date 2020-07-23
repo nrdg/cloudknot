@@ -4,15 +4,15 @@
       "affiliation": "The University of Washington",
       "name": "Kruper, John",
       "type": "Researcher"
-    },
+    }
   ],
   "creators": [
     {
-        "affiliation": "The University of Washington",
-        "name": "Richie-Halford, Adam",
-        "orcid": "0000-0001-9276-9084",
-        "type": "Researcher"
-      },
+      "affiliation": "The University of Washington",
+      "name": "Richie-Halford, Adam",
+      "orcid": "0000-0001-9276-9084",
+      "type": "Researcher"
+    },
     {
       "affiliation": "The University of Washington",
       "name": "Rokem, Ariel",

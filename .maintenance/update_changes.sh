@@ -28,7 +28,7 @@ echo $HEADER > THISRELEASE.rst
 echo $( printf "%${#HEADER}s" | tr " " "=" ) >> THISRELEASE.rst
 
 # Search for PRs since previous release
-git log --grep="Merge pull request" `git describe --tags --abbrev=0`..HEAD --pretty='format:  * %b %s' | sed  's/Merge pull request \#\([^\d]*\)\ from\ .*/(\#\1)/' >> THISRELEASE.rst
+git log --grep="Merge pull request" $(git describe --tags --abbrev=0)..HEAD --pretty='format:  * %b %s' | sed  's/Merge pull request \#\([^\d]*\)\ from\ .*/(\#\1)/' >> THISRELEASE.rst
 echo "" >> THISRELEASE.rst
 echo "" >> THISRELEASE.rst
 

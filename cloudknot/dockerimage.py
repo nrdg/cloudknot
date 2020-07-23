@@ -37,6 +37,24 @@ mod_logger = logging.getLogger(__name__)
 is_windows = os.name == "nt"
 
 
+def _get_repo_info_from_uri(repo_uri):
+    # Get all repositories
+    repositories = aws.clients["ecr"].describe_repositories(maxResults=500)[
+        "repositories"
+    ]
+
+    _repo_uri = repo_uri.split(":")[0]
+    # Filter by matching on repo_uri
+    matching_repo = [
+        repo for repo in repositories if repo["repositoryUri"] == _repo_uri
+    ][0]
+
+    return {
+        "registry_id": matching_repo["registryId"],
+        "repo_name": matching_repo["repositoryName"],
+    }
+
+
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 @registered
 class DockerImage(aws.NamedObject):
@@ -172,7 +190,7 @@ class DockerImage(aws.NamedObject):
             self._repo_uri = uri if uri else None
 
             if uri:
-                repo_info = self._get_repo_info_from_uri(repo_uri=uri)
+                repo_info = _get_repo_info_from_uri(repo_uri=uri)
                 self._repo_registry_id = repo_info["registry_id"]
                 self._repo_name = repo_info["repo_name"]
             else:
@@ -568,23 +586,6 @@ class DockerImage(aws.NamedObject):
         # Reload to config file
         ckconfig.add_resource(section_name, "images", config_images_str)
 
-    def _get_repo_info_from_uri(self, repo_uri):
-        # Get all repositories
-        repositories = aws.clients["ecr"].describe_repositories(maxResults=500)[
-            "repositories"
-        ]
-
-        _repo_uri = repo_uri.split(":")[0]
-        # Filter by matching on repo_uri
-        matching_repo = [
-            repo for repo in repositories if repo["repositoryUri"] == _repo_uri
-        ][0]
-
-        return {
-            "registry_id": matching_repo["registryId"],
-            "repo_name": matching_repo["repositoryName"],
-        }
-
     def push(self, repo=None, repo_uri=None):
         """Tag and push a DockerContainer image to a repository
 
@@ -631,7 +632,7 @@ class DockerImage(aws.NamedObject):
             if not isinstance(repo_uri, six.string_types):
                 raise CloudknotInputError("`repo_uri` must be a string.")
             self._repo_uri = repo_uri
-            repo_info = self._get_repo_info_from_uri(repo_uri=repo_uri)
+            repo_info = _get_repo_info_from_uri(repo_uri=repo_uri)
             self._repo_registry_id = repo_info["registry_id"]
             self._repo_name = repo_info["repo_name"]
 
