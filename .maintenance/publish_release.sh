@@ -10,7 +10,7 @@ fi
 VERSION=$1
 REPO=$(git remote -v | grep github.com:nrdg/cloudknot.git | head -n 1 | cut -f 1)
 
-/bin/bash .maintenance/update_changes.sh ${VERSION}
+/bin/bash .maintenance/update_changes.sh "${VERSION}"
 
 echo "CHANGES.rst has been automatically updated to record the PRs since the previous tag."
 while true; do
@@ -33,6 +33,6 @@ done
 
 git add CHANGES.rst
 git commit -m "Update CHANGES.rst"
-git push ${REPO} master
-git tag ${VERSION} -F THISRELEASE.rst
-git push ${REPO} ${VERSION}
+git push "${REPO}" master
+git tag "${VERSION}" -F THISRELEASE.rst
+git push "${REPO}" "${VERSION}"
