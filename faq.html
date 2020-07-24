@@ -1,18 +1,19 @@
 
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
     <meta charset="utf-8" />
-    <title>Frequently Asked Questions &#8212; cloudknot 0.1 documentation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frequently Asked Questions &#8212; cloudknot 0.4.2 documentation</title>
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="_static/collapsible.css" type="text/css" />
-    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-    <script type="text/javascript" src="_static/jquery.js"></script>
-    <script type="text/javascript" src="_static/underscore.js"></script>
-    <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="prev" title="config Module" href="api/config.html" />
@@ -37,7 +38,7 @@
 
 
 <p>
-<iframe src="https://ghbtns.com/github-btn.html?user=richford&repo=cloudknot&type=star&count=true&size=large&v=2"
+<iframe src="https://ghbtns.com/github-btn.html?user=nrdg&repo=cloudknot&type=star&count=true&size=large&v=2"
   allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
 </p>
 
@@ -50,22 +51,22 @@
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">getting started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="documentation.html">documentation</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">faq</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/tree/master/examples">examples</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot">code</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/issues">bugs</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/nrdg/cloudknot/tree/master/examples">examples</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/nrdg/cloudknot">code</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/nrdg/cloudknot/issues">bugs</a></li>
 </ul>
 
 
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
       <input type="submit" value="Go" />
     </form>
     </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="documentwrapper">
@@ -75,13 +76,14 @@
           <div class="body" role="main">
             
   <div class="section" id="frequently-asked-questions">
-<h1>Frequently Asked Questions<a class="headerlink" href="#frequently-asked-questions" title="Permalink to this headline">¶</a></h1>
+<span id="faq-label"></span><h1>Frequently Asked Questions<a class="headerlink" href="#frequently-asked-questions" title="Permalink to this headline">¶</a></h1>
 <div class="toggle docutils container">
 <div class="header docutils container">
 <p>How much is this thing going to cost?</p>
 </div>
 <div class="content docutils container">
-<p>EC2 and Spot instances launched from AWS Batch are <a class="reference external" href="https://aws.amazon.com/blogs/aws/new-per-second-billing-for-ec2-instances-and-ebs-volumes/">billed on a per-second basis</a>.
+<p>Cloudknot is free (both <em>gratis</em> and <em>libre</em>).
+EC2 and Spot instances launched from AWS Batch are <a class="reference external" href="https://aws.amazon.com/blogs/aws/new-per-second-billing-for-ec2-instances-and-ebs-volumes/">billed on a per-second basis</a>.
 So feel free to submit jobs that complete in less than an hour. You can
 minimize your cost by using the cheapest appropriate instance type (see <a class="reference external" href="https://aws.amazon.com/ec2/pricing/on-demand/">EC2 pricing</a>). You can specify the instance type
 by using <cite>Knot</cite>’s <cite>instance_type</cite> input argument. If you don’t specify an instance
@@ -89,7 +91,7 @@ type, the default is <cite>optimal</cite>, meaning that AWS Batch will select th
 instance type. You can help Batch select the cheapest viable instance by specifying
 the lowest required memory to <cite>Knot</cite>’s <cite>memory</cite> input argument.</p>
 <p>Another way to lower your expenses is to use spot instances by specifying <cite>Knot</cite>’s
-<cite>resource_type=”SPOT”</cite>. Then you can choose the cheapest region
+<cite>bid_percentage=bid</cite>, where <cite>bid</cite> is an integer between 0 and 100. Then you can choose the cheapest region
 (see <a class="reference internal" href="getting_started.html#region-shopping-label"><span class="std std-ref">Region shopping</span></a>).</p>
 </div>
 </div>
@@ -98,7 +100,7 @@ the lowest required memory to <cite>Knot</cite>’s <cite>memory</cite> input ar
 <p>My Batch jobs finished but my <cite>future.result()</cite> returns an error or exception. What gives?</p>
 </div>
 <div class="content docutils container">
-<p>First off, sorry about the error. Please submit a <a class="reference external" href="https://github.com/richford/cloudknot/issues">bug report</a> so that we can try to prevent this
+<p>First off, sorry about the error. Please submit a <a class="reference external" href="https://github.com/nrdg/cloudknot/issues">bug report</a> so that we can try to prevent this
 error from happening again. But fear not, if the job succeeded, your results are
 probably still there. In addition to the results futures returned by <cite>Knot.map()</cite>,
 you can also access the <cite>result()</cite> method of each job in <cite>Knot.jobs</cite>.</p>
@@ -124,10 +126,133 @@ you can also access the <cite>result()</cite> method of each job in <cite>Knot.j
 </div>
 <div class="content docutils container">
 <p>Do your error messages look similar to the ones reported in
-<a class="reference external" href="https://github.com/richford/cloudknot/issues/131">this issue</a>?
+<a class="reference external" href="https://github.com/nrdg/cloudknot/issues/131">this issue</a>?
 If so, you need to install Docker such that you can run Docker
 commands without sudo. See <a class="reference internal" href="getting_started.html#install-label"><span class="std std-ref">Installation and configuration</span></a> for
 installation instructions on an EC2 instance.</p>
+</div>
+</div>
+<div class="toggle docutils container">
+<div class="header docutils container">
+<p>I found a bug in my function and need to fix it and try it again on
+AWS Batch. What should I do?</p>
+</div>
+<div class="content docutils container">
+<p>Debugging application the run on AWS Batch can be frustrating because you are managing both local and remote resources. AWS tries to ease this burden using containers and cloudknot tries to ease it further by abstracting away some of the AWS resource provisioning. But still, you will likely find bugs and have to rerun your code. You have two options here.</p>
+<ol class="arabic">
+<li><p>Simply declare a new <cite>ck.Knot()</cite> instance with a different name
+from the previous instance. For example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">cloudknot</span> <span class="k">as</span> <span class="nn">ck</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">my_awesome_func</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="c1"># Your amazing code goes here</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="s2">&quot;Typo&quot;</span>
+<span class="gp">...</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">knot</span> <span class="o">=</span> <span class="n">ck</span><span class="o">.</span><span class="n">Knot</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;attempt0&quot;</span><span class="p">,</span> <span class="n">func</span><span class="o">=</span><span class="n">my_awesome_func</span><span class="p">)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">results_futures</span> <span class="o">=</span> <span class="n">knot</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">input_args</span><span class="p">)</span>
+
+<span class="go"># Oops, I just realized there&#39;s a typo in `my_awesome_func`</span>
+
+<span class="go"># Optionally clobber this knot to clean up resources on AWS</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">knot</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
+
+<span class="go"># Fix the error in my function</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">my_awesome_func</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="c1"># Your amazing code goes here</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="s2">&quot;Correct result&quot;</span>
+<span class="gp">...</span>
+
+<span class="go"># Instantiate a new knot. Note the different name</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">knot</span> <span class="o">=</span> <span class="n">ck</span><span class="o">.</span><span class="n">Knot</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;attempt1&quot;</span><span class="p">,</span> <span class="n">func</span><span class="o">=</span><span class="n">my_awesome_func</span><span class="p">)</span>
+
+<span class="go"># Try again with the same arguments</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">results_futures</span> <span class="o">=</span> <span class="n">knot</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">input_args</span><span class="p">)</span>
+</pre></div>
+</div>
+</li>
+<li><p>The first option works well for functions with simple dependencies.
+However, many scientific workflows have a high dependency burden.
+For example, in neuroimaging, it is not uncommon to have Docker base
+images that are 20 GB in size. Creating a branch new knot for these
+cases would force cloudknot to upload a brand new 20 GB Docker image
+to AWS ECR every time amend our function. This greatly increases the
+time devoted to development cycles. But don’t despair. There is a
+way to capitalize upon Docker’s layers to minimize upload time
+when you edit your functions. To do so, we need to introduce a few
+more cloudknot objects:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">cloudknot</span> <span class="k">as</span> <span class="nn">ck</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">my_awesome_func</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="c1"># Your amazing code goes here</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="s2">&quot;Typo&quot;</span>
+<span class="gp">...</span>
+
+<span class="go"># Create a DockerImage instance</span>
+<span class="go"># base_image and github_installs are optional arguments just as</span>
+<span class="go"># they are for ck.Knot</span>
+<span class="go"># Note that we specify overwrite=True so that we can quickly</span>
+<span class="go"># overwrite the cloudknot generated script, rather than writing</span>
+<span class="go"># an entirely new one</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">image</span> <span class="o">=</span> <span class="n">ck</span><span class="o">.</span><span class="n">DockerImage</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;my-awesome-function&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">func</span><span class="o">=</span><span class="n">my_awesome_func</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">base_image</span><span class="o">=</span><span class="s2">&quot;some-large-base-image:tag&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">github_installs</span><span class="o">=</span><span class="s2">&quot;some-github-repo&quot;</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">...</span>
+
+<span class="go"># Build the Docker image locally</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">image</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;a-really-helpful-tag&quot;</span><span class="p">])</span>
+
+<span class="go"># Create a DockerRepo instance to which to push this new local image</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">repo</span> <span class="o">=</span> <span class="n">ck</span><span class="o">.</span><span class="n">aws</span><span class="o">.</span><span class="n">DockerRepo</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">ck</span><span class="o">.</span><span class="n">get_ecr_repo</span><span class="p">())</span>
+
+<span class="go"># Push the local image to the AWS ECR repo</span>
+<span class="go"># For the first run, this might take a while if your Docker</span>
+<span class="go"># base image is large</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">image</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">repo</span><span class="o">=</span><span class="n">repo</span><span class="p">)</span>
+
+<span class="go"># Now instantiate a Knot, supplying the DockerImage we just created</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">knot</span> <span class="o">=</span> <span class="n">ck</span><span class="o">.</span><span class="n">Knot</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;attempt0&quot;</span><span class="p">,</span> <span class="n">docker_image</span><span class="o">=</span><span class="n">image</span><span class="p">)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">results_futures</span> <span class="o">=</span> <span class="n">knot</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">input_args</span><span class="p">)</span>
+
+<span class="go"># Oops, I just realized there&#39;s a typo in `my_awesome_func`</span>
+
+<span class="go"># Optionally clobber this knot to clean up resources on AWS</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">knot</span><span class="o">.</span><span class="n">clobber</span><span class="p">()</span>
+
+<span class="go"># Fix the error in my function</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">my_awesome_func</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="c1"># Your amazing code goes here</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="s2">&quot;Correct result&quot;</span>
+<span class="gp">...</span>
+
+<span class="go"># Rebuild and push the DockerImage, using all of the same commands</span>
+<span class="go"># we used before. But this time, they should execute much faster.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">image</span> <span class="o">=</span> <span class="n">ck</span><span class="o">.</span><span class="n">DockerImage</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;my-awesome-function&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">func</span><span class="o">=</span><span class="n">my_awesome_func</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">base_image</span><span class="o">=</span><span class="s2">&quot;some-large-base-image:tag&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">github_installs</span><span class="o">=</span><span class="s2">&quot;some-github-repo&quot;</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">...</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">image</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;a-really-helpful-tag&quot;</span><span class="p">])</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">image</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">repo</span><span class="o">=</span><span class="n">repo</span><span class="p">)</span>
+
+<span class="go"># Instantiate a new knot. Note the different name</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">knot</span> <span class="o">=</span> <span class="n">ck</span><span class="o">.</span><span class="n">Knot</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;attempt1&quot;</span><span class="p">,</span> <span class="n">docker_image</span><span class="o">=</span><span class="n">image</span><span class="p">)</span>
+
+<span class="go"># Try again with the same arguments</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">results_futures</span> <span class="o">=</span> <span class="n">knot</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">input_args</span><span class="p">)</span>
+</pre></div>
+</div>
+</li>
+</ol>
 </div>
 </div>
 </div>
@@ -144,7 +269,7 @@ installation instructions on an EC2 instance.</p>
       &copy;2017, Adam Richie-Halford, Ariel Rokem.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

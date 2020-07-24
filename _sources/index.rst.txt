@@ -69,21 +69,21 @@ Bugs and issues
 ---------------
 
 If you are having issues, please let us know by `opening up a new issue
-<https://github.com/richford/cloudknot/issues>`_.
+<https://github.com/nrdg/cloudknot/issues>`_.
 You will probably want to tag your issue with the "bug" or "question" label.
 
 Contribute
 ----------
 
 We invite you to contribute to cloudknot. Take a look at the `source code
-<https://github.com/richford/cloudknot>`_. Or tackle one of the `open issues
-<https://github.com/richford/cloudknot/issues>`_. Issues labeled "help wanted"
+<https://github.com/nrdg/cloudknot>`_. Or tackle one of the `open issues
+<https://github.com/nrdg/cloudknot/issues>`_. Issues labeled "help wanted"
 or "good first issue" are particularly appropriate for beginners.
 
 AWS Batch vs AWS Lambda
 -----------------------
 
-`AWS Lambda <https://aws.amazon.com/lambda>`_ is a service that runs your code
+`AWS Lambda`_ is a service that runs your code
 in response to certain events (e.g. file uploads). It starts executing very
 quickly after the triggering event but it has `some limitations
 <https://docs.aws.amazon.com/lambda/latest/dg/limits.html>`_ (e.g. on the
@@ -97,7 +97,30 @@ License
 -------
 
 The project is licensed under the `MIT license
-<https://github.com/richford/cloudknot/blob/master/LICENSE>`_.
+<https://github.com/nrdg/cloudknot/blob/master/LICENSE>`_.
+
+Citing cloudknot
+----------------
+
+If you use cloudknot in a scientific publication, we would appreciate
+citations to the following paper:
+
+`Cloudknot: A Python library to run your existing code on AWS Batch
+<http://conference.scipy.org/proceedings/scipy2018/adam_richie-halford.html>`_
+Richie-Halford and Rokem, Proceedings of the 17th python in science
+conference, pp. 8-14, 2018.
+
+Bibtex entry::
+
+   @InProceedings{ adam_richie-halford-proc-scipy-2018,
+     author    = { {A}dam {R}ichie-{H}alford and {A}riel {R}okem },
+     title     = { {C}loudknot: {A} {P}ython {L}ibrary to {R}un your {E}xisting {C}ode on {A}{W}{S} {B}atch },
+     booktitle = { {P}roceedings of the 17th {P}ython in {S}cience {C}onference },
+     pages     = { 8 - 14 },
+     year      = { 2018 },
+     editor    = { {F}atih {A}kici and {D}avid {L}ippa and {D}illon {N}iederhut and {M} {P}acer },
+     doi       = { 10.25080/Majora-4af1f417-001 }
+   }
 
 Acknowledgements
 ----------------
@@ -116,6 +139,6 @@ Institute of Biomedical Imaging and Bioengineering to Eleftherios Garyfallidis
    getting started <getting_started>
    documentation <documentation>
    faq <faq>
-   examples <https://github.com/richford/cloudknot/tree/master/examples>
-   code <https://github.com/richford/cloudknot>
-   bugs <https://github.com/richford/cloudknot/issues>
+   examples <https://github.com/nrdg/cloudknot/tree/master/examples>
+   code <https://github.com/nrdg/cloudknot>
+   bugs <https://github.com/nrdg/cloudknot/issues>

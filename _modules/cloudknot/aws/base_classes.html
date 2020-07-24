@@ -1,18 +1,19 @@
 
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
     <meta charset="utf-8" />
-    <title>cloudknot.aws.base_classes &#8212; cloudknot 0.1 documentation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cloudknot.aws.base_classes &#8212; cloudknot 0.4.2 documentation</title>
     <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/collapsible.css" type="text/css" />
-    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-    <script type="text/javascript" src="../../../_static/jquery.js"></script>
-    <script type="text/javascript" src="../../../_static/underscore.js"></script>
-    <script type="text/javascript" src="../../../_static/doctools.js"></script>
-    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
    
@@ -36,7 +37,7 @@
 
 
 <p>
-<iframe src="https://ghbtns.com/github-btn.html?user=richford&repo=cloudknot&type=star&count=true&size=large&v=2"
+<iframe src="https://ghbtns.com/github-btn.html?user=nrdg&repo=cloudknot&type=star&count=true&size=large&v=2"
   allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
 </p>
 
@@ -49,22 +50,22 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">getting started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../documentation.html">documentation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../faq.html">faq</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/tree/master/examples">examples</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot">code</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/issues">bugs</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/nrdg/cloudknot/tree/master/examples">examples</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/nrdg/cloudknot">code</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/nrdg/cloudknot/issues">bugs</a></li>
 </ul>
 
 
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../../search.html" method="get">
-      <input type="text" name="q" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
       <input type="submit" value="Go" />
     </form>
     </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="documentwrapper">
@@ -74,7 +75,7 @@
           <div class="body" role="main">
             
   <h1>Source code for cloudknot.aws.base_classes</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">boto3</span>
 <span class="kn">import</span> <span class="nn">botocore</span>
@@ -84,9 +85,13 @@
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">uuid</span>
-<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">namedtuple</span>
 
-<span class="kn">from</span> <span class="nn">..config</span> <span class="k">import</span> <span class="n">get_config_file</span><span class="p">,</span> <span class="n">rlock</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">namedtuple</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span>
+
+<span class="kn">from</span> <span class="nn">..config</span> <span class="kn">import</span> <span class="n">get_config_file</span><span class="p">,</span> <span class="n">rlock</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;clients&quot;</span><span class="p">]</span>
 
@@ -97,6 +102,15 @@
 
 
 <span class="n">mod_logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="nd">@registered</span>
+<span class="k">def</span> <span class="nf">get_tags</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="p">{</span><span class="s2">&quot;Key&quot;</span><span class="p">:</span> <span class="s2">&quot;Name&quot;</span><span class="p">,</span> <span class="s2">&quot;Value&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">},</span>
+        <span class="p">{</span><span class="s2">&quot;Key&quot;</span><span class="p">:</span> <span class="s2">&quot;Owner&quot;</span><span class="p">,</span> <span class="s2">&quot;Value&quot;</span><span class="p">:</span> <span class="n">get_user</span><span class="p">()},</span>
+        <span class="p">{</span><span class="s2">&quot;Key&quot;</span><span class="p">:</span> <span class="s2">&quot;Environment&quot;</span><span class="p">,</span> <span class="s2">&quot;Value&quot;</span><span class="p">:</span> <span class="s2">&quot;cloudknot&quot;</span><span class="p">},</span>
+    <span class="p">]</span>
 
 
 <span class="nd">@registered</span>
@@ -162,12 +176,37 @@
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">config</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 
+        <span class="c1"># Flake8 will see that repo_arn is set in the try/except clauses</span>
+        <span class="c1"># and claim that we are referencing it before assignment below</span>
+        <span class="c1"># so we predefine it here. Also, it should be predefined as a</span>
+        <span class="c1"># string to pass parameter validation by boto.</span>
+        <span class="n">repo_arn</span> <span class="o">=</span> <span class="s2">&quot;test&quot;</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="c1"># If repo exists, retrieve its info</span>
-            <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;ecr&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">describe_repositories</span><span class="p">(</span><span class="n">repositoryNames</span><span class="o">=</span><span class="p">[</span><span class="n">repo</span><span class="p">])</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;ecr&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">describe_repositories</span><span class="p">(</span><span class="n">repositoryNames</span><span class="o">=</span><span class="p">[</span><span class="n">repo</span><span class="p">])</span>
+            <span class="n">repo_arn</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;repositories&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;repositoryArn&quot;</span><span class="p">]</span>
         <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;ecr&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">RepositoryNotFoundException</span><span class="p">:</span>
             <span class="c1"># If it doesn&#39;t exists already, then create it</span>
-            <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;ecr&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">create_repository</span><span class="p">(</span><span class="n">repositoryName</span><span class="o">=</span><span class="n">repo</span><span class="p">)</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;ecr&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">create_repository</span><span class="p">(</span><span class="n">repositoryName</span><span class="o">=</span><span class="n">repo</span><span class="p">)</span>
+            <span class="n">repo_arn</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;repository&quot;</span><span class="p">][</span><span class="s2">&quot;repositoryArn&quot;</span><span class="p">]</span>
+        <span class="k">except</span> <span class="n">botocore</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">ClientError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">error_code</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">response</span><span class="p">[</span><span class="s2">&quot;Error&quot;</span><span class="p">][</span><span class="s2">&quot;Code&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">error_code</span> <span class="o">==</span> <span class="s2">&quot;RepositoryNotFoundException&quot;</span><span class="p">:</span>
+                <span class="c1"># If it doesn&#39;t exist already, then create it</span>
+                <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;ecr&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">create_repository</span><span class="p">(</span><span class="n">repositoryName</span><span class="o">=</span><span class="n">repo</span><span class="p">)</span>
+                <span class="n">repo_arn</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;repository&quot;</span><span class="p">][</span><span class="s2">&quot;repositoryArn&quot;</span><span class="p">]</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;ecr&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">tag_resource</span><span class="p">(</span><span class="n">resourceArn</span><span class="o">=</span><span class="n">repo_arn</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="n">get_tags</span><span class="p">(</span><span class="n">repo</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">NotImplementedError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">moto_msg</span> <span class="o">=</span> <span class="s2">&quot;The tag_resource action has not been implemented&quot;</span>
+            <span class="k">if</span> <span class="n">moto_msg</span> <span class="ow">in</span> <span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">:</span>
+                <span class="c1"># This exception is here for compatibility with moto</span>
+                <span class="c1"># testing since the tag_resource action has not been</span>
+                <span class="c1"># implemented in moto. Simply move on.</span>
+                <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">e</span>
 
 
 <div class="viewcode-block" id="get_s3_params"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.get_s3_params.html#cloudknot.aws.get_s3_params">[docs]</a><span class="nd">@registered</span>
@@ -246,10 +285,18 @@
             <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
             <span class="n">policy</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;aws&quot;</span><span class="p">,</span> <span class="s2">&quot;s3-bucket-policy&quot;</span><span class="p">)</span>
 
-    <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;iam&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">list_policies</span><span class="p">(</span><span class="n">Scope</span><span class="o">=</span><span class="s2">&quot;Local&quot;</span><span class="p">,</span> <span class="n">PathPrefix</span><span class="o">=</span><span class="s2">&quot;/cloudknot/&quot;</span><span class="p">)</span>
-    <span class="n">policy_arn</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
-        <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">d</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;PolicyName&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">policy</span><span class="p">,</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Policies&quot;</span><span class="p">))</span>
-    <span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;Arn&quot;</span><span class="p">]</span>
+    <span class="c1"># Get all local policies with cloudknot prefix</span>
+    <span class="n">paginator</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;iam&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get_paginator</span><span class="p">(</span><span class="s2">&quot;list_policies&quot;</span><span class="p">)</span>
+    <span class="n">response_iterator</span> <span class="o">=</span> <span class="n">paginator</span><span class="o">.</span><span class="n">paginate</span><span class="p">(</span><span class="n">Scope</span><span class="o">=</span><span class="s2">&quot;Local&quot;</span><span class="p">,</span> <span class="n">PathPrefix</span><span class="o">=</span><span class="s2">&quot;/cloudknot/&quot;</span><span class="p">)</span>
+
+    <span class="c1"># response_iterator is a list of dicts. First convert to list of lists</span>
+    <span class="c1"># and then flatten to a single list</span>
+    <span class="n">response_policies</span> <span class="o">=</span> <span class="p">[</span><span class="n">response</span><span class="p">[</span><span class="s2">&quot;Policies&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">response</span> <span class="ow">in</span> <span class="n">response_iterator</span><span class="p">]</span>
+    <span class="n">policies</span> <span class="o">=</span> <span class="p">[</span><span class="n">lst</span> <span class="k">for</span> <span class="n">sublist</span> <span class="ow">in</span> <span class="n">response_policies</span> <span class="k">for</span> <span class="n">lst</span> <span class="ow">in</span> <span class="n">sublist</span><span class="p">]</span>
+
+    <span class="n">aws_policies</span> <span class="o">=</span> <span class="p">{</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;PolicyName&quot;</span><span class="p">]:</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;Arn&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">policies</span><span class="p">}</span>
+
+    <span class="n">policy_arn</span> <span class="o">=</span> <span class="n">aws_policies</span><span class="p">[</span><span class="n">policy</span><span class="p">]</span>
 
     <span class="k">return</span> <span class="n">BucketInfo</span><span class="p">(</span><span class="n">bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="n">policy</span><span class="p">,</span> <span class="n">policy_arn</span><span class="o">=</span><span class="n">policy_arn</span><span class="p">,</span> <span class="n">sse</span><span class="o">=</span><span class="n">sse</span><span class="p">)</span></div>
 
@@ -351,6 +398,11 @@
                 <span class="c1"># Pass exception to user</span>
                 <span class="k">raise</span> <span class="n">e</span>
 
+        <span class="c1"># Add the cloudknot tags to the bucket</span>
+        <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;s3&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">put_bucket_tagging</span><span class="p">(</span>
+            <span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">Tagging</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;TagSet&quot;</span><span class="p">:</span> <span class="n">get_tags</span><span class="p">(</span><span class="n">bucket</span><span class="p">)}</span>
+        <span class="p">)</span>
+
         <span class="k">if</span> <span class="n">policy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">policy</span> <span class="o">=</span> <span class="s2">&quot;cloudknot-bucket-access-&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())</span>
 
@@ -420,12 +472,18 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">s3_policy_doc</span> <span class="o">=</span> <span class="n">bucket_policy_document</span><span class="p">(</span><span class="n">bucket</span><span class="p">)</span>
 
-    <span class="c1"># Get the ARN of the policy</span>
-    <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;iam&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">list_policies</span><span class="p">(</span><span class="n">Scope</span><span class="o">=</span><span class="s2">&quot;Local&quot;</span><span class="p">,</span> <span class="n">PathPrefix</span><span class="o">=</span><span class="s2">&quot;/cloudknot/&quot;</span><span class="p">)</span>
+    <span class="c1"># Get all local policies with cloudknot prefix</span>
+    <span class="n">paginator</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;iam&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get_paginator</span><span class="p">(</span><span class="s2">&quot;list_policies&quot;</span><span class="p">)</span>
+    <span class="n">response_iterator</span> <span class="o">=</span> <span class="n">paginator</span><span class="o">.</span><span class="n">paginate</span><span class="p">(</span><span class="n">Scope</span><span class="o">=</span><span class="s2">&quot;Local&quot;</span><span class="p">,</span> <span class="n">PathPrefix</span><span class="o">=</span><span class="s2">&quot;/cloudknot/&quot;</span><span class="p">)</span>
 
-    <span class="n">policy_dict</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Policies&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="p">[</span><span class="s2">&quot;PolicyName&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">policy</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="c1"># response_iterator is a list of dicts. First convert to list of lists</span>
+    <span class="c1"># and then flatten to a single list</span>
+    <span class="n">response_policies</span> <span class="o">=</span> <span class="p">[</span><span class="n">response</span><span class="p">[</span><span class="s2">&quot;Policies&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">response</span> <span class="ow">in</span> <span class="n">response_iterator</span><span class="p">]</span>
+    <span class="n">policies</span> <span class="o">=</span> <span class="p">[</span><span class="n">lst</span> <span class="k">for</span> <span class="n">sublist</span> <span class="ow">in</span> <span class="n">response_policies</span> <span class="k">for</span> <span class="n">lst</span> <span class="ow">in</span> <span class="n">sublist</span><span class="p">]</span>
 
-    <span class="n">arn</span> <span class="o">=</span> <span class="n">policy_dict</span><span class="p">[</span><span class="s2">&quot;Arn&quot;</span><span class="p">]</span>
+    <span class="n">aws_policies</span> <span class="o">=</span> <span class="p">{</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;PolicyName&quot;</span><span class="p">]:</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;Arn&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">policies</span><span class="p">}</span>
+
+    <span class="n">arn</span> <span class="o">=</span> <span class="n">aws_policies</span><span class="p">[</span><span class="n">policy</span><span class="p">]</span>
 
     <span class="k">with</span> <span class="n">rlock</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
@@ -437,12 +495,15 @@
             <span class="p">)</span>
         <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;iam&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">LimitExceededException</span><span class="p">:</span>
             <span class="c1"># Too many policy versions. List policy versions and delete oldest</span>
-            <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;iam&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">list_policy_versions</span><span class="p">(</span><span class="n">PolicyArn</span><span class="o">=</span><span class="n">arn</span><span class="p">)</span>
+            <span class="n">paginator</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;iam&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get_paginator</span><span class="p">(</span><span class="s2">&quot;list_policy_versions&quot;</span><span class="p">)</span>
+            <span class="n">response_iterator</span> <span class="o">=</span> <span class="n">paginator</span><span class="o">.</span><span class="n">paginate</span><span class="p">(</span><span class="n">PolicyArn</span><span class="o">=</span><span class="n">arn</span><span class="p">)</span>
 
             <span class="c1"># Get non-default versions</span>
-            <span class="n">versions</span> <span class="o">=</span> <span class="p">[</span>
-                <span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Versions&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;IsDefaultVersion&quot;</span><span class="p">]</span>
-            <span class="p">]</span>
+            <span class="c1"># response_iterator is a list of dicts. First convert to list of</span>
+            <span class="c1"># lists. Then flatten to a single list and filter</span>
+            <span class="n">response_versions</span> <span class="o">=</span> <span class="p">[</span><span class="n">response</span><span class="p">[</span><span class="s2">&quot;Versions&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">response</span> <span class="ow">in</span> <span class="n">response_iterator</span><span class="p">]</span>
+            <span class="n">versions</span> <span class="o">=</span> <span class="p">[</span><span class="n">lst</span> <span class="k">for</span> <span class="n">sublist</span> <span class="ow">in</span> <span class="n">response_versions</span> <span class="k">for</span> <span class="n">lst</span> <span class="ow">in</span> <span class="n">sublist</span><span class="p">]</span>
+            <span class="n">versions</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">versions</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;IsDefaultVersion&quot;</span><span class="p">]]</span>
 
             <span class="c1"># Get the oldest version and delete it</span>
             <span class="n">oldest</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">versions</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">ver</span><span class="p">:</span> <span class="n">ver</span><span class="p">[</span><span class="s2">&quot;CreateDate&quot;</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
@@ -564,7 +625,6 @@
         <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;ecs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s2">&quot;ecs&quot;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span>
         <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;ec2&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s2">&quot;ec2&quot;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span>
         <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;iam&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s2">&quot;iam&quot;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span>
-        <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;sts&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s2">&quot;sts&quot;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span>
         <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;s3&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s2">&quot;s3&quot;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span></div>
 
 
@@ -628,7 +688,12 @@
 
 <span class="nd">@registered</span>
 <span class="k">def</span> <span class="nf">get_user</span><span class="p">():</span>
-    <span class="k">return</span> <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;sts&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get_caller_identity</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Arn&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">user_info</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;iam&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get_user</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;User&quot;</span><span class="p">)</span>
+    <span class="n">username</span> <span class="o">=</span> <span class="n">user_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;UserName&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">username</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">username</span> <span class="o">=</span> <span class="n">user_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Arn&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">username</span>
 
 
 <div class="viewcode-block" id="get_profile"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.get_profile.html#cloudknot.aws.get_profile">[docs]</a><span class="nd">@registered</span>
@@ -740,9 +805,6 @@
         <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;iam&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
             <span class="s2">&quot;iam&quot;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">(),</span> <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span>
         <span class="p">)</span>
-        <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;sts&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
-            <span class="s2">&quot;sts&quot;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">(),</span> <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span>
-        <span class="p">)</span>
         <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;s3&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
             <span class="s2">&quot;s3&quot;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">(),</span> <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span>
         <span class="p">)</span></div>
@@ -767,9 +829,6 @@
     <span class="p">),</span>
     <span class="s2">&quot;iam&quot;</span><span class="p">:</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
         <span class="s2">&quot;iam&quot;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
-    <span class="p">),</span>
-    <span class="s2">&quot;sts&quot;</span><span class="p">:</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
-        <span class="s2">&quot;sts&quot;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
     <span class="p">),</span>
     <span class="s2">&quot;s3&quot;</span><span class="p">:</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
         <span class="s2">&quot;s3&quot;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">()</span>
@@ -810,7 +869,7 @@
 <span class="k">class</span> <span class="nc">ResourceExistsException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Exception indicating that the requested AWS resource already exists&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">resource_id</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">resource_id</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
 
 <span class="sd">        Parameters</span>
@@ -830,7 +889,7 @@
 <span class="k">class</span> <span class="nc">ResourceDoesNotExistException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Exception indicating that the requested AWS resource does not exists&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">resource_id</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">resource_id</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
 
 <span class="sd">        Parameters</span>
@@ -850,7 +909,7 @@
 <span class="k">class</span> <span class="nc">ResourceClobberedException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Exception indicating that this AWS resource has been clobbered&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">resource_id</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">resource_id</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
 
 <span class="sd">        Parameters</span>
@@ -870,7 +929,7 @@
 <span class="k">class</span> <span class="nc">CannotDeleteResourceException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Exception indicating that an AWS resource cannot be deleted&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">resource_id</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">resource_id</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
 
 <span class="sd">        Parameters</span>
@@ -890,7 +949,7 @@
 <span class="k">class</span> <span class="nc">CannotCreateResourceException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Exception indicating that an AWS resource cannot be created&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
 
 <span class="sd">        Parameters</span>
@@ -906,7 +965,7 @@
 <span class="k">class</span> <span class="nc">RegionException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Exception indicating the current region is not this resource&#39;s region&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource_region</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource_region</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
 
 <span class="sd">        Parameters</span>
@@ -929,7 +988,7 @@
 <span class="k">class</span> <span class="nc">ProfileException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Exception indicating the current profile isn&#39;t the resource&#39;s profile&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource_profile</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource_profile</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
 
 <span class="sd">        Parameters</span>
@@ -956,7 +1015,7 @@
 <span class="sd">    the requested time period</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize the Exception&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">CKTimeoutError</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="s2">&quot;The job with job-id </span><span class="si">{jid:s}</span><span class="s2"> did not finish within the &quot;</span>
@@ -970,7 +1029,7 @@
 <span class="k">class</span> <span class="nc">BatchJobFailedError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Error indicating an AWS Batch job failed&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
 
 <span class="sd">        Parameters</span>
@@ -989,7 +1048,7 @@
 <span class="k">class</span> <span class="nc">CloudknotConfigurationError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Error indicating an cloudknot has not been properly configured&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config_file</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config_file</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
 
 <span class="sd">        Parameters</span>
@@ -1011,7 +1070,7 @@
 <span class="k">class</span> <span class="nc">CloudknotInputError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Error indicating an input argument has an invalid value&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
 
 <span class="sd">        Parameters</span>
@@ -1027,7 +1086,7 @@
 <span class="k">class</span> <span class="nc">NamedObject</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Base class for building objects with name property&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize a base class with a name</span>
 
 <span class="sd">        Parameters</span>
@@ -1111,7 +1170,7 @@
       &copy;2017, Adam Richie-Halford, Ariel Rokem.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

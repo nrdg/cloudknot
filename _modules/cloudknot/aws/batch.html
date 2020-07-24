@@ -1,18 +1,19 @@
 
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
     <meta charset="utf-8" />
-    <title>cloudknot.aws.batch &#8212; cloudknot 0.1 documentation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cloudknot.aws.batch &#8212; cloudknot 0.4.2 documentation</title>
     <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/collapsible.css" type="text/css" />
-    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-    <script type="text/javascript" src="../../../_static/jquery.js"></script>
-    <script type="text/javascript" src="../../../_static/underscore.js"></script>
-    <script type="text/javascript" src="../../../_static/doctools.js"></script>
-    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
    
@@ -36,7 +37,7 @@
 
 
 <p>
-<iframe src="https://ghbtns.com/github-btn.html?user=richford&repo=cloudknot&type=star&count=true&size=large&v=2"
+<iframe src="https://ghbtns.com/github-btn.html?user=nrdg&repo=cloudknot&type=star&count=true&size=large&v=2"
   allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
 </p>
 
@@ -49,22 +50,22 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">getting started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../documentation.html">documentation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../faq.html">faq</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/tree/master/examples">examples</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot">code</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/issues">bugs</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/nrdg/cloudknot/tree/master/examples">examples</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/nrdg/cloudknot">code</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/nrdg/cloudknot/issues">bugs</a></li>
 </ul>
 
 
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../../search.html" method="get">
-      <input type="text" name="q" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
       <input type="submit" value="Go" />
     </form>
     </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="documentwrapper">
@@ -74,18 +75,22 @@
           <div class="body" role="main">
             
   <h1>Source code for cloudknot.aws.batch</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">cloudknot.config</span>
 <span class="kn">import</span> <span class="nn">cloudpickle</span>
-<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">pickle</span>
 <span class="kn">import</span> <span class="nn">six</span>
 <span class="kn">import</span> <span class="nn">time</span>
-<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">namedtuple</span>
 
-<span class="kn">from</span> <span class="nn">.base_classes</span> <span class="k">import</span> <span class="p">(</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">namedtuple</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span>
+
+<span class="kn">from</span> <span class="nn">.base_classes</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">NamedObject</span><span class="p">,</span>
     <span class="n">clients</span><span class="p">,</span>
     <span class="n">ResourceDoesNotExistException</span><span class="p">,</span>
@@ -107,12 +112,86 @@
 <span class="n">mod_logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
+<span class="k">def</span> <span class="nf">_exists_already</span><span class="p">(</span><span class="n">job_id</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Check if an AWS batch job exists already</span>
+
+<span class="sd">    If batch job exists, return namedtuple with batch job info.</span>
+<span class="sd">    Otherwise, set the namedtuple&#39;s `exists` field to</span>
+<span class="sd">    `False`. The remaining fields default to `None`.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    namedtuple JobExists</span>
+<span class="sd">        A namedtuple with fields</span>
+<span class="sd">        [&#39;exists&#39;, &#39;name&#39;, &#39;job_id&#39;, &#39;job_queue_arn&#39;, &#39;job_definition&#39;,</span>
+<span class="sd">         &#39;environment_variables&#39;, &#39;array_job&#39;]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># define a namedtuple for return value type</span>
+    <span class="n">JobExists</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span>
+        <span class="s2">&quot;JobExists&quot;</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="s2">&quot;exists&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;job_id&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;job_queue_arn&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;job_definition&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;environment_variables&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;array_job&quot;</span><span class="p">,</span>
+        <span class="p">],</span>
+    <span class="p">)</span>
+    <span class="c1"># make all but the first value default to None</span>
+    <span class="n">JobExists</span><span class="o">.</span><span class="fm">__new__</span><span class="o">.</span><span class="vm">__defaults__</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span><span class="p">,)</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">JobExists</span><span class="o">.</span><span class="n">_fields</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">describe_jobs</span><span class="p">(</span><span class="n">jobs</span><span class="o">=</span><span class="p">[</span><span class="n">job_id</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;jobs&quot;</span><span class="p">):</span>
+        <span class="n">job</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;jobs&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">job</span><span class="p">[</span><span class="s2">&quot;jobName&quot;</span><span class="p">]</span>
+        <span class="n">job_queue_arn</span> <span class="o">=</span> <span class="n">job</span><span class="p">[</span><span class="s2">&quot;jobQueue&quot;</span><span class="p">]</span>
+        <span class="n">job_def_arn</span> <span class="o">=</span> <span class="n">job</span><span class="p">[</span><span class="s2">&quot;jobDefinition&quot;</span><span class="p">]</span>
+        <span class="n">environment_variables</span> <span class="o">=</span> <span class="n">job</span><span class="p">[</span><span class="s2">&quot;container&quot;</span><span class="p">][</span><span class="s2">&quot;environment&quot;</span><span class="p">]</span>
+
+        <span class="n">array_job</span> <span class="o">=</span> <span class="s2">&quot;arrayProperties&quot;</span> <span class="ow">in</span> <span class="n">job</span>
+
+        <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">describe_job_definitions</span><span class="p">(</span>
+            <span class="n">jobDefinitions</span><span class="o">=</span><span class="p">[</span><span class="n">job_def_arn</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">job_def</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;jobDefinitions&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">job_def_name</span> <span class="o">=</span> <span class="n">job_def</span><span class="p">[</span><span class="s2">&quot;jobDefinitionName&quot;</span><span class="p">]</span>
+        <span class="n">job_def_env</span> <span class="o">=</span> <span class="n">job_def</span><span class="p">[</span><span class="s2">&quot;containerProperties&quot;</span><span class="p">][</span><span class="s2">&quot;environment&quot;</span><span class="p">]</span>
+        <span class="n">bucket_env</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">job_def_env</span> <span class="k">if</span> <span class="n">e</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;CLOUDKNOT_JOBS_S3_BUCKET&quot;</span><span class="p">]</span>
+        <span class="n">output_bucket</span> <span class="o">=</span> <span class="n">bucket_env</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;value&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">bucket_env</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="n">job_def_retries</span> <span class="o">=</span> <span class="n">job_def</span><span class="p">[</span><span class="s2">&quot;retryStrategy&quot;</span><span class="p">][</span><span class="s2">&quot;attempts&quot;</span><span class="p">]</span>
+
+        <span class="n">JobDef</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s2">&quot;JobDef&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;arn&quot;</span><span class="p">,</span> <span class="s2">&quot;output_bucket&quot;</span><span class="p">,</span> <span class="s2">&quot;retries&quot;</span><span class="p">])</span>
+        <span class="n">job_definition</span> <span class="o">=</span> <span class="n">JobDef</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">job_def_name</span><span class="p">,</span>
+            <span class="n">arn</span><span class="o">=</span><span class="n">job_def_arn</span><span class="p">,</span>
+            <span class="n">output_bucket</span><span class="o">=</span><span class="n">output_bucket</span><span class="p">,</span>
+            <span class="n">retries</span><span class="o">=</span><span class="n">job_def_retries</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Job </span><span class="si">{id:s}</span><span class="s2"> exists.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">job_id</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">JobExists</span><span class="p">(</span>
+            <span class="n">exists</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">job_id</span><span class="o">=</span><span class="n">job_id</span><span class="p">,</span>
+            <span class="n">job_queue_arn</span><span class="o">=</span><span class="n">job_queue_arn</span><span class="p">,</span>
+            <span class="n">job_definition</span><span class="o">=</span><span class="n">job_definition</span><span class="p">,</span>
+            <span class="n">environment_variables</span><span class="o">=</span><span class="n">environment_variables</span><span class="p">,</span>
+            <span class="n">array_job</span><span class="o">=</span><span class="n">array_job</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">JobExists</span><span class="p">(</span><span class="n">exists</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
 <div class="viewcode-block" id="BatchJob"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.BatchJob.html#cloudknot.aws.BatchJob">[docs]</a><span class="nd">@registered</span>
 <span class="k">class</span> <span class="nc">BatchJob</span><span class="p">(</span><span class="n">NamedObject</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Class for defining AWS Batch Job&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">job_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -177,7 +256,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_starmap</span> <span class="o">=</span> <span class="n">starmap</span>
 
         <span class="k">if</span> <span class="n">job_id</span><span class="p">:</span>
-            <span class="n">job</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exists_already</span><span class="p">(</span><span class="n">job_id</span><span class="o">=</span><span class="n">job_id</span><span class="p">)</span>
+            <span class="n">job</span> <span class="o">=</span> <span class="n">_exists_already</span><span class="p">(</span><span class="n">job_id</span><span class="o">=</span><span class="n">job_id</span><span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">job</span><span class="o">.</span><span class="n">exists</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="n">ResourceDoesNotExistException</span><span class="p">(</span>
                     <span class="s2">&quot;jobId </span><span class="si">{id:s}</span><span class="s2"> does not exists&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">job_id</span><span class="p">),</span> <span class="n">job_id</span>
@@ -293,81 +372,6 @@
     <span class="k">def</span> <span class="nf">job_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;This job&#39;s AWS jobID&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_id</span>
-
-    <span class="k">def</span> <span class="nf">_exists_already</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Check if an AWS batch job exists already</span>
-
-<span class="sd">        If batch job exists, return namedtuple with batch job info.</span>
-<span class="sd">        Otherwise, set the namedtuple&#39;s `exists` field to</span>
-<span class="sd">        `False`. The remaining fields default to `None`.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        namedtuple JobExists</span>
-<span class="sd">            A namedtuple with fields</span>
-<span class="sd">            [&#39;exists&#39;, &#39;name&#39;, &#39;job_id&#39;, &#39;job_queue_arn&#39;, &#39;job_definition&#39;,</span>
-<span class="sd">             &#39;environment_variables&#39;, &#39;array_job&#39;]</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># define a namedtuple for return value type</span>
-        <span class="n">JobExists</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span>
-            <span class="s2">&quot;JobExists&quot;</span><span class="p">,</span>
-            <span class="p">[</span>
-                <span class="s2">&quot;exists&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;name&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;job_id&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;job_queue_arn&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;job_definition&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;environment_variables&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;array_job&quot;</span><span class="p">,</span>
-            <span class="p">],</span>
-        <span class="p">)</span>
-        <span class="c1"># make all but the first value default to None</span>
-        <span class="n">JobExists</span><span class="o">.</span><span class="fm">__new__</span><span class="o">.</span><span class="vm">__defaults__</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span><span class="p">,)</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">JobExists</span><span class="o">.</span><span class="n">_fields</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-
-        <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">describe_jobs</span><span class="p">(</span><span class="n">jobs</span><span class="o">=</span><span class="p">[</span><span class="n">job_id</span><span class="p">])</span>
-
-        <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;jobs&quot;</span><span class="p">):</span>
-            <span class="n">job</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;jobs&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="n">name</span> <span class="o">=</span> <span class="n">job</span><span class="p">[</span><span class="s2">&quot;jobName&quot;</span><span class="p">]</span>
-            <span class="n">job_queue_arn</span> <span class="o">=</span> <span class="n">job</span><span class="p">[</span><span class="s2">&quot;jobQueue&quot;</span><span class="p">]</span>
-            <span class="n">job_def_arn</span> <span class="o">=</span> <span class="n">job</span><span class="p">[</span><span class="s2">&quot;jobDefinition&quot;</span><span class="p">]</span>
-            <span class="n">environment_variables</span> <span class="o">=</span> <span class="n">job</span><span class="p">[</span><span class="s2">&quot;container&quot;</span><span class="p">][</span><span class="s2">&quot;environment&quot;</span><span class="p">]</span>
-
-            <span class="n">array_job</span> <span class="o">=</span> <span class="s2">&quot;arrayProperties&quot;</span> <span class="ow">in</span> <span class="n">job</span>
-
-            <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">describe_job_definitions</span><span class="p">(</span>
-                <span class="n">jobDefinitions</span><span class="o">=</span><span class="p">[</span><span class="n">job_def_arn</span><span class="p">]</span>
-            <span class="p">)</span>
-            <span class="n">job_def</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;jobDefinitions&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="n">job_def_name</span> <span class="o">=</span> <span class="n">job_def</span><span class="p">[</span><span class="s2">&quot;jobDefinitionName&quot;</span><span class="p">]</span>
-            <span class="n">job_def_env</span> <span class="o">=</span> <span class="n">job_def</span><span class="p">[</span><span class="s2">&quot;containerProperties&quot;</span><span class="p">][</span><span class="s2">&quot;environment&quot;</span><span class="p">]</span>
-            <span class="n">bucket_env</span> <span class="o">=</span> <span class="p">[</span>
-                <span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">job_def_env</span> <span class="k">if</span> <span class="n">e</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;CLOUDKNOT_JOBS_S3_BUCKET&quot;</span>
-            <span class="p">]</span>
-            <span class="n">output_bucket</span> <span class="o">=</span> <span class="n">bucket_env</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;value&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">bucket_env</span> <span class="k">else</span> <span class="kc">None</span>
-            <span class="n">job_def_retries</span> <span class="o">=</span> <span class="n">job_def</span><span class="p">[</span><span class="s2">&quot;retryStrategy&quot;</span><span class="p">][</span><span class="s2">&quot;attempts&quot;</span><span class="p">]</span>
-
-            <span class="n">JobDef</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s2">&quot;JobDef&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;arn&quot;</span><span class="p">,</span> <span class="s2">&quot;output_bucket&quot;</span><span class="p">,</span> <span class="s2">&quot;retries&quot;</span><span class="p">])</span>
-            <span class="n">job_definition</span> <span class="o">=</span> <span class="n">JobDef</span><span class="p">(</span>
-                <span class="n">name</span><span class="o">=</span><span class="n">job_def_name</span><span class="p">,</span>
-                <span class="n">arn</span><span class="o">=</span><span class="n">job_def_arn</span><span class="p">,</span>
-                <span class="n">output_bucket</span><span class="o">=</span><span class="n">output_bucket</span><span class="p">,</span>
-                <span class="n">retries</span><span class="o">=</span><span class="n">job_def_retries</span><span class="p">,</span>
-            <span class="p">)</span>
-
-            <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Job </span><span class="si">{id:s}</span><span class="s2"> exists.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">job_id</span><span class="p">))</span>
-
-            <span class="k">return</span> <span class="n">JobExists</span><span class="p">(</span>
-                <span class="n">exists</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
-                <span class="n">job_id</span><span class="o">=</span><span class="n">job_id</span><span class="p">,</span>
-                <span class="n">job_queue_arn</span><span class="o">=</span><span class="n">job_queue_arn</span><span class="p">,</span>
-                <span class="n">job_definition</span><span class="o">=</span><span class="n">job_definition</span><span class="p">,</span>
-                <span class="n">environment_variables</span><span class="o">=</span><span class="n">environment_variables</span><span class="p">,</span>
-                <span class="n">array_job</span><span class="o">=</span><span class="n">array_job</span><span class="p">,</span>
-            <span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">JobExists</span><span class="p">(</span><span class="n">exists</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_create</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c1"># pragma: nocover</span>
         <span class="sd">&quot;&quot;&quot;Create AWS batch job using instance parameters</span>
@@ -561,7 +565,7 @@
 
         <span class="k">return</span> <span class="n">pickle</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Body&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
 
-<div class="viewcode-block" id="BatchJob.result"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.BatchJob.html#cloudknot.aws.BatchJob.result">[docs]</a>    <span class="k">def</span> <span class="nf">result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return the result of the latest attempt</span>
 
 <span class="sd">        If the call hasn&#39;t yet completed then this method will wait up to</span>
@@ -603,9 +607,9 @@
                     <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">))</span>
                 <span class="p">]</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collect_array_job_result</span><span class="p">()</span></div>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collect_array_job_result</span><span class="p">()</span>
 
-<div class="viewcode-block" id="BatchJob.terminate"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.BatchJob.html#cloudknot.aws.BatchJob.terminate">[docs]</a>    <span class="k">def</span> <span class="nf">terminate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reason</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">terminate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reason</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Kill AWS batch job using instance parameter `self.job_id`</span>
 
 <span class="sd">        kill() combines the cancel and terminate AWS CLI commands. Jobs that</span>
@@ -647,9 +651,9 @@
                 <span class="s2">&quot;Terminated job </span><span class="si">{name:s}</span><span class="s2"> with jobID </span><span class="si">{job_id:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                     <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">job_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">job_id</span>
                 <span class="p">)</span>
-            <span class="p">)</span></div>
+            <span class="p">)</span>
 
-<div class="viewcode-block" id="BatchJob.clobber"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.BatchJob.html#cloudknot.aws.BatchJob.clobber">[docs]</a>    <span class="k">def</span> <span class="nf">clobber</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">clobber</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Kill an batch job and remove it&#39;s info from config&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">clobbered</span><span class="p">:</span>
             <span class="k">return</span>
@@ -665,7 +669,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_clobbered</span> <span class="o">=</span> <span class="kc">True</span>
 
         <span class="c1"># Remove this job from the list of jobs in the config file</span>
-        <span class="n">cloudknot</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">remove_resource</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_section_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_id</span><span class="p">)</span></div></div>
+        <span class="n">cloudknot</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">remove_resource</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_section_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_id</span><span class="p">)</span></div>
 </pre></div>
 
           </div>
@@ -679,7 +683,7 @@
       &copy;2017, Adam Richie-Halford, Ariel Rokem.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

@@ -1,18 +1,19 @@
 
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
     <meta charset="utf-8" />
-    <title>config Module &#8212; cloudknot 0.1 documentation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>config Module &#8212; cloudknot 0.4.2 documentation</title>
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../_static/collapsible.css" type="text/css" />
-    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-    <script type="text/javascript" src="../_static/jquery.js"></script>
-    <script type="text/javascript" src="../_static/underscore.js"></script>
-    <script type="text/javascript" src="../_static/doctools.js"></script>
-    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Frequently Asked Questions" href="../faq.html" />
@@ -38,7 +39,7 @@
 
 
 <p>
-<iframe src="https://ghbtns.com/github-btn.html?user=richford&repo=cloudknot&type=star&count=true&size=large&v=2"
+<iframe src="https://ghbtns.com/github-btn.html?user=nrdg&repo=cloudknot&type=star&count=true&size=large&v=2"
   allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
 </p>
 
@@ -62,22 +63,22 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../faq.html">faq</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/tree/master/examples">examples</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot">code</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/issues">bugs</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/nrdg/cloudknot/tree/master/examples">examples</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/nrdg/cloudknot">code</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/nrdg/cloudknot/issues">bugs</a></li>
 </ul>
 
 
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
       <input type="submit" value="Go" />
     </form>
     </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="documentwrapper">
@@ -95,55 +96,6 @@ verifying the section headers.</p>
 <p>Ideally, the cloudknot user should never have to use these functions to
 interact with the cloudknot config file. Each cloudknot object maintains
 references to its state in the config file.</p>
-<dl class="function">
-<dt id="cloudknot.config.get_config_file">
-<code class="descclassname">cloudknot.config.</code><code class="descname">get_config_file</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cloudknot/config.html#get_config_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.config.get_config_file" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get the path to the cloudknot config file</p>
-<p>First, check for the CLOUDKNOT_CONFIG_FILE environment variable.
-If that fails, use ~/.aws/cloudknot. If ~/.aws/cloudknot doesn’t
-exist, create it.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p><strong>config_file</strong> (<em>string</em>) – Path to cloudknot config file</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="function">
-<dt id="cloudknot.config.add_resource">
-<code class="descclassname">cloudknot.config.</code><code class="descname">add_resource</code><span class="sig-paren">(</span><em>section</em>, <em>option</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cloudknot/config.html#add_resource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.config.add_resource" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add a resource to the cloudknot config file</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>section</strong> (<em>string</em>) – Config section to which to add option:value</p></li>
-<li><p><strong>option</strong> (<em>string</em>) – Config option to add (i.e. the key in the key:value pair)</p></li>
-<li><p><strong>value</strong> (<em>string</em>) – Config value to add (i.e. second item in key:value pair)</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="function">
-<dt id="cloudknot.config.remove_resource">
-<code class="descclassname">cloudknot.config.</code><code class="descname">remove_resource</code><span class="sig-paren">(</span><em>section</em>, <em>option</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cloudknot/config.html#remove_resource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.config.remove_resource" title="Permalink to this definition">¶</a></dt>
-<dd><p>Remove a resource from the cloudknot config file</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>section</strong> (<em>string</em>) – Config section from which to remove option</p></li>
-<li><p><strong>option</strong> (<em>string</em>) – Config option to remove (i.e. the key in the key:value pair)</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="function">
-<dt id="cloudknot.config.verify_sections">
-<code class="descclassname">cloudknot.config.</code><code class="descname">verify_sections</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cloudknot/config.html#verify_sections"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.config.verify_sections" title="Permalink to this definition">¶</a></dt>
-<dd><p>Verify config sections, remove ones that don’t belong</p>
-</dd></dl>
-
 </div>
 
 
@@ -158,7 +110,7 @@ exist, create it.</p>
       &copy;2017, Adam Richie-Halford, Ariel Rokem.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

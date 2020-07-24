@@ -1,18 +1,19 @@
 
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
     <meta charset="utf-8" />
-    <title>cloudknot.aws.ecr &#8212; cloudknot 0.1 documentation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cloudknot.aws.ecr &#8212; cloudknot 0.4.2 documentation</title>
     <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/collapsible.css" type="text/css" />
-    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-    <script type="text/javascript" src="../../../_static/jquery.js"></script>
-    <script type="text/javascript" src="../../../_static/underscore.js"></script>
-    <script type="text/javascript" src="../../../_static/doctools.js"></script>
-    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
    
@@ -36,7 +37,7 @@
 
 
 <p>
-<iframe src="https://ghbtns.com/github-btn.html?user=richford&repo=cloudknot&type=star&count=true&size=large&v=2"
+<iframe src="https://ghbtns.com/github-btn.html?user=nrdg&repo=cloudknot&type=star&count=true&size=large&v=2"
   allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
 </p>
 
@@ -49,22 +50,22 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">getting started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../documentation.html">documentation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../faq.html">faq</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/tree/master/examples">examples</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot">code</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/issues">bugs</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/nrdg/cloudknot/tree/master/examples">examples</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/nrdg/cloudknot">code</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/nrdg/cloudknot/issues">bugs</a></li>
 </ul>
 
 
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../../search.html" method="get">
-      <input type="text" name="q" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
       <input type="submit" value="Go" />
     </form>
     </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="documentwrapper">
@@ -74,13 +75,18 @@
           <div class="body" role="main">
             
   <h1>Source code for cloudknot.aws.ecr</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span>
 
+<span class="kn">import</span> <span class="nn">botocore</span>
 <span class="kn">import</span> <span class="nn">cloudknot.config</span>
 <span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">namedtuple</span>
 
-<span class="kn">from</span> <span class="nn">.base_classes</span> <span class="k">import</span> <span class="n">NamedObject</span><span class="p">,</span> <span class="n">clients</span><span class="p">,</span> <span class="n">get_ecr_repo</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">namedtuple</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span>
+
+<span class="kn">from</span> <span class="nn">.base_classes</span> <span class="kn">import</span> <span class="n">NamedObject</span><span class="p">,</span> <span class="n">clients</span><span class="p">,</span> <span class="n">get_ecr_repo</span><span class="p">,</span> <span class="n">get_tags</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[]</span>
 
@@ -98,7 +104,7 @@
 <span class="k">class</span> <span class="nc">DockerRepo</span><span class="p">(</span><span class="n">NamedObject</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Class for creating and managing remote docker repositories&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize a Docker repo object.</span>
 
 <span class="sd">        User may provide only `name` input, indicating that they would</span>
@@ -140,37 +146,74 @@
 <span class="sd">        RepoInfo : namedtuple</span>
 <span class="sd">            a namedtuple with fields name, uri, and registry_id</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Flake8 will see that repo_arn is set in the try/except clauses</span>
+        <span class="c1"># and claim that we are referencing it before assignment below</span>
+        <span class="c1"># so we predefine it here. Also, it should be predefined as a</span>
+        <span class="c1"># string to pass parameter validation by boto.</span>
+        <span class="n">repo_arn</span> <span class="o">=</span> <span class="s2">&quot;test&quot;</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="c1"># If repo exists, retrieve its info</span>
             <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;ecr&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">describe_repositories</span><span class="p">(</span><span class="n">repositoryNames</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">])</span>
 
+            <span class="n">repo_arn</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;repositories&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;repositoryArn&quot;</span><span class="p">]</span>
             <span class="n">repo_name</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;repositories&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;repositoryName&quot;</span><span class="p">]</span>
             <span class="n">repo_uri</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;repositories&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;repositoryUri&quot;</span><span class="p">]</span>
             <span class="n">repo_registry_id</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;repositories&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;registryId&quot;</span><span class="p">]</span>
-
-            <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                <span class="s2">&quot;Repository </span><span class="si">{name:s}</span><span class="s2"> already exists at &quot;</span>
-                <span class="s2">&quot;</span><span class="si">{uri:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">uri</span><span class="o">=</span><span class="n">repo_uri</span><span class="p">)</span>
-            <span class="p">)</span>
+            <span class="n">repo_created</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;ecr&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">RepositoryNotFoundException</span><span class="p">:</span>
             <span class="c1"># If it doesn&#39;t exists already, then create it</span>
             <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;ecr&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">create_repository</span><span class="p">(</span><span class="n">repositoryName</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
+            <span class="n">repo_arn</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;repository&quot;</span><span class="p">][</span><span class="s2">&quot;repositoryArn&quot;</span><span class="p">]</span>
             <span class="n">repo_name</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;repository&quot;</span><span class="p">][</span><span class="s2">&quot;repositoryName&quot;</span><span class="p">]</span>
             <span class="n">repo_uri</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;repository&quot;</span><span class="p">][</span><span class="s2">&quot;repositoryUri&quot;</span><span class="p">]</span>
             <span class="n">repo_registry_id</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;repository&quot;</span><span class="p">][</span><span class="s2">&quot;registryId&quot;</span><span class="p">]</span>
+            <span class="n">repo_created</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="n">botocore</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">ClientError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">error_code</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">response</span><span class="p">[</span><span class="s2">&quot;Error&quot;</span><span class="p">][</span><span class="s2">&quot;Code&quot;</span><span class="p">]</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">response</span><span class="p">[</span><span class="s2">&quot;Error&quot;</span><span class="p">][</span><span class="s2">&quot;Message&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">error_code</span> <span class="o">==</span> <span class="s2">&quot;RepositoryNotFoundException&quot;</span>
+                <span class="ow">or</span> <span class="s2">&quot;RepositoryNotFoundException&quot;</span> <span class="ow">in</span> <span class="n">message</span>
+            <span class="p">):</span>
+                <span class="c1"># If it doesn&#39;t exists already, then create it</span>
+                <span class="n">response</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;ecr&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">create_repository</span><span class="p">(</span><span class="n">repositoryName</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
+                <span class="n">repo_arn</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;repository&quot;</span><span class="p">][</span><span class="s2">&quot;repositoryArn&quot;</span><span class="p">]</span>
+                <span class="n">repo_name</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;repository&quot;</span><span class="p">][</span><span class="s2">&quot;repositoryName&quot;</span><span class="p">]</span>
+                <span class="n">repo_uri</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;repository&quot;</span><span class="p">][</span><span class="s2">&quot;repositoryUri&quot;</span><span class="p">]</span>
+                <span class="n">repo_registry_id</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;repository&quot;</span><span class="p">][</span><span class="s2">&quot;registryId&quot;</span><span class="p">]</span>
+                <span class="n">repo_created</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="n">repo_created</span><span class="p">:</span>
             <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
                 <span class="s2">&quot;Created repository </span><span class="si">{name:s}</span><span class="s2"> at </span><span class="si">{uri:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                     <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">uri</span><span class="o">=</span><span class="n">repo_uri</span>
                 <span class="p">)</span>
             <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;Repository </span><span class="si">{name:s}</span><span class="s2"> already exists at &quot;</span>
+                <span class="s2">&quot;</span><span class="si">{uri:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">uri</span><span class="o">=</span><span class="n">repo_uri</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;ecr&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">tag_resource</span><span class="p">(</span><span class="n">resourceArn</span><span class="o">=</span><span class="n">repo_arn</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="n">get_tags</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">NotImplementedError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">moto_msg</span> <span class="o">=</span> <span class="s2">&quot;The tag_resource action has not been implemented&quot;</span>
+            <span class="k">if</span> <span class="n">moto_msg</span> <span class="ow">in</span> <span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">:</span>
+                <span class="c1"># This exception is here for compatibility with moto</span>
+                <span class="c1"># testing since the tag_resource action has not been</span>
+                <span class="c1"># implemented in moto. Simply move on.</span>
+                <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">e</span>
 
         <span class="c1"># Define and return namedtuple with repo info</span>
         <span class="n">RepoInfo</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s2">&quot;RepoInfo&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;uri&quot;</span><span class="p">,</span> <span class="s2">&quot;registry_id&quot;</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">RepoInfo</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">repo_name</span><span class="p">,</span> <span class="n">uri</span><span class="o">=</span><span class="n">repo_uri</span><span class="p">,</span> <span class="n">registry_id</span><span class="o">=</span><span class="n">repo_registry_id</span><span class="p">)</span>
 
-<div class="viewcode-block" id="DockerRepo.clobber"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.DockerRepo.html#cloudknot.aws.DockerRepo.clobber">[docs]</a>    <span class="k">def</span> <span class="nf">clobber</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">clobber</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Delete this remote repository&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">clobbered</span><span class="p">:</span>
             <span class="k">return</span>
@@ -188,6 +231,14 @@
             <span class="k">except</span> <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;ecr&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">RepositoryNotFoundException</span><span class="p">:</span>
                 <span class="c1"># It doesn&#39;t exist anyway, so carry on</span>
                 <span class="k">pass</span>
+            <span class="k">except</span> <span class="n">botocore</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">ClientError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">error_code</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">response</span><span class="p">[</span><span class="s2">&quot;Error&quot;</span><span class="p">][</span><span class="s2">&quot;Code&quot;</span><span class="p">]</span>
+                <span class="n">message</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">response</span><span class="p">[</span><span class="s2">&quot;Error&quot;</span><span class="p">][</span><span class="s2">&quot;Message&quot;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="n">error_code</span> <span class="o">==</span> <span class="s2">&quot;RepositoryNotFoundException&quot;</span>
+                    <span class="ow">or</span> <span class="s2">&quot;RepositoryNotFoundException&quot;</span> <span class="ow">in</span> <span class="n">message</span>
+                <span class="p">):</span>
+                    <span class="k">pass</span>
 
         <span class="c1"># Remove from the config file</span>
         <span class="n">cloudknot</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">remove_resource</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_section_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
@@ -196,7 +247,7 @@
         <span class="c1"># preventing subsequent method calls</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_clobbered</span> <span class="o">=</span> <span class="kc">True</span>
 
-        <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Clobbered docker repo </span><span class="si">{name:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">))</span></div></div>
+        <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Clobbered docker repo </span><span class="si">{name:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">))</span></div>
 </pre></div>
 
           </div>
@@ -210,7 +261,7 @@
       &copy;2017, Adam Richie-Halford, Ariel Rokem.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

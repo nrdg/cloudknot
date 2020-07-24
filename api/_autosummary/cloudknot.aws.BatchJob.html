@@ -1,18 +1,19 @@
 
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
     <meta charset="utf-8" />
-    <title>cloudknot.aws.BatchJob &#8212; cloudknot 0.1 documentation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cloudknot.aws.BatchJob &#8212; cloudknot 0.4.2 documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/collapsible.css" type="text/css" />
-    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
-    <script type="text/javascript" src="../../_static/jquery.js"></script>
-    <script type="text/javascript" src="../../_static/underscore.js"></script>
-    <script type="text/javascript" src="../../_static/doctools.js"></script>
-    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="cloudknot.aws.get_region" href="cloudknot.aws.get_region.html" />
@@ -38,7 +39,7 @@
 
 
 <p>
-<iframe src="https://ghbtns.com/github-btn.html?user=richford&repo=cloudknot&type=star&count=true&size=large&v=2"
+<iframe src="https://ghbtns.com/github-btn.html?user=nrdg&repo=cloudknot&type=star&count=true&size=large&v=2"
   allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
 </p>
 
@@ -72,22 +73,22 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../faq.html">faq</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/tree/master/examples">examples</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot">code</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/issues">bugs</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/nrdg/cloudknot/tree/master/examples">examples</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/nrdg/cloudknot">code</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/nrdg/cloudknot/issues">bugs</a></li>
 </ul>
 
 
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
       <input type="submit" value="Go" />
     </form>
     </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="documentwrapper">
@@ -98,9 +99,9 @@
             
   <div class="section" id="cloudknot-aws-batchjob">
 <h1>cloudknot.aws.BatchJob<a class="headerlink" href="#cloudknot-aws-batchjob" title="Permalink to this headline">¶</a></h1>
-<dl class="class">
+<dl class="py class">
 <dt id="cloudknot.aws.BatchJob">
-<em class="property">class </em><code class="descclassname">cloudknot.aws.</code><code class="descname">BatchJob</code><span class="sig-paren">(</span><em>job_id=None</em>, <em>name=None</em>, <em>job_queue=None</em>, <em>job_definition=None</em>, <em>input_=None</em>, <em>starmap=False</em>, <em>environment_variables=None</em>, <em>array_job=True</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cloudknot/aws/batch.html#BatchJob"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.aws.BatchJob" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">cloudknot.aws.</code><code class="sig-name descname">BatchJob</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">job_id</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">job_queue</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">job_definition</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">input_</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">starmap</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">environment_variables</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">array_job</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cloudknot/aws/batch.html#BatchJob"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.aws.BatchJob" title="Permalink to this definition">¶</a></dt>
 <dd><p>Class for defining AWS Batch Job</p>
 <p>Initialize an AWS Batch Job object.</p>
 <p>If requesting information on a pre-existing job, <cite>job_id</cite> is required.
@@ -113,173 +114,18 @@ submit a new job.</p>
 <li><p><strong>name</strong> (<em>string</em>) – Name of the job</p></li>
 <li><p><strong>job_queue</strong> (<em>string</em>) – Job queue ARN specifying the job queue to which this job
 will be submitted</p></li>
-<li><p><strong>job_definition</strong> (<em>namedtuple</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><em>object</em></a>) – namedtuple specifying the job definition on which to base this job.
+<li><p><strong>job_definition</strong> (<em>namedtuple</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.8)"><em>object</em></a>) – namedtuple specifying the job definition on which to base this job.
 Must contain fields ‘name’, ‘arn’, ‘output_bucket’, and ‘retries’</p></li>
 <li><p><strong>input</strong> – The input to be pickled and sent to the batch job via S3</p></li>
-<li><p><strong>starmap</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – If True, assume input is already grouped in
+<li><p><strong>starmap</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – If True, assume input is already grouped in
 tuples from a single iterable.</p></li>
 <li><p><strong>environment_variables</strong> (<em>list of dict</em>) – list of key/value pairs representing environment variables
 sent to the container</p></li>
-<li><p><strong>array_job</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – If True, this batch job will be an array_job.
+<li><p><strong>array_job</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – If True, this batch job will be an array_job.
 Default: True</p></li>
 </ul>
 </dd>
 </dl>
-<dl class="attribute">
-<dt id="cloudknot.aws.BatchJob.array_job">
-<code class="descname">array_job</code><a class="headerlink" href="#cloudknot.aws.BatchJob.array_job" title="Permalink to this definition">¶</a></dt>
-<dd><p>Boolean flag to indicate whether this is an array job</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="cloudknot.aws.BatchJob.check_profile">
-<code class="descname">check_profile</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cloudknot.aws.BatchJob.check_profile" title="Permalink to this definition">¶</a></dt>
-<dd><p>Check for profile exception</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="cloudknot.aws.BatchJob.check_profile_and_region">
-<code class="descname">check_profile_and_region</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cloudknot.aws.BatchJob.check_profile_and_region" title="Permalink to this definition">¶</a></dt>
-<dd><p>Check for region and profile exceptions</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="cloudknot.aws.BatchJob.clobber">
-<code class="descname">clobber</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cloudknot/aws/batch.html#BatchJob.clobber"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.aws.BatchJob.clobber" title="Permalink to this definition">¶</a></dt>
-<dd><p>Kill an batch job and remove it’s info from config</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="cloudknot.aws.BatchJob.clobbered">
-<code class="descname">clobbered</code><a class="headerlink" href="#cloudknot.aws.BatchJob.clobbered" title="Permalink to this definition">¶</a></dt>
-<dd><p>Has this instance been previously clobbered</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="cloudknot.aws.BatchJob.done">
-<code class="descname">done</code><a class="headerlink" href="#cloudknot.aws.BatchJob.done" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return True if the job is done.</p>
-<p>In this case, “done” means the job status is SUCCEEDED or that it is
-FAILED and the job has exceeded the max number of retry attempts</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="cloudknot.aws.BatchJob.environment_variables">
-<code class="descname">environment_variables</code><a class="headerlink" href="#cloudknot.aws.BatchJob.environment_variables" title="Permalink to this definition">¶</a></dt>
-<dd><p>Key/value pairs for environment variables sent to the container</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="cloudknot.aws.BatchJob.input">
-<code class="descname">input</code><a class="headerlink" href="#cloudknot.aws.BatchJob.input" title="Permalink to this definition">¶</a></dt>
-<dd><p>The input to be pickled and sent to the batch job via S3</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="cloudknot.aws.BatchJob.job_definition">
-<code class="descname">job_definition</code><a class="headerlink" href="#cloudknot.aws.BatchJob.job_definition" title="Permalink to this definition">¶</a></dt>
-<dd><p>Job definition on which to base this job</p>
-<p>Has properties ‘name’, ‘arn’, ‘output_bucket’, and ‘retries’</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="cloudknot.aws.BatchJob.job_id">
-<code class="descname">job_id</code><a class="headerlink" href="#cloudknot.aws.BatchJob.job_id" title="Permalink to this definition">¶</a></dt>
-<dd><p>This job’s AWS jobID</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="cloudknot.aws.BatchJob.job_queue_arn">
-<code class="descname">job_queue_arn</code><a class="headerlink" href="#cloudknot.aws.BatchJob.job_queue_arn" title="Permalink to this definition">¶</a></dt>
-<dd><p>ARN for the job queue to which this job will be submitted</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="cloudknot.aws.BatchJob.log_urls">
-<code class="descname">log_urls</code><a class="headerlink" href="#cloudknot.aws.BatchJob.log_urls" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the urls of the batch job logs on AWS Cloudwatch</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p><strong>log_urls</strong> (<em>list</em>) – A list of log urls for each attempt number. If the job has
-not yet run, this will return an empty list</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="cloudknot.aws.BatchJob.name">
-<code class="descname">name</code><a class="headerlink" href="#cloudknot.aws.BatchJob.name" title="Permalink to this definition">¶</a></dt>
-<dd><p>The name of this AWS resource</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="cloudknot.aws.BatchJob.profile">
-<code class="descname">profile</code><a class="headerlink" href="#cloudknot.aws.BatchJob.profile" title="Permalink to this definition">¶</a></dt>
-<dd><p>The AWS profile in which this resource was created</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="cloudknot.aws.BatchJob.region">
-<code class="descname">region</code><a class="headerlink" href="#cloudknot.aws.BatchJob.region" title="Permalink to this definition">¶</a></dt>
-<dd><p>The AWS region in which this resource was created</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="cloudknot.aws.BatchJob.result">
-<code class="descname">result</code><span class="sig-paren">(</span><em>timeout=None</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cloudknot/aws/batch.html#BatchJob.result"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.aws.BatchJob.result" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the result of the latest attempt</p>
-<p>If the call hasn’t yet completed then this method will wait up to
-timeout seconds. If the call hasn’t completed in timeout seconds,
-then a CKTimeoutError is raised. If the batch job is in FAILED status
-then a BatchJobFailedError is raised.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>timeout</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) – timeout time in seconds. If timeout is not specified or None,
-there is no limit to the wait time.
-Default: None</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><em>result</em> – The result of the AWS Batch job</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="cloudknot.aws.BatchJob.starmap">
-<code class="descname">starmap</code><a class="headerlink" href="#cloudknot.aws.BatchJob.starmap" title="Permalink to this definition">¶</a></dt>
-<dd><p>Boolean flag to indicate whether input was ‘pre-zipped’</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="cloudknot.aws.BatchJob.status">
-<code class="descname">status</code><a class="headerlink" href="#cloudknot.aws.BatchJob.status" title="Permalink to this definition">¶</a></dt>
-<dd><p>Query AWS batch job status using instance parameter <cite>self.job_id</cite></p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p><strong>status</strong> (<em>dict</em>) – dictionary with keys: {status, statusReason, attempts}
-for this AWS batch job</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
-<dt id="cloudknot.aws.BatchJob.terminate">
-<code class="descname">terminate</code><span class="sig-paren">(</span><em>reason</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cloudknot/aws/batch.html#BatchJob.terminate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.aws.BatchJob.terminate" title="Permalink to this definition">¶</a></dt>
-<dd><p>Kill AWS batch job using instance parameter <cite>self.job_id</cite></p>
-<p>kill() combines the cancel and terminate AWS CLI commands. Jobs that
-are in the SUBMITTED, PENDING, or RUNNABLE state must be cancelled,
-while jobs that are in the STARTING or RUNNING state must be
-terminated.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>reason</strong> (<em>string</em>) – A message to attach to the job that explains the reason for
-cancelling/terminating it. This message is returned by future
-DescribeJobs operations on the job. This message is also recorded
-in the AWS Batch activity logs.</p>
-</dd>
-</dl>
-</dd></dl>
-
 </dd></dl>
 
 <div style='clear:both'></div></div>
@@ -296,7 +142,7 @@ in the AWS Batch activity logs.</p>
       &copy;2017, Adam Richie-Halford, Ariel Rokem.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

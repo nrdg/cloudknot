@@ -44,7 +44,7 @@ using :code:`sudo`.  Then, you can install cloudknot from PyPI (recommended)
 
     $ pip install cloudknot
 
-or from the `github repository <https://github.com/richford/cloudknot>`_.
+or from the `github repository <https://github.com/nrdg/cloudknot>`_.
 This will install cloudknot and its python dependencies.
 
 After installation, you must configure cloudknot by running
@@ -121,7 +121,7 @@ Examples
 --------
 
 See the `examples directory
-<https://github.com/richford/cloudknot/tree/master/examples>`_ on github for
+<https://github.com/nrdg/cloudknot/tree/master/examples>`_ on github for
 (you guessed it) examples of how to use cloudknot.
 
 
@@ -184,3 +184,11 @@ job's log on Amazon CloudWatch. You can get a URL for each job attempt's
 CloudWatch log using the
 :func:`cloudknot.BatchJob.log_urls <cloudknot.aws.BatchJob.log_urls>`
 parameter.
+
+
+Anything else
+-------------
+
+Did you run into an issue that isn't addressed here? Check out the
+:ref:`faq-label` or `open up a new issue
+<https://github.com/nrdg/cloudknot/issues>`_.

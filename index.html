@@ -1,18 +1,19 @@
 
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
     <meta charset="utf-8" />
-    <title>Welcome to cloudknot &#8212; cloudknot 0.1 documentation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to cloudknot &#8212; cloudknot 0.4.2 documentation</title>
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="_static/collapsible.css" type="text/css" />
-    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-    <script type="text/javascript" src="_static/jquery.js"></script>
-    <script type="text/javascript" src="_static/underscore.js"></script>
-    <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Getting started with cloudknot" href="getting_started.html" />
@@ -37,7 +38,7 @@
 
 
 <p>
-<iframe src="https://ghbtns.com/github-btn.html?user=richford&repo=cloudknot&type=star&count=true&size=large&v=2"
+<iframe src="https://ghbtns.com/github-btn.html?user=nrdg&repo=cloudknot&type=star&count=true&size=large&v=2"
   allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
 </p>
 
@@ -50,22 +51,22 @@
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">getting started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="documentation.html">documentation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="faq.html">faq</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/tree/master/examples">examples</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot">code</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/issues">bugs</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/nrdg/cloudknot/tree/master/examples">examples</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/nrdg/cloudknot">code</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/nrdg/cloudknot/issues">bugs</a></li>
 </ul>
 
 
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
       <input type="submit" value="Go" />
     </form>
     </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="documentwrapper">
@@ -81,12 +82,12 @@ library designed to run your existing python code on
 <a class="reference external" href="https://aws.amazon.com/batch">AWS Batch</a>.</p>
 <div class="section" id="usage">
 <h2>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cloudknot</span> <span class="kn">as</span> <span class="nn">ck</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cloudknot</span> <span class="k">as</span> <span class="nn">ck</span>
 
 <span class="k">def</span> <span class="nf">random_mv_prod</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
    <span class="sd">&quot;&quot;&quot;Here is a function I want to run on AWS Batch&quot;&quot;&quot;</span>
    <span class="c1"># Always import dependencies within the function</span>
-   <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+   <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="mi">1024</span><span class="p">)</span>
    <span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="p">(</span><span class="mi">1024</span><span class="p">,</span> <span class="mi">1024</span><span class="p">))</span>
@@ -97,7 +98,7 @@ library designed to run your existing python code on
 <span class="n">knot</span> <span class="o">=</span> <span class="n">ck</span><span class="o">.</span><span class="n">Knot</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;random-mv-prod&#39;</span><span class="p">,</span> <span class="n">func</span><span class="o">=</span><span class="n">random_mv_prod</span><span class="p">)</span>
 
 <span class="c1"># Submit the jobs</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="n">result_futures</span> <span class="o">=</span> <span class="n">knot</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">20</span><span class="p">))</span>
 </pre></div>
 </div>
@@ -135,17 +136,17 @@ lower-level API, see <a class="reference internal" href="documentation.html#doc-
 </div>
 <div class="section" id="bugs-and-issues">
 <h2>Bugs and issues<a class="headerlink" href="#bugs-and-issues" title="Permalink to this headline">¶</a></h2>
-<p>If you are having issues, please let us know by <a class="reference external" href="https://github.com/richford/cloudknot/issues">opening up a new issue</a>.
+<p>If you are having issues, please let us know by <a class="reference external" href="https://github.com/nrdg/cloudknot/issues">opening up a new issue</a>.
 You will probably want to tag your issue with the “bug” or “question” label.</p>
 </div>
 <div class="section" id="contribute">
 <h2>Contribute<a class="headerlink" href="#contribute" title="Permalink to this headline">¶</a></h2>
-<p>We invite you to contribute to cloudknot. Take a look at the <a class="reference external" href="https://github.com/richford/cloudknot">source code</a>. Or tackle one of the <a class="reference external" href="https://github.com/richford/cloudknot/issues">open issues</a>. Issues labeled “help wanted”
+<p>We invite you to contribute to cloudknot. Take a look at the <a class="reference external" href="https://github.com/nrdg/cloudknot">source code</a>. Or tackle one of the <a class="reference external" href="https://github.com/nrdg/cloudknot/issues">open issues</a>. Issues labeled “help wanted”
 or “good first issue” are particularly appropriate for beginners.</p>
 </div>
 <div class="section" id="aws-batch-vs-aws-lambda">
 <h2>AWS Batch vs AWS Lambda<a class="headerlink" href="#aws-batch-vs-aws-lambda" title="Permalink to this headline">¶</a></h2>
-<p><a class="reference external" href="https://aws.amazon.com/lambda">AWS Lambda</a> is a service that runs your code
+<p><a class="reference external" href="https://aws.amazon.com/lambda/">AWS Lambda</a> is a service that runs your code
 in response to certain events (e.g. file uploads). It starts executing very
 quickly after the triggering event but it has <a class="reference external" href="https://docs.aws.amazon.com/lambda/latest/dg/limits.html">some limitations</a> (e.g. on the
 amount of memory or the size of your deployment package). If your existing
@@ -156,7 +157,27 @@ then welcome to cloudknot.</p>
 </div>
 <div class="section" id="license">
 <h2>License<a class="headerlink" href="#license" title="Permalink to this headline">¶</a></h2>
-<p>The project is licensed under the <a class="reference external" href="https://github.com/richford/cloudknot/blob/master/LICENSE">MIT license</a>.</p>
+<p>The project is licensed under the <a class="reference external" href="https://github.com/nrdg/cloudknot/blob/master/LICENSE">MIT license</a>.</p>
+</div>
+<div class="section" id="citing-cloudknot">
+<h2>Citing cloudknot<a class="headerlink" href="#citing-cloudknot" title="Permalink to this headline">¶</a></h2>
+<p>If you use cloudknot in a scientific publication, we would appreciate
+citations to the following paper:</p>
+<p><a class="reference external" href="http://conference.scipy.org/proceedings/scipy2018/adam_richie-halford.html">Cloudknot: A Python library to run your existing code on AWS Batch</a>
+Richie-Halford and Rokem, Proceedings of the 17th python in science
+conference, pp. 8-14, 2018.</p>
+<p>Bibtex entry:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@InProceedings</span><span class="p">{</span> <span class="n">adam_richie</span><span class="o">-</span><span class="n">halford</span><span class="o">-</span><span class="n">proc</span><span class="o">-</span><span class="n">scipy</span><span class="o">-</span><span class="mi">2018</span><span class="p">,</span>
+  <span class="n">author</span>    <span class="o">=</span> <span class="p">{</span> <span class="p">{</span><span class="n">A</span><span class="p">}</span><span class="n">dam</span> <span class="p">{</span><span class="n">R</span><span class="p">}</span><span class="n">ichie</span><span class="o">-</span><span class="p">{</span><span class="n">H</span><span class="p">}</span><span class="n">alford</span> <span class="ow">and</span> <span class="p">{</span><span class="n">A</span><span class="p">}</span><span class="n">riel</span> <span class="p">{</span><span class="n">R</span><span class="p">}</span><span class="n">okem</span> <span class="p">},</span>
+  <span class="n">title</span>     <span class="o">=</span> <span class="p">{</span> <span class="p">{</span><span class="n">C</span><span class="p">}</span><span class="n">loudknot</span><span class="p">:</span> <span class="p">{</span><span class="n">A</span><span class="p">}</span> <span class="p">{</span><span class="n">P</span><span class="p">}</span><span class="n">ython</span> <span class="p">{</span><span class="n">L</span><span class="p">}</span><span class="n">ibrary</span> <span class="n">to</span> <span class="p">{</span><span class="n">R</span><span class="p">}</span><span class="n">un</span> <span class="n">your</span> <span class="p">{</span><span class="n">E</span><span class="p">}</span><span class="n">xisting</span> <span class="p">{</span><span class="n">C</span><span class="p">}</span><span class="n">ode</span> <span class="n">on</span> <span class="p">{</span><span class="n">A</span><span class="p">}{</span><span class="n">W</span><span class="p">}{</span><span class="n">S</span><span class="p">}</span> <span class="p">{</span><span class="n">B</span><span class="p">}</span><span class="n">atch</span> <span class="p">},</span>
+  <span class="n">booktitle</span> <span class="o">=</span> <span class="p">{</span> <span class="p">{</span><span class="n">P</span><span class="p">}</span><span class="n">roceedings</span> <span class="n">of</span> <span class="n">the</span> <span class="mi">17</span><span class="n">th</span> <span class="p">{</span><span class="n">P</span><span class="p">}</span><span class="n">ython</span> <span class="ow">in</span> <span class="p">{</span><span class="n">S</span><span class="p">}</span><span class="n">cience</span> <span class="p">{</span><span class="n">C</span><span class="p">}</span><span class="n">onference</span> <span class="p">},</span>
+  <span class="n">pages</span>     <span class="o">=</span> <span class="p">{</span> <span class="mi">8</span> <span class="o">-</span> <span class="mi">14</span> <span class="p">},</span>
+  <span class="n">year</span>      <span class="o">=</span> <span class="p">{</span> <span class="mi">2018</span> <span class="p">},</span>
+  <span class="n">editor</span>    <span class="o">=</span> <span class="p">{</span> <span class="p">{</span><span class="n">F</span><span class="p">}</span><span class="n">atih</span> <span class="p">{</span><span class="n">A</span><span class="p">}</span><span class="n">kici</span> <span class="ow">and</span> <span class="p">{</span><span class="n">D</span><span class="p">}</span><span class="n">avid</span> <span class="p">{</span><span class="n">L</span><span class="p">}</span><span class="n">ippa</span> <span class="ow">and</span> <span class="p">{</span><span class="n">D</span><span class="p">}</span><span class="n">illon</span> <span class="p">{</span><span class="n">N</span><span class="p">}</span><span class="n">iederhut</span> <span class="ow">and</span> <span class="p">{</span><span class="n">M</span><span class="p">}</span> <span class="p">{</span><span class="n">P</span><span class="p">}</span><span class="n">acer</span> <span class="p">},</span>
+  <span class="n">doi</span>       <span class="o">=</span> <span class="p">{</span> <span class="mf">10.25080</span><span class="o">/</span><span class="n">Majora</span><span class="o">-</span><span class="mi">4</span><span class="n">af1f417</span><span class="o">-</span><span class="mi">001</span> <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
 </div>
 <div class="section" id="acknowledgements">
 <h2>Acknowledgements<a class="headerlink" href="#acknowledgements" title="Permalink to this headline">¶</a></h2>
@@ -184,7 +205,7 @@ Institute of Biomedical Imaging and Bioengineering to Eleftherios Garyfallidis
       &copy;2017, Adam Richie-Halford, Ariel Rokem.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

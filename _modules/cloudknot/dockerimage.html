@@ -1,18 +1,19 @@
 
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
     <meta charset="utf-8" />
-    <title>cloudknot.dockerimage &#8212; cloudknot 0.1 documentation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cloudknot.dockerimage &#8212; cloudknot 0.4.2 documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/collapsible.css" type="text/css" />
-    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
-    <script type="text/javascript" src="../../_static/jquery.js"></script>
-    <script type="text/javascript" src="../../_static/underscore.js"></script>
-    <script type="text/javascript" src="../../_static/doctools.js"></script>
-    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
    
@@ -36,7 +37,7 @@
 
 
 <p>
-<iframe src="https://ghbtns.com/github-btn.html?user=richford&repo=cloudknot&type=star&count=true&size=large&v=2"
+<iframe src="https://ghbtns.com/github-btn.html?user=nrdg&repo=cloudknot&type=star&count=true&size=large&v=2"
   allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
 </p>
 
@@ -49,22 +50,22 @@
 <li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">getting started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../documentation.html">documentation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../faq.html">faq</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/tree/master/examples">examples</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot">code</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://github.com/richford/cloudknot/issues">bugs</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/nrdg/cloudknot/tree/master/examples">examples</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/nrdg/cloudknot">code</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/nrdg/cloudknot/issues">bugs</a></li>
 </ul>
 
 
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
       <input type="submit" value="Go" />
     </form>
     </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="documentwrapper">
@@ -74,23 +75,24 @@
           <div class="body" role="main">
             
   <h1>Source code for cloudknot.dockerimage</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">configparser</span>
 <span class="kn">import</span> <span class="nn">docker</span>
 <span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">six</span>
 <span class="kn">import</span> <span class="nn">subprocess</span>
 <span class="kn">import</span> <span class="nn">tempfile</span>
-<span class="kn">from</span> <span class="nn">pipreqs</span> <span class="k">import</span> <span class="n">pipreqs</span>
-<span class="kn">from</span> <span class="nn">string</span> <span class="k">import</span> <span class="n">Template</span>
+<span class="kn">from</span> <span class="nn">pipreqs</span> <span class="kn">import</span> <span class="n">pipreqs</span>
+<span class="kn">from</span> <span class="nn">string</span> <span class="kn">import</span> <span class="n">Template</span>
 
-<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">aws</span>
-<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">config</span> <span class="k">as</span> <span class="n">ckconfig</span>
-<span class="kn">from</span> <span class="nn">.aws.base_classes</span> <span class="k">import</span> <span class="p">(</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">aws</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">config</span> <span class="k">as</span> <span class="n">ckconfig</span>
+<span class="kn">from</span> <span class="nn">.aws.base_classes</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">get_region</span><span class="p">,</span>
     <span class="n">get_profile</span><span class="p">,</span>
     <span class="n">ResourceDoesNotExistException</span><span class="p">,</span>
@@ -98,7 +100,7 @@
     <span class="n">CloudknotInputError</span><span class="p">,</span>
     <span class="n">CloudknotConfigurationError</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">.config</span> <span class="k">import</span> <span class="n">get_config_file</span><span class="p">,</span> <span class="n">rlock</span>
+<span class="kn">from</span> <span class="nn">.config</span> <span class="kn">import</span> <span class="n">get_config_file</span><span class="p">,</span> <span class="n">rlock</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[]</span>
 
@@ -109,6 +111,25 @@
 
 
 <span class="n">mod_logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="n">is_windows</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;nt&quot;</span>
+
+
+<span class="k">def</span> <span class="nf">_get_repo_info_from_uri</span><span class="p">(</span><span class="n">repo_uri</span><span class="p">):</span>
+    <span class="c1"># Get all repositories</span>
+    <span class="n">repositories</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">clients</span><span class="p">[</span><span class="s2">&quot;ecr&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">describe_repositories</span><span class="p">(</span><span class="n">maxResults</span><span class="o">=</span><span class="mi">500</span><span class="p">)[</span>
+        <span class="s2">&quot;repositories&quot;</span>
+    <span class="p">]</span>
+
+    <span class="n">_repo_uri</span> <span class="o">=</span> <span class="n">repo_uri</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="c1"># Filter by matching on repo_uri</span>
+    <span class="n">matching_repo</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">repo</span> <span class="k">for</span> <span class="n">repo</span> <span class="ow">in</span> <span class="n">repositories</span> <span class="k">if</span> <span class="n">repo</span><span class="p">[</span><span class="s2">&quot;repositoryUri&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">_repo_uri</span>
+    <span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;registry_id&quot;</span><span class="p">:</span> <span class="n">matching_repo</span><span class="p">[</span><span class="s2">&quot;registryId&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;repo_name&quot;</span><span class="p">:</span> <span class="n">matching_repo</span><span class="p">[</span><span class="s2">&quot;repositoryName&quot;</span><span class="p">],</span>
+    <span class="p">}</span>
 
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
@@ -130,7 +151,7 @@
 <span class="sd">    Dockerfile.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">func</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -139,6 +160,7 @@
         <span class="n">base_image</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">github_installs</span><span class="o">=</span><span class="p">(),</span>
         <span class="n">username</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize a DockerImage instance</span>
 
@@ -168,39 +190,35 @@
 
 <span class="sd">        github_installs : string or sequence of strings</span>
 <span class="sd">            Github addresses for packages to install from github rather than</span>
-<span class="sd">            PyPI (e.g. git://github.com/richford/cloudknot.git or</span>
-<span class="sd">            git://github.com/richford/cloudknot.git@newfeaturebranch)</span>
+<span class="sd">            PyPI (e.g. git://github.com/nrdg/cloudknot.git or</span>
+<span class="sd">            git://github.com/nrdg/cloudknot.git@newfeaturebranch)</span>
 <span class="sd">            Default: ()</span>
 
 <span class="sd">        username : string</span>
 <span class="sd">            Default user created in the Dockerfile</span>
 <span class="sd">            Default: &#39;cloudknot-user&#39;</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># Check for redundant input</span>
-        <span class="k">if</span> <span class="n">name</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">func</span><span class="p">,</span> <span class="n">script_path</span><span class="p">,</span> <span class="n">dir_name</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">base_image</span><span class="p">,</span> <span class="n">github_installs</span><span class="p">]</span>
-        <span class="p">):</span>
-            <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
-                <span class="s2">&quot;You specified a name plus other stuff. The name parameter is &quot;</span>
-                <span class="s2">&quot;only used to retrieve a pre-existing DockerImage instance. &quot;</span>
-                <span class="s2">&quot;If you&#39;d like to create a new one, do not provide a name &quot;</span>
-                <span class="s2">&quot;argument.&quot;</span>
-            <span class="p">)</span>
 
+<span class="sd">        overwrite : bool, default=False</span>
+<span class="sd">            If True, allow overwriting any existing Dockerfiles,</span>
+<span class="sd">            requirements files, or python scripts previously created by</span>
+<span class="sd">            cloudknot</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># User must specify at least `func` or `script_path`</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">([</span><span class="n">name</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">script_path</span><span class="p">]):</span>
             <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                 <span class="s2">&quot;You must suppy either `name`, `func` &quot;</span> <span class="s2">&quot;or `script_path`.&quot;</span>
             <span class="p">)</span>
 
-        <span class="c1"># If both `func` and `script_path` are specified,</span>
-        <span class="c1"># input is over-specified</span>
+        <span class="c1"># If `func` and `script_path` are specified, input is over-specified</span>
         <span class="k">if</span> <span class="n">script_path</span> <span class="ow">and</span> <span class="n">func</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
-                <span class="s2">&quot;You provided `script_path` and other &quot;</span>
-                <span class="s2">&quot;redundant arguments, either `func` or &quot;</span>
-                <span class="s2">&quot;`dir_name`. &quot;</span>
+                <span class="s2">&quot;You provided redundant and possibly conflicting arguments &quot;</span>
+                <span class="s2">&quot;`script_path` and `func`. Please provide only one of those.&quot;</span>
             <span class="p">)</span>
+
+        <span class="c1"># Default booleans to be potentially changed in if blocks below</span>
+        <span class="n">params_changed</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">clobber_script</span> <span class="o">=</span> <span class="kc">False</span>
 
         <span class="k">if</span> <span class="n">name</span><span class="p">:</span>
             <span class="c1"># Validate name input</span>
@@ -229,6 +247,7 @@
                 <span class="p">)</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">_func</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">function_hash</span> <span class="o">=</span> <span class="nb">hash</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span> <span class="s2">&quot;function-hash&quot;</span><span class="p">))</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_build_path</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span> <span class="s2">&quot;build-path&quot;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_script_path</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span> <span class="s2">&quot;script-path&quot;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_docker_path</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span> <span class="s2">&quot;docker-path&quot;</span><span class="p">)</span>
@@ -245,10 +264,68 @@
             <span class="n">uri</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span> <span class="s2">&quot;repo-uri&quot;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_repo_uri</span> <span class="o">=</span> <span class="n">uri</span> <span class="k">if</span> <span class="n">uri</span> <span class="k">else</span> <span class="kc">None</span>
 
+            <span class="k">if</span> <span class="n">uri</span><span class="p">:</span>
+                <span class="n">repo_info</span> <span class="o">=</span> <span class="n">_get_repo_info_from_uri</span><span class="p">(</span><span class="n">repo_uri</span><span class="o">=</span><span class="n">uri</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_repo_registry_id</span> <span class="o">=</span> <span class="n">repo_info</span><span class="p">[</span><span class="s2">&quot;registry_id&quot;</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_repo_name</span> <span class="o">=</span> <span class="n">repo_info</span><span class="p">[</span><span class="s2">&quot;repo_name&quot;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_repo_registry_id</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_repo_name</span> <span class="o">=</span> <span class="kc">None</span>
+
             <span class="c1"># Set self.pip_imports and self.missing_imports</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_set_imports</span><span class="p">()</span>
-        <span class="k">else</span><span class="p">:</span>
+
+            <span class="c1"># Do not allow script_path or dir_name for pre-existing images</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">script_path</span><span class="p">,</span> <span class="n">dir_name</span><span class="p">]):</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
+                    <span class="s2">&quot;You specified a name plus either a script_path or &quot;</span>
+                    <span class="s2">&quot;directory_name. The name parameter is used to retrieve a &quot;</span>
+                    <span class="s2">&quot;pre-existing DockerImage instance. You may retrieve a &quot;</span>
+                    <span class="s2">&quot;pre-existing and change the `func`, `username`, `base_image`, &quot;</span>
+                    <span class="s2">&quot;and `github_installs` parameters, but not the `script_path` or &quot;</span>
+                    <span class="s2">&quot;`dir_name`. Please either remove those parameters or create a new &quot;</span>
+                    <span class="s2">&quot;DockerImage with a different name.&quot;</span>
+                <span class="p">)</span>
+
+            <span class="c1"># Check for consistency of remaining redundant input</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">func</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">base_image</span><span class="p">,</span> <span class="n">github_installs</span><span class="p">]):</span>
+                <span class="n">input_params</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s2">&quot;func&quot;</span><span class="p">:</span> <span class="p">(</span><span class="nb">hash</span><span class="p">(</span><span class="n">func</span><span class="p">),</span> <span class="n">function_hash</span><span class="p">),</span>
+                    <span class="s2">&quot;username&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_username</span><span class="p">),</span>
+                    <span class="s2">&quot;base_image&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">base_image</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base_image</span><span class="p">),</span>
+                    <span class="s2">&quot;github_installs&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">github_installs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_github_installs</span><span class="p">),</span>
+                <span class="p">}</span>
+
+                <span class="n">conflicting_params</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">input_params</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="p">}</span>
+
+                <span class="k">if</span> <span class="n">conflicting_params</span><span class="p">:</span>
+                    <span class="c1"># Set flag to do all the setup stuff below, warn user</span>
+                    <span class="n">params_changed</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="n">mod_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="s2">&quot;Found </span><span class="si">{name:s}</span><span class="s2"> in your config file but the input parameters &quot;</span>
+                        <span class="s2">&quot;have changed. The updated parameters are </span><span class="si">{l}</span><span class="s2">. Continuing &quot;</span>
+                        <span class="s2">&quot;with the new input parameters and disregarding any old, &quot;</span>
+                        <span class="s2">&quot;potentially conflicting ones.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">name</span><span class="o">=</span><span class="n">section_name</span><span class="p">,</span> <span class="n">l</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">conflicting_params</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+
+                    <span class="c1"># Use input params if provided, fall back on config values</span>
+                    <span class="n">username</span> <span class="o">=</span> <span class="n">username</span> <span class="k">if</span> <span class="n">username</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_username</span>
+                    <span class="n">base_image</span> <span class="o">=</span> <span class="n">base_image</span> <span class="k">if</span> <span class="n">base_image</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base_image</span>
+                    <span class="n">github_installs</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">github_installs</span> <span class="k">if</span> <span class="n">github_installs</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_github_installs</span>
+                    <span class="p">)</span>
+                    <span class="n">func</span> <span class="o">=</span> <span class="n">func</span> <span class="k">if</span> <span class="n">func</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_func</span>
+                    <span class="n">script_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_script_path</span>
+                    <span class="n">dir_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_path</span>
+                    <span class="n">clobber_script</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clobber_script</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span> <span class="ow">or</span> <span class="n">params_changed</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_func</span> <span class="o">=</span> <span class="n">func</span>
+
             <span class="bp">self</span><span class="o">.</span><span class="n">_username</span> <span class="o">=</span> <span class="n">username</span> <span class="k">if</span> <span class="n">username</span> <span class="k">else</span> <span class="s2">&quot;cloudknot-user&quot;</span>
 
             <span class="k">if</span> <span class="n">base_image</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -257,6 +334,14 @@
                 <span class="n">py_ver</span> <span class="o">=</span> <span class="s2">&quot;3&quot;</span> <span class="k">if</span> <span class="n">six</span><span class="o">.</span><span class="n">PY3</span> <span class="k">else</span> <span class="s2">&quot;2&quot;</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_base_image</span> <span class="o">=</span> <span class="s2">&quot;python:&quot;</span> <span class="o">+</span> <span class="n">py_ver</span>
 
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base_image</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;python:3&quot;</span><span class="p">,</span> <span class="s2">&quot;python:3.8&quot;</span><span class="p">]:</span>
+                <span class="n">mod_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;Warning, your Dockerfile will have a base image of python:3, &quot;</span>
+                    <span class="s2">&quot;which may default to Python 3.8. This may cause dependency &quot;</span>
+                    <span class="s2">&quot;conflicts. If this build fails, consider rerunning with the &quot;</span>
+                    <span class="s2">&quot;`base_image=&#39;python:3.7&#39; parameter.&quot;</span>
+                <span class="p">)</span>
+
             <span class="c1"># Validate dir_name input</span>
             <span class="k">if</span> <span class="n">dir_name</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">dir_name</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s2">&quot;`dir_name` is not an existing &quot;</span> <span class="s2">&quot;directory&quot;</span><span class="p">)</span>
@@ -264,7 +349,7 @@
             <span class="k">if</span> <span class="n">script_path</span><span class="p">:</span>
                 <span class="c1"># User supplied a pre-existing python script.</span>
                 <span class="c1"># Ensure we don&#39;t clobber it later</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_clobber_script</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_clobber_script</span> <span class="o">=</span> <span class="kc">False</span> <span class="ow">or</span> <span class="n">clobber_script</span>
 
                 <span class="c1"># Check that it is a valid path</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">script_path</span><span class="p">):</span>
@@ -283,18 +368,21 @@
                     <span class="bp">self</span><span class="o">.</span><span class="n">_build_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">dir_name</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_build_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">script_path</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_func</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_write_script</span><span class="p">()</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="c1"># We will create the script, Dockerfile, and requirements.txt</span>
                 <span class="c1"># in a new directory</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_clobber_script</span> <span class="o">=</span> <span class="kc">True</span>
-                <span class="nb">super</span><span class="p">(</span><span class="n">DockerImage</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+                <span class="nb">super</span><span class="p">(</span><span class="n">DockerImage</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span> <span class="k">if</span> <span class="n">name</span> <span class="k">else</span> <span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
 
                 <span class="k">if</span> <span class="n">dir_name</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_build_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">dir_name</span><span class="p">)</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_script_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">build_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;.py&quot;</span><span class="p">)</span>
 
                     <span class="c1"># Confirm that we will not overwrite an existing script</span>
-                    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_script_path</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">overwrite</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_script_path</span><span class="p">):</span>
                         <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                             <span class="s2">&quot;There is a pre-existing python script in the &quot;</span>
                             <span class="s2">&quot;directory that you provided. Either specify a &quot;</span>
@@ -318,7 +406,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_req_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">build_path</span><span class="p">,</span> <span class="s2">&quot;requirements.txt&quot;</span><span class="p">)</span>
 
             <span class="c1"># Confirm that we won&#39;t overwrite an existing Dockerfile</span>
-            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_docker_path</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">overwrite</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_docker_path</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                     <span class="s2">&quot;There is a pre-existing Dockerfile in the same directory &quot;</span>
                     <span class="s2">&quot;as the python script you provided or in the directory &quot;</span>
@@ -329,7 +417,7 @@
                 <span class="p">)</span>
 
             <span class="c1"># Confirm that we won&#39;t overwrite an existing requirements.txt</span>
-            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_req_path</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">overwrite</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_req_path</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
                     <span class="s2">&quot;There is a pre-existing requirements.txt in the same &quot;</span>
                     <span class="s2">&quot;directory as the python script you provided or in the &quot;</span>
@@ -349,7 +437,7 @@
                     <span class="s2">&quot;github_installs must be a string &quot;</span> <span class="s2">&quot;or a sequence of strings.&quot;</span>
                 <span class="p">)</span>
 
-            <span class="n">pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;(https|git)(://github.com/).*/.*\.git($|@.*$)&quot;</span>
+            <span class="n">pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;(https|git)(://github.com/).*/.*\.git($|@.*$|#egg=.*$)&quot;</span>
             <span class="k">for</span> <span class="n">install</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_github_installs</span><span class="p">:</span>
                 <span class="n">match_obj</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">install</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">match_obj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -358,8 +446,12 @@
                         <span class="s2">&quot;correctly. It should look something like &quot;</span>
                         <span class="s2">&quot;git://github.com/user/repo.git, &quot;</span>
                         <span class="s2">&quot;git://github.com/user/repo.git@branch, &quot;</span>
-                        <span class="s2">&quot;https://github.com/user/repo.git, or &quot;</span>
-                        <span class="s2">&quot;https://github.com/user/repo.git@branch, &quot;</span>
+                        <span class="s2">&quot;git://github.com/user/repo.git#egg=project[extra], &quot;</span>
+                        <span class="s2">&quot;https://github.com/user/repo.git, &quot;</span>
+                        <span class="s2">&quot;https://github.com/user/repo.git@branch, or&quot;</span>
+                        <span class="s2">&quot;https://github.com/user/repo.git#egg=project[extra]. &quot;</span>
+                        <span class="s2">&quot;See https://pip.pypa.io/en/stable/reference/pip_install/#git &quot;</span>
+                        <span class="s2">&quot;for more info.&quot;</span>
                     <span class="p">)</span>
 
             <span class="c1"># Set self.pip_imports and self.missing_imports</span>
@@ -372,9 +464,12 @@
 
             <span class="bp">self</span><span class="o">.</span><span class="n">_images</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_repo_uri</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_repo_registry_id</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_repo_name</span> <span class="o">=</span> <span class="kc">None</span>
 
             <span class="c1"># Add to config file</span>
             <span class="n">section_name</span> <span class="o">=</span> <span class="s2">&quot;docker-image &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+            <span class="n">ckconfig</span><span class="o">.</span><span class="n">add_resource</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span> <span class="s2">&quot;function-hash&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_func</span><span class="p">)))</span>
             <span class="n">ckconfig</span><span class="o">.</span><span class="n">add_resource</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span> <span class="s2">&quot;build-path&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_path</span><span class="p">)</span>
             <span class="n">ckconfig</span><span class="o">.</span><span class="n">add_resource</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span> <span class="s2">&quot;script-path&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">script_path</span><span class="p">)</span>
             <span class="n">ckconfig</span><span class="o">.</span><span class="n">add_resource</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span> <span class="s2">&quot;docker-path&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">docker_path</span><span class="p">)</span>
@@ -455,6 +550,16 @@
         <span class="sd">&quot;&quot;&quot;Location of remote repository to which the image was pushed&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_repo_uri</span>
 
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">repo_registry_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Registry ID of remote repository to which the image was pushed&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_repo_registry_id</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">repo_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Name of remote repository to which the image was pushed&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_repo_name</span>
+
     <span class="k">def</span> <span class="nf">_write_script</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Write this instance&#39;s function to a script with a CLI.</span>
 
@@ -534,7 +639,7 @@
                 <span class="s2">&quot;</span><span class="si">{missing!s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">missing</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">missing_imports</span><span class="p">)</span>
             <span class="p">)</span>
 
-<div class="viewcode-block" id="DockerImage.build"><a class="viewcode-back" href="../../documentation.html#cloudknot.DockerImage.build">[docs]</a>    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tags</span><span class="p">,</span> <span class="n">image_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tags</span><span class="p">,</span> <span class="n">image_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Build a DockerContainer image</span>
 
 <span class="sd">        Parameters</span>
@@ -608,9 +713,9 @@
         <span class="n">config_images_str</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">config_images</span><span class="p">)</span>
 
         <span class="c1"># Reload to config file</span>
-        <span class="n">ckconfig</span><span class="o">.</span><span class="n">add_resource</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span> <span class="s2">&quot;images&quot;</span><span class="p">,</span> <span class="n">config_images_str</span><span class="p">)</span></div>
+        <span class="n">ckconfig</span><span class="o">.</span><span class="n">add_resource</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span> <span class="s2">&quot;images&quot;</span><span class="p">,</span> <span class="n">config_images_str</span><span class="p">)</span>
 
-<div class="viewcode-block" id="DockerImage.push"><a class="viewcode-back" href="../../documentation.html#cloudknot.DockerImage.push">[docs]</a>    <span class="k">def</span> <span class="nf">push</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">repo</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">repo_uri</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">push</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">repo</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">repo_uri</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Tag and push a DockerContainer image to a repository</span>
 
 <span class="sd">        Parameters</span>
@@ -646,6 +751,20 @@
                 <span class="s2">&quot;first before calling `tag()`.&quot;</span>
             <span class="p">)</span>
 
+        <span class="k">if</span> <span class="n">repo</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">repo</span><span class="p">,</span> <span class="n">aws</span><span class="o">.</span><span class="n">DockerRepo</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s2">&quot;repo must be of type DockerRepo.&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_repo_uri</span> <span class="o">=</span> <span class="n">repo</span><span class="o">.</span><span class="n">repo_uri</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_repo_registry_id</span> <span class="o">=</span> <span class="n">repo</span><span class="o">.</span><span class="n">repo_registry_id</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_repo_name</span> <span class="o">=</span> <span class="n">repo</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">repo_uri</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s2">&quot;`repo_uri` must be a string.&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_repo_uri</span> <span class="o">=</span> <span class="n">repo_uri</span>
+            <span class="n">repo_info</span> <span class="o">=</span> <span class="n">_get_repo_info_from_uri</span><span class="p">(</span><span class="n">repo_uri</span><span class="o">=</span><span class="n">repo_uri</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_repo_registry_id</span> <span class="o">=</span> <span class="n">repo_info</span><span class="p">[</span><span class="s2">&quot;registry_id&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_repo_name</span> <span class="o">=</span> <span class="n">repo_info</span><span class="p">[</span><span class="s2">&quot;repo_name&quot;</span><span class="p">]</span>
+
         <span class="n">fallback</span> <span class="o">=</span> <span class="s2">&quot;from_env&quot;</span>
         <span class="k">if</span> <span class="n">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="n">fallback</span><span class="p">)</span> <span class="o">!=</span> <span class="n">fallback</span><span class="p">:</span>
             <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span>
@@ -668,68 +787,100 @@
                 <span class="n">get_region</span><span class="p">(),</span>
             <span class="p">]</span>
 
-        <span class="c1"># Refresh the aws ecr login credentials</span>
-        <span class="n">login_cmd</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
-
-        <span class="c1"># Login</span>
-        <span class="n">login_cmd</span> <span class="o">=</span> <span class="n">login_cmd</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ASCII&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)</span>
-        <span class="n">fnull</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">devnull</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
-        <span class="n">login_result</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">(</span>
-            <span class="n">login_cmd</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">fnull</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">STDOUT</span>
-        <span class="p">)</span>
-
-        <span class="c1"># If login failed, pass error to user</span>
-        <span class="k">if</span> <span class="n">login_result</span><span class="p">:</span>  <span class="c1"># pragma: nocover</span>
-            <span class="k">raise</span> <span class="n">CloudknotConfigurationError</span><span class="p">(</span>
-                <span class="s2">&quot;Unable to login to AWS ECR using `</span><span class="si">{login:s}</span><span class="s2">`&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                    <span class="n">login</span><span class="o">=</span><span class="n">login_cmd</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+        <span class="c1"># Determine if we&#39;re running in moto for CI</span>
+        <span class="c1"># by retrieving the account ID</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">clients</span><span class="p">[</span><span class="s2">&quot;iam&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get_user</span><span class="p">()[</span><span class="s2">&quot;User&quot;</span><span class="p">]</span>
+        <span class="n">account_id</span> <span class="o">=</span> <span class="n">user</span><span class="p">[</span><span class="s2">&quot;Arn&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)[</span><span class="mi">4</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">account_id</span> <span class="o">==</span> <span class="s2">&quot;123456789012&quot;</span><span class="p">:</span>
+            <span class="c1"># Then we are mocking using moto. Use the ecr.put_image()</span>
+            <span class="c1"># function instead of the Docker CLI to tag, push, etc.</span>
+            <span class="c1"># This is the manifest for one of the hello-world versions</span>
+            <span class="n">manifest</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;mediaType&quot;</span><span class="p">:</span> <span class="s2">&quot;application/vnd.docker.distribution.manifest.v2+json&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;size&quot;</span><span class="p">:</span> <span class="mi">525</span><span class="p">,</span>
+                <span class="s2">&quot;digest&quot;</span><span class="p">:</span> <span class="s2">&quot;sha256:90659bf80b44ce6be8234e6ff90a1ac34acbeb826903b02cfa0da11c82cbc042&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;platform&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;architecture&quot;</span><span class="p">:</span> <span class="s2">&quot;amd64&quot;</span><span class="p">,</span> <span class="s2">&quot;os&quot;</span><span class="p">:</span> <span class="s2">&quot;linux&quot;</span><span class="p">},</span>
+            <span class="p">}</span>
+            <span class="k">for</span> <span class="n">im</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">:</span>
+                <span class="c1"># Log tagging info</span>
+                <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;Tagging image </span><span class="si">{name:s}</span><span class="s2"> with tag </span><span class="si">{tag:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">name</span><span class="o">=</span><span class="n">im</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">tag</span><span class="o">=</span><span class="n">im</span><span class="p">[</span><span class="s2">&quot;tag&quot;</span><span class="p">]</span>
+                    <span class="p">)</span>
                 <span class="p">)</span>
-            <span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">repo</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">repo</span><span class="p">,</span> <span class="n">aws</span><span class="o">.</span><span class="n">DockerRepo</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s2">&quot;repo must be of type DockerRepo.&quot;</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_repo_uri</span> <span class="o">=</span> <span class="n">repo</span><span class="o">.</span><span class="n">repo_uri</span>
+                <span class="c1"># Log push info</span>
+                <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;Pushing image </span><span class="si">{name:s}</span><span class="s2"> with tag </span><span class="si">{tag:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">name</span><span class="o">=</span><span class="n">im</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">tag</span><span class="o">=</span><span class="n">im</span><span class="p">[</span><span class="s2">&quot;tag&quot;</span><span class="p">]</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">aws</span><span class="o">.</span><span class="n">clients</span><span class="p">[</span><span class="s2">&quot;ecr&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">put_image</span><span class="p">(</span>
+                    <span class="n">registryId</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_repo_registry_id</span><span class="p">,</span>
+                    <span class="n">repositoryName</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_repo_name</span><span class="p">,</span>
+                    <span class="n">imageManifest</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">manifest</span><span class="p">),</span>
+                    <span class="n">imageTag</span><span class="o">=</span><span class="n">im</span><span class="p">[</span><span class="s2">&quot;tag&quot;</span><span class="p">],</span>
+                <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">repo_uri</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s2">&quot;`repo_uri` must be a string.&quot;</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_repo_uri</span> <span class="o">=</span> <span class="n">repo_uri</span>
+            <span class="c1"># Then we&#39;re actually doing this thing. Use the Docker CLI</span>
+            <span class="c1"># Refresh the aws ecr login credentials</span>
+            <span class="n">login_cmd</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="n">is_windows</span><span class="p">)</span>
 
-        <span class="c1"># Use docker low-level APIClient for tagging</span>
-        <span class="n">c</span> <span class="o">=</span> <span class="n">docker</span><span class="o">.</span><span class="n">from_env</span><span class="p">()</span><span class="o">.</span><span class="n">api</span>
-        <span class="c1"># And the image client for pushing</span>
-        <span class="n">cli</span> <span class="o">=</span> <span class="n">docker</span><span class="o">.</span><span class="n">from_env</span><span class="p">()</span><span class="o">.</span><span class="n">images</span>
-        <span class="k">for</span> <span class="n">im</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">:</span>
-            <span class="c1"># Log tagging info</span>
-            <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                <span class="s2">&quot;Tagging image </span><span class="si">{name:s}</span><span class="s2"> with tag </span><span class="si">{tag:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                    <span class="n">name</span><span class="o">=</span><span class="n">im</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">tag</span><span class="o">=</span><span class="n">im</span><span class="p">[</span><span class="s2">&quot;tag&quot;</span><span class="p">]</span>
+            <span class="c1"># Login</span>
+            <span class="n">login_cmd_list</span> <span class="o">=</span> <span class="n">login_cmd</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ASCII&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)</span>
+            <span class="n">login_result</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+                <span class="n">login_cmd_list</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span>
+            <span class="p">)</span>
+
+            <span class="c1"># If login failed, pass error to user</span>
+            <span class="k">if</span> <span class="n">login_result</span><span class="o">.</span><span class="n">returncode</span><span class="p">:</span>  <span class="c1"># pragma: nocover</span>
+                <span class="k">raise</span> <span class="n">CloudknotConfigurationError</span><span class="p">(</span>
+                    <span class="s2">&quot;Unable to login to AWS ECR using the command:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;</span><span class="se">\t</span><span class="si">{login:s}</span><span class="se">\n</span><span class="s2">Returned exit code = </span><span class="si">{code}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;STDOUT: </span><span class="si">{out:s}</span><span class="se">\n</span><span class="s2">STDERR: </span><span class="si">{err:s}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">login</span><span class="o">=</span><span class="n">login_cmd</span><span class="o">.</span><span class="n">decode</span><span class="p">(),</span>
+                        <span class="n">code</span><span class="o">=</span><span class="n">login_result</span><span class="o">.</span><span class="n">returncode</span><span class="p">,</span>
+                        <span class="n">out</span><span class="o">=</span><span class="n">login_result</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">decode</span><span class="p">(),</span>
+                        <span class="n">err</span><span class="o">=</span><span class="n">login_result</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">decode</span><span class="p">(),</span>
+                    <span class="p">)</span>
                 <span class="p">)</span>
-            <span class="p">)</span>
 
-            <span class="c1"># Tag it with the most recently added image_name</span>
-            <span class="n">c</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span>
-                <span class="n">image</span><span class="o">=</span><span class="n">im</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;:&quot;</span> <span class="o">+</span> <span class="n">im</span><span class="p">[</span><span class="s2">&quot;tag&quot;</span><span class="p">],</span>
-                <span class="n">repository</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">repo_uri</span><span class="p">,</span>
-                <span class="n">tag</span><span class="o">=</span><span class="n">im</span><span class="p">[</span><span class="s2">&quot;tag&quot;</span><span class="p">],</span>
-            <span class="p">)</span>
-
-            <span class="c1"># Log push info</span>
-            <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                <span class="s2">&quot;Pushing image </span><span class="si">{name:s}</span><span class="s2"> with tag </span><span class="si">{tag:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                    <span class="n">name</span><span class="o">=</span><span class="n">im</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">tag</span><span class="o">=</span><span class="n">im</span><span class="p">[</span><span class="s2">&quot;tag&quot;</span><span class="p">]</span>
+            <span class="c1"># Use docker low-level APIClient for tagging</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">docker</span><span class="o">.</span><span class="n">from_env</span><span class="p">()</span><span class="o">.</span><span class="n">api</span>
+            <span class="c1"># And the image client for pushing</span>
+            <span class="n">cli</span> <span class="o">=</span> <span class="n">docker</span><span class="o">.</span><span class="n">from_env</span><span class="p">()</span><span class="o">.</span><span class="n">images</span>
+            <span class="k">for</span> <span class="n">im</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">:</span>
+                <span class="c1"># Log tagging info</span>
+                <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;Tagging image </span><span class="si">{name:s}</span><span class="s2"> with tag </span><span class="si">{tag:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">name</span><span class="o">=</span><span class="n">im</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">tag</span><span class="o">=</span><span class="n">im</span><span class="p">[</span><span class="s2">&quot;tag&quot;</span><span class="p">]</span>
+                    <span class="p">)</span>
                 <span class="p">)</span>
-            <span class="p">)</span>
 
-            <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">cli</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">repository</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">repo_uri</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="n">im</span><span class="p">[</span><span class="s2">&quot;tag&quot;</span><span class="p">],</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-                <span class="n">mod_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+                <span class="c1"># Tag it with the most recently added image_name</span>
+                <span class="n">c</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span>
+                    <span class="n">image</span><span class="o">=</span><span class="n">im</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;:&quot;</span> <span class="o">+</span> <span class="n">im</span><span class="p">[</span><span class="s2">&quot;tag&quot;</span><span class="p">],</span>
+                    <span class="n">repository</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">repo_uri</span><span class="p">,</span>
+                    <span class="n">tag</span><span class="o">=</span><span class="n">im</span><span class="p">[</span><span class="s2">&quot;tag&quot;</span><span class="p">],</span>
+                <span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_repo_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_repo_uri</span> <span class="o">+</span> <span class="s2">&quot;:&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;tag&quot;</span><span class="p">]</span>
+                <span class="c1"># Log push info</span>
+                <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;Pushing image </span><span class="si">{name:s}</span><span class="s2"> with tag </span><span class="si">{tag:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">name</span><span class="o">=</span><span class="n">im</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">tag</span><span class="o">=</span><span class="n">im</span><span class="p">[</span><span class="s2">&quot;tag&quot;</span><span class="p">]</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
 
-        <span class="n">section_name</span> <span class="o">=</span> <span class="s2">&quot;docker-image &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
-        <span class="n">ckconfig</span><span class="o">.</span><span class="n">add_resource</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span> <span class="s2">&quot;repo-uri&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">repo_uri</span><span class="p">)</span></div>
+                <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">cli</span><span class="o">.</span><span class="n">push</span><span class="p">(</span>
+                    <span class="n">repository</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">repo_uri</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="n">im</span><span class="p">[</span><span class="s2">&quot;tag&quot;</span><span class="p">],</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">):</span>
+                    <span class="n">mod_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
 
-<div class="viewcode-block" id="DockerImage.clobber"><a class="viewcode-back" href="../../documentation.html#cloudknot.DockerImage.clobber">[docs]</a>    <span class="k">def</span> <span class="nf">clobber</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_repo_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_repo_uri</span> <span class="o">+</span> <span class="s2">&quot;:&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;tag&quot;</span><span class="p">]</span>
+
+            <span class="n">section_name</span> <span class="o">=</span> <span class="s2">&quot;docker-image &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+            <span class="n">ckconfig</span><span class="o">.</span><span class="n">add_resource</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span> <span class="s2">&quot;repo-uri&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">repo_uri</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">clobber</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Delete all of the files associated with this instance</span>
 
 <span class="sd">        Always delete the generated requirements.txt and Dockerfile. Only</span>
@@ -759,7 +910,7 @@
             <span class="k">pass</span>
 
         <span class="n">cli</span> <span class="o">=</span> <span class="n">docker</span><span class="o">.</span><span class="n">from_env</span><span class="p">()</span><span class="o">.</span><span class="n">images</span>
-        <span class="c1"># Get local images first (lol stands for list_of_lists</span>
+        <span class="c1"># Get local images first (lol stands for list_of_lists)</span>
         <span class="n">local_image_lol</span> <span class="o">=</span> <span class="p">[</span><span class="n">im</span><span class="o">.</span><span class="n">tags</span> <span class="k">for</span> <span class="n">im</span> <span class="ow">in</span> <span class="n">cli</span><span class="o">.</span><span class="n">list</span><span class="p">()]</span>
         <span class="c1"># Flatten the list of lists</span>
         <span class="n">local_images</span> <span class="o">=</span> <span class="p">[</span><span class="n">im</span> <span class="k">for</span> <span class="n">sublist</span> <span class="ow">in</span> <span class="n">local_image_lol</span> <span class="k">for</span> <span class="n">im</span> <span class="ow">in</span> <span class="n">sublist</span><span class="p">]</span>
@@ -776,7 +927,13 @@
                 <span class="n">local_images</span> <span class="o">=</span> <span class="p">[</span><span class="n">im</span> <span class="k">for</span> <span class="n">sublist</span> <span class="ow">in</span> <span class="n">local_image_lol</span> <span class="k">for</span> <span class="n">im</span> <span class="ow">in</span> <span class="n">sublist</span><span class="p">]</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">repo_uri</span><span class="p">:</span>
-            <span class="n">cli</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">repo_uri</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">noprune</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="c1"># Determine if we&#39;re running in moto for CI</span>
+            <span class="c1"># by retrieving the account ID</span>
+            <span class="n">user</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">clients</span><span class="p">[</span><span class="s2">&quot;iam&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get_user</span><span class="p">()[</span><span class="s2">&quot;User&quot;</span><span class="p">]</span>
+            <span class="n">account_id</span> <span class="o">=</span> <span class="n">user</span><span class="p">[</span><span class="s2">&quot;Arn&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)[</span><span class="mi">4</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">account_id</span> <span class="o">!=</span> <span class="s2">&quot;123456789012&quot;</span><span class="p">:</span>
+                <span class="c1"># Then we&#39;re actually doing this thing. Use the Docker CLI</span>
+                <span class="n">cli</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">repo_uri</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">noprune</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
         <span class="c1"># Remove from the config file</span>
         <span class="n">config_file</span> <span class="o">=</span> <span class="n">get_config_file</span><span class="p">()</span>
@@ -792,7 +949,7 @@
 
         <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
             <span class="s2">&quot;Removed local docker images &quot;</span> <span class="s2">&quot;</span><span class="si">{images!s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">images</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">)</span>
-        <span class="p">)</span></div></div>
+        <span class="p">)</span></div>
 </pre></div>
 
           </div>
@@ -806,7 +963,7 @@
       &copy;2017, Adam Richie-Halford, Ariel Rokem.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
