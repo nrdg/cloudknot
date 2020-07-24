@@ -1,6 +1,6 @@
-[![Build Status](https://travis-ci.org/nrdg/cloudknot.svg?branch=master)](https://travis-ci.org/nrdg/cloudknot)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/d6fa3a18646f4a8089c7c897819d0342)](https://www.codacy.com/app/nrdg/cloudknot?utm_source=github.com&utm_medium=referral&utm_content=nrdg/cloudknot&utm_campaign=Badge_Grade)
-[![Codacy Badge](https://api.codacy.com/project/badge/Coverage/d6fa3a18646f4a8089c7c897819d0342)](https://www.codacy.com/app/nrdg/cloudknot?utm_source=github.com&utm_medium=referral&utm_content=nrdg/cloudknot&utm_campaign=Badge_Coverage)
+[![Build Status](https://github.com/nrdg/cloudknot/workflows/build/badge.svg)]
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/4a5d0c767bfd4f0eae820c24df1ce2a8)](https://www.codacy.com/gh/nrdg/cloudknot?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=nrdg/cloudknot&amp;utm_campaign=Badge_Grade)
+[![Codacy Badge](https://app.codacy.com/project/badge/Coverage/d6fa3a18646f4a8089c7c897819d0342)](https://www.codacy.com/manual/richford/cloudknot?utm_source=github.com&utm_medium=referral&utm_content=nrdg/cloudknot&utm_campaign=Badge_Coverage)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/python/black)
@@ -48,7 +48,21 @@ most valuable to the project as a whole, because you're coming to the
 project with fresh eyes, so you can see the errors and assumptions that
 seasoned contributors have glossed over.
 
+## Citing cloudknot
+
+If you use cloudknot in a scientific publication, please see our [citation
+instructions](https://nrdg/github.io/cloudknot/index.html#citing-cloudknot).
+
 ## Credits
+
+Cloudknot development is supported through a grant from the [Gordon
+and Betty Moore Foundation](https://www.moore.org/) and from the
+[Alfred P. Sloan Foundation](https://sloan.org/) to the [University of
+Washington eScience Institute](http://escience.washington.edu/), as
+well as NIH Collaborative Research in Computational Neuroscience grant
+R01EB027585-01 through the National Institute of Biomedical Imaging and
+Bioengineering to Eleftherios Garyfallidis (Indiana University) and
+Ariel Rokem (University of Washington).
 
 This package was created with
 [shablona](https://github.com/uwescience/shablona).

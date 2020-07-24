@@ -1,4 +1,4 @@
-name: Test
+name: build
 
 on: [push, pull_request]
 
@@ -35,3 +35,9 @@ jobs:
     - name: Test
       run: |
         make test
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: .coverage
+        name: codecov-cloudknot
