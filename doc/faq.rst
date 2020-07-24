@@ -1,3 +1,5 @@
+.. _faq-label:
+
 Frequently Asked Questions
 ==========================
 
@@ -9,6 +11,7 @@ Frequently Asked Questions
 
    .. container:: content
 
+      Cloudknot is free (both *gratis* and *libre*).
       EC2 and Spot instances launched from AWS Batch are `billed on a per-second basis
       <https://aws.amazon.com/blogs/aws/new-per-second-billing-for-ec2-instances-and-ebs-volumes/>`_.
       So feel free to submit jobs that complete in less than an hour. You can
@@ -66,3 +69,128 @@ Frequently Asked Questions
       If so, you need to install Docker such that you can run Docker
       commands without sudo. See :ref:`install-label` for
       installation instructions on an EC2 instance.
+
+.. container:: toggle
+
+   .. container:: header
+
+      I found a bug in my function and need to fix it and try it again on
+      AWS Batch. What should I do?
+
+   .. container:: content
+
+      Debugging application the run on AWS Batch can be frustrating because you are managing both local and remote resources. AWS tries to ease this burden using containers and cloudknot tries to ease it further by abstracting away some of the AWS resource provisioning. But still, you will likely find bugs and have to rerun your code. You have two options here.
+
+      #. Simply declare a new `ck.Knot()` instance with a different name
+         from the previous instance. For example:
+
+         .. code-block:: python
+
+            >>> import cloudknot as ck
+
+            >>> def my_awesome_func(args):
+            ...     # Your amazing code goes here
+            ...     return "Typo"
+            ...
+
+            >>> knot = ck.Knot(name="attempt0", func=my_awesome_func)
+
+            >>> results_futures = knot.map(input_args)
+
+            # Oops, I just realized there's a typo in `my_awesome_func`
+
+            # Optionally clobber this knot to clean up resources on AWS
+            >>> knot.clobber()
+
+            # Fix the error in my function
+            >>> def my_awesome_func(args):
+            ...     # Your amazing code goes here
+            ...     return "Correct result"
+            ...
+
+            # Instantiate a new knot. Note the different name
+            >>> knot = ck.Knot(name="attempt1", func=my_awesome_func)
+
+            # Try again with the same arguments
+            >>> results_futures = knot.map(input_args)
+
+      #. The first option works well for functions with simple dependencies.
+         However, many scientific workflows have a high dependency burden.
+         For example, in neuroimaging, it is not uncommon to have Docker base
+         images that are 20 GB in size. Creating a branch new knot for these
+         cases would force cloudknot to upload a brand new 20 GB Docker image
+         to AWS ECR every time amend our function. This greatly increases the
+         time devoted to development cycles. But don't despair. There is a
+         way to capitalize upon Docker's layers to minimize upload time
+         when you edit your functions. To do so, we need to introduce a few
+         more cloudknot objects:
+
+         .. code-block:: python
+
+            >>> import cloudknot as ck
+
+            >>> def my_awesome_func(args):
+            ...     # Your amazing code goes here
+            ...     return "Typo"
+            ...
+
+            # Create a DockerImage instance
+            # base_image and github_installs are optional arguments just as
+            # they are for ck.Knot
+            # Note that we specify overwrite=True so that we can quickly
+            # overwrite the cloudknot generated script, rather than writing
+            # an entirely new one
+            >>> image = ck.DockerImage(
+            ...     name="my-awesome-function",
+            ...     func=my_awesome_func,
+            ...     base_image="some-large-base-image:tag",
+            ...     github_installs="some-github-repo"
+            ... )
+            ...
+
+            # Build the Docker image locally
+            >>> image.build(tags=["a-really-helpful-tag"])
+
+            # Create a DockerRepo instance to which to push this new local image
+            >>> repo = ck.aws.DockerRepo(name=ck.get_ecr_repo())
+
+            # Push the local image to the AWS ECR repo
+            # For the first run, this might take a while if your Docker
+            # base image is large
+            >>> image.push(repo=repo)
+
+            # Now instantiate a Knot, supplying the DockerImage we just created
+            >>> knot = ck.Knot(name="attempt0", docker_image=image)
+
+            >>> results_futures = knot.map(input_args)
+
+            # Oops, I just realized there's a typo in `my_awesome_func`
+
+            # Optionally clobber this knot to clean up resources on AWS
+            >>> knot.clobber()
+
+            # Fix the error in my function
+            >>> def my_awesome_func(args):
+            ...     # Your amazing code goes here
+            ...     return "Correct result"
+            ...
+
+            # Rebuild and push the DockerImage, using all of the same commands
+            # we used before. But this time, they should execute much faster.
+            >>> image = ck.DockerImage(
+            ...     name="my-awesome-function",
+            ...     func=my_awesome_func,
+            ...     base_image="some-large-base-image:tag",
+            ...     github_installs="some-github-repo"
+            ... )
+            ...
+
+            >>> image.build(tags=["a-really-helpful-tag"])
+
+            >>> image.push(repo=repo)
+
+            # Instantiate a new knot. Note the different name
+            >>> knot = ck.Knot(name="attempt1", docker_image=image)
+
+            # Try again with the same arguments
+            >>> results_futures = knot.map(input_args)
