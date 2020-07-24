@@ -1,4 +1,4 @@
-[![Build Status](https://github.com/nrdg/cloudknot/workflows/build/badge.svg)]
+![Build Status](https://github.com/nrdg/cloudknot/workflows/build/badge.svg)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/4a5d0c767bfd4f0eae820c24df1ce2a8)](https://www.codacy.com/gh/nrdg/cloudknot?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=nrdg/cloudknot&amp;utm_campaign=Badge_Grade)
 [![Codacy Badge](https://app.codacy.com/project/badge/Coverage/d6fa3a18646f4a8089c7c897819d0342)](https://www.codacy.com/manual/richford/cloudknot?utm_source=github.com&utm_medium=referral&utm_content=nrdg/cloudknot&utm_campaign=Badge_Coverage)
 
