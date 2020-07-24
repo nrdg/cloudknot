@@ -20,11 +20,11 @@ RUN (id -u cloudknot-user >/dev/null 2>&1 || useradd cloudknot-user) \
 
 ENV HOME /home/cloudknot-user
 
-# Copy the python script
-COPY unit-testing-func.py /home/cloudknot-user/
-
 # Set working directory
 WORKDIR /home/cloudknot-user
 
 # Set entrypoint
 ENTRYPOINT ["python", "/home/cloudknot-user/unit-testing-func.py"]
+
+# Copy the python script
+COPY unit-testing-func.py /home/cloudknot-user/

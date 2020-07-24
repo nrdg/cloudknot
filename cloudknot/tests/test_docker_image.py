@@ -363,6 +363,10 @@ def test_DockerImage(cleanup_repos):
 
         assert "docker-image " + di.name in config.sections()
 
+        # Assert ck.aws.CloudknotInputError on name plus other input
+        with pytest.raises(ck.aws.CloudknotInputError):
+            ck.DockerImage(name=di.name, script_path="Foo")
+
         # Clobber and confirm that it deleted all the created files
         di.clobber()
         assert not op.isfile(di.req_path)
@@ -395,10 +399,6 @@ def test_DockerImage(cleanup_repos):
         # Assert ck.aws.CloudknotInputError on no input
         with pytest.raises(ck.aws.CloudknotInputError):
             ck.DockerImage()
-
-        # Assert ck.aws.CloudknotInputError on name plus other input
-        with pytest.raises(ck.aws.CloudknotInputError):
-            ck.DockerImage(name=get_testing_name(), func=unit_testing_func)
 
         # Assert ck.aws.CloudknotInputError on non-string name input
         with pytest.raises(ck.aws.CloudknotInputError):

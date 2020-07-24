@@ -65,6 +65,7 @@ class DockerImage(aws.NamedObject):
         base_image=None,
         github_installs=(),
         username=None,
+        overwrite=False,
     ):
         """Initialize a DockerImage instance
 
@@ -101,32 +102,28 @@ class DockerImage(aws.NamedObject):
         username : string
             Default user created in the Dockerfile
             Default: 'cloudknot-user'
-        """
-        # Check for redundant input
-        if name and any(
-            [func, script_path, dir_name, username, base_image, github_installs]
-        ):
-            raise CloudknotInputError(
-                "You specified a name plus other stuff. The name parameter is "
-                "only used to retrieve a pre-existing DockerImage instance. "
-                "If you'd like to create a new one, do not provide a name "
-                "argument."
-            )
 
+        overwrite : bool, default=False
+            If True, allow overwriting any existing Dockerfiles,
+            requirements files, or python scripts previously created by
+            cloudknot
+        """
         # User must specify at least `func` or `script_path`
         if not any([name, func, script_path]):
             raise CloudknotInputError(
                 "You must suppy either `name`, `func` " "or `script_path`."
             )
 
-        # If both `func` and `script_path` are specified,
-        # input is over-specified
+        # If `func` and `script_path` are specified, input is over-specified
         if script_path and func:
             raise CloudknotInputError(
-                "You provided `script_path` and other "
-                "redundant arguments, either `func` or "
-                "`dir_name`. "
+                "You provided redundant and possibly conflicting arguments "
+                "`script_path` and `func`. Please provide only one of those."
             )
+
+        # Default booleans to be potentially changed in if blocks below
+        params_changed = False
+        clobber_script = False
 
         if name:
             # Validate name input
@@ -155,6 +152,7 @@ class DockerImage(aws.NamedObject):
                 )
 
             self._func = None
+            function_hash = hash(config.get(section_name, "function-hash"))
             self._build_path = config.get(section_name, "build-path")
             self._script_path = config.get(section_name, "script-path")
             self._docker_path = config.get(section_name, "docker-path")
@@ -181,8 +179,58 @@ class DockerImage(aws.NamedObject):
 
             # Set self.pip_imports and self.missing_imports
             self._set_imports()
-        else:
+
+            # Do not allow script_path or dir_name for pre-existing images
+            if any([script_path, dir_name]):
+                raise CloudknotInputError(
+                    "You specified a name plus either a script_path or "
+                    "directory_name. The name parameter is used to retrieve a "
+                    "pre-existing DockerImage instance. You may retrieve a "
+                    "pre-existing and change the `func`, `username`, `base_image`, "
+                    "and `github_installs` parameters, but not the `script_path` or "
+                    "`dir_name`. Please either remove those parameters or create a new "
+                    "DockerImage with a different name."
+                )
+
+            # Check for consistency of remaining redundant input
+            if any([func, username, base_image, github_installs]):
+                input_params = {
+                    "func": (hash(func), function_hash),
+                    "username": (username, self._username),
+                    "base_image": (base_image, self._base_image),
+                    "github_installs": (github_installs, self._github_installs),
+                }
+
+                conflicting_params = {
+                    k: v for k, v in input_params.items() if v[0] and v[1] != v[0]
+                }
+
+                if conflicting_params:
+                    # Set flag to do all the setup stuff below, warn user
+                    params_changed = True
+                    mod_logger.warning(
+                        "Found {name:s} in your config file but the input parameters "
+                        "have changed. The updated parameters are {l}. Continuing "
+                        "with the new input parameters and disregarding any old, "
+                        "potentially conflicting ones.".format(
+                            name=section_name, l=list(conflicting_params.keys())
+                        )
+                    )
+
+                    # Use input params if provided, fall back on config values
+                    username = username if username else self._username
+                    base_image = base_image if base_image else self._base_image
+                    github_installs = (
+                        github_installs if github_installs else self._github_installs
+                    )
+                    func = func if func else self._func
+                    script_path = self._script_path
+                    dir_name = self._build_path
+                    clobber_script = self._clobber_script
+
+        if not name or params_changed:
             self._func = func
+
             self._username = username if username else "cloudknot-user"
 
             if base_image is not None:
@@ -206,7 +254,7 @@ class DockerImage(aws.NamedObject):
             if script_path:
                 # User supplied a pre-existing python script.
                 # Ensure we don't clobber it later
-                self._clobber_script = False
+                self._clobber_script = False or clobber_script
 
                 # Check that it is a valid path
                 if not os.path.isfile(script_path):
@@ -225,18 +273,21 @@ class DockerImage(aws.NamedObject):
                     self._build_path = os.path.abspath(dir_name)
                 else:
                     self._build_path = os.path.dirname(self.script_path)
+
+                if self._func is not None:
+                    self._write_script()
             else:
                 # We will create the script, Dockerfile, and requirements.txt
                 # in a new directory
                 self._clobber_script = True
-                super(DockerImage, self).__init__(name=func.__name__)
+                super(DockerImage, self).__init__(name=name if name else func.__name__)
 
                 if dir_name:
                     self._build_path = os.path.abspath(dir_name)
                     self._script_path = os.path.join(self.build_path, self.name + ".py")
 
                     # Confirm that we will not overwrite an existing script
-                    if os.path.isfile(self._script_path):
+                    if not overwrite and os.path.isfile(self._script_path):
                         raise CloudknotInputError(
                             "There is a pre-existing python script in the "
                             "directory that you provided. Either specify a "
@@ -260,7 +311,7 @@ class DockerImage(aws.NamedObject):
             self._req_path = os.path.join(self.build_path, "requirements.txt")
 
             # Confirm that we won't overwrite an existing Dockerfile
-            if os.path.isfile(self._docker_path):
+            if not overwrite and os.path.isfile(self._docker_path):
                 raise CloudknotInputError(
                     "There is a pre-existing Dockerfile in the same directory "
                     "as the python script you provided or in the directory "
@@ -271,7 +322,7 @@ class DockerImage(aws.NamedObject):
                 )
 
             # Confirm that we won't overwrite an existing requirements.txt
-            if os.path.isfile(self._req_path):
+            if not overwrite and os.path.isfile(self._req_path):
                 raise CloudknotInputError(
                     "There is a pre-existing requirements.txt in the same "
                     "directory as the python script you provided or in the "
@@ -323,6 +374,7 @@ class DockerImage(aws.NamedObject):
 
             # Add to config file
             section_name = "docker-image " + self.name
+            ckconfig.add_resource(section_name, "function-hash", str(hash(self._func)))
             ckconfig.add_resource(section_name, "build-path", self.build_path)
             ckconfig.add_resource(section_name, "script-path", self.script_path)
             ckconfig.add_resource(section_name, "docker-path", self.docker_path)
