@@ -29,7 +29,7 @@
   "license": "MIT",
   "related_identifiers": [
     {
-      "identifier": "http://nrdg.github.io/cloudknkot",
+      "identifier": "http://nrdg.github.io/cloudknot",
       "relation": "isPartOf",
       "scheme": "url"
     }
