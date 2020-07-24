@@ -1,6 +1,0 @@
-search: False
-requirements:
-  - requirements.txt:
-      # update all dependencies and pin them
-      update: all
-      pin: True
