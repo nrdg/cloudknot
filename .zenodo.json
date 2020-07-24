@@ -10,8 +10,7 @@
     {
       "affiliation": "The University of Washington",
       "name": "Richie-Halford, Adam",
-      "orcid": "0000-0001-9276-9084",
-      "type": "Researcher"
+      "orcid": "0000-0001-9276-9084"
     },
     {
       "affiliation": "The University of Washington",
@@ -29,7 +28,7 @@
   "license": "MIT",
   "related_identifiers": [
     {
-      "identifier": "http://nrdg.github.io/cloudknkot",
+      "identifier": "http://nrdg.github.io/cloudknot",
       "relation": "isPartOf",
       "scheme": "url"
     }
