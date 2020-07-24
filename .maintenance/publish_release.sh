@@ -25,14 +25,14 @@ done
 while true; do
     read -p "Would you like to add your own edits to the notes for this release? [y/n]" yn
     case $yn in
-        [Yy]* ) ${EDITOR} THISRELEASE.rst; break;;
+        [Yy]* ) ${EDITOR} RELEASE.rst; break;;
         [Nn]* ) break;;
         * ) echo "Please answer yes or no.";;
     esac
 done
 
-git add CHANGES.rst
-git commit -m "Update CHANGES.rst"
+git add CHANGES.rst RELEASE.rst
+git commit -m "Update CHANGES.rst and RELEASE.rst"
 git push "${REPO}" master
-git tag "${VERSION}" -F THISRELEASE.rst
+git tag "${VERSION}" -F RELEASE.rst
 git push "${REPO}" "${VERSION}"
