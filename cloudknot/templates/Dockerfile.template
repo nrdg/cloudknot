@@ -20,11 +20,11 @@ RUN (id -u ${username} >/dev/null 2>&1 || useradd ${username}) \
 
 ENV HOME /home/${username}
 
-# Copy the python script
-COPY ${script_base_name} /home/${username}/
-
 # Set working directory
 WORKDIR /home/${username}
 
 # Set entrypoint
 ENTRYPOINT ["python", "/home/${username}/${script_base_name}"]
+
+# Copy the python script
+COPY ${script_base_name} /home/${username}/
