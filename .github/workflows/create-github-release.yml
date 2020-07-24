@@ -13,9 +13,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Create change log
-        run: |
-          /bin/bash .maintenance/update_changes.sh ${{ github.ref }}
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -24,6 +21,6 @@ jobs:
         with:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
-          body_path: THISRELEASE.rst
+          body_path: RELEASE.rst
           draft: false
           prerelease: false
