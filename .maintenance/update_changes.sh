@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Collects the pull-requests since the latest release and
-# aranges them in the CHANGES.rst.txt file.
+# aranges them in the CHANGES.rst file.
 #
 # This is a script to be run before releasing a new version.
 #
