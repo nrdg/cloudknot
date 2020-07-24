@@ -79,18 +79,13 @@ If you are proposing a feature:
 
 Cloudknot pushes a development version to
 [Test-PyPI](https://test.pypi.org/) on every pull request merged into
-the master branch. To release a new version of cloudknot, create a new
-tag using
+the master branch. To release a new version of cloudknot, use the `publish_release.sh` script from the root directory, i.e.:
 ```bash
-git tag <tagname> -a
+.maintenance/publish_release.sh <version_number>
 ```
-For releases, use the following format for <tagname>: "v<major>.<minor>.<micro>". 
-When executed, this will open up a text editor with which you can type the tag annotation --
-typically, something like: "Version <major>.<minor>.<micro> release".
-After saving that file, push the new tag with
-```bash
-git push upstream <tagname>
-```
-to push the new tag to the GitHub repository. After that, cloudknot's
+For releases, use the following format for <version_number>:
+"v<major>.<minor>.<micro>".
+When executed, this will ask you if you want to customize the
+`CHANGES.rst` document or the release notes. After that, cloudknot's
 GitHub actions will take care of publishing the new release on PyPI and
 creating a release on GitHub.
