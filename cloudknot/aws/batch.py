@@ -35,6 +35,80 @@ def registered(fn):
 mod_logger = logging.getLogger(__name__)
 
 
+def _exists_already(job_id):
+    """Check if an AWS batch job exists already
+
+    If batch job exists, return namedtuple with batch job info.
+    Otherwise, set the namedtuple's `exists` field to
+    `False`. The remaining fields default to `None`.
+
+    Returns
+    -------
+    namedtuple JobExists
+        A namedtuple with fields
+        ['exists', 'name', 'job_id', 'job_queue_arn', 'job_definition',
+         'environment_variables', 'array_job']
+    """
+    # define a namedtuple for return value type
+    JobExists = namedtuple(
+        "JobExists",
+        [
+            "exists",
+            "name",
+            "job_id",
+            "job_queue_arn",
+            "job_definition",
+            "environment_variables",
+            "array_job",
+        ],
+    )
+    # make all but the first value default to None
+    JobExists.__new__.__defaults__ = (None,) * (len(JobExists._fields) - 1)
+
+    response = clients["batch"].describe_jobs(jobs=[job_id])
+
+    if response.get("jobs"):
+        job = response.get("jobs")[0]
+        name = job["jobName"]
+        job_queue_arn = job["jobQueue"]
+        job_def_arn = job["jobDefinition"]
+        environment_variables = job["container"]["environment"]
+
+        array_job = "arrayProperties" in job
+
+        response = clients["batch"].describe_job_definitions(
+            jobDefinitions=[job_def_arn]
+        )
+        job_def = response.get("jobDefinitions")[0]
+        job_def_name = job_def["jobDefinitionName"]
+        job_def_env = job_def["containerProperties"]["environment"]
+        bucket_env = [e for e in job_def_env if e["name"] == "CLOUDKNOT_JOBS_S3_BUCKET"]
+        output_bucket = bucket_env[0]["value"] if bucket_env else None
+        job_def_retries = job_def["retryStrategy"]["attempts"]
+
+        JobDef = namedtuple("JobDef", ["name", "arn", "output_bucket", "retries"])
+        job_definition = JobDef(
+            name=job_def_name,
+            arn=job_def_arn,
+            output_bucket=output_bucket,
+            retries=job_def_retries,
+        )
+
+        mod_logger.info("Job {id:s} exists.".format(id=job_id))
+
+        return JobExists(
+            exists=True,
+            name=name,
+            job_id=job_id,
+            job_queue_arn=job_queue_arn,
+            job_definition=job_definition,
+            environment_variables=environment_variables,
+            array_job=array_job,
+        )
+    else:
+        return JobExists(exists=False)
+
+
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 @registered
 class BatchJob(NamedObject):
@@ -105,7 +179,7 @@ class BatchJob(NamedObject):
         self._starmap = starmap
 
         if job_id:
-            job = self._exists_already(job_id=job_id)
+            job = _exists_already(job_id=job_id)
             if not job.exists:
                 raise ResourceDoesNotExistException(
                     "jobId {id:s} does not exists".format(id=job_id), job_id
@@ -221,81 +295,6 @@ class BatchJob(NamedObject):
     def job_id(self):
         """This job's AWS jobID"""
         return self._job_id
-
-    def _exists_already(self, job_id):
-        """Check if an AWS batch job exists already
-
-        If batch job exists, return namedtuple with batch job info.
-        Otherwise, set the namedtuple's `exists` field to
-        `False`. The remaining fields default to `None`.
-
-        Returns
-        -------
-        namedtuple JobExists
-            A namedtuple with fields
-            ['exists', 'name', 'job_id', 'job_queue_arn', 'job_definition',
-             'environment_variables', 'array_job']
-        """
-        # define a namedtuple for return value type
-        JobExists = namedtuple(
-            "JobExists",
-            [
-                "exists",
-                "name",
-                "job_id",
-                "job_queue_arn",
-                "job_definition",
-                "environment_variables",
-                "array_job",
-            ],
-        )
-        # make all but the first value default to None
-        JobExists.__new__.__defaults__ = (None,) * (len(JobExists._fields) - 1)
-
-        response = clients["batch"].describe_jobs(jobs=[job_id])
-
-        if response.get("jobs"):
-            job = response.get("jobs")[0]
-            name = job["jobName"]
-            job_queue_arn = job["jobQueue"]
-            job_def_arn = job["jobDefinition"]
-            environment_variables = job["container"]["environment"]
-
-            array_job = "arrayProperties" in job
-
-            response = clients["batch"].describe_job_definitions(
-                jobDefinitions=[job_def_arn]
-            )
-            job_def = response.get("jobDefinitions")[0]
-            job_def_name = job_def["jobDefinitionName"]
-            job_def_env = job_def["containerProperties"]["environment"]
-            bucket_env = [
-                e for e in job_def_env if e["name"] == "CLOUDKNOT_JOBS_S3_BUCKET"
-            ]
-            output_bucket = bucket_env[0]["value"] if bucket_env else None
-            job_def_retries = job_def["retryStrategy"]["attempts"]
-
-            JobDef = namedtuple("JobDef", ["name", "arn", "output_bucket", "retries"])
-            job_definition = JobDef(
-                name=job_def_name,
-                arn=job_def_arn,
-                output_bucket=output_bucket,
-                retries=job_def_retries,
-            )
-
-            mod_logger.info("Job {id:s} exists.".format(id=job_id))
-
-            return JobExists(
-                exists=True,
-                name=name,
-                job_id=job_id,
-                job_queue_arn=job_queue_arn,
-                job_definition=job_definition,
-                environment_variables=environment_variables,
-                array_job=array_job,
-            )
-        else:
-            return JobExists(exists=False)
 
     def _create(self):  # pragma: nocover
         """Create AWS batch job using instance parameters
