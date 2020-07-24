@@ -24,15 +24,15 @@ fi
 
 # Elaborate today's release header
 HEADER="$1 ($(date '+%B %d, %Y'))"
-echo $HEADER > THISRELEASE.rst
-echo $( printf "%${#HEADER}s" | tr " " "=" ) >> THISRELEASE.rst
+echo $HEADER > RELEASE.rst
+echo $( printf "%${#HEADER}s" | tr " " "=" ) >> RELEASE.rst
 
 # Search for PRs since previous release
-git log --grep="Merge pull request" $(git describe --tags --abbrev=0)..HEAD --pretty='format:  * %b %s' | sed  's/Merge pull request \#\([^\d]*\)\ from\ .*/(\#\1)/' >> THISRELEASE.rst
-echo "" >> THISRELEASE.rst
-echo "" >> THISRELEASE.rst
+git log --grep="Merge pull request" $(git describe --tags --abbrev=0)..HEAD --pretty='format:  * %b %s' | sed  's/Merge pull request \#\([^\d]*\)\ from\ .*/(\#\1)/' >> RELEASE.rst
+echo "" >> RELEASE.rst
+echo "" >> RELEASE.rst
 
-cat THISRELEASE.rst >> newchanges
+cat RELEASE.rst >> newchanges
 
 # Add back the Upcoming header if it was present
 if [[ "$UPCOMING" == "0" ]]; then
