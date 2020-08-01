@@ -233,10 +233,8 @@ def test_knot(cleanup_repos):
         func_name = unit_testing_func.__name__.replace("_", "-")
         assert knot.docker_image.name == func_name
         assert knot.docker_repo.name == "cloudknot"
-        # TODO: uncomment the next assertion once name type map is
-        # updated in moto. See: https://github.com/spulec/moto/pull/3128
-        # pre = name + "-cloudknot-"
-        # assert knot.job_definition.name == pre + "job-definition"
+        pre = name + "-cloudknot-"
+        assert knot.job_definition.name == pre + "job-definition"
 
         # Delete the stack using boto3 to check for an error from Pars
         # on reinstantiation
