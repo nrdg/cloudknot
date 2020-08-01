@@ -83,7 +83,7 @@ EXTRAS_REQUIRE = {
         "pytest>=3.6",
         "pytest-cov",
         "flake8",
-        "moto>=1.3.15.dev964",
+        "moto>=1.3.15.dev1015",
         "pre-commit",
         "sphinx",
     ],

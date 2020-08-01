@@ -5,5 +5,14 @@ _build/
 auto_examples/
 gen_api/
 doc/api/_autosummary
+cloudknot/version.py
 *.ipynb_checkpoints
 .coverage
+.cache
+.pytest_cache
+build/
+cloudknot.egg-info/
+pip-wheel-metadata/
+dist/
+**Untitled*.ipynb
+*.sw?
