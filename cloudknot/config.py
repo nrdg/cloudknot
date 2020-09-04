@@ -1,5 +1,4 @@
-"""
-The config module contains functions to maintain the cloudknot config file.
+"""The config module contains functions to maintain the cloudknot config file.
 
 This module contains function that other cloudknot objects use to maintain the
 cloudknot config file, including adding resources, removing resources, and
@@ -198,7 +197,7 @@ def is_valid_stack(stack_id):
 def prune_stacks():
     """
     Clean unused pars and knots from config file.
-    
+
     Verify that the pars/knot sections in the config file refer to actual
     CloudFormation stacks that exist on AWS. If not, remove from config file.
     """
@@ -311,7 +310,7 @@ def prune_batch_jobs():
         region = section.split(" ")[2]
         aws.set_profile(profile)
         aws.set_region(region)
-        for job_id, job_name in config[section].items():
+        for job_id in config[section].keys():
             response = aws.clients["batch"].describe_jobs(jobs=[job_id])
             if not response.get("jobs"):
                 remove_resource(section, job_id)
