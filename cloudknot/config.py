@@ -1,4 +1,5 @@
-"""The config module contains functions to maintain the cloudknot config file
+"""
+The config module contains functions to maintain the cloudknot config file.
 
 This module contains function that other cloudknot objects use to maintain the
 cloudknot config file, including adding resources, removing resources, and
@@ -30,7 +31,8 @@ rlock = RLock()
 
 @registered
 def get_config_file():
-    """Get the path to the cloudknot config file
+    """
+    Get the path to the cloudknot config file.
 
     First, check for the CLOUDKNOT_CONFIG_FILE environment variable.
     If that fails, use ~/.aws/cloudknot. If ~/.aws/cloudknot doesn't
@@ -78,7 +80,8 @@ def get_config_file():
 
 @registered
 def add_resource(section, option, value):
-    """Add a resource to the cloudknot config file
+    """
+    Add a resource to the cloudknot config file.
 
     Parameters
     ----------
@@ -105,7 +108,8 @@ def add_resource(section, option, value):
 
 @registered
 def remove_resource(section, option):
-    """Remove a resource from the cloudknot config file
+    """
+    Remove a resource from the cloudknot config file.
 
     Parameters
     ----------
@@ -130,7 +134,7 @@ def remove_resource(section, option):
 
 @registered
 def verify_sections():
-    """Verify config sections, remove ones that don't belong"""
+    """Verify config sections, remove ones that don't belong."""
     config_file = get_config_file()
     config = configparser.ConfigParser()
     with rlock:

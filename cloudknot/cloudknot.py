@@ -36,7 +36,8 @@ def _stack_out(key, outputs):
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 @registered
 class Pars(aws.NamedObject):
-    """PARS stands for Persistent AWS Resource Set
+    """
+    PARS stands for Persistent AWS Resource Set.
 
     This object collects AWS resources that could, in theory, be created only
     once for each cloudknot user and used for all of their subsequent AWS
@@ -54,6 +55,7 @@ class Pars(aws.NamedObject):
         use_default_vpc=True,
         ipv4_cidr=None,
         instance_tenancy=None,
+        aws_resource_tags=None,
     ):
         """Initialize a PARS instance.
 
@@ -94,6 +96,9 @@ class Pars(aws.NamedObject):
         instance_tenancy : string
             Instance tenancy for this VPC, one of ['default', 'dedicated']
             Default: 'default'
+
+        aws_resource_tags : dict or list of dicts
+            Additional AWS resource tags to apply to this repository
         """
         # Validate name input
         if name is not None and not isinstance(name, six.string_types):
@@ -105,6 +110,9 @@ class Pars(aws.NamedObject):
             name = aws.get_user() + "-default"
 
         super(Pars, self).__init__(name=name)
+
+        # Validate aws_resource_tags input before creating any resources
+        self._tags = aws.get_tags(name=name, additional_tags=aws_resource_tags)
 
         # Check for existence of this pars in the config file
         config = configparser.ConfigParser()
@@ -471,7 +479,7 @@ class Pars(aws.NamedObject):
                         },
                     ],
                     Capabilities=["CAPABILITY_NAMED_IAM"],
-                    Tags=aws.get_tags(self.name),
+                    Tags=self.tags,
                 )
 
                 self._stack_id = response["StackId"]
@@ -579,7 +587,7 @@ class Pars(aws.NamedObject):
                         },
                     ],
                     Capabilities=["CAPABILITY_NAMED_IAM"],
-                    Tags=aws.get_tags(self.name),
+                    Tags=self.tags,
                 )
 
                 self._stack_id = response["StackId"]
@@ -631,47 +639,52 @@ class Pars(aws.NamedObject):
 
     @property
     def pars_name(self):
-        """The section name for this PARS in the cloudknot config file"""
+        """The section name for this PARS in the cloudknot config file."""
         return self._pars_name
 
     @property
+    def tags(self):
+        """AWS resource tags for this stack and all of its constituent resources."""
+        return self._tags
+
+    @property
     def stack_id(self):
-        """The Cloudformation Stack ID for this PARS"""
+        """The Cloudformation Stack ID for this PARS."""
         return self._stack_id
 
     @property
     def batch_service_role(self):
-        """The IAM batch service role associated with this PARS"""
+        """The IAM batch service role associated with this PARS."""
         return self._batch_service_role
 
     @property
     def ecs_instance_role(self):
-        """The IAM ECS instance role associated with this PARS"""
+        """The IAM ECS instance role associated with this PARS."""
         return self._ecs_instance_role
 
     @property
     def ecs_instance_profile(self):
-        """The IAM ECS instance profile associated with this PARS"""
+        """The IAM ECS instance profile associated with this PARS."""
         return self._ecs_instance_profile
 
     @property
     def spot_fleet_role(self):
-        """The IAM spot fleet role associated with this PARS"""
+        """The IAM spot fleet role associated with this PARS."""
         return self._spot_fleet_role
 
     @property
     def vpc(self):
-        """The VPC ID attached to this PARS"""
+        """The VPC ID attached to this PARS."""
         return self._vpc
 
     @property
     def subnets(self):
-        """The VPC subnets for this PARS"""
+        """The VPC subnets for this PARS."""
         return self._subnets
 
     @property
     def security_group(self):
-        """The security group ID attached to this PARS"""
+        """The security group ID attached to this PARS."""
         return self._security_group
 
     def clobber(self):
@@ -702,7 +715,8 @@ class Pars(aws.NamedObject):
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 @registered
 class Knot(aws.NamedObject):
-    """A collection of resources and methods to submit jobs to AWS Batch
+    """
+    A collection of resources and methods to submit jobs to AWS Batch.
 
     This object collects AWS resources that should be created once for each
     type of batch run. The resource set consists of a PARS; a docker image
@@ -741,8 +755,10 @@ class Knot(aws.NamedObject):
         bid_percentage=None,
         job_queue_name=None,
         priority=None,
+        aws_resource_tags=None,
     ):
-        """Initialize a Knot instance
+        """
+        Initialize a Knot instance.
 
         Parameters
         ----------
@@ -877,6 +893,9 @@ class Knot(aws.NamedObject):
         priority : int, optional
             Default priority for jobs in this knot's job queue
             Default: 1
+
+        aws_resource_tags : dict or list of dicts
+            Additional AWS resource tags to apply to this repository
         """
         # Validate name input
         if name is not None and not isinstance(name, six.string_types):
@@ -889,6 +908,9 @@ class Knot(aws.NamedObject):
 
         super(Knot, self).__init__(name=name)
         self._knot_name = "knot " + name
+
+        # Validate aws_resource_tags input before creating any resources
+        self._tags = aws.get_tags(name=name, additional_tags=aws_resource_tags)
 
         image_tags = image_tags if image_tags else [name]
 
@@ -1659,7 +1681,7 @@ class Knot(aws.NamedObject):
                 TemplateBody=template_body,
                 Parameters=params,
                 Capabilities=["CAPABILITY_NAMED_IAM"],
-                Tags=aws.get_tags(self.name),
+                Tags=self.tags,
             )
 
             self._stack_id = response["StackId"]
@@ -1741,32 +1763,38 @@ class Knot(aws.NamedObject):
     # Declare read-only properties
     @property
     def knot_name(self):
-        """The section name for this knot in the cloudknot config file"""
+        """The section name for this knot in the cloudknot config file."""
         return self._knot_name
 
     @property
+    def tags(self):
+        """AWS resource tags for this stack and all of its constituent resources."""
+        return self._tags
+
+    @property
     def stack_id(self):
-        """The Cloudformation Stack ID for this Knot"""
+        """The Cloudformation Stack ID for this knot."""
         return self._stack_id
 
     @property
     def pars(self):
-        """The Pars instance attached to this knot"""
+        """The Pars instance attached to this knot."""
         return self._pars
 
     @property
     def docker_image(self):
-        """The DockerImage instance attached to this knot"""
+        """The DockerImage instance attached to this knot."""
         return self._docker_image
 
     @property
     def docker_repo(self):
-        """The DockerRepo instance attached to this knot"""
+        """The DockerRepo instance attached to this knot."""
         return self._docker_repo
 
     @property
     def job_definition(self):
-        """namedtuple describing the job definition attached to this knot
+        """
+        namedtuple describing the job definition attached to this knot.
 
         The fields are 'name', 'arn', 'output_bucket', and 'retries'
         """
@@ -1774,28 +1802,29 @@ class Knot(aws.NamedObject):
 
     @property
     def job_queue(self):
-        """The job queue ARN for this knot"""
+        """The job queue ARN for this knot."""
         return self._job_queue
 
     @property
     def compute_environment(self):
-        """The compute environment ARN for this knot"""
+        """The compute environment ARN for this knot."""
         return self._compute_environment
 
     @property
     def jobs(self):
-        """List of BatchJob instances that this knot has launched"""
+        """List of BatchJob instances that this knot has launched."""
         return self._jobs
 
     @property
     def job_ids(self):
-        """List of batch job IDs that this knot has launched"""
+        """List of batch job IDs that this knot has launched."""
         return self._job_ids
 
     def map(
         self, iterdata, env_vars=None, max_threads=64, starmap=False, job_type="array"
     ):
-        """Submit batch jobs for a range of commands and environment vars
+        """
+        Submit batch jobs for a range of commands and environment vars.
 
         Each item of `iterdata` is assumed to be a single input for the
         python function in this knot's docker image. If your function takes
@@ -1928,7 +1957,7 @@ class Knot(aws.NamedObject):
             return futures[0]
 
     def view_jobs(self):
-        """Print the job_id, name, and status of all jobs in self.jobs"""
+        """Print the job_id, name, and status of all jobs in self.jobs."""
         if self.clobbered:
             raise aws.ResourceClobberedException(
                 "This Knot has already been clobbered.", self.name
@@ -1958,7 +1987,8 @@ class Knot(aws.NamedObject):
             print(fmt.format(**job))
 
     def clobber(self, clobber_pars=False, clobber_repo=False, clobber_image=False):
-        """Delete associated AWS resources and remove section from config
+        """
+        Delete associated AWS resources and remove section from config.
 
         Parameters
         ----------
