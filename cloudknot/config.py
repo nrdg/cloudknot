@@ -17,7 +17,9 @@ import logging
 import os
 from threading import RLock
 
-__all__ = ["rlock"]
+from . import aws
+
+__all__ = ["rlock", "prune_stacks", "prune"]
 
 
 def registered(fn):
@@ -142,13 +144,7 @@ def verify_sections():
 
         approved_sections = [
             "aws",
-            "roles",
-            "vpc",
-            "security-groups",
             "docker-repos",
-            "job-definitions",
-            "compute-environments",
-            "job-queues",
             "batch-jobs",
             "pars",
             "knot",
@@ -166,3 +162,64 @@ def verify_sections():
 
         with open(config_file, "w") as f:
             config.write(f)
+
+
+def is_valid_stack(stack_id):
+    try:
+        response = aws.clients["cloudformation"].describe_stacks(StackName=stack_id)
+    except aws.clients["cloudformation"].exceptions.ClientError as e:
+        error_code = e.response.get("Error").get("Message")
+        no_stack_code = "Stack with id {0:s} does not exist" "".format(stack_id)
+        if error_code == no_stack_code:
+            return False
+        else:
+            raise e
+
+    no_stack = len(response.get("Stacks")) == 0 or response.get("Stacks")[0][
+        "StackStatus"
+    ] in [
+        "CREATE_FAILED",
+        "ROLLBACK_COMPLETE",
+        "ROLLBACK_IN_PROGRESS",
+        "ROLLBACK_FAILED",
+        "DELETE_IN_PROGRESS",
+        "DELETE_FAILED",
+        "DELETE_COMPLETE",
+        "UPDATE_ROLLBACK_FAILED",
+    ]
+
+    if no_stack:
+        return False
+
+    return True
+
+
+def prune_stacks():
+    """Clean unused pars and knots from config file.
+    
+    Verify that the pars/knot sections in the config file refer to actual
+    CloudFormation stacks that exist on AWS. If not, remove from config file.
+    """
+    config_file = get_config_file()
+    config = configparser.ConfigParser()
+    with rlock:
+        config.read(config_file)
+
+        for section in config.sections():
+            if section.split(" ", 1)[0] in ["knot", "pars"]:
+                stack_id = config.get(section, "stack-id")
+                if not is_valid_stack(stack_id):
+                    # Remove this section from the config file
+                    config.remove_section(section)
+
+        with open(config_file, "w") as f:
+            config.write(f)
+
+
+def prune():
+    """Clean unused resources from the config file
+    
+    Verify that the resources in the config file refer to actual resources on
+    AWS. If not, remove from config file.
+    """
+    prune_stacks()
