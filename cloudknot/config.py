@@ -11,6 +11,7 @@ references to its state in the config file.
 """
 from __future__ import absolute_import, division, print_function
 
+import botocore
 import configparser
 import errno
 import logging
@@ -195,7 +196,8 @@ def is_valid_stack(stack_id):
 
 
 def prune_stacks():
-    """Clean unused pars and knots from config file.
+    """
+    Clean unused pars and knots from config file.
     
     Verify that the pars/knot sections in the config file refer to actual
     CloudFormation stacks that exist on AWS. If not, remove from config file.
@@ -229,10 +231,104 @@ def prune_stacks():
     aws.set_region(old_region)
 
 
+def prune_repos():
+    """
+    Clean unused ECR repos from the config file.
+
+    Verify that the ECR repo sections in the config file refer to actual
+    ECR repos that exist on AWS. If not, remove from config file.
+    """
+    config_file = get_config_file()
+    config = configparser.ConfigParser()
+    old_profile = aws.get_profile()
+    old_region = aws.get_region()
+
+    config.read(config_file)
+
+    repo_sections = [
+        sec for sec in config.sections() if sec.split(" ")[0] == "docker-repos"
+    ]
+    for section in repo_sections:
+        profile = section.split(" ")[1]
+        region = section.split(" ")[2]
+        aws.set_profile(profile)
+        aws.set_region(region)
+        for repo_name, repo_uri in config[section].items():
+            remove_repo = False
+            try:
+                # If repo exists, retrieve its info
+                response = aws.clients["ecr"].describe_repositories(
+                    repositoryNames=[repo_name]
+                )
+                uri = response["repositories"][0]["repositoryUri"]
+                if repo_uri != uri:
+                    remove_repo = True
+            except aws.clients["ecr"].exceptions.RepositoryNotFoundException:
+                remove_repo = True
+            except botocore.exceptions.ClientError as e:
+                error_code = e.response["Error"]["Code"]
+                message = e.response["Error"]["Message"]
+                if (
+                    error_code == "RepositoryNotFoundException"
+                    or "RepositoryNotFoundException" in message
+                ):
+                    remove_repo = True
+                else:
+                    raise e
+
+            if remove_repo:
+                # Remove this section from the config file
+                remove_resource(section, repo_name)
+                mod_logger.info(
+                    "Removed ECR repo {name:s} from your config file.".format(
+                        name=repo_name
+                    )
+                )
+
+    aws.set_profile(old_profile)
+    aws.set_region(old_region)
+
+
+def prune_batch_jobs():
+    """
+    Clean unused batch jobs from the config file.
+
+    Verify that the batch jobs in the config file refer to actual
+    batch jobs that exist on AWS. If not, remove from config file.
+    """
+    config_file = get_config_file()
+    config = configparser.ConfigParser()
+    old_profile = aws.get_profile()
+    old_region = aws.get_region()
+
+    config.read(config_file)
+
+    repo_sections = [
+        sec for sec in config.sections() if sec.split(" ")[0] == "batch-jobs"
+    ]
+    for section in repo_sections:
+        profile = section.split(" ")[1]
+        region = section.split(" ")[2]
+        aws.set_profile(profile)
+        aws.set_region(region)
+        for job_id, job_name in config[section].items():
+            response = aws.clients["batch"].describe_jobs(jobs=[job_id])
+            if not response.get("jobs"):
+                remove_resource(section, job_id)
+                mod_logger.info(
+                    "Removed job {jid:s} from your config file.".format(jid=job_id)
+                )
+
+    aws.set_profile(old_profile)
+    aws.set_region(old_region)
+
+
 def prune():
-    """Clean unused resources from the config file
+    """
+    Clean unused resources from the config file.
     
-    Verify that the resources in the config file refer to actual resources on
-    AWS. If not, remove from config file.
+    This is a wrapper function for the more resource-specific prune_* functions.
     """
     prune_stacks()
+    prune_repos()
+    prune_batch_jobs()

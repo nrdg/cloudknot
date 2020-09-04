@@ -591,6 +591,8 @@ def set_region(region="us-east-1"):
         clients["iam"] = session.client("iam", region_name=region, config=boto_config)
         clients["s3"] = session.client("s3", region_name=region, config=boto_config)
 
+    mod_logger.debug("Set region to {region:s}".format(region=region))
+
 
 @registered
 def list_profiles():
@@ -772,6 +774,8 @@ def set_profile(profile_name):
         clients["s3"] = session.client(
             "s3", region_name=get_region(), config=boto_config
         )
+
+    mod_logger.debug("Set profile to {profile:s}".format(profile=profile_name))
 
 
 #: module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, ECS, S3.
