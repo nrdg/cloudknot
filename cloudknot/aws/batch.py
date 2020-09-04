@@ -36,7 +36,8 @@ mod_logger = logging.getLogger(__name__)
 
 
 def _exists_already(job_id):
-    """Check if an AWS batch job exists already.
+    """
+    Check if an AWS batch job exists already.
 
     If batch job exists, return namedtuple with batch job info.
     Otherwise, set the namedtuple's `exists` field to
@@ -265,7 +266,8 @@ class BatchJob(NamedObject):
 
     @property
     def job_definition(self):
-        """Job definition on which to base this job.
+        """
+        Job definition on which to base this job.
 
         Has properties 'name', 'arn', 'output_bucket', and 'retries'
         """
@@ -293,11 +295,12 @@ class BatchJob(NamedObject):
 
     @property
     def job_id(self):
-        """This job's AWS jobID."""
+        """The AWS job-ID for this job."""
         return self._job_id
 
     def _create(self):  # pragma: nocover
-        """Create AWS batch job using instance parameters.
+        """
+        Create AWS batch job using instance parameters.
 
         Returns
         -------
@@ -372,7 +375,8 @@ class BatchJob(NamedObject):
 
     @property
     def status(self):
-        """Query AWS batch job status using instance parameter `self.job_id`.
+        """
+        Query AWS batch job status using instance parameter `self.job_id`.
 
         Returns
         -------
@@ -403,7 +407,8 @@ class BatchJob(NamedObject):
 
     @property
     def log_urls(self):
-        """Return the urls of the batch job logs on AWS Cloudwatch.
+        """
+        Return the urls of the batch job logs on AWS Cloudwatch.
 
         Returns
         -------
@@ -489,7 +494,8 @@ class BatchJob(NamedObject):
         return pickle.loads(response.get("Body").read())
 
     def result(self, timeout=None):
-        """Return the result of the latest attempt.
+        """
+        Return the result of the latest attempt.
 
         If the call hasn't yet completed then this method will wait up to
         timeout seconds. If the call hasn't completed in timeout seconds,
@@ -533,12 +539,12 @@ class BatchJob(NamedObject):
                 return self._collect_array_job_result()
 
     def terminate(self, reason):
-        """Kill AWS batch job using instance parameter `self.job_id`.
+        """
+        Terminate AWS batch job using instance parameter `self.job_id`.
 
-        kill() combines the cancel and terminate AWS CLI commands. Jobs that
+        terminate() combines the cancel and terminate AWS CLI commands. Jobs that
         are in the SUBMITTED, PENDING, or RUNNABLE state must be cancelled,
-        while jobs that are in the STARTING or RUNNING state must be
-        terminated.
+        while jobs that are in the STARTING or RUNNING state must be terminated.
 
         Parameters
         ----------

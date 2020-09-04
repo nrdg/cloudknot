@@ -25,7 +25,9 @@ mod_logger = logging.getLogger(__name__)
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 @registered
 class DockerRepo(NamedObject):
-    """Class for creating and managing remote docker repositories."""
+    """
+    Class for creating and managing remote docker repositories.
+    """
 
     def __init__(self, name, aws_resource_tags=None):
         """Initialize a Docker repo object.
@@ -78,7 +80,8 @@ class DockerRepo(NamedObject):
         return self._repo_registry_id
 
     def _create_repo(self):
-        """Create or retrieve an AWS ECR repository.
+        """
+        Create or retrieve an AWS ECR repository.
 
         Returns
         -------

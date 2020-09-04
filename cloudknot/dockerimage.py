@@ -58,7 +58,8 @@ def _get_repo_info_from_uri(repo_uri):
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 @registered
 class DockerImage(aws.NamedObject):
-    """Class for dockerizing a python script or function.
+    """
+    Class for dockerizing a python script or function.
 
     On `__init__`, if given a python function, DockerImage will create a CLI
     version for that function, write a requirements.txt file for all import
@@ -85,7 +86,8 @@ class DockerImage(aws.NamedObject):
         username=None,
         overwrite=False,
     ):
-        """Initialize a DockerImage instance.
+        """
+        Initialize a DockerImage instance.
 
         Parameters
         ----------
@@ -563,7 +565,8 @@ class DockerImage(aws.NamedObject):
             )
 
     def build(self, tags, image_name=None):
-        """Build a DockerContainer image.
+        """
+        Build a DockerContainer image.
 
         Parameters
         ----------
@@ -639,7 +642,8 @@ class DockerImage(aws.NamedObject):
         ckconfig.add_resource(section_name, "images", config_images_str)
 
     def push(self, repo=None, repo_uri=None):
-        """Tag and push a DockerContainer image to a repository.
+        """
+        Tag and push a DockerContainer image to a repository.
 
         Parameters
         ----------
@@ -804,7 +808,8 @@ class DockerImage(aws.NamedObject):
             ckconfig.add_resource(section_name, "repo-uri", self.repo_uri)
 
     def clobber(self):
-        """Delete all of the files associated with this instance.
+        """
+        Delete all of the files associated with this instance.
 
         Always delete the generated requirements.txt and Dockerfile. Only
         delete the script if it was auto-generated. Only delete the parent

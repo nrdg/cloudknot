@@ -36,7 +36,8 @@ def _stack_out(key, outputs):
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 @registered
 class Pars(aws.NamedObject):
-    """PARS stands for Persistent AWS Resource Set.
+    """
+    PARS stands for Persistent AWS Resource Set.
 
     This object collects AWS resources that could, in theory, be created only
     once for each cloudknot user and used for all of their subsequent AWS
@@ -714,7 +715,8 @@ class Pars(aws.NamedObject):
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 @registered
 class Knot(aws.NamedObject):
-    """A collection of resources and methods to submit jobs to AWS Batch.
+    """
+    A collection of resources and methods to submit jobs to AWS Batch.
 
     This object collects AWS resources that should be created once for each
     type of batch run. The resource set consists of a PARS; a docker image
@@ -755,7 +757,8 @@ class Knot(aws.NamedObject):
         priority=None,
         aws_resource_tags=None,
     ):
-        """Initialize a Knot instance.
+        """
+        Initialize a Knot instance.
 
         Parameters
         ----------
@@ -1790,7 +1793,8 @@ class Knot(aws.NamedObject):
 
     @property
     def job_definition(self):
-        """namedtuple describing the job definition attached to this knot.
+        """
+        namedtuple describing the job definition attached to this knot.
 
         The fields are 'name', 'arn', 'output_bucket', and 'retries'
         """
@@ -1819,7 +1823,8 @@ class Knot(aws.NamedObject):
     def map(
         self, iterdata, env_vars=None, max_threads=64, starmap=False, job_type="array"
     ):
-        """Submit batch jobs for a range of commands and environment vars.
+        """
+        Submit batch jobs for a range of commands and environment vars.
 
         Each item of `iterdata` is assumed to be a single input for the
         python function in this knot's docker image. If your function takes
@@ -1982,7 +1987,8 @@ class Knot(aws.NamedObject):
             print(fmt.format(**job))
 
     def clobber(self, clobber_pars=False, clobber_repo=False, clobber_image=False):
-        """Delete associated AWS resources and remove section from config.
+        """
+        Delete associated AWS resources and remove section from config.
 
         Parameters
         ----------
