@@ -211,6 +211,9 @@ def prune_stacks():
                 if not is_valid_stack(stack_id):
                     # Remove this section from the config file
                     config.remove_section(section)
+                    mod_logger.info(
+                        "Removed {name:s} from your config file.".format(name=section)
+                    )
 
         with open(config_file, "w") as f:
             config.write(f)
