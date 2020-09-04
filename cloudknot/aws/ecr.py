@@ -27,7 +27,7 @@ mod_logger = logging.getLogger(__name__)
 class DockerRepo(NamedObject):
     """Class for creating and managing remote docker repositories"""
 
-    def __init__(self, name):
+    def __init__(self, name, aws_resource_tags=None):
         """Initialize a Docker repo object.
 
         User may provide only `name` input, indicating that they would
@@ -38,8 +38,19 @@ class DockerRepo(NamedObject):
         ----------
         name : str
             Name of the remote repository
+
+        aws_resource_tags : dict or list of dicts
+            Additional AWS resource tags to apply to this repository
         """
         super(DockerRepo, self).__init__(name=name)
+
+        # Validate aws_resource_tags input before creating any resources
+        self._tags = get_tags(
+            name=name,
+            additional_tags={"Project": "Cloudknot global config"}
+            if aws_resource_tags is None
+            else aws_resource_tags,
+        )
 
         # Create repo
         repo_info = self._create_repo()
@@ -55,6 +66,11 @@ class DockerRepo(NamedObject):
     def repo_uri(self):
         """URI for this AWS ECR repository"""
         return self._repo_uri
+
+    @property
+    def tags(self):
+        """AWS resource tags for this ECR repository"""
+        return self._tags
 
     @property
     def repo_registry_id(self):
@@ -121,7 +137,7 @@ class DockerRepo(NamedObject):
             )
 
         try:
-            clients["ecr"].tag_resource(resourceArn=repo_arn, tags=get_tags(self.name))
+            clients["ecr"].tag_resource(resourceArn=repo_arn, tags=self.tags)
         except NotImplementedError as e:
             moto_msg = "The tag_resource action has not been implemented"
             if moto_msg in e.args:

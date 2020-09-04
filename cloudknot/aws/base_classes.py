@@ -28,12 +28,43 @@ mod_logger = logging.getLogger(__name__)
 
 
 @registered
-def get_tags(name):
-    return [
-        {"Key": "Name", "Value": name},
-        {"Key": "Owner", "Value": get_user()},
-        {"Key": "Environment", "Value": "cloudknot"},
-    ]
+def get_tags(name, additional_tags=None):
+    tag_list = []
+    if additional_tags is not None:
+        if isinstance(additional_tags, list):
+            if not all(
+                [set(item.keys) == set(["Key", "Value"]) for item in additional_tags]
+            ):
+                raise ValueError(
+                    "If additional_tags is a list, it must be a list of "
+                    "dictionaries of the form {'Key': key_val, 'Value': "
+                    "value_val}."
+                )
+            tag_list = additional_tags
+        elif isinstance(additional_tags, dict):
+            if "Key" in additional_tags.keys() or "Value" in additional_tags.keys():
+                raise ValueError(
+                    "If additional_tags is a dict, it cannot contain keys named 'Key' or "
+                    "'Value'. It looks like you are trying to pass in tags of the form "
+                    "{'Key': key_val, 'Value': value_val}. If that's the case, please put "
+                    "it in a list, i.e. [{'Key': key_val, 'Value': value_val}]."
+                )
+            tag_list = [{"Key": k, "Value": v} for k, v in additional_tags.items()]
+        else:
+            raise ValueError(
+                "additional_tags must be a dictionary or a list of dictionaries."
+            )
+
+    if not [tag for tag in tag_list if tag["Key"] == "Name"]:
+        tag_list.append({"Key": "Name", "Value": name})
+
+    if not [tag for tag in tag_list if tag["Key"] == "Owner"]:
+        tag_list.append({"Key": "Owner", "Value": get_user()})
+
+    if not [tag for tag in tag_list if tag["Key"] == "Environment"]:
+        tag_list.append({"Key": "Environment", "Value": "cloudknot"})
+
+    return tag_list
 
 
 @registered
@@ -120,7 +151,12 @@ def set_ecr_repo(repo):
                 repo_arn = response["repository"]["repositoryArn"]
 
         try:
-            clients["ecr"].tag_resource(resourceArn=repo_arn, tags=get_tags(repo))
+            clients["ecr"].tag_resource(
+                resourceArn=repo_arn,
+                tags=get_tags(
+                    name=repo, additional_tags={"Project": "Cloudknot global config"}
+                ),
+            )
         except NotImplementedError as e:
             moto_msg = "The tag_resource action has not been implemented"
             if moto_msg in e.args:
@@ -323,7 +359,12 @@ def set_s3_params(bucket, policy=None, sse=None):
 
         # Add the cloudknot tags to the bucket
         clients["s3"].put_bucket_tagging(
-            Bucket=bucket, Tagging={"TagSet": get_tags(bucket)}
+            Bucket=bucket,
+            Tagging={
+                "TagSet": get_tags(
+                    name=bucket, additional_tags={"Project": "Cloudknot global config"}
+                )
+            },
         )
 
         if policy is None:
