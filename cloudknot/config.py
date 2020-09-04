@@ -13,6 +13,7 @@ from __future__ import absolute_import, division, print_function
 
 import botocore
 import configparser
+import docker
 import errno
 import logging
 import os
@@ -323,6 +324,66 @@ def prune_batch_jobs():
     aws.set_region(old_region)
 
 
+def prune_images():
+    """
+    Clean unused docker images from the config file
+
+    Verify that the docker-image sections in the config file refer to actual
+    docker images that refer either to local resources or to images that
+    exist on AWS. If not, remove from config file.
+    """
+    config_file = get_config_file()
+    config = configparser.ConfigParser()
+    old_profile = aws.get_profile()
+    old_region = aws.get_region()
+
+    with rlock:
+        config.read(config_file)
+
+        image_sections = [
+            sec for sec in config.sections if sec.split(" ")[0] == "docker-image"
+        ]
+        for section in image_sections:
+            exists = {"build_path": True, "local_images": True, "remote_image": True}
+
+            build_path = config.get(section, "build-path")
+            if not os.path.exists(os.path.abspath(build_path)):
+                exists["build_path"] = False
+
+            images_str = config.get(section, "images")
+            images = images_str.split()
+            if images:
+                c = docker.from_env()
+                exists["local_images"] = any(
+                    [bool(c.images.list(name=im)) for im in images]
+                )
+            else:
+                exists["local_images"] = False
+
+            uri = config.get(section, "repo-uri")
+            if uri:
+                profile = config.get(section, "profile")
+                region = config.get(section, "region")
+                aws.set_profile(profile)
+                aws.set_region(region)
+                # TODO: Check for existing ECR repo image
+            else:
+                exists["remote_image"] = False
+
+            if not any(exists.values()):
+                # Remove this section from the config file
+                config.remove_section(section)
+                mod_logger.info(
+                    "Removed {name:s} from your config file.".format(name=section)
+                )
+
+        with open(config_file, "w") as f:
+            config.write(f)
+
+    aws.set_profile(old_profile)
+    aws.set_region(old_region)
+
+
 def prune():
     """
     Clean unused resources from the config file.
@@ -332,3 +393,4 @@ def prune():
     prune_stacks()
     prune_repos()
     prune_batch_jobs()
+    prune_images()
