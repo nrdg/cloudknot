@@ -1,4 +1,5 @@
-"""The config module contains functions to maintain the cloudknot config file.
+"""
+The config module contains functions to maintain the cloudknot config file.
 
 This module contains function that other cloudknot objects use to maintain the
 cloudknot config file, including adding resources, removing resources, and
@@ -325,7 +326,7 @@ def prune_batch_jobs():
 def prune():
     """
     Clean unused resources from the config file.
-    
+
     This is a wrapper function for the more resource-specific prune_* functions.
     """
     prune_stacks()
