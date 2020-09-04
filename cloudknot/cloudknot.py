@@ -145,6 +145,9 @@ class Pars(aws.NamedObject):
                     self._stack_id,
                 )
 
+            response = aws.clients["cloudformation"].describe_stacks(
+                StackName=self._stack_id
+            )
             outs = response.get("Stacks")[0]["Outputs"]
 
             self._batch_service_role = _stack_out("BatchServiceRole", outs)
@@ -979,6 +982,9 @@ class Knot(aws.NamedObject):
                     self._stack_id,
                 )
 
+            response = aws.clients["cloudformation"].describe_stacks(
+                StackName=self._stack_id
+            )
             outs = response.get("Stacks")[0]["Outputs"]
 
             job_def_arn = _stack_out("JobDefinition", outs)
