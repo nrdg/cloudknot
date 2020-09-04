@@ -202,12 +202,19 @@ def prune_stacks():
     """
     config_file = get_config_file()
     config = configparser.ConfigParser()
+    old_profile = aws.get_profile()
+    old_region = aws.get_region()
+
     with rlock:
         config.read(config_file)
 
         for section in config.sections():
             if section.split(" ", 1)[0] in ["knot", "pars"]:
                 stack_id = config.get(section, "stack-id")
+                profile = config.get(section, "profile")
+                region = config.get(section, "region")
+                aws.set_profile(profile)
+                aws.set_region(region)
                 if not is_valid_stack(stack_id):
                     # Remove this section from the config file
                     config.remove_section(section)
@@ -217,6 +224,9 @@ def prune_stacks():
 
         with open(config_file, "w") as f:
             config.write(f)
+
+    aws.set_profile(old_profile)
+    aws.set_region(old_region)
 
 
 def prune():
