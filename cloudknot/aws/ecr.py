@@ -25,7 +25,7 @@ mod_logger = logging.getLogger(__name__)
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 @registered
 class DockerRepo(NamedObject):
-    """Class for creating and managing remote docker repositories"""
+    """Class for creating and managing remote docker repositories."""
 
     def __init__(self, name, aws_resource_tags=None):
         """Initialize a Docker repo object.
@@ -64,21 +64,21 @@ class DockerRepo(NamedObject):
     # Declare read only properties
     @property
     def repo_uri(self):
-        """URI for this AWS ECR repository"""
+        """URI for this AWS ECR repository."""
         return self._repo_uri
 
     @property
     def tags(self):
-        """AWS resource tags for this ECR repository"""
+        """AWS resource tags for this ECR repository."""
         return self._tags
 
     @property
     def repo_registry_id(self):
-        """Registry ID for this AWS ECR repository"""
+        """Registry ID for this AWS ECR repository."""
         return self._repo_registry_id
 
     def _create_repo(self):
-        """Create or retrieve an AWS ECR repository
+        """Create or retrieve an AWS ECR repository.
 
         Returns
         -------
@@ -153,7 +153,7 @@ class DockerRepo(NamedObject):
         return RepoInfo(name=repo_name, uri=repo_uri, registry_id=repo_registry_id)
 
     def clobber(self):
-        """Delete this remote repository"""
+        """Delete this remote repository."""
         if self.clobbered:
             return
 

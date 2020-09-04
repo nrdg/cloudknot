@@ -58,7 +58,7 @@ def _get_repo_info_from_uri(repo_uri):
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 @registered
 class DockerImage(aws.NamedObject):
-    """Class for dockerizing a python script or function
+    """Class for dockerizing a python script or function.
 
     On `__init__`, if given a python function, DockerImage will create a CLI
     version for that function, write a requirements.txt file for all import
@@ -85,7 +85,7 @@ class DockerImage(aws.NamedObject):
         username=None,
         overwrite=False,
     ):
-        """Initialize a DockerImage instance
+        """Initialize a DockerImage instance.
 
         Parameters
         ----------
@@ -411,47 +411,47 @@ class DockerImage(aws.NamedObject):
     # Declare read-only properties
     @property
     def func(self):
-        """Python function that was dockerized"""
+        """Python function that was dockerized."""
         return self._func
 
     @property
     def build_path(self):
-        """The build path for the docker image"""
+        """The build path for the docker image."""
         return self._build_path
 
     @property
     def script_path(self):
-        """Path to the CLI version of the python function"""
+        """Path to the CLI version of the python function."""
         return self._script_path
 
     @property
     def docker_path(self):
-        """Path to the generated Dockerfile"""
+        """Path to the generated Dockerfile."""
         return self._docker_path
 
     @property
     def req_path(self):
-        """Path to the generated requirements.txt file"""
+        """Path to the generated requirements.txt file."""
         return self._req_path
 
     @property
     def pip_imports(self):
-        """List of packages in the requirements.txt file"""
+        """List of packages in the requirements.txt file."""
         return self._pip_imports
 
     @property
     def base_image(self):
-        """Docker base image on which to base the docker image"""
+        """Docker base image on which to base the docker image."""
         return self._base_image
 
     @property
     def github_installs(self):
-        """List of packages installed from github rather than PyPI"""
+        """List of packages installed from github rather than PyPI."""
         return self._github_installs
 
     @property
     def username(self):
-        """Default username created in Dockerfile"""
+        """Default username created in Dockerfile."""
         return self._username
 
     @property
@@ -465,22 +465,22 @@ class DockerImage(aws.NamedObject):
 
     @property
     def images(self):
-        """List of name, tag dicts for docker images built by this instance"""
+        """List of name, tag dicts for docker images built by this instance."""
         return self._images
 
     @property
     def repo_uri(self):
-        """Location of remote repository to which the image was pushed"""
+        """Location of remote repository to which the image was pushed."""
         return self._repo_uri
 
     @property
     def repo_registry_id(self):
-        """Registry ID of remote repository to which the image was pushed"""
+        """Registry ID of remote repository to which the image was pushed."""
         return self._repo_registry_id
 
     @property
     def repo_name(self):
-        """Name of remote repository to which the image was pushed"""
+        """Name of remote repository to which the image was pushed."""
         return self._repo_name
 
     def _write_script(self):
@@ -509,7 +509,7 @@ class DockerImage(aws.NamedObject):
         )
 
     def _write_dockerfile(self):
-        """Write Dockerfile to containerize this instance's python function"""
+        """Write Dockerfile to containerize this instance's python function."""
         with open(self.docker_path, "w") as f:
             template_path = os.path.abspath(
                 os.path.join(
@@ -542,7 +542,7 @@ class DockerImage(aws.NamedObject):
         mod_logger.info("Wrote Dockerfile {path:s}".format(path=self.docker_path))
 
     def _set_imports(self):
-        """Set required imports for the python script at self.script_path"""
+        """Set required imports for the python script at self.script_path."""
         # Get the names of packages imported in the script
         import_names = pipreqs.get_all_imports(os.path.dirname(self.script_path))
 
@@ -563,7 +563,7 @@ class DockerImage(aws.NamedObject):
             )
 
     def build(self, tags, image_name=None):
-        """Build a DockerContainer image
+        """Build a DockerContainer image.
 
         Parameters
         ----------
@@ -639,7 +639,7 @@ class DockerImage(aws.NamedObject):
         ckconfig.add_resource(section_name, "images", config_images_str)
 
     def push(self, repo=None, repo_uri=None):
-        """Tag and push a DockerContainer image to a repository
+        """Tag and push a DockerContainer image to a repository.
 
         Parameters
         ----------
@@ -804,7 +804,7 @@ class DockerImage(aws.NamedObject):
             ckconfig.add_resource(section_name, "repo-uri", self.repo_uri)
 
     def clobber(self):
-        """Delete all of the files associated with this instance
+        """Delete all of the files associated with this instance.
 
         Always delete the generated requirements.txt and Dockerfile. Only
         delete the script if it was auto-generated. Only delete the parent
