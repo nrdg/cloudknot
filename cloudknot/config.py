@@ -341,7 +341,7 @@ def prune_images():
         config.read(config_file)
 
         image_sections = [
-            sec for sec in config.sections if sec.split(" ")[0] == "docker-image"
+            sec for sec in config.sections() if sec.split(" ")[0] == "docker-image"
         ]
         for section in image_sections:
             exists = {"build_path": True, "local_images": True, "remote_image": True}
@@ -362,11 +362,29 @@ def prune_images():
 
             uri = config.get(section, "repo-uri")
             if uri:
-                profile = config.get(section, "profile")
-                region = config.get(section, "region")
-                aws.set_profile(profile)
-                aws.set_region(region)
-                # TODO: Check for existing ECR repo image
+                try:
+                    profile = config.get(section, "profile")
+                    region = config.get(section, "region")
+                    aws.set_profile(profile)
+                    aws.set_region(region)
+                except configparser.NoOptionError:
+                    pass
+
+                try:
+                    repo_info = aws.ecr._get_repo_info_from_uri(uri)
+                    response = aws.clients["ecr"].list_images(
+                        registryId=repo_info["registry_id"],
+                        repositoryName=repo_info["repo_name"],
+                        maxResults=1000,
+                        filter={"tagStatus": "TAGGED"},
+                    )
+                    image_ids = response.get("imageIds")
+                    image_ids = [
+                        im for im in image_ids if im["imageTag"] == uri.split(":")[-1]
+                    ]
+                    exists["remote_image"] = bool(image_ids)
+                except IndexError:
+                    exists["remote_image"] = False
             else:
                 exists["remote_image"] = False
 

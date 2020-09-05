@@ -22,6 +22,22 @@ def registered(fn):
 mod_logger = logging.getLogger(__name__)
 
 
+def _get_repo_info_from_uri(repo_uri):
+    # Get all repositories
+    repositories = clients["ecr"].describe_repositories(maxResults=500)["repositories"]
+
+    _repo_uri = repo_uri.split(":")[0]
+    # Filter by matching on repo_uri
+    matching_repo = [
+        repo for repo in repositories if repo["repositoryUri"] == _repo_uri
+    ][0]
+
+    return {
+        "registry_id": matching_repo["registryId"],
+        "repo_name": matching_repo["repositoryName"],
+    }
+
+
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 @registered
 class DockerRepo(NamedObject):
