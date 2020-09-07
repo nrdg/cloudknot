@@ -120,9 +120,8 @@ def test_prune_stacks(configured):
     ck.aws.clients["cloudformation"].delete_stack(StackName=pars0.stack_id)
     ck.config.prune_stacks()
 
-    config_file = ck.config.get_config_file()
     config = configparser.ConfigParser()
-    config.read(config_file)
+    config.read(config_name)
     assert pars0.pars_name not in config.sections()
     assert pars1.pars_name in config.sections()
 
