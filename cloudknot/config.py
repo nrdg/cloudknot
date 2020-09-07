@@ -66,7 +66,7 @@ def get_config_file():
                 pre_existing = e.errno == errno.EEXIST and os.path.isdir(configdir)
                 if pre_existing:
                     pass
-                else:
+                else:  # pragma: nocover
                     raise e
 
             # If the config file does not exist, create it
@@ -174,7 +174,7 @@ def is_valid_stack(stack_id):
         no_stack_code = "Stack with id {0:s} does not exist" "".format(stack_id)
         if error_code == no_stack_code:
             return False
-        else:
+        else:  # pragma: nocover
             raise e
 
     no_stack = len(response.get("Stacks")) == 0 or response.get("Stacks")[0][
@@ -274,7 +274,7 @@ def prune_repos():
                     or "RepositoryNotFoundException" in message
                 ):
                     remove_repo = True
-                else:
+                else:  # pragma: nocover
                     raise e
 
             if remove_repo:

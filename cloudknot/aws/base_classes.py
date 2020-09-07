@@ -33,14 +33,14 @@ def get_tags(name, additional_tags=None):
     if additional_tags is not None:
         if isinstance(additional_tags, list):
             if not all(
-                [set(item.keys) == set(["Key", "Value"]) for item in additional_tags]
+                [set(item.keys()) == set(["Key", "Value"]) for item in additional_tags]
             ):
                 raise ValueError(
                     "If additional_tags is a list, it must be a list of "
                     "dictionaries of the form {'Key': key_val, 'Value': "
                     "value_val}."
                 )
-            tag_list = additional_tags
+            tag_list += additional_tags
         elif isinstance(additional_tags, dict):
             if "Key" in additional_tags.keys() or "Value" in additional_tags.keys():
                 raise ValueError(

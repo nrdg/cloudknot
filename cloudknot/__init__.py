@@ -22,7 +22,7 @@ except ModuleNotFoundError:
 
 try:
     __version__ = version(__name__)
-except PackageNotFoundError:
+except PackageNotFoundError:  # pragma: nocover
     # package is not installed
     pass
 
@@ -59,7 +59,7 @@ except OSError as e:
     pre_existing = e.errno == errno.EEXIST and os.path.isdir(logdir)
     if pre_existing:
         pass
-    else:
+    else:  # pragma: nocover
         raise e
 
 handler = logging.FileHandler(logpath, mode="w")

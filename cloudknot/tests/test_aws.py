@@ -158,6 +158,54 @@ def pars(bucket_cleanup):
     p.clobber()
 
 
+def test_get_tags():
+    name = "test-name"
+    tags_with_name_only = ck.aws.get_tags(name=name)
+    ref_name = {"Key": "Name", "Value": name}
+    ref_owner = {"Key": "Owner", "Value": ck.aws.get_user()}
+    ref_env = {"Key": "Environment", "Value": "cloudknot"}
+    ref_dicts = [ref_name, ref_owner, ref_env]
+
+    def is_eq_list_of_dicts(lst0, lst1):
+        sort0 = sorted(lst0, key=lambda d: d["Key"])
+        sort1 = sorted(lst1, key=lambda d: d["Key"])
+        return all([pair0 == pair1 for pair0, pair1 in zip(sort0, sort1)])
+
+    assert is_eq_list_of_dicts(ref_dicts, tags_with_name_only)
+
+    add_list = [{"Key": "Project", "Value": "unit-testing"}]
+    tags_with_add_list = ck.aws.get_tags(name=name, additional_tags=add_list)
+    assert is_eq_list_of_dicts(ref_dicts + add_list, tags_with_add_list)
+
+    add_dict = {"Project": "unit-testing"}
+    tags_with_add_dict = ck.aws.get_tags(name=name, additional_tags=add_dict)
+    assert is_eq_list_of_dicts(ref_dicts + add_list, tags_with_add_dict)
+
+    add_name = {"Key": "Name", "Value": "custom-name"}
+    tags_add_name = ck.aws.get_tags(name=name, additional_tags=[add_name])
+    assert is_eq_list_of_dicts([add_name, ref_owner, ref_env], tags_add_name)
+
+    add_env = {"Key": "Environment", "Value": "custom-env"}
+    tags_add_env = ck.aws.get_tags(name=name, additional_tags=[add_env])
+    assert is_eq_list_of_dicts([ref_name, ref_owner, add_env], tags_add_env)
+
+    add_owner = {"Key": "Owner", "Value": "custom-env"}
+    tags_add_owner = ck.aws.get_tags(name=name, additional_tags=[add_owner])
+    assert is_eq_list_of_dicts([ref_name, add_owner, ref_env], tags_add_owner)
+
+    with pytest.raises(ValueError):
+        ck.aws.get_tags(name=name, additional_tags=42)
+
+    with pytest.raises(ValueError):
+        ck.aws.get_tags(name=name, additional_tags=[{"Foo": "Bar"}])
+
+    with pytest.raises(ValueError):
+        ck.aws.get_tags(name=name, additional_tags={"Key": 42})
+
+    with pytest.raises(ValueError):
+        ck.aws.get_tags(name=name, additional_tags={"Value": 42})
+
+
 @mock_all
 def test_get_region(bucket_cleanup):
     ck.refresh_clients()
