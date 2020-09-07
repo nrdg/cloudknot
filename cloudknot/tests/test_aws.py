@@ -158,7 +158,9 @@ def pars(bucket_cleanup):
     p.clobber()
 
 
-def test_get_tags():
+@mock_all
+def test_get_tags(aws_credentials):
+    ck.refresh_clients()
     name = "test-name"
     tags_with_name_only = ck.aws.get_tags(name=name)
     ref_name = {"Key": "Name", "Value": name}
