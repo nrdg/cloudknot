@@ -110,7 +110,7 @@ def test_is_valid_stack(configured, aws_credentials):
 
 
 @mock_all
-def test_prune_stacks(configured):
+def test_prune_stacks(configured, aws_credentials):
     config_name = configured
     ck.refresh_clients()
 
@@ -127,7 +127,7 @@ def test_prune_stacks(configured):
 
 
 @mock_all
-def test_prune_repos(configured):
+def test_prune_repos(configured, aws_credentials):
     config_name = configured
     ck.refresh_clients()
 
@@ -162,8 +162,4 @@ def test_prune_batch_jobs():
 
 
 def test_prune_images():
-    pass
-
-
-def test_prune():
     pass
