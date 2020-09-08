@@ -578,7 +578,10 @@ def set_region(region="us-east-1"):
         # throughout the package
         max_pool = clients["iam"].meta.config.max_pool_connections
         boto_config = botocore.config.Config(max_pool_connections=max_pool)
-        session = boto3.Session(profile_name=get_profile(fallback=None))
+        profile_name = get_profile(fallback=None)
+        session = boto3.Session(
+            profile_name=profile_name if profile_name != "from-env" else None
+        )
         clients["batch"] = session.client(
             "batch", region_name=region, config=boto_config
         )
