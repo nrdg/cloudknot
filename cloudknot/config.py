@@ -216,7 +216,9 @@ def prune_stacks():
                 stack_id = config.get(section, "stack-id")
                 profile = config.get(section, "profile")
                 region = config.get(section, "region")
+                print(profile)
                 aws.set_profile(profile)
+                print(region)
                 aws.set_region(region)
                 if not is_valid_stack(stack_id):
                     # Remove this section from the config file
