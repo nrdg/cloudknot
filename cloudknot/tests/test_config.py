@@ -110,7 +110,7 @@ def test_is_valid_stack(configured, aws_credentials):
 
 
 @mock_all
-def test_prune_stacks(configured, aws_credentials):
+def test_prune_stacks(configured):
     config_name = configured
     ck.refresh_clients()
 
