@@ -484,68 +484,48 @@ def test_get_profile(bucket_cleanup):
         ck.refresh_clients()
 
 
-# def test_set_profile(bucket_cleanup):
-#     try:
-#         old_credentials_file = os.environ['AWS_SHARED_CREDENTIALS_FILE']
-#     except KeyError:
-#         old_credentials_file = None
-#
-#     try:
-#         old_aws_config_file = os.environ['AWS_CONFIG_FILE']
-#     except KeyError:
-#         old_aws_config_file = None
-#
-#     try:
-#         old_ck_config_file = os.environ['CLOUDKNOT_CONFIG_FILE']
-#     except KeyError:
-#         old_ck_config_file = None
-#
-#     ref_dir = op.join(data_path, 'profiles_ref_data')
-#     ck_config_file = op.join(ref_dir, 'cloudknot_without_profile')
-#     shutil.copy(ck_config_file, ck_config_file + '.bak')
-#     try:
-#         os.environ['CLOUDKNOT_CONFIG_FILE'] = ck_config_file
-#
-#         config_file = op.join(ref_dir, 'config')
-#         os.environ['AWS_CONFIG_FILE'] = config_file
-#
-#         cred_file = op.join(ref_dir, 'credentials_without_default')
-#         os.environ['AWS_SHARED_CREDENTIALS_FILE'] = cred_file
-#
-#         with pytest.raises(ck.aws.CloudknotInputError):
-#             ck.set_profile(profile_name='not_in_list_of_profiles')
-#
-#         profile = 'name-5'
-#         ck.set_profile(profile_name=profile)
-#         assert ck.get_profile() == profile
-#     finally:
-#         shutil.move(ck_config_file + '.bak', ck_config_file)
-#
-#         if old_credentials_file:
-#             os.environ['AWS_SHARED_CREDENTIALS_FILE'] = old_credentials_file
-#         else:
-#             try:
-#                 del os.environ['AWS_SHARED_CREDENTIALS_FILE']
-#             except KeyError:
-#                 pass
-#
-#         if old_aws_config_file:
-#             os.environ['AWS_CONFIG_FILE'] = old_aws_config_file
-#         else:
-#             try:
-#                 del os.environ['AWS_CONFIG_FILE']
-#             except KeyError:
-#                 pass
-#
-#         if old_ck_config_file:
-#             os.environ['CLOUDKNOT_CONFIG_FILE'] = old_ck_config_file
-#         else:
-#             try:
-#                 del os.environ['CLOUDKNOT_CONFIG_FILE']
-#             except KeyError:
-#                 pass
-#
-#         ck.refresh_clients()
+def test_set_profile(bucket_cleanup):
+    old_credentials_file = os.environ.get("AWS_SHARED_CREDENTIALS_FILE")
+    old_aws_config_file = os.environ.get("AWS_CONFIG_FILE")
+    old_ck_config_file = os.environ.get("CLOUDKNOT_CONFIG_FILE")
+
+    ref_dir = op.join(data_path, "profiles_ref_data")
+    ck_config_file = op.join(ref_dir, "cloudknot_without_profile")
+    shutil.copy(ck_config_file, ck_config_file + ".bak")
+    try:
+        os.environ["CLOUDKNOT_CONFIG_FILE"] = ck_config_file
+
+        config_file = op.join(ref_dir, "config")
+        os.environ["AWS_CONFIG_FILE"] = config_file
+
+        cred_file = op.join(ref_dir, "credentials_without_default")
+        os.environ["AWS_SHARED_CREDENTIALS_FILE"] = cred_file
+
+        with pytest.raises(ck.aws.CloudknotInputError):
+            ck.set_profile(profile_name="not_in_list_of_profiles")
+
+        profile = "name-5"
+        ck.set_profile(profile_name=profile)
+        assert ck.get_profile() == profile
+    finally:
+        shutil.move(ck_config_file + ".bak", ck_config_file)
+
+        if old_credentials_file:
+            os.environ["AWS_SHARED_CREDENTIALS_FILE"] = old_credentials_file
+        else:
+            os.environ.pop("AWS_SHARED_CREDENTIALS_FILE")
+
+        if old_aws_config_file:
+            os.environ["AWS_CONFIG_FILE"] = old_aws_config_file
+        else:
+            os.environ.pop("AWS_CONFIG_FILE")
+
+        if old_ck_config_file:
+            os.environ["CLOUDKNOT_CONFIG_FILE"] = old_ck_config_file
+        else:
+            os.environ.pop("CLOUDKNOT_CONFIG_FILE")
+
+        ck.refresh_clients()
 
 
 @mock_all

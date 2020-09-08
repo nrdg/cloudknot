@@ -726,7 +726,7 @@ def set_profile(profile_name):
     """
     profile_info = list_profiles()
 
-    if profile_name not in profile_info.profile_names:
+    if not (profile_name in profile_info.profile_names or profile_name == "from-env"):
         raise CloudknotInputError(
             "The profile you specified does not exist in either the AWS "
             "config file at {conf:s} or the AWS shared credentials file at "
@@ -752,7 +752,9 @@ def set_profile(profile_name):
         # throughout the package
         max_pool = clients["iam"].meta.config.max_pool_connections
         boto_config = botocore.config.Config(max_pool_connections=max_pool)
-        session = boto3.Session(profile_name=profile_name)
+        session = boto3.Session(
+            profile_name=profile_name if profile_name != "from-env" else None
+        )
         clients["batch"] = session.client(
             "batch", region_name=get_region(), config=boto_config
         )
