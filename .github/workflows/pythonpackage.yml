@@ -19,6 +19,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install software
         run: |
+          python -m pip install coveralls --use-feature=2020-resolver
           python -m pip install --upgrade pip --use-feature=2020-resolver
           python -m pip install .[dev] --use-feature=2020-resolver
       - name: Configure
@@ -35,12 +36,11 @@ jobs:
         run: |
           make test
       - name: Coveralls Parallel
-        uses: coverallsapp/github-action@master
-        with:
-          github-token: ${{ secrets.github_token }}
-          flag-name: run-${{ matrix.python-version }}
-          path-to-lcov: .coverage
-          parallel: true
+        run: |
+          coveralls
+        env:
+          COVERALLS_PARALLEL: true
+          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
 
   finish:
     needs: build
@@ -49,5 +49,5 @@ jobs:
       - name: Coveralls Finished
         uses: coverallsapp/github-action@master
         with:
-          github-token: ${{ secrets.github_token }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           parallel-finished: true
