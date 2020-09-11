@@ -14,7 +14,7 @@ except ImportError:
 from concurrent.futures import ThreadPoolExecutor
 
 from . import aws
-from .config import get_config_file, rlock
+from .config import get_config_file, rlock, is_valid_stack
 from . import dockerimage
 
 __all__ = []
@@ -129,54 +129,13 @@ class Pars(aws.NamedObject):
 
             self._stack_id = config.get(self._pars_name, "stack-id")
 
-            try:
-                response = aws.clients["cloudformation"].describe_stacks(
-                    StackName=self._stack_id
-                )
-            except aws.clients["cloudformation"].exceptions.ClientError as e:
-                error_code = e.response.get("Error").get("Message")
-                no_stack_code = "Stack with id {0:s} does not exist" "".format(
-                    self._stack_id
-                )
-                if error_code == no_stack_code:
-                    # Remove this section from the config file
-                    with rlock:
-                        config.read(get_config_file())
-                        config.remove_section(self._pars_name)
-                        with open(get_config_file(), "w") as f:
-                            config.write(f)
-                    raise aws.ResourceDoesNotExistException(
-                        "Cloudknot found this PARS in its config file, but "
-                        "the PARS stack that you requested does not exist on "
-                        "AWS. Cloudknot has deleted this PARS from the config "
-                        "file, so you may be able to create a new one simply "
-                        "by re-running your previous command.",
-                        self._stack_id,
-                    )
-                else:  # pragma: nocover
-                    raise e
-
-            no_stack = len(response.get("Stacks")) == 0 or response.get("Stacks")[0][
-                "StackStatus"
-            ] in [
-                "CREATE_FAILED",
-                "ROLLBACK_COMPLETE",
-                "ROLLBACK_IN_PROGRESS",
-                "ROLLBACK_FAILED",
-                "DELETE_IN_PROGRESS",
-                "DELETE_FAILED",
-                "DELETE_COMPLETE",
-                "UPDATE_ROLLBACK_FAILED",
-            ]
-
-            if no_stack:
+            if not is_valid_stack(self._stack_id):
                 # Remove this section from the config file
                 with rlock:
                     config.read(get_config_file())
                     config.remove_section(self._pars_name)
                     with open(get_config_file(), "w") as f:
                         config.write(f)
-
                 raise aws.ResourceDoesNotExistException(
                     "Cloudknot found this PARS in its config file, but "
                     "the PARS stack that you requested does not exist on "
@@ -186,6 +145,9 @@ class Pars(aws.NamedObject):
                     self._stack_id,
                 )
 
+            response = aws.clients["cloudformation"].describe_stacks(
+                StackName=self._stack_id
+            )
             outs = response.get("Stacks")[0]["Outputs"]
 
             self._batch_service_role = _stack_out("BatchServiceRole", outs)
@@ -1005,61 +967,24 @@ class Knot(aws.NamedObject):
 
             self._stack_id = config.get(self._knot_name, "stack-id")
 
-            try:
-                response = aws.clients["cloudformation"].describe_stacks(
-                    StackName=self._stack_id
-                )
-            except aws.clients["cloudformation"].exceptions.ClientError as e:
-                error_code = e.response.get("Error").get("Message")
-                no_stack_code = "Stack with id {0:s} does not exist" "".format(
-                    self._stack_id
-                )
-                if error_code == no_stack_code:
-                    # Remove this section from the config file
-                    with rlock:
-                        config.read(get_config_file())
-                        config.remove_section(self._knot_name)
-                        with open(get_config_file(), "w") as f:
-                            config.write(f)
-                    raise aws.ResourceDoesNotExistException(
-                        "The Knot cloudformation stack that you requested "
-                        "does not exist. Cloudknot has deleted this Knot from "
-                        "the config file, so you may be able to create a new "
-                        "one simply by re-running your previous command.",
-                        self._stack_id,
-                    )
-                else:
-                    raise e
-
-            no_stack = len(response.get("Stacks")) == 0 or response.get("Stacks")[0][
-                "StackStatus"
-            ] in [
-                "CREATE_FAILED",
-                "ROLLBACK_COMPLETE",
-                "ROLLBACK_IN_PROGRESS",
-                "ROLLBACK_FAILED",
-                "DELETE_IN_PROGRESS",
-                "DELETE_FAILED",
-                "DELETE_COMPLETE",
-                "UPDATE_ROLLBACK_FAILED",
-            ]
-
-            if no_stack:
+            if not is_valid_stack(self._stack_id):
                 # Remove this section from the config file
                 with rlock:
                     config.read(get_config_file())
                     config.remove_section(self._knot_name)
                     with open(get_config_file(), "w") as f:
                         config.write(f)
-
                 raise aws.ResourceDoesNotExistException(
-                    "The Knot cloudformation stack that you requested does "
-                    "not exist. Cloudknot has deleted this Knot from the "
-                    "config file, so you may be able to create a new one "
-                    "simply by re-running your previous command.",
+                    "The Knot cloudformation stack that you requested "
+                    "does not exist. Cloudknot has deleted this Knot from "
+                    "the config file, so you may be able to create a new "
+                    "one simply by re-running your previous command.",
                     self._stack_id,
                 )
 
+            response = aws.clients["cloudformation"].describe_stacks(
+                StackName=self._stack_id
+            )
             outs = response.get("Stacks")[0]["Outputs"]
 
             job_def_arn = _stack_out("JobDefinition", outs)

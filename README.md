@@ -1,9 +1,8 @@
-![Build Status](https://github.com/nrdg/cloudknot/workflows/build/badge.svg)
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/4a5d0c767bfd4f0eae820c24df1ce2a8)](https://www.codacy.com/gh/nrdg/cloudknot?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=nrdg/cloudknot&amp;utm_campaign=Badge_Grade)
-[![Codacy Badge](https://app.codacy.com/project/badge/Coverage/d6fa3a18646f4a8089c7c897819d0342)](https://www.codacy.com/manual/richford/cloudknot?utm_source=github.com&utm_medium=referral&utm_content=nrdg/cloudknot&utm_campaign=Badge_Coverage)
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Build Status](https://github.com/nrdg/cloudknot/workflows/build/badge.svg)](https://github.com/nrdg/cloudknot/workflows/build/badge.svg)
+[![Coverage Status](https://coveralls.io/repos/github/nrdg/cloudknot/badge.svg?branch=master)](https://coveralls.io/github/nrdg/cloudknot?branch=master)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/4a5d0c767bfd4f0eae820c24df1ce2a8)](https://www.codacy.com/gh/nrdg/cloudknot?utm_source=github.com&utm_medium=referral&utm_content=nrdg/cloudknot&utm_campaign=Badge_Grade)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/python/black)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![DOI](https://zenodo.org/badge/102051437.svg)](https://zenodo.org/badge/latestdoi/102051437)
 
 # cloudknot

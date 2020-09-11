@@ -52,9 +52,9 @@ def composed(*decs):
 def aws_credentials():
     """Mocked AWS Credentials for moto."""
     os.environ["AWS_ACCESS_KEY_ID"] = "testing"
-    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
-    os.environ["AWS_SECURITY_TOKEN"] = "testing"
-    os.environ["AWS_SESSION_TOKEN"] = "testing"
+    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"  # nosec
+    os.environ["AWS_SECURITY_TOKEN"] = "testing"  # nosec
+    os.environ["AWS_SESSION_TOKEN"] = "testing"  # nosec
 
 
 mock_all = composed(
@@ -156,6 +156,56 @@ def pars(bucket_cleanup):
     p = ck.Pars(name="unit-test")
     yield p
     p.clobber()
+
+
+@mock_all
+def test_get_tags(aws_credentials):
+    ck.refresh_clients()
+    name = "test-name"
+    tags_with_name_only = ck.aws.get_tags(name=name)
+    ref_name = {"Key": "Name", "Value": name}
+    ref_owner = {"Key": "Owner", "Value": ck.aws.get_user()}
+    ref_env = {"Key": "Environment", "Value": "cloudknot"}
+    ref_dicts = [ref_name, ref_owner, ref_env]
+
+    def is_eq_list_of_dicts(lst0, lst1):
+        sort0 = sorted(lst0, key=lambda d: d["Key"])
+        sort1 = sorted(lst1, key=lambda d: d["Key"])
+        return all([pair0 == pair1 for pair0, pair1 in zip(sort0, sort1)])
+
+    assert is_eq_list_of_dicts(ref_dicts, tags_with_name_only)
+
+    add_list = [{"Key": "Project", "Value": "unit-testing"}]
+    tags_with_add_list = ck.aws.get_tags(name=name, additional_tags=add_list)
+    assert is_eq_list_of_dicts(ref_dicts + add_list, tags_with_add_list)
+
+    add_dict = {"Project": "unit-testing"}
+    tags_with_add_dict = ck.aws.get_tags(name=name, additional_tags=add_dict)
+    assert is_eq_list_of_dicts(ref_dicts + add_list, tags_with_add_dict)
+
+    add_name = {"Key": "Name", "Value": "custom-name"}
+    tags_add_name = ck.aws.get_tags(name=name, additional_tags=[add_name])
+    assert is_eq_list_of_dicts([add_name, ref_owner, ref_env], tags_add_name)
+
+    add_env = {"Key": "Environment", "Value": "custom-env"}
+    tags_add_env = ck.aws.get_tags(name=name, additional_tags=[add_env])
+    assert is_eq_list_of_dicts([ref_name, ref_owner, add_env], tags_add_env)
+
+    add_owner = {"Key": "Owner", "Value": "custom-env"}
+    tags_add_owner = ck.aws.get_tags(name=name, additional_tags=[add_owner])
+    assert is_eq_list_of_dicts([ref_name, add_owner, ref_env], tags_add_owner)
+
+    with pytest.raises(ValueError):
+        ck.aws.get_tags(name=name, additional_tags=42)
+
+    with pytest.raises(ValueError):
+        ck.aws.get_tags(name=name, additional_tags=[{"Foo": "Bar"}])
+
+    with pytest.raises(ValueError):
+        ck.aws.get_tags(name=name, additional_tags={"Key": 42})
+
+    with pytest.raises(ValueError):
+        ck.aws.get_tags(name=name, additional_tags={"Value": 42})
 
 
 @mock_all
@@ -434,68 +484,48 @@ def test_get_profile(bucket_cleanup):
         ck.refresh_clients()
 
 
-# def test_set_profile(bucket_cleanup):
-#     try:
-#         old_credentials_file = os.environ['AWS_SHARED_CREDENTIALS_FILE']
-#     except KeyError:
-#         old_credentials_file = None
-#
-#     try:
-#         old_aws_config_file = os.environ['AWS_CONFIG_FILE']
-#     except KeyError:
-#         old_aws_config_file = None
-#
-#     try:
-#         old_ck_config_file = os.environ['CLOUDKNOT_CONFIG_FILE']
-#     except KeyError:
-#         old_ck_config_file = None
-#
-#     ref_dir = op.join(data_path, 'profiles_ref_data')
-#     ck_config_file = op.join(ref_dir, 'cloudknot_without_profile')
-#     shutil.copy(ck_config_file, ck_config_file + '.bak')
-#     try:
-#         os.environ['CLOUDKNOT_CONFIG_FILE'] = ck_config_file
-#
-#         config_file = op.join(ref_dir, 'config')
-#         os.environ['AWS_CONFIG_FILE'] = config_file
-#
-#         cred_file = op.join(ref_dir, 'credentials_without_default')
-#         os.environ['AWS_SHARED_CREDENTIALS_FILE'] = cred_file
-#
-#         with pytest.raises(ck.aws.CloudknotInputError):
-#             ck.set_profile(profile_name='not_in_list_of_profiles')
-#
-#         profile = 'name-5'
-#         ck.set_profile(profile_name=profile)
-#         assert ck.get_profile() == profile
-#     finally:
-#         shutil.move(ck_config_file + '.bak', ck_config_file)
-#
-#         if old_credentials_file:
-#             os.environ['AWS_SHARED_CREDENTIALS_FILE'] = old_credentials_file
-#         else:
-#             try:
-#                 del os.environ['AWS_SHARED_CREDENTIALS_FILE']
-#             except KeyError:
-#                 pass
-#
-#         if old_aws_config_file:
-#             os.environ['AWS_CONFIG_FILE'] = old_aws_config_file
-#         else:
-#             try:
-#                 del os.environ['AWS_CONFIG_FILE']
-#             except KeyError:
-#                 pass
-#
-#         if old_ck_config_file:
-#             os.environ['CLOUDKNOT_CONFIG_FILE'] = old_ck_config_file
-#         else:
-#             try:
-#                 del os.environ['CLOUDKNOT_CONFIG_FILE']
-#             except KeyError:
-#                 pass
-#
-#         ck.refresh_clients()
+def test_set_profile(bucket_cleanup):
+    old_credentials_file = os.environ.get("AWS_SHARED_CREDENTIALS_FILE")
+    old_aws_config_file = os.environ.get("AWS_CONFIG_FILE")
+    old_ck_config_file = os.environ.get("CLOUDKNOT_CONFIG_FILE")
+
+    ref_dir = op.join(data_path, "profiles_ref_data")
+    ck_config_file = op.join(ref_dir, "cloudknot_without_profile")
+    shutil.copy(ck_config_file, ck_config_file + ".bak")
+    try:
+        os.environ["CLOUDKNOT_CONFIG_FILE"] = ck_config_file
+
+        config_file = op.join(ref_dir, "config")
+        os.environ["AWS_CONFIG_FILE"] = config_file
+
+        cred_file = op.join(ref_dir, "credentials_without_default")
+        os.environ["AWS_SHARED_CREDENTIALS_FILE"] = cred_file
+
+        with pytest.raises(ck.aws.CloudknotInputError):
+            ck.set_profile(profile_name="not_in_list_of_profiles")
+
+        profile = "name-5"
+        ck.set_profile(profile_name=profile)
+        assert ck.get_profile() == profile
+    finally:
+        shutil.move(ck_config_file + ".bak", ck_config_file)
+
+        if old_credentials_file:
+            os.environ["AWS_SHARED_CREDENTIALS_FILE"] = old_credentials_file
+        else:
+            os.environ.pop("AWS_SHARED_CREDENTIALS_FILE")
+
+        if old_aws_config_file:
+            os.environ["AWS_CONFIG_FILE"] = old_aws_config_file
+        else:
+            os.environ.pop("AWS_CONFIG_FILE")
+
+        if old_ck_config_file:
+            os.environ["CLOUDKNOT_CONFIG_FILE"] = old_ck_config_file
+        else:
+            os.environ.pop("CLOUDKNOT_CONFIG_FILE")
+
+        ck.refresh_clients()
 
 
 @mock_all

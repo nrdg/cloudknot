@@ -37,24 +37,6 @@ mod_logger = logging.getLogger(__name__)
 is_windows = os.name == "nt"
 
 
-def _get_repo_info_from_uri(repo_uri):
-    # Get all repositories
-    repositories = aws.clients["ecr"].describe_repositories(maxResults=500)[
-        "repositories"
-    ]
-
-    _repo_uri = repo_uri.split(":")[0]
-    # Filter by matching on repo_uri
-    matching_repo = [
-        repo for repo in repositories if repo["repositoryUri"] == _repo_uri
-    ][0]
-
-    return {
-        "registry_id": matching_repo["registryId"],
-        "repo_name": matching_repo["repositoryName"],
-    }
-
-
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
 @registered
 class DockerImage(aws.NamedObject):
@@ -171,6 +153,10 @@ class DockerImage(aws.NamedObject):
                     resource_id=name,
                 )
 
+            self._region = config.get(section_name, "region")
+            self._profile = config.get(section_name, "profile")
+            self.check_profile_and_region()
+
             self._func = None
             function_hash = hash(config.get(section_name, "function-hash"))
             self._build_path = config.get(section_name, "build-path")
@@ -190,7 +176,7 @@ class DockerImage(aws.NamedObject):
             self._repo_uri = uri if uri else None
 
             if uri:
-                repo_info = _get_repo_info_from_uri(repo_uri=uri)
+                repo_info = aws.ecr._get_repo_info_from_uri(repo_uri=uri)
                 self._repo_registry_id = repo_info["registry_id"]
                 self._repo_name = repo_info["repo_name"]
             else:
@@ -394,6 +380,8 @@ class DockerImage(aws.NamedObject):
 
             # Add to config file
             section_name = "docker-image " + self.name
+            ckconfig.add_resource(section_name, "profile", self.profile)
+            ckconfig.add_resource(section_name, "region", self.region)
             ckconfig.add_resource(section_name, "function-hash", str(hash(self._func)))
             ckconfig.add_resource(section_name, "build-path", self.build_path)
             ckconfig.add_resource(section_name, "script-path", self.script_path)
@@ -688,7 +676,7 @@ class DockerImage(aws.NamedObject):
             if not isinstance(repo_uri, six.string_types):
                 raise CloudknotInputError("`repo_uri` must be a string.")
             self._repo_uri = repo_uri
-            repo_info = _get_repo_info_from_uri(repo_uri=repo_uri)
+            repo_info = aws.ecr._get_repo_info_from_uri(repo_uri=repo_uri)
             self._repo_registry_id = repo_info["registry_id"]
             self._repo_name = repo_info["repo_name"]
 

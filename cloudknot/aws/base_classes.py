@@ -33,14 +33,14 @@ def get_tags(name, additional_tags=None):
     if additional_tags is not None:
         if isinstance(additional_tags, list):
             if not all(
-                [set(item.keys) == set(["Key", "Value"]) for item in additional_tags]
+                [set(item.keys()) == set(["Key", "Value"]) for item in additional_tags]
             ):
                 raise ValueError(
                     "If additional_tags is a list, it must be a list of "
                     "dictionaries of the form {'Key': key_val, 'Value': "
                     "value_val}."
                 )
-            tag_list = additional_tags
+            tag_list += additional_tags
         elif isinstance(additional_tags, dict):
             if "Key" in additional_tags.keys() or "Value" in additional_tags.keys():
                 raise ValueError(
@@ -578,7 +578,10 @@ def set_region(region="us-east-1"):
         # throughout the package
         max_pool = clients["iam"].meta.config.max_pool_connections
         boto_config = botocore.config.Config(max_pool_connections=max_pool)
-        session = boto3.Session(profile_name=get_profile(fallback=None))
+        profile_name = get_profile(fallback=None)
+        session = boto3.Session(
+            profile_name=profile_name if profile_name != "from-env" else None
+        )
         clients["batch"] = session.client(
             "batch", region_name=region, config=boto_config
         )
@@ -590,6 +593,8 @@ def set_region(region="us-east-1"):
         clients["ec2"] = session.client("ec2", region_name=region, config=boto_config)
         clients["iam"] = session.client("iam", region_name=region, config=boto_config)
         clients["s3"] = session.client("s3", region_name=region, config=boto_config)
+
+    mod_logger.debug("Set region to {region:s}".format(region=region))
 
 
 @registered
@@ -724,7 +729,7 @@ def set_profile(profile_name):
     """
     profile_info = list_profiles()
 
-    if profile_name not in profile_info.profile_names:
+    if not (profile_name in profile_info.profile_names or profile_name == "from-env"):
         raise CloudknotInputError(
             "The profile you specified does not exist in either the AWS "
             "config file at {conf:s} or the AWS shared credentials file at "
@@ -750,7 +755,9 @@ def set_profile(profile_name):
         # throughout the package
         max_pool = clients["iam"].meta.config.max_pool_connections
         boto_config = botocore.config.Config(max_pool_connections=max_pool)
-        session = boto3.Session(profile_name=profile_name)
+        session = boto3.Session(
+            profile_name=profile_name if profile_name != "from-env" else None
+        )
         clients["batch"] = session.client(
             "batch", region_name=get_region(), config=boto_config
         )
@@ -772,6 +779,8 @@ def set_profile(profile_name):
         clients["s3"] = session.client(
             "s3", region_name=get_region(), config=boto_config
         )
+
+    mod_logger.debug("Set profile to {profile:s}".format(profile=profile_name))
 
 
 #: module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, ECS, S3.
