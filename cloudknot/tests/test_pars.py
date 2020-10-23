@@ -95,6 +95,10 @@ def test_pars_errors(cleanup):
     with pytest.raises(ck.aws.CloudknotInputError):
         ck.Pars(name=42)
 
+    # Assert ck.aws.CloudknotInputError on long name
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.Pars(name="a" * 46)
+
     # Confirm batch_service_role_name input validation
     with pytest.raises(ck.aws.CloudknotInputError):
         ck.Pars(name=name, batch_service_role_name=42)
