@@ -79,6 +79,7 @@ EXTRAS_REQUIRE = {
     ':python_version < "3.0"': ["configparser"],
     "dev": [
         "black==20.8b1",
+        "coverage==5.3",
         "flake8==3.8.3",
         "numpydoc==1.1.0",
         "moto==1.3.15.dev1015",

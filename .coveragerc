@@ -1,6 +1,7 @@
 [run]
 branch = True
 source = cloudknot
+parallel = True
 omit = */setup.py
     cloudknot/commands/*.py
     cloudknot/version.py
