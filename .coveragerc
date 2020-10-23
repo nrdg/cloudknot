@@ -1,17 +1,14 @@
 [run]
 branch = True
-source = cloudknot/*
-include = cloudknot/*
+source = cloudknot
 omit = */setup.py
     cloudknot/commands/*.py
-    cloudknot/due.py
     cloudknot/version.py
     cloudknot/_meta.py
     cloudknot/data/*/*/*.py
     cloudknot/tests/*.py
     
 [report]
-include = cloudknot/*
 exclude_lines =
     pragma: no cover
     def __repr__
