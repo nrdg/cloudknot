@@ -67,11 +67,14 @@ data_path = op.join(ck.__path__[0], "data")
 
 
 def test_NamedObject():
-    named = ck.aws.NamedObject(name="test_test")
+    named = ck.aws.NamedObject(name="test-test")
     assert named.name == "test-test"
 
     with pytest.raises(ck.aws.CloudknotInputError):
         ck.aws.NamedObject(name="42test")
+
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.aws.NamedObject(name="test_test")
 
 
 def get_testing_name():

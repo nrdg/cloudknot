@@ -333,7 +333,7 @@ def test_DockerImage(cleanup_repos):
             script_path=script_path, dir_name=dir_name, username="unit-test-username"
         )
 
-        assert di.name == op.basename(script_path)
+        assert di.name == op.splitext(op.basename(script_path))[0].replace("_", "-")
         import_names = set([d["name"] for d in di.pip_imports])
         assert import_names == correct_pip_imports
         assert di.missing_imports == []

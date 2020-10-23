@@ -1065,8 +1065,8 @@ class NamedObject(object):
         Parameters
         ----------
         name : string
-            Name of the object. Must satisfy regular expression
-            pattern: [a-zA-Z][-a-zA-Z0-9]*
+            Name of the object.
+            Must satisfy regular expression pattern: [a-zA-Z][-a-zA-Z0-9]*
         """
         config_file = get_config_file()
         conf = configparser.ConfigParser()
@@ -1080,11 +1080,12 @@ class NamedObject(object):
             ):
                 raise CloudknotConfigurationError(config_file)
 
-        name = str(name).replace("_", "-")
-        pattern = re.compile("[a-zA-Z][-a-zA-Z0-9]*")
+        pattern = re.compile("^[a-zA-Z][-a-zA-Z0-9]*$")
         if not pattern.match(name):
             raise CloudknotInputError(
-                "name must satisfy regular expression " "pattern: [a-zA-Z][-a-zA-Z0-9]*"
+                "We use name in AWS resource identifiers so it must "
+                "satisfy the regular expression pattern: [a-zA-Z][-a-zA-Z0-9]*"
+                " (note that underscores are not allowed)."
             )
 
         self._name = name

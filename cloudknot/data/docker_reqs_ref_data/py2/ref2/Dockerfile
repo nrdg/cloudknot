@@ -1,5 +1,5 @@
 ###############################################################################
-# Dockerfile to build test-func-input.py application container
+    # Dockerfile to build test-func-input application container
 # Based on python:2
 ###############################################################################
 
