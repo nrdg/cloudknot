@@ -1748,7 +1748,7 @@ class Knot(aws.NamedObject):
         return self._job_ids
 
     def map(
-        self, iterdata, env_vars=None, max_threads=64, starmap=False, job_type="array"
+        self, iterdata, env_vars=None, max_threads=64, starmap=False, job_type=None
     ):
         """
         Submit batch jobs for a range of commands and environment vars.
@@ -1790,8 +1790,9 @@ class Knot(aws.NamedObject):
             with one child job for each input element and map returns one
             future for the entire results list. If job_type is 'independent'
             then one independent batch job is submitted for each input
-            element and map returns a list of futures for each element of
-            the results.
+            element and map returns a list of futures for each element of the
+            results. If the length of ``iterdata`` is one and job_type is
+            specified, it must be "independent."
             Default: 'array'
 
         Returns
@@ -1800,6 +1801,12 @@ class Knot(aws.NamedObject):
             If `job_type` is 'array', a future for the list of results.
             If `job_type` is 'independent', list of futures for each job
         """
+        if job_type is None:
+            if len(iterdata) == 1:
+                job_type = "independent"
+            else:
+                job_type = "array"
+
         if job_type not in ["array", "independent"]:
             raise ValueError("`job_type` must be 'array' or 'independent'.")
 
