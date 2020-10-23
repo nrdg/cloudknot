@@ -85,6 +85,7 @@ EXTRAS_REQUIRE = {
         "pre-commit==2.7.1",
         "pydocstyle==5.1.1",
         "pytest-cov==2.10.1",
+        "pytest-xdist[psutil]==2.1.0",
         "pytest==6.0.1",
         "sphinx==3.2.1",
     ],
