@@ -30,12 +30,12 @@ jobs:
           printf "[aws]\nconfigured = True\n" > ~/.aws/cloudknot
       - name: Lint with flake8
         run: |
-          pip install flake8 black
           flake8
           black --check .
+          pydocstyle
       - name: Test
         run: |
-          make test
+          pytest --pyargs cloudknot --cov-report term-missing --cov-config .coveragerc --cov=cloudknot
       - name: Coveralls Parallel
         run: |
           coveralls

@@ -1,5 +1,4 @@
-from __future__ import absolute_import, division, print_function
-
+"""Cloudknot is a python library to run your existing code on AWS Batch."""
 import errno
 import logging
 import os

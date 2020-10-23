@@ -1,3 +1,4 @@
+"""Cloudknot is a python library to run your existing code on AWS Batch."""
 import os
 import string
 from setuptools import setup, find_packages
@@ -12,9 +13,7 @@ with open(ver_file) as f:
 
 
 def local_version(version):
-    """
-    Patch in a version that can be uploaded to test PyPI
-    """
+    """Patch in a version that can be uploaded to test PyPI."""
     scm_version = get_version()
     if "dev" in scm_version:
         gh_in_int = []

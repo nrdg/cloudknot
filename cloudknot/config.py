@@ -9,8 +9,6 @@ Ideally, the cloudknot user should never have to use these functions to
 interact with the cloudknot config file. Each cloudknot object maintains
 references to its state in the config file.
 """
-from __future__ import absolute_import, division, print_function
-
 import botocore
 import configparser
 import docker
@@ -326,7 +324,7 @@ def prune_batch_jobs():
 
 def prune_images():
     """
-    Clean unused docker images from the config file
+    Clean unused docker images from the config file.
 
     Verify that the docker-image sections in the config file refer to actual
     docker images that refer either to local resources or to images that

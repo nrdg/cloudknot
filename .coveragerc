@@ -9,5 +9,17 @@ omit = */setup.py
     cloudknot/_meta.py
     cloudknot/data/*/*/*.py
     cloudknot/tests/*.py
+    
 [report]
 include = cloudknot/*
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if self.debug:
+    if settings.DEBUG
+    raise AssertionError
+    raise NotImplementedError
+    if 0:
+    if __name__ == .__main__.:
+    if self.verbose:
+show_missing = True

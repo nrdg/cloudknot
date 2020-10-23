@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division, print_function
-
 from os.path import join as pjoin
 
 CLASSIFIERS = [
@@ -80,12 +78,16 @@ REQUIRES = [
 EXTRAS_REQUIRE = {
     ':python_version < "3.0"': ["configparser"],
     "dev": [
-        "pytest>=3.6",
-        "pytest-cov",
-        "flake8",
+        "black==20.8b1",
+        "flake8==3.8.3",
+        "numpydoc==1.1.0",
         "moto==1.3.15.dev1015",
-        "pre-commit",
-        "sphinx",
+        "pre-commit==2.7.1",
+        "pydocstyle==5.1.1",
+        "pytest-cov==2.10.1",
+        "pytest==6.0.1",
+        "sphinx==3.2.1",
     ],
+    "maint": ["rapidfuzz==0.12.2"],
 }
 ENTRY_POINTS = {"console_scripts": ["cloudknot=cloudknot.cli:main"]}

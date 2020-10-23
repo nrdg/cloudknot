@@ -1,5 +1,4 @@
-from __future__ import absolute_import, division, print_function
-
+"""Create, build, push, and manage Docker images for use in Cloudknot."""
 import configparser
 import docker
 import inspect
@@ -25,12 +24,7 @@ from .aws.base_classes import (
 )
 from .config import get_config_file, rlock
 
-__all__ = []
-
-
-def registered(fn):
-    __all__.append(fn.__name__)
-    return fn
+__all__ = ["DockerImage"]
 
 
 mod_logger = logging.getLogger(__name__)
@@ -38,12 +32,10 @@ is_windows = os.name == "nt"
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-@registered
 class DockerImage(aws.NamedObject):
-    """
-    Class for dockerizing a python script or function.
+    """Class for dockerizing a python script or function.
 
-    On `__init__`, if given a python function, DockerImage will create a CLI
+    If given a python function, DockerImage will create a CLI
     version for that function, write a requirements.txt file for all import
     statements in the function, and write a Dockerfile to containerize that
     python script. If given a path to a python script, DockerImage will assume
@@ -55,6 +47,47 @@ class DockerImage(aws.NamedObject):
     packages will not be included in requirements.txt, DockerImage will throw
     a warning, and the user must install those packages by hand in the
     Dockerfile.
+
+    Parameters
+    ----------
+    name : str
+        Name of DockerImage, only used to retrieve DockerImage from
+        config file info. Do not use to create new DockerImage.
+        Must satisfy regular expression pattern: [a-zA-Z][-a-zA-Z0-9]*
+
+    func : function
+        Python function to be dockerized
+
+    script_path : string
+        Path to file with python script to be dockerized
+
+    dir_name : string
+        Directory to store Dockerfile, requirements.txt, and python
+        script with CLI
+        Default: parent directory of script if `script_path` is provided
+        else DockerImage creates a new directory, accessible by the
+        `build_path` property.
+
+    base_image : string
+        Docker base image on which to base this Dockerfile
+        Default: None will use the python base image for the
+        current version of python
+
+    github_installs : string or sequence of strings
+        Github addresses for packages to install from github rather than
+        PyPI (e.g. git://github.com/nrdg/cloudknot.git or
+        git://github.com/nrdg/cloudknot.git@newfeaturebranch)
+        Default: ()
+
+    username : string
+        Default user created in the Dockerfile
+        Default: 'cloudknot-user'
+
+    overwrite : bool, default=False
+        If True, allow overwriting any existing Dockerfiles,
+        requirements files, or python scripts previously created by
+        cloudknot
+
     """
 
     def __init__(
@@ -68,49 +101,6 @@ class DockerImage(aws.NamedObject):
         username=None,
         overwrite=False,
     ):
-        """
-        Initialize a DockerImage instance.
-
-        Parameters
-        ----------
-        name : str
-            Name of DockerImage, only used to retrieve DockerImage from
-            config file info. Do not use to create new DockerImage.
-            Must satisfy regular expression pattern: [a-zA-Z][-a-zA-Z0-9]*
-
-        func : function
-            Python function to be dockerized
-
-        script_path : string
-            Path to file with python script to be dockerized
-
-        dir_name : string
-            Directory to store Dockerfile, requirements.txt, and python
-            script with CLI
-            Default: parent directory of script if `script_path` is provided
-            else DockerImage creates a new directory, accessible by the
-            `build_path` property.
-
-        base_image : string
-            Docker base image on which to base this Dockerfile
-            Default: None will use the python base image for the
-            current version of python
-
-        github_installs : string or sequence of strings
-            Github addresses for packages to install from github rather than
-            PyPI (e.g. git://github.com/nrdg/cloudknot.git or
-            git://github.com/nrdg/cloudknot.git@newfeaturebranch)
-            Default: ()
-
-        username : string
-            Default user created in the Dockerfile
-            Default: 'cloudknot-user'
-
-        overwrite : bool, default=False
-            If True, allow overwriting any existing Dockerfiles,
-            requirements files, or python scripts previously created by
-            cloudknot
-        """
         # User must specify at least `func` or `script_path`
         if not any([name, func, script_path]):
             raise CloudknotInputError(
@@ -411,7 +401,7 @@ class DockerImage(aws.NamedObject):
 
     @property
     def build_path(self):
-        """The build path for the docker image."""
+        """Return build path for the docker image."""
         return self._build_path
 
     @property
@@ -441,17 +431,17 @@ class DockerImage(aws.NamedObject):
 
     @property
     def github_installs(self):
-        """List of packages installed from github rather than PyPI."""
+        """List packages installed from github rather than PyPI."""
         return self._github_installs
 
     @property
     def username(self):
-        """Default username created in Dockerfile."""
+        """Return default username created in Dockerfile."""
         return self._username
 
     @property
     def missing_imports(self):
-        """List of required imports that are unavailable through pip install.
+        """List required imports that are unavailable through pip install.
 
         The user must edit the Dockerfile by hand to install these packages
         before using the build or push methods.
@@ -460,7 +450,7 @@ class DockerImage(aws.NamedObject):
 
     @property
     def images(self):
-        """List of name, tag dicts for docker images built by this instance."""
+        """List name, tag dicts for docker images built by this instance."""
         return self._images
 
     @property
@@ -558,8 +548,7 @@ class DockerImage(aws.NamedObject):
             )
 
     def build(self, tags, image_name=None):
-        """
-        Build a DockerContainer image.
+        """Build a Docker image.
 
         Parameters
         ----------
@@ -569,6 +558,7 @@ class DockerImage(aws.NamedObject):
         image_name : str
             Name of Docker image to be built
             Default: 'cloudknot/' + self.name
+
         """
         if self.clobbered:
             raise ResourceClobberedException(
@@ -635,8 +625,7 @@ class DockerImage(aws.NamedObject):
         ckconfig.add_resource(section_name, "images", config_images_str)
 
     def push(self, repo=None, repo_uri=None):
-        """
-        Tag and push a DockerContainer image to a repository.
+        """Tag and push a Docker image to a repository.
 
         Parameters
         ----------
@@ -645,6 +634,7 @@ class DockerImage(aws.NamedObject):
 
         repo_uri : string, optional
             URI for the docker repository to which to push this instance
+
         """
         if self.clobbered:
             raise ResourceClobberedException(
@@ -801,14 +791,11 @@ class DockerImage(aws.NamedObject):
             ckconfig.add_resource(section_name, "repo-uri", self.repo_uri)
 
     def clobber(self):
-        """
-        Delete all of the files associated with this instance.
+        """Delete all of the files associated with this instance.
 
         Always delete the generated requirements.txt and Dockerfile. Only
         delete the script if it was auto-generated. Only delete the parent
-        directory if it is empty.
-
-        Also delete the local docker image
+        directory if it is empty. Also delete the local docker image.
         """
         if self.clobbered:
             return

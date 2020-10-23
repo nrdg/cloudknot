@@ -1,3 +1,4 @@
+# noqa
 """
 cloudknot
 
@@ -5,18 +6,18 @@ Usage:
   cloudknot configure
   cloudknot -h | --help
   cloudknot --version
+
 Options:
   -h --help                         Show this screen.
   --version                         Show version.
+
 Examples:
   cloudknot configure
+
 Help:
   For help using this tool, please see the Github repository:
   https://github.com/nrdg/cloudknot
 """
-
-from __future__ import absolute_import, division, print_function
-
 from docopt import docopt
 from inspect import getmembers, isclass
 
@@ -24,7 +25,7 @@ from . import __version__ as VERSION
 
 
 def main():
-    """Main CLI entrypoint"""
+    """Create main CLI entrypoint."""
     import cloudknot.commands
 
     options = docopt(__doc__, version=VERSION)
