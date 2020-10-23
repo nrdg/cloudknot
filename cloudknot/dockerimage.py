@@ -75,7 +75,8 @@ class DockerImage(aws.NamedObject):
         ----------
         name : str
             Name of DockerImage, only used to retrieve DockerImage from
-            config file info. Do not use to create new DockerImage
+            config file info. Do not use to create new DockerImage.
+            Must satisfy regular expression pattern: [a-zA-Z][-a-zA-Z0-9]*
 
         func : function
             Python function to be dockerized
@@ -271,7 +272,9 @@ class DockerImage(aws.NamedObject):
 
                 self._script_path = os.path.abspath(script_path)
                 super(DockerImage, self).__init__(
-                    name=os.path.basename(self.script_path)
+                    name=os.path.splitext(os.path.basename(self.script_path))[0]
+                    .replace("_", "-")
+                    .replace(".", "-")
                 )
 
                 # Set the parent directory
@@ -286,7 +289,9 @@ class DockerImage(aws.NamedObject):
                 # We will create the script, Dockerfile, and requirements.txt
                 # in a new directory
                 self._clobber_script = True
-                super(DockerImage, self).__init__(name=name if name else func.__name__)
+                super(DockerImage, self).__init__(
+                    name=name if name else func.__name__.replace("_", "-")
+                )
 
                 if dir_name:
                     self._build_path = os.path.abspath(dir_name)

@@ -65,6 +65,7 @@ class Pars(aws.NamedObject):
             The name of this PARS. If `pars name` exists in the config file,
             Pars will retrieve those PARS resource parameters. Otherwise,
             Pars will create a new PARS with this name.
+            Must satisfy regular expression pattern: [a-zA-Z][-a-zA-Z0-9]*
             Default: '${AWS-username}-default'
 
         batch_service_role_name : str
@@ -725,7 +726,8 @@ class Knot(aws.NamedObject):
         Parameters
         ----------
         name : str, optional
-            The name for this knot
+            The name for this knot.
+            Must satisfy regular expression pattern: [a-zA-Z][-a-zA-Z0-9]*
             Default='${AWS-username}-default'
 
         pars : Pars, optional

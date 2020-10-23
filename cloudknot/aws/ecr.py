@@ -55,7 +55,8 @@ class DockerRepo(NamedObject):
         Parameters
         ----------
         name : str
-            Name of the remote repository
+            Name of the remote repository.
+            Must satisfy regular expression pattern: [a-zA-Z][-a-zA-Z0-9]*
 
         aws_resource_tags : dict or list of dicts
             Additional AWS resource tags to apply to this repository

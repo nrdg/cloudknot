@@ -138,7 +138,8 @@ class BatchJob(NamedObject):
             The AWS jobID, if requesting a job that already exists
 
         name : string
-            Name of the job
+            Name of the job.
+            Must satisfy regular expression pattern: [a-zA-Z][-a-zA-Z0-9]*
 
         job_queue : string
             Job queue ARN specifying the job queue to which this job
