@@ -1,13 +1,11 @@
 [run]
 branch = True
 source = cloudknot
-parallel = True
 omit = */setup.py
     cloudknot/commands/*.py
     cloudknot/version.py
     cloudknot/_meta.py
     cloudknot/data/*/*/*.py
-    cloudknot/tests/*.py
     
 [report]
 exclude_lines =
