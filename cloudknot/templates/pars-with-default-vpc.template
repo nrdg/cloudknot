@@ -7,24 +7,24 @@
                 "Default" : "cloudknot-batch-service-role",
                 "Description" : "Name of the batch service IAM role. Default is cloudknot-batch-service-role.",
                 "MinLength" : "1",
-                "MaxLength" : "50",
-                "ConstraintDescription" : "The role name must be between 1 and 50 characters"
+                "MaxLength" : "64",
+                "ConstraintDescription" : "The role name must be between 1 and 64 characters"
             },
             "EcsInstanceRoleName" : {
                 "Type" : "String",
                 "Default" : "cloudknot-ecs-instance-role",
                 "Description" : "Name of the ECS instance IAM role. Default is cloudknot-ecs-instance-role.",
                 "MinLength" : "1",
-                "MaxLength" : "50",
-                "ConstraintDescription" : "The role name must be between 1 and 50 characters"
+                "MaxLength" : "64",
+                "ConstraintDescription" : "The role name must be between 1 and 64 characters"
             },
             "SpotFleetRoleName" : {
                 "Type" : "String",
                 "Default" : "cloudknot-spot-fleet-role",
                 "Description" : "Name of the spot fleet IAM role. Default is cloudknot-spot-fleet-role.",
                 "MinLength" : "1",
-                "MaxLength" : "50",
-                "ConstraintDescription" : "The role name must be between 1 and 50 characters"
+                "MaxLength" : "64",
+                "ConstraintDescription" : "The role name must be between 1 and 64 characters"
             },
             "VpcId" : {
                 "Type" : "String",

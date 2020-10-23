@@ -65,6 +65,7 @@ class Pars(aws.NamedObject):
             The name of this PARS. If `pars name` exists in the config file,
             Pars will retrieve those PARS resource parameters. Otherwise,
             Pars will create a new PARS with this name.
+            Must be less than 46 characters.
             Must satisfy regular expression pattern: [a-zA-Z][-a-zA-Z0-9]*
             Default: '${AWS-username}-default'
 
@@ -109,6 +110,9 @@ class Pars(aws.NamedObject):
 
         if name is None:
             name = aws.get_user() + "-default"
+
+        if len(name) > 45:
+            raise aws.CloudknotInputError("Pars name must be less than 46 characters.")
 
         super(Pars, self).__init__(name=name)
 
@@ -726,7 +730,7 @@ class Knot(aws.NamedObject):
         Parameters
         ----------
         name : str, optional
-            The name for this knot.
+            The name for this knot. Must be less than 46 characters.
             Must satisfy regular expression pattern: [a-zA-Z][-a-zA-Z0-9]*
             Default='${AWS-username}-default'
 
@@ -787,7 +791,7 @@ class Knot(aws.NamedObject):
 
         job_definition_name : str, optional
             Name for this knot's AWS Batch job definition
-            Default: name + '-cloudknot-compute-environment'
+            Default: name + '-cloudknot-job-definition'
 
         job_def_vcpus : int, optional
             number of virtual cpus to be used to this knot's job definition
@@ -869,6 +873,9 @@ class Knot(aws.NamedObject):
 
         if name is None:
             name = aws.get_user() + "-default"
+
+        if len(name) > 45:
+            raise aws.CloudknotInputError("Knot name must be less than 46 characters.")
 
         super(Knot, self).__init__(name=name)
         self._knot_name = "knot " + name

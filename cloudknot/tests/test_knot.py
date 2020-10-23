@@ -302,6 +302,10 @@ def test_knot_errors(cleanup_repos):
     with pytest.raises(ck.aws.CloudknotInputError):
         ck.Knot(name=42)
 
+    # Assert ck.aws.CloudknotInputError on long name
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.Knot(name="a" * 46)
+
     # Assert ck.aws.CloudknotInputError on invalid pars input
     with pytest.raises(ck.aws.CloudknotInputError):
         ck.Knot(func=unit_testing_func, pars=42)

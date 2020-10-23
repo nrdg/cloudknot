@@ -17,8 +17,8 @@
                 "Type" : "String",
                 "Description" : "Name of the job definition.",
                 "MinLength" : "1",
-                "MaxLength" : "100",
-                "ConstraintDescription" : "The job definition name must be between 1 and 50 characters"
+                "MaxLength" : "64",
+                "ConstraintDescription" : "The job definition name must be between 1 and 64 characters"
             },
             "JdvCpus" : {
                 "Type" : "Number",
@@ -58,8 +58,8 @@
                 "Type" : "String",
                 "Description" : "Name of the job queue.",
                 "MinLength" : "1",
-                "MaxLength" : "100",
-                "ConstraintDescription" : "The job queue name must be between 1 and 50 characters"
+                "MaxLength" : "64",
+                "ConstraintDescription" : "The job queue name must be between 1 and 64 characters"
             },
             "JqPriority" : {
                 "Type" : "Number",
@@ -72,8 +72,8 @@
                 "Type" : "String",
                 "Description" : "Name of the compute environment.",
                 "MinLength" : "1",
-                "MaxLength" : "100",
-                "ConstraintDescription" : "The compute environment name must be between 1 and 100 characters"
+                "MaxLength" : "64",
+                "ConstraintDescription" : "The compute environment name must be between 1 and 64 characters"
             },
             "CeResourceType" : {
                 "Type" : "String",
