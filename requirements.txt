@@ -1,9 +1,0 @@
-awscli==1.16.162
-boto3==1.9.151
-botocore==1.12.152
-cloudpickle==1.1.1
-docker==4.0.1
-pipreqs==0.4.9
-six==1.12.0
-tenacity==5.0.4
-configparser==3.7.4; python_version < '3.0'
