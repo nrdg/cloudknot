@@ -22,14 +22,7 @@ from .base_classes import (
     get_s3_params,
 )
 
-__all__ = []
-
-
-def registered(fn):
-    __all__.append(fn.__name__)
-    return fn
-
-
+__all__ = ["BatchJob"]
 mod_logger = logging.getLogger(__name__)
 
 
@@ -109,7 +102,6 @@ def _exists_already(job_id):
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-@registered
 class BatchJob(NamedObject):
     """Class for defining AWS Batch Job."""
 

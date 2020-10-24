@@ -8,9 +8,10 @@ import pytest
 import six
 import tempfile
 import uuid
-from . import bucket_name
 from moto import mock_batch, mock_cloudformation, mock_ec2, mock_ecr
 from moto import mock_ecs, mock_iam, mock_s3
+
+bucket_name = "ck-test-bucket-" + str(uuid.uuid4()).replace("-", "")[:6]
 
 
 def composed(*decs):

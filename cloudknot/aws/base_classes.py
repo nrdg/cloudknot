@@ -14,18 +14,36 @@ except ImportError:
 
 from ..config import get_config_file, rlock
 
-__all__ = ["clients"]
-
-
-def registered(fn):
-    __all__.append(fn.__name__)
-    return fn
-
-
+__all__ = [
+    "clients",
+    "get_tags",
+    "get_ecr_repo",
+    "set_ecr_repo",
+    "get_s3_params",
+    "set_s3_params",
+    "get_region",
+    "set_region",
+    "list_profiles",
+    "get_user",
+    "get_profile",
+    "set_profile",
+    "refresh_clients",
+    "ResourceExistsException",
+    "ResourceDoesNotExistException",
+    "ResourceClobberedException",
+    "CannotDeleteResourceException",
+    "CannotCreateResourceException",
+    "RegionException",
+    "ProfileException",
+    "CKTimeoutError",
+    "BatchJobFailedError",
+    "CloudknotConfigurationError",
+    "CloudknotInputError",
+    "NamedObject",
+]
 mod_logger = logging.getLogger(__name__)
 
 
-@registered
 def get_tags(name, additional_tags=None):
     tag_list = []
     if additional_tags is not None:
@@ -65,7 +83,6 @@ def get_tags(name, additional_tags=None):
     return tag_list
 
 
-@registered
 def get_ecr_repo():
     """Get the cloudknot ECR repository
 
@@ -103,7 +120,6 @@ def get_ecr_repo():
     return repo
 
 
-@registered
 def set_ecr_repo(repo):
     """Set the cloudknot ECR repo
 
@@ -166,7 +182,6 @@ def set_ecr_repo(repo):
                 raise e
 
 
-@registered
 def get_s3_params():
     """Get the cloudknot S3 bucket and corresponding access policy
 
@@ -258,7 +273,6 @@ def get_s3_params():
     return BucketInfo(bucket=bucket, policy=policy, policy_arn=policy_arn, sse=sse)
 
 
-@registered
 def set_s3_params(bucket, policy=None, sse=None):
     """Set the cloudknot S3 bucket
 
@@ -481,7 +495,6 @@ def update_s3_policy(policy, bucket):
             )
 
 
-@registered
 def get_region():
     """Get the default AWS region
 
@@ -539,7 +552,6 @@ def get_region():
             return region
 
 
-@registered
 def set_region(region="us-east-1"):
     """Set the AWS region that cloudknot will use
 
@@ -595,7 +607,6 @@ def set_region(region="us-east-1"):
     mod_logger.debug("Set region to {region:s}".format(region=region))
 
 
-@registered
 def list_profiles():
     """Return a list of available AWS profile names
 
@@ -653,7 +664,6 @@ def list_profiles():
     )
 
 
-@registered
 def get_user():
     user_info = clients["iam"].get_user().get("User")
     username = user_info.get("UserName")
@@ -663,7 +673,6 @@ def get_user():
     return username
 
 
-@registered
 def get_profile(fallback="from-env"):
     """Get the AWS profile to use
 
@@ -713,7 +722,6 @@ def get_profile(fallback="from-env"):
             return profile
 
 
-@registered
 def set_profile(profile_name):
     """Set the AWS profile that cloudknot will use
 
@@ -816,7 +824,6 @@ and region.
 """
 
 
-@registered
 def refresh_clients(max_pool=10):
     """Refresh the boto3 clients dictionary"""
     with rlock:
@@ -836,7 +843,6 @@ def refresh_clients(max_pool=10):
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-@registered
 class ResourceExistsException(Exception):
     """Exception indicating that the requested AWS resource already exists"""
 
@@ -856,7 +862,6 @@ class ResourceExistsException(Exception):
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-@registered
 class ResourceDoesNotExistException(Exception):
     """Exception indicating that the requested AWS resource does not exists"""
 
@@ -876,7 +881,6 @@ class ResourceDoesNotExistException(Exception):
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-@registered
 class ResourceClobberedException(Exception):
     """Exception indicating that this AWS resource has been clobbered"""
 
@@ -896,7 +900,6 @@ class ResourceClobberedException(Exception):
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-@registered
 class CannotDeleteResourceException(Exception):
     """Exception indicating that an AWS resource cannot be deleted"""
 
@@ -916,7 +919,6 @@ class CannotDeleteResourceException(Exception):
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-@registered
 class CannotCreateResourceException(Exception):
     """Exception indicating that an AWS resource cannot be created"""
 
@@ -932,7 +934,6 @@ class CannotCreateResourceException(Exception):
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-@registered
 class RegionException(Exception):
     """Exception indicating the current region is not this resource's region"""
 
@@ -955,7 +956,6 @@ class RegionException(Exception):
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-@registered
 class ProfileException(Exception):
     """Exception indicating the current profile isn't the resource's profile"""
 
@@ -978,7 +978,6 @@ class ProfileException(Exception):
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-@registered
 class CKTimeoutError(Exception):
     """Cloudknot timeout error for AWS Batch job results
 
@@ -996,7 +995,6 @@ class CKTimeoutError(Exception):
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-@registered
 class BatchJobFailedError(Exception):
     """Error indicating an AWS Batch job failed"""
 
@@ -1015,7 +1013,6 @@ class BatchJobFailedError(Exception):
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-@registered
 class CloudknotConfigurationError(Exception):
     """Error indicating an cloudknot has not been properly configured"""
 
@@ -1037,7 +1034,6 @@ class CloudknotConfigurationError(Exception):
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-@registered
 class CloudknotInputError(Exception):
     """Error indicating an input argument has an invalid value"""
 
@@ -1053,7 +1049,6 @@ class CloudknotInputError(Exception):
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-@registered
 class NamedObject(object):
     """Base class for building objects with name property"""
 
