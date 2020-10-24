@@ -1,9 +1,9 @@
 [run]
 branch = True
-source = cloudknot
 omit =
     */setup.py
     cloudknot/commands/*.py
+    cloudknot/tests/*.py
     cloudknot/data/*/*/*.py
     
 [report]
