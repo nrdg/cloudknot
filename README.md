@@ -11,6 +11,13 @@ A knot is a collective noun for a group of snakes. Cloudknot is a python
 library designed to run your existing python code on
 [AWS Batch](https://aws.amazon.com/batch).
 
+Cloudknot takes as input a python function, Dockerizes it for use in an
+Amazon ECS instance, and creates all the necessary AWS Batch constituent
+resources to submit jobs. You can then use cloudknot to submit and view jobs
+for a range of inputs.
+
+To get started using cloudknot, please see the [cloudknot documentation](https://nrdg.github.io/cloudknot/)
+
 This is the cloudknot development site. You can view the source code, file new
 issues, and contribute to cloudknot's development. If you are just getting
 started, you should look at the

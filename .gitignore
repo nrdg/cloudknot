@@ -5,7 +5,7 @@ _build/
 auto_examples/
 gen_api/
 doc/api/_autosummary
-cloudknot/version.py
+cloudknot/_version.py
 *.ipynb_checkpoints
 .coverage
 .cache

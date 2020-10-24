@@ -3,7 +3,7 @@ branch = True
 source = cloudknot
 omit = */setup.py
     cloudknot/commands/*.py
-    cloudknot/version.py
+    cloudknot/_version.py
     cloudknot/_meta.py
     cloudknot/data/*/*/*.py
     
