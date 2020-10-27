@@ -9,8 +9,6 @@ Ideally, the cloudknot user should never have to use these functions to
 interact with the cloudknot config file. Each cloudknot object maintains
 references to its state in the config file.
 """
-from __future__ import absolute_import, division, print_function
-
 import botocore
 import configparser
 import docker
@@ -21,19 +19,19 @@ from threading import RLock
 
 from . import aws
 
-__all__ = ["rlock", "prune_stacks", "prune"]
-
-
-def registered(fn):
-    __all__.append(fn.__name__)
-    return fn
-
-
+__all__ = [
+    "rlock",
+    "prune_stacks",
+    "prune",
+    "get_config_file",
+    "add_resource",
+    "remove_resource",
+    "verify_sections",
+]
 mod_logger = logging.getLogger(__name__)
 rlock = RLock()
 
 
-@registered
 def get_config_file():
     """
     Get the path to the cloudknot config file.
@@ -82,7 +80,6 @@ def get_config_file():
     return config_file
 
 
-@registered
 def add_resource(section, option, value):
     """
     Add a resource to the cloudknot config file.
@@ -110,7 +107,6 @@ def add_resource(section, option, value):
             config.write(f)
 
 
-@registered
 def remove_resource(section, option):
     """
     Remove a resource from the cloudknot config file.
@@ -136,7 +132,6 @@ def remove_resource(section, option):
             config.write(f)
 
 
-@registered
 def verify_sections():
     """Verify config sections, remove ones that don't belong."""
     config_file = get_config_file()
@@ -326,7 +321,7 @@ def prune_batch_jobs():
 
 def prune_images():
     """
-    Clean unused docker images from the config file
+    Clean unused docker images from the config file.
 
     Verify that the docker-image sections in the config file refer to actual
     docker images that refer either to local resources or to images that

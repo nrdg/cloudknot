@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division, print_function
-
 import botocore
 import cloudknot.config
 import logging
@@ -11,14 +9,7 @@ except ImportError:
 
 from .base_classes import NamedObject, clients, get_ecr_repo, get_tags
 
-__all__ = []
-
-
-def registered(fn):
-    __all__.append(fn.__name__)
-    return fn
-
-
+__all__ = ["DockerRepo"]
 mod_logger = logging.getLogger(__name__)
 
 
@@ -39,7 +30,6 @@ def _get_repo_info_from_uri(repo_uri):
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-@registered
 class DockerRepo(NamedObject):
     """
     Class for creating and managing remote docker repositories.

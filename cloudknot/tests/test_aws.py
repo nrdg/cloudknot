@@ -21,8 +21,6 @@ The tests for each resource all follow the same pattern:
   - Confirm that they were removed from the config file.
 * Other tests of improper input
 """
-from __future__ import absolute_import, division, print_function
-
 import botocore
 import cloudknot as ck
 import configparser
@@ -34,9 +32,10 @@ import shutil
 import tempfile
 import tenacity
 import uuid
-from . import bucket_name
 from moto import mock_batch, mock_cloudformation, mock_ec2, mock_ecr
 from moto import mock_ecs, mock_iam, mock_s3
+
+bucket_name = "ck-test-bucket-" + str(uuid.uuid4()).replace("-", "")[:6]
 
 
 def composed(*decs):

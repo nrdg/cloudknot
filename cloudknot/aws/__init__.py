@@ -8,8 +8,6 @@ For each class, you may specify an identifier for an existing AWS resource
 or specify parameters to create a new resource on AWS. Higher level resources
 (e.g. ComputeEnvironment) take subordinate resources (e.g. IamRole) as input.
 """
-from __future__ import absolute_import, division, print_function
-
 from .base_classes import *  # noqa: F401,F403
 from .batch import *  # noqa: F401,F403
 from .ecr import *  # noqa: F401,F403

@@ -1,5 +1,4 @@
-from __future__ import absolute_import, division, print_function
-
+"""Cloudknot is a python library to run your existing code on AWS Batch."""
 import errno
 import logging
 import os
@@ -14,17 +13,7 @@ from .aws.base_classes import get_s3_params, set_s3_params  # noqa
 from .aws.base_classes import refresh_clients  # noqa
 from .cloudknot import *  # noqa
 from .dockerimage import *  # noqa
-
-try:
-    from importlib.metadata import version, PackageNotFoundError
-except ModuleNotFoundError:
-    from importlib_metadata import version, PackageNotFoundError
-
-try:
-    __version__ = version(__name__)
-except PackageNotFoundError:  # pragma: nocover
-    # package is not installed
-    pass
+from ._version import version as __version__  # noqa
 
 try:
     fnull = open(os.devnull, "w")

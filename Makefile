@@ -2,17 +2,19 @@
 
 flake:
 	flake8
+	black --check .
+	pydocstyle
 
 lint: flake
 
 test:
     # Unit testing using pytest
-	pytest --pyargs cloudknot --cov-report term-missing --cov=cloudknot
+	pytest --pyargs cloudknot --cov-report term-missing --cov-config .coveragerc --cov=cloudknot
 
 devtest:
     # Unit testing with the -x option, aborts testing after first failure
     # Useful for development when tests are long
-	pytest -x --pyargs cloudknot --cov-report term-missing --cov=cloudknot
+	pytest -x --pyargs cloudknot --cov-report term-missing --cov-config .coveragerc --cov=cloudknot
 
 clean: clean-build clean-pyc ## remove all build, test, coverage and Python artifacts
 

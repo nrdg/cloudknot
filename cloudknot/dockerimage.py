@@ -1,5 +1,4 @@
-from __future__ import absolute_import, division, print_function
-
+"""Create, build, push, and manage Docker images for use in Cloudknot."""
 import configparser
 import docker
 import inspect
@@ -18,19 +17,13 @@ from . import config as ckconfig
 from .aws.base_classes import (
     get_region,
     get_profile,
-    ResourceDoesNotExistException,
     ResourceClobberedException,
     CloudknotInputError,
     CloudknotConfigurationError,
 )
 from .config import get_config_file, rlock
 
-__all__ = []
-
-
-def registered(fn):
-    __all__.append(fn.__name__)
-    return fn
+__all__ = ["DockerImage"]
 
 
 mod_logger = logging.getLogger(__name__)
@@ -38,12 +31,10 @@ is_windows = os.name == "nt"
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
-@registered
 class DockerImage(aws.NamedObject):
-    """
-    Class for dockerizing a python script or function.
+    """Class for dockerizing a python script or function.
 
-    On `__init__`, if given a python function, DockerImage will create a CLI
+    If given a python function, DockerImage will create a CLI
     version for that function, write a requirements.txt file for all import
     statements in the function, and write a Dockerfile to containerize that
     python script. If given a path to a python script, DockerImage will assume
@@ -55,6 +46,47 @@ class DockerImage(aws.NamedObject):
     packages will not be included in requirements.txt, DockerImage will throw
     a warning, and the user must install those packages by hand in the
     Dockerfile.
+
+    Parameters
+    ----------
+    name : str
+        Name of DockerImage, only used to retrieve DockerImage from
+        config file info. Do not use to create new DockerImage.
+        Must satisfy regular expression pattern: [a-zA-Z][-a-zA-Z0-9]*
+
+    func : function
+        Python function to be dockerized
+
+    script_path : string
+        Path to file with python script to be dockerized
+
+    dir_name : string
+        Directory to store Dockerfile, requirements.txt, and python
+        script with CLI
+        Default: parent directory of script if `script_path` is provided
+        else DockerImage creates a new directory, accessible by the
+        `build_path` property.
+
+    base_image : string
+        Docker base image on which to base this Dockerfile
+        Default: None will use the python base image for the
+        current version of python
+
+    github_installs : string or sequence of strings
+        Github addresses for packages to install from github rather than
+        PyPI (e.g. git://github.com/nrdg/cloudknot.git or
+        git://github.com/nrdg/cloudknot.git@newfeaturebranch)
+        Default: ()
+
+    username : string
+        Default user created in the Dockerfile
+        Default: 'cloudknot-user'
+
+    overwrite : bool, default=False
+        If True, allow overwriting any existing Dockerfiles,
+        requirements files, or python scripts previously created by
+        cloudknot
+
     """
 
     def __init__(
@@ -74,8 +106,8 @@ class DockerImage(aws.NamedObject):
         Parameters
         ----------
         name : str
-            Name of DockerImage, only used to retrieve DockerImage from
-            config file info. Do not use to create new DockerImage.
+            Name of DockerImage, only used to save/retrieve DockerImage from
+            config file info.
             Must satisfy regular expression pattern: [a-zA-Z][-a-zA-Z0-9]*
 
         func : function
@@ -111,7 +143,7 @@ class DockerImage(aws.NamedObject):
             requirements files, or python scripts previously created by
             cloudknot
         """
-        # User must specify at least `func` or `script_path`
+        # User must specify at least `name`, `func`, or `script_path`
         if not any([name, func, script_path]):
             raise CloudknotInputError(
                 "You must suppy either `name`, `func` " "or `script_path`."
@@ -148,96 +180,95 @@ class DockerImage(aws.NamedObject):
                 config.read(config_file)
 
             if section_name not in config.sections():
-                raise ResourceDoesNotExistException(
-                    "Could not find {name:s} in config_file "
-                    "{file:s}".format(name=section_name, file=config_file),
-                    resource_id=name,
-                )
-
-            self._region = config.get(section_name, "region")
-            self._profile = config.get(section_name, "profile")
-            self.check_profile_and_region()
-
-            self._func = None
-            function_hash = hash(config.get(section_name, "function-hash"))
-            self._build_path = config.get(section_name, "build-path")
-            self._script_path = config.get(section_name, "script-path")
-            self._docker_path = config.get(section_name, "docker-path")
-            self._req_path = config.get(section_name, "req-path")
-            self._base_image = config.get(section_name, "base-image")
-            self._github_installs = config.get(section_name, "github-imports").split()
-            self._username = config.get(section_name, "username")
-            self._clobber_script = config.getboolean(section_name, "clobber-script")
-
-            images_str = config.get(section_name, "images")
-            images_list = [s.split(":") for s in images_str.split()]
-            self._images = [{"name": i[0], "tag": i[1]} for i in images_list]
-
-            uri = config.get(section_name, "repo-uri")
-            self._repo_uri = uri if uri else None
-
-            if uri:
-                repo_info = aws.ecr._get_repo_info_from_uri(repo_uri=uri)
-                self._repo_registry_id = repo_info["registry_id"]
-                self._repo_name = repo_info["repo_name"]
+                params_changed = True
             else:
-                self._repo_registry_id = None
-                self._repo_name = None
+                self._region = config.get(section_name, "region")
+                self._profile = config.get(section_name, "profile")
+                self.check_profile_and_region()
 
-            # Set self.pip_imports and self.missing_imports
-            self._set_imports()
+                self._func = None
+                function_hash = hash(config.get(section_name, "function-hash"))
+                self._build_path = config.get(section_name, "build-path")
+                self._script_path = config.get(section_name, "script-path")
+                self._docker_path = config.get(section_name, "docker-path")
+                self._req_path = config.get(section_name, "req-path")
+                self._base_image = config.get(section_name, "base-image")
+                self._github_installs = config.get(
+                    section_name, "github-imports"
+                ).split()
+                self._username = config.get(section_name, "username")
+                self._clobber_script = config.getboolean(section_name, "clobber-script")
 
-            # Do not allow script_path or dir_name for pre-existing images
-            if any([script_path, dir_name]):
-                raise CloudknotInputError(
-                    "You specified a name plus either a script_path or "
-                    "directory_name. The name parameter is used to retrieve a "
-                    "pre-existing DockerImage instance. You may retrieve a "
-                    "pre-existing and change the `func`, `username`, `base_image`, "
-                    "and `github_installs` parameters, but not the `script_path` or "
-                    "`dir_name`. Please either remove those parameters or create a new "
-                    "DockerImage with a different name."
-                )
+                images_str = config.get(section_name, "images")
+                images_list = [s.split(":") for s in images_str.split()]
+                self._images = [{"name": i[0], "tag": i[1]} for i in images_list]
 
-            # Check for consistency of remaining redundant input
-            if any([func, username, base_image, github_installs]):
-                input_params = {
-                    "func": (hash(func), function_hash),
-                    "username": (username, self._username),
-                    "base_image": (base_image, self._base_image),
-                    "github_installs": (github_installs, self._github_installs),
-                }
+                uri = config.get(section_name, "repo-uri")
+                self._repo_uri = uri if uri else None
 
-                conflicting_params = {
-                    k: v for k, v in input_params.items() if v[0] and v[1] != v[0]
-                }
+                if uri:
+                    repo_info = aws.ecr._get_repo_info_from_uri(repo_uri=uri)
+                    self._repo_registry_id = repo_info["registry_id"]
+                    self._repo_name = repo_info["repo_name"]
+                else:
+                    self._repo_registry_id = None
+                    self._repo_name = None
 
-                if conflicting_params:
-                    # Set flag to do all the setup stuff below, warn user
-                    params_changed = True
-                    mod_logger.warning(
-                        "Found {name:s} in your config file but the input parameters "
-                        "have changed. The updated parameters are {l}. Continuing "
-                        "with the new input parameters and disregarding any old, "
-                        "potentially conflicting ones.".format(
-                            name=section_name, l=list(conflicting_params.keys())
+                # Set self.pip_imports and self.missing_imports
+                self._set_imports()
+
+                # Do not allow script_path or dir_name for pre-existing images
+                if any([script_path, dir_name]):
+                    raise CloudknotInputError(
+                        "You specified a name plus either a script_path or "
+                        "directory_name. The name parameter is used to retrieve a "
+                        "pre-existing DockerImage instance. You may retrieve a "
+                        "pre-existing and change the `func`, `username`, `base_image`, "
+                        "and `github_installs` parameters, but not the `script_path` or "
+                        "`dir_name`. Please either remove those parameters or create a new "
+                        "DockerImage with a different name."
+                    )
+
+                # Check for consistency of remaining redundant input
+                if any([func, username, base_image, github_installs]):
+                    input_params = {
+                        "func": (hash(func), function_hash),
+                        "username": (username, self._username),
+                        "base_image": (base_image, self._base_image),
+                        "github_installs": (github_installs, self._github_installs),
+                    }
+
+                    conflicting_params = {
+                        k: v for k, v in input_params.items() if v[0] and v[1] != v[0]
+                    }
+
+                    if conflicting_params:
+                        # Set flag to do all the setup stuff below, warn user
+                        params_changed = True
+                        mod_logger.warning(
+                            "Found {name:s} in your config file but the input parameters "
+                            "have changed. The updated parameters are {l}. Continuing "
+                            "with the new input parameters and disregarding any old, "
+                            "potentially conflicting ones.".format(
+                                name=section_name, l=list(conflicting_params.keys())
+                            )
                         )
-                    )
 
-                    # Use input params if provided, fall back on config values
-                    username = username if username else self._username
-                    base_image = base_image if base_image else self._base_image
-                    github_installs = (
-                        github_installs if github_installs else self._github_installs
-                    )
-                    func = func if func else self._func
-                    script_path = self._script_path
-                    dir_name = self._build_path
-                    clobber_script = self._clobber_script
+                        # Use input params if provided, fall back on config values
+                        username = username if username else self._username
+                        base_image = base_image if base_image else self._base_image
+                        github_installs = (
+                            github_installs
+                            if github_installs
+                            else self._github_installs
+                        )
+                        func = func if func else self._func
+                        script_path = self._script_path
+                        dir_name = self._build_path
+                        clobber_script = self._clobber_script
 
         if not name or params_changed:
             self._func = func
-
             self._username = username if username else "cloudknot-user"
 
             if base_image is not None:
@@ -272,7 +303,9 @@ class DockerImage(aws.NamedObject):
 
                 self._script_path = os.path.abspath(script_path)
                 super(DockerImage, self).__init__(
-                    name=os.path.splitext(os.path.basename(self.script_path))[0]
+                    name=name
+                    if name
+                    else os.path.splitext(os.path.basename(self.script_path))[0]
                     .replace("_", "-")
                     .replace(".", "-")
                 )
@@ -411,7 +444,7 @@ class DockerImage(aws.NamedObject):
 
     @property
     def build_path(self):
-        """The build path for the docker image."""
+        """Return build path for the docker image."""
         return self._build_path
 
     @property
@@ -441,17 +474,17 @@ class DockerImage(aws.NamedObject):
 
     @property
     def github_installs(self):
-        """List of packages installed from github rather than PyPI."""
+        """List packages installed from github rather than PyPI."""
         return self._github_installs
 
     @property
     def username(self):
-        """Default username created in Dockerfile."""
+        """Return default username created in Dockerfile."""
         return self._username
 
     @property
     def missing_imports(self):
-        """List of required imports that are unavailable through pip install.
+        """List required imports that are unavailable through pip install.
 
         The user must edit the Dockerfile by hand to install these packages
         before using the build or push methods.
@@ -460,7 +493,7 @@ class DockerImage(aws.NamedObject):
 
     @property
     def images(self):
-        """List of name, tag dicts for docker images built by this instance."""
+        """List name, tag dicts for docker images built by this instance."""
         return self._images
 
     @property
@@ -558,8 +591,7 @@ class DockerImage(aws.NamedObject):
             )
 
     def build(self, tags, image_name=None):
-        """
-        Build a DockerContainer image.
+        """Build a Docker image.
 
         Parameters
         ----------
@@ -569,6 +601,7 @@ class DockerImage(aws.NamedObject):
         image_name : str
             Name of Docker image to be built
             Default: 'cloudknot/' + self.name
+
         """
         if self.clobbered:
             raise ResourceClobberedException(
@@ -635,8 +668,7 @@ class DockerImage(aws.NamedObject):
         ckconfig.add_resource(section_name, "images", config_images_str)
 
     def push(self, repo=None, repo_uri=None):
-        """
-        Tag and push a DockerContainer image to a repository.
+        """Tag and push a Docker image to a repository.
 
         Parameters
         ----------
@@ -645,6 +677,7 @@ class DockerImage(aws.NamedObject):
 
         repo_uri : string, optional
             URI for the docker repository to which to push this instance
+
         """
         if self.clobbered:
             raise ResourceClobberedException(
@@ -801,14 +834,11 @@ class DockerImage(aws.NamedObject):
             ckconfig.add_resource(section_name, "repo-uri", self.repo_uri)
 
     def clobber(self):
-        """
-        Delete all of the files associated with this instance.
+        """Delete all of the files associated with this instance.
 
         Always delete the generated requirements.txt and Dockerfile. Only
         delete the script if it was auto-generated. Only delete the parent
-        directory if it is empty.
-
-        Also delete the local docker image
+        directory if it is empty. Also delete the local docker image.
         """
         if self.clobbered:
             return
