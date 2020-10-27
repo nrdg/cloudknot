@@ -208,7 +208,9 @@ def test_DockerImage(cleanup_repos):
 
         # First, test a DockerImage instance with `func` input
         # ----------------------------------------------------
-        di = ck.DockerImage(func=unit_testing_func)
+        di = ck.DockerImage(
+            name=unit_testing_func.__name__.replace("_", "-"), func=unit_testing_func
+        )
 
         assert di.name == unit_testing_func.__name__.replace("_", "-")
         import_names = set([d["name"] for d in di.pip_imports])
@@ -402,10 +404,6 @@ def test_DockerImage(cleanup_repos):
         # Assert ck.aws.CloudknotInputError on non-string name input
         with pytest.raises(ck.aws.CloudknotInputError):
             ck.DockerImage(name=42)
-
-        # Assert ck.aws.CloudknotInputError on non-existent name input
-        with pytest.raises(ck.aws.ResourceDoesNotExistException):
-            ck.DockerImage(name=get_testing_name())
 
         # Assert ck.aws.CloudknotInputError on redundant input
         with pytest.raises(ck.aws.CloudknotInputError):
