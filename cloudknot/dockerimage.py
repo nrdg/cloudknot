@@ -779,7 +779,9 @@ class DockerImage(aws.NamedObject):
             login_cmd = subprocess.check_output(cmd, shell=is_windows)
 
             # Login
-            login_cmd_list = login_cmd.decode("ASCII").rstrip("\n").split(" ")
+            login_cmd_list = (
+                login_cmd.decode("ASCII").rstrip("\n").rstrip("\r").split(" ")
+            )
             login_result = subprocess.run(
                 login_cmd_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )

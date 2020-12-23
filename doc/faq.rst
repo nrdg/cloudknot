@@ -194,3 +194,23 @@ Frequently Asked Questions
 
             # Try again with the same arguments
             >>> results_futures = knot.map(input_args)
+
+.. container:: toggle
+
+   .. container:: header
+
+      I'm running on a Windows machine and I am getting the following error::
+
+         docker.errors.DockerException: Install pypiwin32 package to enable npipe:// support,
+
+
+   .. container:: content
+
+      Turns out that's a bug in the installation of the pywin32 package.
+      To complete the installation, you'll need to run the following command::
+
+         python <path-to-python-env>\Scripts\pywin32_postinstall.py -install
+
+      For example::
+
+         python c:\users\my_user_name\anaconda3\envs\ck\Scripts\pywin32_postinstall.py -install
