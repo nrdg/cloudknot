@@ -1,4 +1,4 @@
-cloudknot.aws.CannotCreateResourceException
+﻿cloudknot.aws.CannotCreateResourceException
 ===========================================
 
 .. currentmodule:: cloudknot.aws

@@ -1,4 +1,4 @@
-cloudknot.aws.set\_profile
+﻿cloudknot.aws.set\_profile
 ==========================
 
 .. currentmodule:: cloudknot.aws

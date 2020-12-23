@@ -1,4 +1,4 @@
-cloudknot.aws.BatchJob
+﻿cloudknot.aws.BatchJob
 ======================
 
 .. currentmodule:: cloudknot.aws

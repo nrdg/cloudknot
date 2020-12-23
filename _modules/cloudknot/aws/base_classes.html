@@ -4,8 +4,8 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>cloudknot.aws.base_classes &#8212; cloudknot 0.4.2 documentation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>cloudknot.aws.base_classes &#8212; cloudknot 0.5.0 documentation</title>
     <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/collapsible.css" type="text/css" />
@@ -75,9 +75,7 @@
           <div class="body" role="main">
             
   <h1>Source code for cloudknot.aws.base_classes</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span>
-
-<span class="kn">import</span> <span class="nn">boto3</span>
+<span></span><span class="kn">import</span> <span class="nn">boto3</span>
 <span class="kn">import</span> <span class="nn">botocore</span>
 <span class="kn">import</span> <span class="nn">configparser</span>
 <span class="kn">import</span> <span class="nn">json</span>
@@ -93,27 +91,75 @@
 
 <span class="kn">from</span> <span class="nn">..config</span> <span class="kn">import</span> <span class="n">get_config_file</span><span class="p">,</span> <span class="n">rlock</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;clients&quot;</span><span class="p">]</span>
-
-
-<span class="k">def</span> <span class="nf">registered</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
-    <span class="n">__all__</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fn</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">fn</span>
-
-
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;clients&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;get_tags&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;get_ecr_repo&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;set_ecr_repo&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;get_s3_params&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;set_s3_params&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;get_region&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;set_region&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;list_profiles&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;get_user&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;get_profile&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;set_profile&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;refresh_clients&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ResourceExistsException&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ResourceDoesNotExistException&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ResourceClobberedException&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;CannotDeleteResourceException&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;CannotCreateResourceException&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;RegionException&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ProfileException&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;CKTimeoutError&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;BatchJobFailedError&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;CloudknotConfigurationError&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;CloudknotInputError&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;NamedObject&quot;</span><span class="p">,</span>
+<span class="p">]</span>
 <span class="n">mod_logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
-<span class="nd">@registered</span>
-<span class="k">def</span> <span class="nf">get_tags</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
-    <span class="k">return</span> <span class="p">[</span>
-        <span class="p">{</span><span class="s2">&quot;Key&quot;</span><span class="p">:</span> <span class="s2">&quot;Name&quot;</span><span class="p">,</span> <span class="s2">&quot;Value&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">},</span>
-        <span class="p">{</span><span class="s2">&quot;Key&quot;</span><span class="p">:</span> <span class="s2">&quot;Owner&quot;</span><span class="p">,</span> <span class="s2">&quot;Value&quot;</span><span class="p">:</span> <span class="n">get_user</span><span class="p">()},</span>
-        <span class="p">{</span><span class="s2">&quot;Key&quot;</span><span class="p">:</span> <span class="s2">&quot;Environment&quot;</span><span class="p">,</span> <span class="s2">&quot;Value&quot;</span><span class="p">:</span> <span class="s2">&quot;cloudknot&quot;</span><span class="p">},</span>
-    <span class="p">]</span>
+<span class="k">def</span> <span class="nf">get_tags</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">additional_tags</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">tag_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">additional_tags</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">additional_tags</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span>
+                <span class="p">[</span><span class="nb">set</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">==</span> <span class="nb">set</span><span class="p">([</span><span class="s2">&quot;Key&quot;</span><span class="p">,</span> <span class="s2">&quot;Value&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">additional_tags</span><span class="p">]</span>
+            <span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;If additional_tags is a list, it must be a list of &quot;</span>
+                    <span class="s2">&quot;dictionaries of the form {&#39;Key&#39;: key_val, &#39;Value&#39;: &quot;</span>
+                    <span class="s2">&quot;value_val}.&quot;</span>
+                <span class="p">)</span>
+            <span class="n">tag_list</span> <span class="o">+=</span> <span class="n">additional_tags</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">additional_tags</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">if</span> <span class="s2">&quot;Key&quot;</span> <span class="ow">in</span> <span class="n">additional_tags</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">or</span> <span class="s2">&quot;Value&quot;</span> <span class="ow">in</span> <span class="n">additional_tags</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;If additional_tags is a dict, it cannot contain keys named &#39;Key&#39; or &quot;</span>
+                    <span class="s2">&quot;&#39;Value&#39;. It looks like you are trying to pass in tags of the form &quot;</span>
+                    <span class="s2">&quot;{&#39;Key&#39;: key_val, &#39;Value&#39;: value_val}. If that&#39;s the case, please put &quot;</span>
+                    <span class="s2">&quot;it in a list, i.e. [{&#39;Key&#39;: key_val, &#39;Value&#39;: value_val}].&quot;</span>
+                <span class="p">)</span>
+            <span class="n">tag_list</span> <span class="o">=</span> <span class="p">[{</span><span class="s2">&quot;Key&quot;</span><span class="p">:</span> <span class="n">k</span><span class="p">,</span> <span class="s2">&quot;Value&quot;</span><span class="p">:</span> <span class="n">v</span><span class="p">}</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">additional_tags</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;additional_tags must be a dictionary or a list of dictionaries.&quot;</span>
+            <span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">[</span><span class="n">tag</span> <span class="k">for</span> <span class="n">tag</span> <span class="ow">in</span> <span class="n">tag_list</span> <span class="k">if</span> <span class="n">tag</span><span class="p">[</span><span class="s2">&quot;Key&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;Name&quot;</span><span class="p">]:</span>
+        <span class="n">tag_list</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;Key&quot;</span><span class="p">:</span> <span class="s2">&quot;Name&quot;</span><span class="p">,</span> <span class="s2">&quot;Value&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">})</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">[</span><span class="n">tag</span> <span class="k">for</span> <span class="n">tag</span> <span class="ow">in</span> <span class="n">tag_list</span> <span class="k">if</span> <span class="n">tag</span><span class="p">[</span><span class="s2">&quot;Key&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;Owner&quot;</span><span class="p">]:</span>
+        <span class="n">tag_list</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;Key&quot;</span><span class="p">:</span> <span class="s2">&quot;Owner&quot;</span><span class="p">,</span> <span class="s2">&quot;Value&quot;</span><span class="p">:</span> <span class="n">get_user</span><span class="p">()})</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">[</span><span class="n">tag</span> <span class="k">for</span> <span class="n">tag</span> <span class="ow">in</span> <span class="n">tag_list</span> <span class="k">if</span> <span class="n">tag</span><span class="p">[</span><span class="s2">&quot;Key&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;Environment&quot;</span><span class="p">]:</span>
+        <span class="n">tag_list</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;Key&quot;</span><span class="p">:</span> <span class="s2">&quot;Environment&quot;</span><span class="p">,</span> <span class="s2">&quot;Value&quot;</span><span class="p">:</span> <span class="s2">&quot;cloudknot&quot;</span><span class="p">})</span>
+
+    <span class="k">return</span> <span class="n">tag_list</span>
 
 
-<span class="nd">@registered</span>
 <span class="k">def</span> <span class="nf">get_ecr_repo</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot;Get the cloudknot ECR repository</span>
 
@@ -151,7 +197,6 @@
     <span class="k">return</span> <span class="n">repo</span>
 
 
-<span class="nd">@registered</span>
 <span class="k">def</span> <span class="nf">set_ecr_repo</span><span class="p">(</span><span class="n">repo</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Set the cloudknot ECR repo</span>
 
@@ -197,7 +242,12 @@
                 <span class="n">repo_arn</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;repository&quot;</span><span class="p">][</span><span class="s2">&quot;repositoryArn&quot;</span><span class="p">]</span>
 
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;ecr&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">tag_resource</span><span class="p">(</span><span class="n">resourceArn</span><span class="o">=</span><span class="n">repo_arn</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="n">get_tags</span><span class="p">(</span><span class="n">repo</span><span class="p">))</span>
+            <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;ecr&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">tag_resource</span><span class="p">(</span>
+                <span class="n">resourceArn</span><span class="o">=</span><span class="n">repo_arn</span><span class="p">,</span>
+                <span class="n">tags</span><span class="o">=</span><span class="n">get_tags</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="n">repo</span><span class="p">,</span> <span class="n">additional_tags</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;Project&quot;</span><span class="p">:</span> <span class="s2">&quot;Cloudknot global config&quot;</span><span class="p">}</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
         <span class="k">except</span> <span class="ne">NotImplementedError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">moto_msg</span> <span class="o">=</span> <span class="s2">&quot;The tag_resource action has not been implemented&quot;</span>
             <span class="k">if</span> <span class="n">moto_msg</span> <span class="ow">in</span> <span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">:</span>
@@ -209,8 +259,7 @@
                 <span class="k">raise</span> <span class="n">e</span>
 
 
-<div class="viewcode-block" id="get_s3_params"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.get_s3_params.html#cloudknot.aws.get_s3_params">[docs]</a><span class="nd">@registered</span>
-<span class="k">def</span> <span class="nf">get_s3_params</span><span class="p">():</span>
+<div class="viewcode-block" id="get_s3_params"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.get_s3_params.html#cloudknot.aws.get_s3_params">[docs]</a><span class="k">def</span> <span class="nf">get_s3_params</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot;Get the cloudknot S3 bucket and corresponding access policy</span>
 
 <span class="sd">    For the bucket name, first check the cloudknot config file for the bucket</span>
@@ -301,8 +350,7 @@
     <span class="k">return</span> <span class="n">BucketInfo</span><span class="p">(</span><span class="n">bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="n">policy</span><span class="p">,</span> <span class="n">policy_arn</span><span class="o">=</span><span class="n">policy_arn</span><span class="p">,</span> <span class="n">sse</span><span class="o">=</span><span class="n">sse</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="set_s3_params"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.set_s3_params.html#cloudknot.aws.set_s3_params">[docs]</a><span class="nd">@registered</span>
-<span class="k">def</span> <span class="nf">set_s3_params</span><span class="p">(</span><span class="n">bucket</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sse</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="set_s3_params"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.set_s3_params.html#cloudknot.aws.set_s3_params">[docs]</a><span class="k">def</span> <span class="nf">set_s3_params</span><span class="p">(</span><span class="n">bucket</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sse</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Set the cloudknot S3 bucket</span>
 
 <span class="sd">    Set bucket by modifying the cloudknot config file</span>
@@ -400,7 +448,12 @@
 
         <span class="c1"># Add the cloudknot tags to the bucket</span>
         <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;s3&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">put_bucket_tagging</span><span class="p">(</span>
-            <span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">Tagging</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;TagSet&quot;</span><span class="p">:</span> <span class="n">get_tags</span><span class="p">(</span><span class="n">bucket</span><span class="p">)}</span>
+            <span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span>
+            <span class="n">Tagging</span><span class="o">=</span><span class="p">{</span>
+                <span class="s2">&quot;TagSet&quot;</span><span class="p">:</span> <span class="n">get_tags</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">additional_tags</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;Project&quot;</span><span class="p">:</span> <span class="s2">&quot;Cloudknot global config&quot;</span><span class="p">}</span>
+                <span class="p">)</span>
+            <span class="p">},</span>
         <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">policy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -519,8 +572,7 @@
             <span class="p">)</span>
 
 
-<div class="viewcode-block" id="get_region"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.get_region.html#cloudknot.aws.get_region">[docs]</a><span class="nd">@registered</span>
-<span class="k">def</span> <span class="nf">get_region</span><span class="p">():</span>
+<div class="viewcode-block" id="get_region"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.get_region.html#cloudknot.aws.get_region">[docs]</a><span class="k">def</span> <span class="nf">get_region</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot;Get the default AWS region</span>
 
 <span class="sd">    First, check the cloudknot config file for the region option.</span>
@@ -577,8 +629,7 @@
             <span class="k">return</span> <span class="n">region</span></div>
 
 
-<div class="viewcode-block" id="set_region"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.set_region.html#cloudknot.aws.set_region">[docs]</a><span class="nd">@registered</span>
-<span class="k">def</span> <span class="nf">set_region</span><span class="p">(</span><span class="n">region</span><span class="o">=</span><span class="s2">&quot;us-east-1&quot;</span><span class="p">):</span>
+<div class="viewcode-block" id="set_region"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.set_region.html#cloudknot.aws.set_region">[docs]</a><span class="k">def</span> <span class="nf">set_region</span><span class="p">(</span><span class="n">region</span><span class="o">=</span><span class="s2">&quot;us-east-1&quot;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Set the AWS region that cloudknot will use</span>
 
 <span class="sd">    Set region by modifying the cloudknot config file and clients</span>
@@ -614,7 +665,10 @@
         <span class="c1"># throughout the package</span>
         <span class="n">max_pool</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;iam&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">max_pool_connections</span>
         <span class="n">boto_config</span> <span class="o">=</span> <span class="n">botocore</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">Config</span><span class="p">(</span><span class="n">max_pool_connections</span><span class="o">=</span><span class="n">max_pool</span><span class="p">)</span>
-        <span class="n">session</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+        <span class="n">profile_name</span> <span class="o">=</span> <span class="n">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+        <span class="n">session</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span>
+            <span class="n">profile_name</span><span class="o">=</span><span class="n">profile_name</span> <span class="k">if</span> <span class="n">profile_name</span> <span class="o">!=</span> <span class="s2">&quot;from-env&quot;</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
         <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
             <span class="s2">&quot;batch&quot;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span>
         <span class="p">)</span>
@@ -625,11 +679,12 @@
         <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;ecs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s2">&quot;ecs&quot;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span>
         <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;ec2&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s2">&quot;ec2&quot;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span>
         <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;iam&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s2">&quot;iam&quot;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span>
-        <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;s3&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s2">&quot;s3&quot;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span></div>
+        <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;s3&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s2">&quot;s3&quot;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">region</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span><span class="p">)</span>
+
+    <span class="n">mod_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Set region to </span><span class="si">{region:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">region</span><span class="o">=</span><span class="n">region</span><span class="p">))</span></div>
 
 
-<div class="viewcode-block" id="list_profiles"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.list_profiles.html#cloudknot.aws.list_profiles">[docs]</a><span class="nd">@registered</span>
-<span class="k">def</span> <span class="nf">list_profiles</span><span class="p">():</span>
+<div class="viewcode-block" id="list_profiles"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.list_profiles.html#cloudknot.aws.list_profiles">[docs]</a><span class="k">def</span> <span class="nf">list_profiles</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot;Return a list of available AWS profile names</span>
 
 <span class="sd">    Search the aws credentials file and the aws config file for profile names</span>
@@ -686,7 +741,6 @@
     <span class="p">)</span></div>
 
 
-<span class="nd">@registered</span>
 <span class="k">def</span> <span class="nf">get_user</span><span class="p">():</span>
     <span class="n">user_info</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;iam&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get_user</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;User&quot;</span><span class="p">)</span>
     <span class="n">username</span> <span class="o">=</span> <span class="n">user_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;UserName&quot;</span><span class="p">)</span>
@@ -696,8 +750,7 @@
     <span class="k">return</span> <span class="n">username</span>
 
 
-<div class="viewcode-block" id="get_profile"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.get_profile.html#cloudknot.aws.get_profile">[docs]</a><span class="nd">@registered</span>
-<span class="k">def</span> <span class="nf">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="s2">&quot;from-env&quot;</span><span class="p">):</span>
+<div class="viewcode-block" id="get_profile"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.get_profile.html#cloudknot.aws.get_profile">[docs]</a><span class="k">def</span> <span class="nf">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="s2">&quot;from-env&quot;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Get the AWS profile to use</span>
 
 <span class="sd">    First, check the cloudknot config file for the profile option.</span>
@@ -746,8 +799,7 @@
             <span class="k">return</span> <span class="n">profile</span></div>
 
 
-<div class="viewcode-block" id="set_profile"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.set_profile.html#cloudknot.aws.set_profile">[docs]</a><span class="nd">@registered</span>
-<span class="k">def</span> <span class="nf">set_profile</span><span class="p">(</span><span class="n">profile_name</span><span class="p">):</span>
+<div class="viewcode-block" id="set_profile"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.set_profile.html#cloudknot.aws.set_profile">[docs]</a><span class="k">def</span> <span class="nf">set_profile</span><span class="p">(</span><span class="n">profile_name</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Set the AWS profile that cloudknot will use</span>
 
 <span class="sd">    Set profile by modifying the cloudknot config file and clients</span>
@@ -760,7 +812,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">profile_info</span> <span class="o">=</span> <span class="n">list_profiles</span><span class="p">()</span>
 
-    <span class="k">if</span> <span class="n">profile_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">profile_info</span><span class="o">.</span><span class="n">profile_names</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">profile_name</span> <span class="ow">in</span> <span class="n">profile_info</span><span class="o">.</span><span class="n">profile_names</span> <span class="ow">or</span> <span class="n">profile_name</span> <span class="o">==</span> <span class="s2">&quot;from-env&quot;</span><span class="p">):</span>
         <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
             <span class="s2">&quot;The profile you specified does not exist in either the AWS &quot;</span>
             <span class="s2">&quot;config file at </span><span class="si">{conf:s}</span><span class="s2"> or the AWS shared credentials file at &quot;</span>
@@ -786,7 +838,9 @@
         <span class="c1"># throughout the package</span>
         <span class="n">max_pool</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;iam&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">max_pool_connections</span>
         <span class="n">boto_config</span> <span class="o">=</span> <span class="n">botocore</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">Config</span><span class="p">(</span><span class="n">max_pool_connections</span><span class="o">=</span><span class="n">max_pool</span><span class="p">)</span>
-        <span class="n">session</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">profile_name</span><span class="p">)</span>
+        <span class="n">session</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span>
+            <span class="n">profile_name</span><span class="o">=</span><span class="n">profile_name</span> <span class="k">if</span> <span class="n">profile_name</span> <span class="o">!=</span> <span class="s2">&quot;from-env&quot;</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
         <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
             <span class="s2">&quot;batch&quot;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">(),</span> <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span>
         <span class="p">)</span>
@@ -807,7 +861,9 @@
         <span class="p">)</span>
         <span class="n">clients</span><span class="p">[</span><span class="s2">&quot;s3&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
             <span class="s2">&quot;s3&quot;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="n">get_region</span><span class="p">(),</span> <span class="n">config</span><span class="o">=</span><span class="n">boto_config</span>
-        <span class="p">)</span></div>
+        <span class="p">)</span>
+
+    <span class="n">mod_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Set profile to </span><span class="si">{profile:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">profile</span><span class="o">=</span><span class="n">profile_name</span><span class="p">))</span></div>
 
 
 <span class="c1">#: module-level dictionary of boto3 clients for IAM, EC2, Batch, ECR, ECS, S3.</span>
@@ -845,8 +901,7 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 
-<div class="viewcode-block" id="refresh_clients"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.refresh_clients.html#cloudknot.aws.refresh_clients">[docs]</a><span class="nd">@registered</span>
-<span class="k">def</span> <span class="nf">refresh_clients</span><span class="p">(</span><span class="n">max_pool</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+<div class="viewcode-block" id="refresh_clients"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.refresh_clients.html#cloudknot.aws.refresh_clients">[docs]</a><span class="k">def</span> <span class="nf">refresh_clients</span><span class="p">(</span><span class="n">max_pool</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Refresh the boto3 clients dictionary&quot;&quot;&quot;</span>
     <span class="k">with</span> <span class="n">rlock</span><span class="p">:</span>
         <span class="n">config</span> <span class="o">=</span> <span class="n">botocore</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">Config</span><span class="p">(</span><span class="n">max_pool_connections</span><span class="o">=</span><span class="n">max_pool</span><span class="p">)</span>
@@ -865,8 +920,7 @@
 
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
-<div class="viewcode-block" id="ResourceExistsException"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.ResourceExistsException.html#cloudknot.aws.ResourceExistsException">[docs]</a><span class="nd">@registered</span>
-<span class="k">class</span> <span class="nc">ResourceExistsException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<div class="viewcode-block" id="ResourceExistsException"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.ResourceExistsException.html#cloudknot.aws.ResourceExistsException">[docs]</a><span class="k">class</span> <span class="nc">ResourceExistsException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Exception indicating that the requested AWS resource already exists&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">resource_id</span><span class="p">):</span>
@@ -885,8 +939,7 @@
 
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
-<div class="viewcode-block" id="ResourceDoesNotExistException"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.ResourceDoesNotExistException.html#cloudknot.aws.ResourceDoesNotExistException">[docs]</a><span class="nd">@registered</span>
-<span class="k">class</span> <span class="nc">ResourceDoesNotExistException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<div class="viewcode-block" id="ResourceDoesNotExistException"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.ResourceDoesNotExistException.html#cloudknot.aws.ResourceDoesNotExistException">[docs]</a><span class="k">class</span> <span class="nc">ResourceDoesNotExistException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Exception indicating that the requested AWS resource does not exists&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">resource_id</span><span class="p">):</span>
@@ -905,8 +958,7 @@
 
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
-<div class="viewcode-block" id="ResourceClobberedException"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.ResourceClobberedException.html#cloudknot.aws.ResourceClobberedException">[docs]</a><span class="nd">@registered</span>
-<span class="k">class</span> <span class="nc">ResourceClobberedException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<div class="viewcode-block" id="ResourceClobberedException"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.ResourceClobberedException.html#cloudknot.aws.ResourceClobberedException">[docs]</a><span class="k">class</span> <span class="nc">ResourceClobberedException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Exception indicating that this AWS resource has been clobbered&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">resource_id</span><span class="p">):</span>
@@ -925,8 +977,7 @@
 
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
-<div class="viewcode-block" id="CannotDeleteResourceException"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.CannotDeleteResourceException.html#cloudknot.aws.CannotDeleteResourceException">[docs]</a><span class="nd">@registered</span>
-<span class="k">class</span> <span class="nc">CannotDeleteResourceException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<div class="viewcode-block" id="CannotDeleteResourceException"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.CannotDeleteResourceException.html#cloudknot.aws.CannotDeleteResourceException">[docs]</a><span class="k">class</span> <span class="nc">CannotDeleteResourceException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Exception indicating that an AWS resource cannot be deleted&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">resource_id</span><span class="p">):</span>
@@ -945,8 +996,7 @@
 
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
-<div class="viewcode-block" id="CannotCreateResourceException"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.CannotCreateResourceException.html#cloudknot.aws.CannotCreateResourceException">[docs]</a><span class="nd">@registered</span>
-<span class="k">class</span> <span class="nc">CannotCreateResourceException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<div class="viewcode-block" id="CannotCreateResourceException"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.CannotCreateResourceException.html#cloudknot.aws.CannotCreateResourceException">[docs]</a><span class="k">class</span> <span class="nc">CannotCreateResourceException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Exception indicating that an AWS resource cannot be created&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
@@ -961,8 +1011,7 @@
 
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
-<div class="viewcode-block" id="RegionException"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.RegionException.html#cloudknot.aws.RegionException">[docs]</a><span class="nd">@registered</span>
-<span class="k">class</span> <span class="nc">RegionException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<div class="viewcode-block" id="RegionException"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.RegionException.html#cloudknot.aws.RegionException">[docs]</a><span class="k">class</span> <span class="nc">RegionException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Exception indicating the current region is not this resource&#39;s region&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource_region</span><span class="p">):</span>
@@ -984,7 +1033,6 @@
 
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
-<span class="nd">@registered</span>
 <span class="k">class</span> <span class="nc">ProfileException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Exception indicating the current profile isn&#39;t the resource&#39;s profile&quot;&quot;&quot;</span>
 
@@ -1007,7 +1055,6 @@
 
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
-<span class="nd">@registered</span>
 <span class="k">class</span> <span class="nc">CKTimeoutError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Cloudknot timeout error for AWS Batch job results</span>
 
@@ -1025,7 +1072,6 @@
 
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
-<span class="nd">@registered</span>
 <span class="k">class</span> <span class="nc">BatchJobFailedError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Error indicating an AWS Batch job failed&quot;&quot;&quot;</span>
 
@@ -1044,7 +1090,6 @@
 
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
-<span class="nd">@registered</span>
 <span class="k">class</span> <span class="nc">CloudknotConfigurationError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Error indicating an cloudknot has not been properly configured&quot;&quot;&quot;</span>
 
@@ -1066,7 +1111,6 @@
 
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
-<span class="nd">@registered</span>
 <span class="k">class</span> <span class="nc">CloudknotInputError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Error indicating an input argument has an invalid value&quot;&quot;&quot;</span>
 
@@ -1082,7 +1126,6 @@
 
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
-<span class="nd">@registered</span>
 <span class="k">class</span> <span class="nc">NamedObject</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Base class for building objects with name property&quot;&quot;&quot;</span>
 
@@ -1092,8 +1135,8 @@
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        name : string</span>
-<span class="sd">            Name of the object. Must satisfy regular expression</span>
-<span class="sd">            pattern: [a-zA-Z][-a-zA-Z0-9]*</span>
+<span class="sd">            Name of the object.</span>
+<span class="sd">            Must satisfy regular expression pattern: [a-zA-Z][-a-zA-Z0-9]*</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">config_file</span> <span class="o">=</span> <span class="n">get_config_file</span><span class="p">()</span>
         <span class="n">conf</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
@@ -1107,11 +1150,12 @@
             <span class="p">):</span>
                 <span class="k">raise</span> <span class="n">CloudknotConfigurationError</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
 
-        <span class="n">name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="s2">&quot;-&quot;</span><span class="p">)</span>
-        <span class="n">pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s2">&quot;[a-zA-Z][-a-zA-Z0-9]*&quot;</span><span class="p">)</span>
+        <span class="n">pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s2">&quot;^[a-zA-Z][-a-zA-Z0-9]*$&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">pattern</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
             <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span>
-                <span class="s2">&quot;name must satisfy regular expression &quot;</span> <span class="s2">&quot;pattern: [a-zA-Z][-a-zA-Z0-9]*&quot;</span>
+                <span class="s2">&quot;We use name in AWS resource identifiers so it must &quot;</span>
+                <span class="s2">&quot;satisfy the regular expression pattern: [a-zA-Z][-a-zA-Z0-9]*&quot;</span>
+                <span class="s2">&quot; (note that underscores are not allowed).&quot;</span>
             <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span>
@@ -1170,7 +1214,7 @@
       &copy;2017, Adam Richie-Halford, Ariel Rokem.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

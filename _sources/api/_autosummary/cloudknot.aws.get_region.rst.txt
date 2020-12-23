@@ -1,4 +1,4 @@
-cloudknot.aws.get\_region
+﻿cloudknot.aws.get\_region
 =========================
 
 .. currentmodule:: cloudknot.aws

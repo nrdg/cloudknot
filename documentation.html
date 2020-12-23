@@ -4,8 +4,8 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Documentation &#8212; cloudknot 0.4.2 documentation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Documentation &#8212; cloudknot 0.5.0 documentation</title>
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="_static/collapsible.css" type="text/css" />
@@ -108,19 +108,20 @@ see <a class="reference internal" href="getting_started.html#eg-label"><span cla
 <div class="content docutils container">
 <dl class="py class">
 <dt id="cloudknot.Knot">
-<em class="property">class </em><code class="sig-prename descclassname">cloudknot.</code><code class="sig-name descname">Knot</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">pars</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">pars_policies</span><span class="o">=</span><span class="default_value">()</span></em>, <em class="sig-param"><span class="n">docker_image</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">base_image</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">func</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">image_script_path</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">image_work_dir</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">image_github_installs</span><span class="o">=</span><span class="default_value">()</span></em>, <em class="sig-param"><span class="n">username</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">repo_name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">image_tags</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">job_definition_name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">job_def_vcpus</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">memory</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">retries</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">compute_environment_name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">instance_types</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">min_vcpus</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">max_vcpus</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">desired_vcpus</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">volume_size</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">image_id</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ec2_key_pair</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">bid_percentage</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">job_queue_name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">priority</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cloudknot/cloudknot.html#Knot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.Knot" title="Permalink to this definition">¶</a></dt>
-<dd><p>A collection of resources and methods to submit jobs to AWS Batch</p>
+<em class="property">class </em><code class="sig-prename descclassname">cloudknot.</code><code class="sig-name descname">Knot</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">pars</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">pars_policies</span><span class="o">=</span><span class="default_value">()</span></em>, <em class="sig-param"><span class="n">docker_image</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">base_image</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">func</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">image_script_path</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">image_work_dir</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">image_github_installs</span><span class="o">=</span><span class="default_value">()</span></em>, <em class="sig-param"><span class="n">username</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">repo_name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">image_tags</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">job_definition_name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">job_def_vcpus</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">memory</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">retries</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">compute_environment_name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">instance_types</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">min_vcpus</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">max_vcpus</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">desired_vcpus</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">volume_size</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">image_id</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ec2_key_pair</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">bid_percentage</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">job_queue_name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">priority</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">aws_resource_tags</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cloudknot/cloudknot.html#Knot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.Knot" title="Permalink to this definition">¶</a></dt>
+<dd><p>A collection of resources and methods to submit jobs to AWS Batch.</p>
 <p>This object collects AWS resources that should be created once for each
 type of batch run. The resource set consists of a PARS; a docker image
 made from an input function or python script; a remote docker repo to
 house said image; and an AWS batch job definition, compute environment,
 and job queue. It also contains methods to submit batch jobs for a range
 of arguments.</p>
-<p>Initialize a Knot instance</p>
+<p>Initialize a Knot instance.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a><em>, </em><em>optional</em>) – The name for this knot
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a><em>, </em><em>optional</em>) – The name for this knot. Must be less than 46 characters.
+Must satisfy regular expression pattern: [a-zA-Z][-a-zA-Z0-9]*
 Default=’${AWS-username}-default’</p></li>
 <li><p><strong>pars</strong> (<a class="reference internal" href="#cloudknot.Pars" title="cloudknot.Pars"><em>Pars</em></a><em>, </em><em>optional</em>) – The PARS on which to base this knot’s AWS resources
 Default: instance returned by Pars()</p></li>
@@ -140,7 +141,7 @@ You may not specify both docker_image and base_image.
 Default: None will use the python base image for the
 current version of python</p></li>
 <li><p><strong>func</strong> (<em>function</em>) – Python function to be dockerized</p></li>
-<li><p><strong>image_script_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Path to file with python script to be dockerized</p></li>
+<li><p><strong>image_script_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – Path to file with python script to be dockerized</p></li>
 <li><p><strong>image_work_dir</strong> (<em>string</em>) – Directory to store Dockerfile, requirements.txt, and python
 script with CLI
 Default: parent directory of script if <cite>script_path</cite> is provided
@@ -152,32 +153,32 @@ git://github.com/nrdg/cloudknot.git&#64;newfeaturebranch)
 Default: ()</p></li>
 <li><p><strong>username</strong> (<em>string</em>) – default username created in Dockerfile and in batch job definition
 Default: ‘cloudknot-user’</p></li>
-<li><p><strong>repo_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a><em>, </em><em>optional</em>) – Name of the AWS ECR repository to store the created Docker image
+<li><p><strong>repo_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a><em>, </em><em>optional</em>) – Name of the AWS ECR repository to store the created Docker image
 Default: return value of cloudknot.get_ecr_repo()</p></li>
-<li><p><strong>image_tags</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a><em> or </em><em>sequence of str</em>) – Tags to be applied to this Docker image</p></li>
-<li><p><strong>job_definition_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a><em>, </em><em>optional</em>) – Name for this knot’s AWS Batch job definition
-Default: name + ‘-cloudknot-compute-environment’</p></li>
-<li><p><strong>job_def_vcpus</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a><em>, </em><em>optional</em>) – number of virtual cpus to be used to this knot’s job definition
+<li><p><strong>image_tags</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a><em> or </em><em>sequence of str</em>) – Tags to be applied to this Docker image</p></li>
+<li><p><strong>job_definition_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a><em>, </em><em>optional</em>) – Name for this knot’s AWS Batch job definition
+Default: name + ‘-cloudknot-job-definition’</p></li>
+<li><p><strong>job_def_vcpus</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a><em>, </em><em>optional</em>) – number of virtual cpus to be used to this knot’s job definition
 Default: 1</p></li>
-<li><p><strong>memory</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a><em>, </em><em>optional</em>) – memory (MiB) to be used for this knot’s job definition
+<li><p><strong>memory</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a><em>, </em><em>optional</em>) – memory (MiB) to be used for this knot’s job definition
 Default: 8000</p></li>
-<li><p><strong>retries</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a><em>, </em><em>optional</em>) – number of times a job can be moved to ‘RUNNABLE’ status.
+<li><p><strong>retries</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a><em>, </em><em>optional</em>) – number of times a job can be moved to ‘RUNNABLE’ status.
 May be between 1 and 10
 Default: 1</p></li>
-<li><p><strong>compute_environment_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Name for this knot’s AWS Batch compute environment
+<li><p><strong>compute_environment_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – Name for this knot’s AWS Batch compute environment
 Default: name + ‘-cloudknot-compute-environment’</p></li>
 <li><p><strong>instance_types</strong> (<em>string</em><em> or </em><em>sequence of strings</em><em>, </em><em>optional</em>) – Compute environment instance types
 Default: (‘optimal’,)</p></li>
-<li><p><strong>min_vcpus</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a><em>, </em><em>optional</em>) – minimum number of virtual cpus for instances launched in this
+<li><p><strong>min_vcpus</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a><em>, </em><em>optional</em>) – minimum number of virtual cpus for instances launched in this
 compute environment
 Default: 0</p></li>
-<li><p><strong>max_vcpus</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a><em>, </em><em>optional</em>) – maximum number of virtual cpus for instances launched in this
+<li><p><strong>max_vcpus</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a><em>, </em><em>optional</em>) – maximum number of virtual cpus for instances launched in this
 compute environment
 Default: 256</p></li>
-<li><p><strong>desired_vcpus</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a><em>, </em><em>optional</em>) – desired number of virtual cpus for instances launched in this
+<li><p><strong>desired_vcpus</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a><em>, </em><em>optional</em>) – desired number of virtual cpus for instances launched in this
 compute environment
 Default: 8</p></li>
-<li><p><strong>volume_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a><em>, </em><em>optional</em>) – the size (in GiB) of the Amazon EBS volumes used for
+<li><p><strong>volume_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a><em>, </em><em>optional</em>) – the size (in GiB) of the Amazon EBS volumes used for
 instances launched by AWS Batch. If not provided, cloudknot
 will use the default Amazon ECS-optimized AMI version based
 on Amazon Linux 1, which has an 8-GiB root volume and an
@@ -186,18 +187,19 @@ provided, cloudknot will use the ECS-optimized AMI based on
 Amazon Linux 2 and increase the attached volume size to the
 value of <cite>volume_size</cite>. If this parameter is provided, you
 may not specify the <cite>image_id</cite>.</p></li>
-<li><p><strong>image_id</strong> (<em>string</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.8)"><em>None</em></a><em>, </em><em>optional</em>) – optional AMI id used for instances launched in this compute
+<li><p><strong>image_id</strong> (<em>string</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><em>None</em></a><em>, </em><em>optional</em>) – optional AMI id used for instances launched in this compute
 environment
 Default: None</p></li>
-<li><p><strong>ec2_key_pair</strong> (<em>string</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.8)"><em>None</em></a><em>, </em><em>optional</em>) – optional EC2 key pair used for instances launched in this compute
+<li><p><strong>ec2_key_pair</strong> (<em>string</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><em>None</em></a><em>, </em><em>optional</em>) – optional EC2 key pair used for instances launched in this compute
 environment
 Default: None</p></li>
-<li><p><strong>bid_percentage</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a><em>, </em><em>optional</em>) – Compute environment bid percentage if using spot instances
+<li><p><strong>bid_percentage</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a><em>, </em><em>optional</em>) – Compute environment bid percentage if using spot instances
 Default: None, which means that on-demand instances are provisioned.</p></li>
-<li><p><strong>job_queue_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a><em>, </em><em>optional</em>) – Name for this knot’s AWS Batch job queue
+<li><p><strong>job_queue_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a><em>, </em><em>optional</em>) – Name for this knot’s AWS Batch job queue
 Default: name + ‘-cloudknot-job-queue’</p></li>
-<li><p><strong>priority</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a><em>, </em><em>optional</em>) – Default priority for jobs in this knot’s job queue
+<li><p><strong>priority</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a><em>, </em><em>optional</em>) – Default priority for jobs in this knot’s job queue
 Default: 1</p></li>
+<li><p><strong>aws_resource_tags</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><em>dict</em></a><em> or </em><em>list of dicts</em>) – Additional AWS resource tags to apply to this repository</p></li>
 </ul>
 </dd>
 </dl>
@@ -221,8 +223,8 @@ more details.</p>
 <div class="content docutils container">
 <dl class="py class">
 <dt id="cloudknot.Pars">
-<em class="property">class </em><code class="sig-prename descclassname">cloudknot.</code><code class="sig-name descname">Pars</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">batch_service_role_name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ecs_instance_role_name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">spot_fleet_role_name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">policies</span><span class="o">=</span><span class="default_value">()</span></em>, <em class="sig-param"><span class="n">use_default_vpc</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">ipv4_cidr</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">instance_tenancy</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cloudknot/cloudknot.html#Pars"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.Pars" title="Permalink to this definition">¶</a></dt>
-<dd><p>PARS stands for Persistent AWS Resource Set</p>
+<em class="property">class </em><code class="sig-prename descclassname">cloudknot.</code><code class="sig-name descname">Pars</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">batch_service_role_name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ecs_instance_role_name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">spot_fleet_role_name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">policies</span><span class="o">=</span><span class="default_value">()</span></em>, <em class="sig-param"><span class="n">use_default_vpc</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">ipv4_cidr</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">instance_tenancy</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">aws_resource_tags</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cloudknot/cloudknot.html#Pars"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.Pars" title="Permalink to this definition">¶</a></dt>
+<dd><p>PARS stands for Persistent AWS Resource Set.</p>
 <p>This object collects AWS resources that could, in theory, be created only
 once for each cloudknot user and used for all of their subsequent AWS
 batch jobs. This set consists of IAM roles, a VPC with subnets for each
@@ -231,26 +233,29 @@ availability zone, and a security group.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The name of this PARS. If <cite>pars name</cite> exists in the config file,
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – The name of this PARS. If <cite>pars name</cite> exists in the config file,
 Pars will retrieve those PARS resource parameters. Otherwise,
 Pars will create a new PARS with this name.
+Must be less than 46 characters.
+Must satisfy regular expression pattern: [a-zA-Z][-a-zA-Z0-9]*
 Default: ‘${AWS-username}-default’</p></li>
-<li><p><strong>batch_service_role_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Name of this PARS’ batch service IAM role. If the role already
+<li><p><strong>batch_service_role_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – Name of this PARS’ batch service IAM role. If the role already
 exists, Pars will adopt it. Otherwise, it will create it.
 Default: name + ‘-cloudknot-batch-service-role’</p></li>
-<li><p><strong>ecs_instance_role_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Name of this PARS’ ECS instance IAM role. If the role already
+<li><p><strong>ecs_instance_role_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – Name of this PARS’ ECS instance IAM role. If the role already
 exists, Pars will adopt it. Otherwise, it will create it.
 Default: name + ‘-cloudknot-ecs-instance-role’</p></li>
-<li><p><strong>spot_fleet_role_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Name of this PARS’ spot fleet IAM role. If the role already
+<li><p><strong>spot_fleet_role_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – Name of this PARS’ spot fleet IAM role. If the role already
 exists, Pars will adopt it. Otherwise, it will create it.
 Default: name + ‘-cloudknot-spot-fleet-role’</p></li>
 <li><p><strong>policies</strong> (<em>tuple of strings</em>) – tuple of names of AWS policy ARNs to attach to each role
 Default: ()</p></li>
-<li><p><strong>use_default_vpc</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – if True, create or retrieve the default VPC
+<li><p><strong>use_default_vpc</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – if True, create or retrieve the default VPC
 if False, use other input args to create a non-default VPC</p></li>
 <li><p><strong>ipv4_cidr</strong> (<em>string</em>) – IPv4 CIDR block to be used for creation of a new VPC</p></li>
 <li><p><strong>instance_tenancy</strong> (<em>string</em>) – Instance tenancy for this VPC, one of [‘default’, ‘dedicated’]
 Default: ‘default’</p></li>
+<li><p><strong>aws_resource_tags</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><em>dict</em></a><em> or </em><em>list of dicts</em>) – Additional AWS resource tags to apply to this repository</p></li>
 </ul>
 </dd>
 </dl>
@@ -275,8 +280,8 @@ See <a class="reference internal" href="getting_started.html#eg-label"><span cla
 <dl class="py class">
 <dt id="cloudknot.DockerImage">
 <em class="property">class </em><code class="sig-prename descclassname">cloudknot.</code><code class="sig-name descname">DockerImage</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">func</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">script_path</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dir_name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">base_image</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">github_installs</span><span class="o">=</span><span class="default_value">()</span></em>, <em class="sig-param"><span class="n">username</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">overwrite</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cloudknot/dockerimage.html#DockerImage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudknot.DockerImage" title="Permalink to this definition">¶</a></dt>
-<dd><p>Class for dockerizing a python script or function</p>
-<p>On <cite>__init__</cite>, if given a python function, DockerImage will create a CLI
+<dd><p>Class for dockerizing a python script or function.</p>
+<p>If given a python function, DockerImage will create a CLI
 version for that function, write a requirements.txt file for all import
 statements in the function, and write a Dockerfile to containerize that
 python script. If given a path to a python script, DockerImage will assume
@@ -287,12 +292,12 @@ by pipreqs (i.e. cannot be installed with <cite>pip install package</cite>, thos
 packages will not be included in requirements.txt, DockerImage will throw
 a warning, and the user must install those packages by hand in the
 Dockerfile.</p>
-<p>Initialize a DockerImage instance</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Name of DockerImage, only used to retrieve DockerImage from
-config file info. Do not use to create new DockerImage</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – Name of DockerImage, only used to retrieve DockerImage from
+config file info. Do not use to create new DockerImage.
+Must satisfy regular expression pattern: [a-zA-Z][-a-zA-Z0-9]*</p></li>
 <li><p><strong>func</strong> (<em>function</em>) – Python function to be dockerized</p></li>
 <li><p><strong>script_path</strong> (<em>string</em>) – Path to file with python script to be dockerized</p></li>
 <li><p><strong>dir_name</strong> (<em>string</em>) – Directory to store Dockerfile, requirements.txt, and python
@@ -309,7 +314,36 @@ git://github.com/nrdg/cloudknot.git&#64;newfeaturebranch)
 Default: ()</p></li>
 <li><p><strong>username</strong> (<em>string</em>) – Default user created in the Dockerfile
 Default: ‘cloudknot-user’</p></li>
-<li><p><strong>overwrite</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a><em>, </em><em>default=False</em>) – If True, allow overwriting any existing Dockerfiles,
+<li><p><strong>overwrite</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a><em>, </em><em>default=False</em>) – If True, allow overwriting any existing Dockerfiles,
+requirements files, or python scripts previously created by
+cloudknot</p></li>
+</ul>
+</dd>
+</dl>
+<p>Initialize a DockerImage instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – Name of DockerImage, only used to save/retrieve DockerImage from
+config file info.
+Must satisfy regular expression pattern: [a-zA-Z][-a-zA-Z0-9]*</p></li>
+<li><p><strong>func</strong> (<em>function</em>) – Python function to be dockerized</p></li>
+<li><p><strong>script_path</strong> (<em>string</em>) – Path to file with python script to be dockerized</p></li>
+<li><p><strong>dir_name</strong> (<em>string</em>) – Directory to store Dockerfile, requirements.txt, and python
+script with CLI
+Default: parent directory of script if <cite>script_path</cite> is provided
+else DockerImage creates a new directory, accessible by the
+<cite>build_path</cite> property.</p></li>
+<li><p><strong>base_image</strong> (<em>string</em>) – Docker base image on which to base this Dockerfile
+Default: None will use the python base image for the
+current version of python</p></li>
+<li><p><strong>github_installs</strong> (<em>string</em><em> or </em><em>sequence of strings</em>) – Github addresses for packages to install from github rather than
+PyPI (e.g. git://github.com/nrdg/cloudknot.git or
+git://github.com/nrdg/cloudknot.git&#64;newfeaturebranch)
+Default: ()</p></li>
+<li><p><strong>username</strong> (<em>string</em>) – Default user created in the Dockerfile
+Default: ‘cloudknot-user’</p></li>
+<li><p><strong>overwrite</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a><em>, </em><em>default=False</em>) – If True, allow overwriting any existing Dockerfiles,
 requirements files, or python scripts previously created by
 cloudknot</p></li>
 </ul>
@@ -363,7 +397,7 @@ module pages.</p>
       &copy;2017, Adam Richie-Halford, Ariel Rokem.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

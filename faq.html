@@ -4,8 +4,8 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Frequently Asked Questions &#8212; cloudknot 0.4.2 documentation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Frequently Asked Questions &#8212; cloudknot 0.5.0 documentation</title>
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="_static/collapsible.css" type="text/css" />
@@ -255,6 +255,25 @@ more cloudknot objects:</p>
 </ol>
 </div>
 </div>
+<div class="toggle docutils container">
+<div class="header docutils container">
+<p>I’m running on a Windows machine and I am getting the following error:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">DockerException</span><span class="p">:</span> <span class="n">Install</span> <span class="n">pypiwin32</span> <span class="n">package</span> <span class="n">to</span> <span class="n">enable</span> <span class="n">npipe</span><span class="p">:</span><span class="o">//</span> <span class="n">support</span><span class="p">,</span>
+</pre></div>
+</div>
+</div>
+<div class="content docutils container">
+<p>Turns out that’s a bug in the installation of the pywin32 package.
+To complete the installation, you’ll need to run the following command:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="o">&lt;</span><span class="n">path</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">python</span><span class="o">-</span><span class="n">env</span><span class="o">&gt;</span>\<span class="n">Scripts</span>\<span class="n">pywin32_postinstall</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">install</span>
+</pre></div>
+</div>
+<p>For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">c</span><span class="p">:</span>\<span class="n">users</span>\<span class="n">my_user_name</span>\<span class="n">anaconda3</span>\<span class="n">envs</span>\<span class="n">ck</span>\<span class="n">Scripts</span>\<span class="n">pywin32_postinstall</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">install</span>
+</pre></div>
+</div>
+</div>
+</div>
 </div>
 
 
@@ -269,7 +288,7 @@ more cloudknot objects:</p>
       &copy;2017, Adam Richie-Halford, Ariel Rokem.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

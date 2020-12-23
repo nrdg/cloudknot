@@ -1,4 +1,4 @@
-cloudknot.aws.ResourceClobberedException
+﻿cloudknot.aws.ResourceClobberedException
 ========================================
 
 .. currentmodule:: cloudknot.aws
