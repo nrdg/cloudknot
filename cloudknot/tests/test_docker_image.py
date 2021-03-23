@@ -5,7 +5,6 @@ import filecmp
 import os
 import os.path as op
 import pytest
-import six
 import tempfile
 import uuid
 from moto import mock_batch, mock_cloudformation, mock_ec2, mock_ecr
@@ -219,7 +218,7 @@ def test_DockerImage(cleanup_repos):
         assert di.username == "cloudknot-user"
         assert di.func == unit_testing_func
 
-        py_dir = "py3" if six.PY3 else "py2"
+        py_dir = "py3"
 
         # Compare the created files with the reference files
         correct_dir = op.join(data_path, "docker_reqs_ref_data", py_dir, "ref1")
@@ -485,7 +484,7 @@ def test_DockerImage(cleanup_repos):
             di.build(tags=tag, image_name=n)
 
             n = n if n else "cloudknot/" + di.name
-            if isinstance(tag, six.string_types):
+            if isinstance(tag, str):
                 tag = [tag]
 
             images = [{"name": n, "tag": t} for t in tag]

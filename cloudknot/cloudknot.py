@@ -4,7 +4,6 @@ import configparser
 import ipaddress
 import logging
 import os
-import six
 
 try:
     from collections.abc import Iterable, namedtuple
@@ -96,7 +95,7 @@ class Pars(aws.NamedObject):
             Additional AWS resource tags to apply to this repository
         """
         # Validate name input
-        if name is not None and not isinstance(name, six.string_types):
+        if name is not None and not isinstance(name, str):
             raise aws.CloudknotInputError(
                 "PARS name must be a string. You passed a " "{t!s}".format(t=type(name))
             )
@@ -233,7 +232,7 @@ class Pars(aws.NamedObject):
             def validated_name(role_name, fallback_suffix):
                 # Validate role name input
                 if role_name:
-                    if not isinstance(role_name, six.string_types):
+                    if not isinstance(role_name, str):
                         raise aws.CloudknotInputError(
                             "if provided, role names must be strings."
                         )
@@ -253,11 +252,11 @@ class Pars(aws.NamedObject):
             )
 
             # Check the user supplied policies. Remove redundant entries
-            if isinstance(policies, six.string_types):
+            if isinstance(policies, str):
                 input_policies = {policies}
             else:
                 try:
-                    if all(isinstance(x, six.string_types) for x in policies):
+                    if all(isinstance(x, str) for x in policies):
                         input_policies = set(list(policies))
                     else:
                         raise aws.CloudknotInputError(
@@ -466,7 +465,7 @@ class Pars(aws.NamedObject):
                 # Check that ipv4 is a valid network range or set default value
                 if ipv4_cidr:
                     try:
-                        ipv4_cidr = str(ipaddress.IPv4Network(six.text_type(ipv4_cidr)))
+                        ipv4_cidr = str(ipaddress.IPv4Network(str(ipv4_cidr)))
                     except (ipaddress.AddressValueError, ValueError):
                         raise aws.CloudknotInputError(
                             "If provided, ipv4_cidr must be a valid IPv4 "
@@ -489,7 +488,7 @@ class Pars(aws.NamedObject):
 
                 # Get subnet CIDR blocks
                 # Get an IPv4Network instance representing the VPC CIDR block
-                cidr = ipaddress.IPv4Network(six.text_type(ipv4_cidr))
+                cidr = ipaddress.IPv4Network(str(ipv4_cidr))
 
                 # Get list of subnet CIDR blocks
                 subnet_ipv4_cidrs = list(cidr.subnets(new_prefix=20))
@@ -858,7 +857,7 @@ class Knot(aws.NamedObject):
             Additional AWS resource tags to apply to this repository
         """
         # Validate name input
-        if name is not None and not isinstance(name, six.string_types):
+        if name is not None and not isinstance(name, str):
             raise aws.CloudknotInputError(
                 "Knot name must be a string. You passed a " "{t!s}".format(t=type(name))
             )
@@ -1154,9 +1153,9 @@ class Knot(aws.NamedObject):
 
             # Default instance type is 'optimal'
             instance_types = instance_types if instance_types else ["optimal"]
-            if isinstance(instance_types, six.string_types):
+            if isinstance(instance_types, str):
                 instance_types = [instance_types]
-            elif all(isinstance(x, six.string_types) for x in instance_types):
+            elif all(isinstance(x, str) for x in instance_types):
                 instance_types = list(instance_types)
             else:
                 raise aws.CloudknotInputError(
@@ -1337,14 +1336,14 @@ class Knot(aws.NamedObject):
 
             # Validate image_id input
             if image_id is not None:
-                if not isinstance(image_id, six.string_types):
+                if not isinstance(image_id, str):
                     raise aws.CloudknotInputError(
                         "if provided, image_id must " "be a string"
                     )
 
             # Validate ec2_key_pair input
             if ec2_key_pair is not None:
-                if not isinstance(ec2_key_pair, six.string_types):
+                if not isinstance(ec2_key_pair, str):
                     raise aws.CloudknotInputError(
                         "if provided, ec2_key_pair must be a string"
                     )
