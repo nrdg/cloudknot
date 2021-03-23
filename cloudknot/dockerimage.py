@@ -6,7 +6,6 @@ import json
 import logging
 import os
 import re
-import six
 import subprocess
 import tempfile
 from pipreqs import pipreqs
@@ -162,7 +161,7 @@ class DockerImage(aws.NamedObject):
 
         if name:
             # Validate name input
-            if not isinstance(name, six.string_types):
+            if not isinstance(name, str):
                 raise CloudknotInputError(
                     "Docker image name must be a "
                     "string. You passed a {t!s}"
@@ -274,8 +273,7 @@ class DockerImage(aws.NamedObject):
             if base_image is not None:
                 self._base_image = base_image
             else:
-                py_ver = "3" if six.PY3 else "2"
-                self._base_image = "python:" + py_ver
+                self._base_image = "python:3"
 
             if self._base_image in ["python:3", "python:3.8"]:
                 mod_logger.warning(
@@ -377,9 +375,9 @@ class DockerImage(aws.NamedObject):
                 )
 
             # Validate github installs before building Dockerfile
-            if isinstance(github_installs, six.string_types):
+            if isinstance(github_installs, str):
                 self._github_installs = [github_installs]
-            elif all(isinstance(x, six.string_types) for x in github_installs):
+            elif all(isinstance(x, str) for x in github_installs):
                 self._github_installs = list(github_installs)
             else:
                 raise CloudknotInputError(
@@ -609,9 +607,9 @@ class DockerImage(aws.NamedObject):
             )
 
         # Validate tags input
-        if isinstance(tags, six.string_types):
+        if isinstance(tags, str):
             tags = [tags]
-        elif all(isinstance(x, six.string_types) for x in tags):
+        elif all(isinstance(x, str) for x in tags):
             tags = [t for t in tags]
         else:
             raise CloudknotInputError(
@@ -711,7 +709,7 @@ class DockerImage(aws.NamedObject):
             self._repo_registry_id = repo.repo_registry_id
             self._repo_name = repo.name
         else:
-            if not isinstance(repo_uri, six.string_types):
+            if not isinstance(repo_uri, str):
                 raise CloudknotInputError("`repo_uri` must be a string.")
             self._repo_uri = repo_uri
             repo_info = aws.ecr._get_repo_info_from_uri(repo_uri=repo_uri)

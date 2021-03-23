@@ -1,7 +1,6 @@
 import docker
 import logging
 import os
-import six
 import subprocess
 from awscli.customizations.configure.configure import InteractivePrompter
 
@@ -28,9 +27,8 @@ def pull_and_push_base_images(region, profile, ecr_repo):
     cli = docker.from_env().images
 
     # Build the python base image so that later build commands are faster
-    v = "3" if six.PY3 else "2"
-    py_base = "python:" + v
-    ecr_tag = "python" + v
+    py_base = "python:3"
+    ecr_tag = "python3"
     module_logger.info("Pulling base image {b:s}".format(b=py_base))
     cli.pull(py_base)
 

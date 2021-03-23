@@ -3,7 +3,6 @@ import cloudpickle
 from datetime import datetime
 import logging
 import pickle
-import six
 import time
 
 try:
@@ -213,7 +212,7 @@ class BatchJob(NamedObject):
         else:
             super(BatchJob, self).__init__(name=name)
 
-            if not isinstance(job_queue, six.string_types):
+            if not isinstance(job_queue, str):
                 raise CloudknotInputError("job_queue must be a string.")
 
             self._job_queue_arn = job_queue
@@ -553,7 +552,7 @@ class BatchJob(NamedObject):
         self.check_profile_and_region()
 
         # Require the user to supply a reason for job termination
-        if not isinstance(reason, six.string_types):
+        if not isinstance(reason, str):
             raise CloudknotInputError("reason must be a string.")
 
         state = self.status["status"]
