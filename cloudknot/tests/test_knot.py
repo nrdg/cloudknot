@@ -3,7 +3,6 @@ import configparser
 import os
 import os.path as op
 import pytest
-import warnings
 import uuid
 from moto import mock_batch, mock_cloudformation, mock_ec2, mock_ecr
 from moto import mock_ecs, mock_iam, mock_s3
