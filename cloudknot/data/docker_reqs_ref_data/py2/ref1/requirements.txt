@@ -1,6 +1,0 @@
-boto3==1.4.7
-cloudpickle==0.4.1
-dask==0.15.3
-docker==2.5.1
-pytest==3.2.2
-six==1.11.0
