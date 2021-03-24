@@ -11,6 +11,7 @@ try:
 except ImportError:
     from collections import namedtuple
 
+from ..dockerimage import DEFAULT_PICKLE_PROTOCOL
 from .base_classes import (
     NamedObject,
     clients,
@@ -302,7 +303,7 @@ class BatchJob(NamedObject):
         # unit testing would be expensive
         bucket = self.job_definition.output_bucket
         sse = get_s3_params().sse
-        pickled_input = cloudpickle.dumps(self.input, protocol=pickle.DEFAULT_PROTOCOL)
+        pickled_input = cloudpickle.dumps(self.input, protocol=DEFAULT_PICKLE_PROTOCOL)
 
         command = [self.job_definition.output_bucket]
         if self.starmap:
