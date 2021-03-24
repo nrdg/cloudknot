@@ -38,9 +38,7 @@ def pickle_to_s3(server_side_encryption=None, array_job=True):
 
             # Only pickle output and write to S3 if it is not None
             if result is not None:
-                pickled_result = cloudpickle.dumps(
-                    result, protocol=pickle.DEFAULT_PROTOCOL
-                )
+                pickled_result = cloudpickle.dumps(result, protocol=${pickle_protocol})
                 if server_side_encryption is None:
                     s3.put_object(Bucket=bucket, Body=pickled_result, Key=key)
                 else:

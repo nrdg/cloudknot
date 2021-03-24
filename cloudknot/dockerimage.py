@@ -23,11 +23,12 @@ from .aws.base_classes import (
 )
 from .config import get_config_file, rlock
 
-__all__ = ["DockerImage"]
+__all__ = ["DockerImage", "DEFAULT_PICKLE_PROTOCOL"]
 
 
 mod_logger = logging.getLogger(__name__)
 is_windows = os.name == "nt"
+DEFAULT_PICKLE_PROTOCOL = 3
 
 
 # noinspection PyPropertyAccess,PyAttributeOutsideInit
@@ -527,6 +528,7 @@ class DockerImage(aws.NamedObject):
                     s.substitute(
                         func_source=inspect.getsource(self.func),
                         func_name=self.func.__name__,
+                        pickle_protocol=DEFAULT_PICKLE_PROTOCOL,
                     )
                 )
 
