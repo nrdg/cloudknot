@@ -224,6 +224,7 @@ def test_knot(cleanup_repos):
         # Re-instantiate the knot so that it retrieves from config
         # with AWS resources that already exist
         knot = ck.Knot(name=name)
+        knot.docker_image._clobber_script = True
 
         # Assert properties are as expected
         assert knot.name == name
@@ -258,6 +259,7 @@ def test_knot(cleanup_repos):
 
         name = get_testing_name()
         knot = ck.Knot(name=name, func=unit_testing_func)
+        knot.docker_image._clobber_script = True
         knot.clobber(clobber_pars=True, clobber_image=True, clobber_repo=True)
         assert knot.clobbered
 
