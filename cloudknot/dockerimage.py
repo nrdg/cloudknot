@@ -77,6 +77,10 @@ class DockerImage(aws.NamedObject):
         git://github.com/nrdg/cloudknot.git@newfeaturebranch)
         Default: ()
 
+    ignore_installed : bool, default=False
+        If True, add the --ignore-installed flag when installing all GitHub
+        packages.
+
     username : string
         Default user created in the Dockerfile
         Default: 'cloudknot-user'
@@ -96,6 +100,7 @@ class DockerImage(aws.NamedObject):
         dir_name=None,
         base_image=None,
         github_installs=(),
+        ignore_installed=False,
         username=None,
         overwrite=False,
     ):
@@ -132,6 +137,10 @@ class DockerImage(aws.NamedObject):
             PyPI (e.g. git://github.com/nrdg/cloudknot.git or
             git://github.com/nrdg/cloudknot.git@newfeaturebranch)
             Default: ()
+
+        ignore_installed : bool, default=False
+            If True, add the --ignore-installed flag when installing all GitHub
+            packages.
 
         username : string
             Default user created in the Dockerfile
@@ -195,6 +204,9 @@ class DockerImage(aws.NamedObject):
                 self._github_installs = config.get(
                     section_name, "github-imports"
                 ).split()
+                self._ignore_installed = config.getboolean(
+                    section_name, "ignore-installed", fallback=False
+                )
                 self._username = config.get(section_name, "username")
                 self._clobber_script = config.getboolean(section_name, "clobber-script")
 
@@ -229,12 +241,13 @@ class DockerImage(aws.NamedObject):
                     )
 
                 # Check for consistency of remaining redundant input
-                if any([func, username, base_image, github_installs]):
+                if any([func, username, base_image, github_installs, ignore_installed]):
                     input_params = {
                         "func": (hash(func), function_hash),
                         "username": (username, self._username),
                         "base_image": (base_image, self._base_image),
                         "github_installs": (github_installs, self._github_installs),
+                        "ignore_installed": (ignore_installed, self._ignore_installed),
                     }
 
                     conflicting_params = {
@@ -401,6 +414,8 @@ class DockerImage(aws.NamedObject):
                         "for more info."
                     )
 
+            self._ignore_installed = ignore_installed
+
             # Set self.pip_imports and self.missing_imports
             self._set_imports()
 
@@ -426,6 +441,9 @@ class DockerImage(aws.NamedObject):
             ckconfig.add_resource(section_name, "base-image", self.base_image)
             ckconfig.add_resource(
                 section_name, "github-imports", " ".join(self.github_installs)
+            )
+            ckconfig.add_resource(
+                section_name, "ignore-installed", str(self.ignore_installed)
             )
             ckconfig.add_resource(section_name, "username", self.username)
             ckconfig.add_resource(section_name, "images", "")
@@ -474,6 +492,11 @@ class DockerImage(aws.NamedObject):
     def github_installs(self):
         """List packages installed from github rather than PyPI."""
         return self._github_installs
+
+    @property
+    def ignore_installed(self):
+        """Ignore installed packages when installing from GitHub."""
+        return self._ignore_installed
 
     @property
     def username(self):
@@ -552,6 +575,11 @@ class DockerImage(aws.NamedObject):
                 )
             else:
                 github_installs_string = ""
+
+            if self.ignore_installed:
+                github_installs_string = github_installs_string.replace(
+                    "--no-cache-dir", "--no-cache-dir --ignore-installed"
+                )
 
             with open(template_path, "r") as template:
                 s = Template(template.read())
