@@ -618,7 +618,7 @@ class DockerImage(aws.NamedObject):
                 "{missing!s}".format(missing=self.missing_imports)
             )
 
-    def build(self, tags, image_name=None):
+    def build(self, tags, image_name=None, nocache=False):
         """Build a Docker image.
 
         Parameters
@@ -629,6 +629,9 @@ class DockerImage(aws.NamedObject):
         image_name : str
             Name of Docker image to be built
             Default: 'cloudknot/' + self.name
+
+        nocache : bool, default=False
+            If True, force image rebuild without cache
 
         """
         if self.clobbered:
@@ -668,6 +671,9 @@ class DockerImage(aws.NamedObject):
                 path=self.build_path,
                 dockerfile=self.docker_path,
                 tag=im["name"] + ":" + im["tag"],
+                rm=True,
+                forcerm=True,
+                nocache=nocache,
             )
 
         # Update the config file images list
