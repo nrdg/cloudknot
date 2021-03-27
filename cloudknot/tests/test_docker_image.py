@@ -330,7 +330,10 @@ def test_DockerImage(cleanup_repos):
         _, tmp_file_name = tempfile.mkstemp(dir=dir_name)
 
         di = ck.DockerImage(
-            script_path=script_path, dir_name=dir_name, username="unit-test-username"
+            script_path=script_path,
+            dir_name=dir_name,
+            username="unit-test-username",
+            pin_pip_versions=True,
         )
 
         assert di.name == op.splitext(op.basename(script_path))[0].replace("_", "-")
