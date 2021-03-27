@@ -698,6 +698,7 @@ class Knot(aws.NamedObject):
         username=None,
         repo_name=None,
         image_tags=None,
+        no_image_cache=False,
         job_definition_name=None,
         job_def_vcpus=None,
         memory=None,
@@ -779,6 +780,11 @@ class Knot(aws.NamedObject):
 
         image_tags : str or sequence of str
             Tags to be applied to this Docker image
+
+        no_image_cache : bool
+            If True, do not use image cache for Docker build. This forces a
+            rebuild of the image even if it already exists.
+            Default: False
 
         job_definition_name : str, optional
             Name for this knot's AWS Batch job definition
@@ -943,7 +949,7 @@ class Knot(aws.NamedObject):
             )
 
             if not self.docker_image.images:
-                self.docker_image.build(tags=image_tags)
+                self.docker_image.build(tags=image_tags, nocache=no_image_cache)
                 mod_logger.info(
                     "knot {name:s} built docker image {i!s}"
                     "".format(name=self.name, i=self.docker_image.images)
@@ -1388,6 +1394,7 @@ class Knot(aws.NamedObject):
                 github_installs,
                 username_,
                 tags,
+                no_image_cache_,
                 repo_name_,
             ):
                 if input_docker_image:
@@ -1409,7 +1416,7 @@ class Knot(aws.NamedObject):
                     )
 
                 if not di.images:
-                    di.build(tags=tags)
+                    di.build(tags=tags, nocache=no_image_cache)
                     mod_logger.info(
                         "knot {name:s} built docker image {i!s}"
                         "".format(name=knot_name, i=di.images)
@@ -1475,6 +1482,7 @@ class Knot(aws.NamedObject):
                     github_installs=image_github_installs,
                     username_=username,
                     tags=image_tags,
+                    no_image_cache_=no_image_cache,
                     repo_name_=repo_name,
                 ),
             }
