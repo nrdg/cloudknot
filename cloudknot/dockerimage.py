@@ -82,6 +82,9 @@ class DockerImage(aws.NamedObject):
         If True, add the --ignore-installed flag when installing all GitHub
         packages.
 
+    pin_pip_versions : bool, default=False
+        If True, pin packages in pip requirements file to most recent version.
+
     username : string
         Default user created in the Dockerfile
         Default: 'cloudknot-user'
@@ -102,6 +105,7 @@ class DockerImage(aws.NamedObject):
         base_image=None,
         github_installs=(),
         ignore_installed=False,
+        pin_pip_versions=False,
         username=None,
         overwrite=False,
     ):
@@ -142,6 +146,9 @@ class DockerImage(aws.NamedObject):
         ignore_installed : bool, default=False
             If True, add the --ignore-installed flag when installing all GitHub
             packages.
+
+        pin_pip_versions : bool, default=False
+            If True, pin packages in pip requirements file to most recent version.
 
         username : string
             Default user created in the Dockerfile
@@ -208,6 +215,9 @@ class DockerImage(aws.NamedObject):
                 self._ignore_installed = config.getboolean(
                     section_name, "ignore-installed", fallback=False
                 )
+                self._pin_pip_versions = config.getboolean(
+                    section_name, "pin-pip-versions", fallback=False
+                )
                 self._username = config.get(section_name, "username")
                 self._clobber_script = config.getboolean(section_name, "clobber-script")
 
@@ -249,6 +259,7 @@ class DockerImage(aws.NamedObject):
                         "base_image": (base_image, self._base_image),
                         "github_installs": (github_installs, self._github_installs),
                         "ignore_installed": (ignore_installed, self._ignore_installed),
+                        "pin_pip_versions": (pin_pip_versions, self._pin_pip_versions),
                     }
 
                     conflicting_params = {
@@ -416,6 +427,7 @@ class DockerImage(aws.NamedObject):
                     )
 
             self._ignore_installed = ignore_installed
+            self._pin_pip_versions = pin_pip_versions
 
             # Set self.pip_imports and self.missing_imports
             self._set_imports()
@@ -483,6 +495,11 @@ class DockerImage(aws.NamedObject):
     def pip_imports(self):
         """List of packages in the requirements.txt file."""
         return self._pip_imports
+
+    @property
+    def pin_pip_versions(self):
+        """Whether to pin package versions in pip requirements file."""
+        return self._pin_pip_versions
 
     @property
     def base_image(self):
@@ -602,8 +619,13 @@ class DockerImage(aws.NamedObject):
         # Get the names of packages imported in the script
         import_names = pipreqs.get_all_imports(os.path.dirname(self.script_path))
 
-        # Of those names, store that ones that are available via pip
+        # Of those names, store the ones that are available via pip
         self._pip_imports = pipreqs.get_imports_info(import_names)
+
+        if not self._pin_pip_versions:
+            self._pip_imports = [
+                {"name": item["name"], "version": None} for item in self._pip_imports
+            ]
 
         # If some imports were left out, store their names
         pip_names = set([i["name"] for i in self.pip_imports])
