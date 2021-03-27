@@ -5,7 +5,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>cloudknot.cloudknot &#8212; cloudknot 0.5.0 documentation</title>
+    <title>cloudknot.cloudknot &#8212; cloudknot 0.5.1 documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/collapsible.css" type="text/css" />
@@ -81,7 +81,6 @@
 <span class="kn">import</span> <span class="nn">ipaddress</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">six</span>
 
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">namedtuple</span>
@@ -173,7 +172,7 @@
 <span class="sd">            Additional AWS resource tags to apply to this repository</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Validate name input</span>
-        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span>
                 <span class="s2">&quot;PARS name must be a string. You passed a &quot;</span> <span class="s2">&quot;</span><span class="si">{t!s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
             <span class="p">)</span>
@@ -310,7 +309,7 @@
             <span class="k">def</span> <span class="nf">validated_name</span><span class="p">(</span><span class="n">role_name</span><span class="p">,</span> <span class="n">fallback_suffix</span><span class="p">):</span>
                 <span class="c1"># Validate role name input</span>
                 <span class="k">if</span> <span class="n">role_name</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">role_name</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">role_name</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
                         <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span>
                             <span class="s2">&quot;if provided, role names must be strings.&quot;</span>
                         <span class="p">)</span>
@@ -330,11 +329,11 @@
             <span class="p">)</span>
 
             <span class="c1"># Check the user supplied policies. Remove redundant entries</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">policies</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">policies</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
                 <span class="n">input_policies</span> <span class="o">=</span> <span class="p">{</span><span class="n">policies</span><span class="p">}</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">try</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">policies</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">policies</span><span class="p">):</span>
                         <span class="n">input_policies</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">policies</span><span class="p">))</span>
                     <span class="k">else</span><span class="p">:</span>
                         <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span>
@@ -543,7 +542,7 @@
                 <span class="c1"># Check that ipv4 is a valid network range or set default value</span>
                 <span class="k">if</span> <span class="n">ipv4_cidr</span><span class="p">:</span>
                     <span class="k">try</span><span class="p">:</span>
-                        <span class="n">ipv4_cidr</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">ipaddress</span><span class="o">.</span><span class="n">IPv4Network</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">text_type</span><span class="p">(</span><span class="n">ipv4_cidr</span><span class="p">)))</span>
+                        <span class="n">ipv4_cidr</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">ipaddress</span><span class="o">.</span><span class="n">IPv4Network</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">ipv4_cidr</span><span class="p">)))</span>
                     <span class="k">except</span> <span class="p">(</span><span class="n">ipaddress</span><span class="o">.</span><span class="n">AddressValueError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
                         <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span>
                             <span class="s2">&quot;If provided, ipv4_cidr must be a valid IPv4 &quot;</span>
@@ -566,7 +565,7 @@
 
                 <span class="c1"># Get subnet CIDR blocks</span>
                 <span class="c1"># Get an IPv4Network instance representing the VPC CIDR block</span>
-                <span class="n">cidr</span> <span class="o">=</span> <span class="n">ipaddress</span><span class="o">.</span><span class="n">IPv4Network</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">text_type</span><span class="p">(</span><span class="n">ipv4_cidr</span><span class="p">))</span>
+                <span class="n">cidr</span> <span class="o">=</span> <span class="n">ipaddress</span><span class="o">.</span><span class="n">IPv4Network</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">ipv4_cidr</span><span class="p">))</span>
 
                 <span class="c1"># Get list of subnet CIDR blocks</span>
                 <span class="n">subnet_ipv4_cidrs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">cidr</span><span class="o">.</span><span class="n">subnets</span><span class="p">(</span><span class="n">new_prefix</span><span class="o">=</span><span class="mi">20</span><span class="p">))</span>
@@ -776,6 +775,7 @@
         <span class="n">username</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">repo_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">image_tags</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">no_image_cache</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">job_definition_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">job_def_vcpus</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">memory</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -858,6 +858,11 @@
 <span class="sd">        image_tags : str or sequence of str</span>
 <span class="sd">            Tags to be applied to this Docker image</span>
 
+<span class="sd">        no_image_cache : bool</span>
+<span class="sd">            If True, do not use image cache for Docker build. This forces a</span>
+<span class="sd">            rebuild of the image even if it already exists.</span>
+<span class="sd">            Default: False</span>
+
 <span class="sd">        job_definition_name : str, optional</span>
 <span class="sd">            Name for this knot&#39;s AWS Batch job definition</span>
 <span class="sd">            Default: name + &#39;-cloudknot-job-definition&#39;</span>
@@ -935,7 +940,7 @@
 <span class="sd">            Additional AWS resource tags to apply to this repository</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Validate name input</span>
-        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span>
                 <span class="s2">&quot;Knot name must be a string. You passed a &quot;</span> <span class="s2">&quot;</span><span class="si">{t!s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
             <span class="p">)</span>
@@ -1021,7 +1026,7 @@
             <span class="p">)</span>
 
             <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">images</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">tags</span><span class="o">=</span><span class="n">image_tags</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">tags</span><span class="o">=</span><span class="n">image_tags</span><span class="p">,</span> <span class="n">nocache</span><span class="o">=</span><span class="n">no_image_cache</span><span class="p">)</span>
                 <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
                     <span class="s2">&quot;knot </span><span class="si">{name:s}</span><span class="s2"> built docker image </span><span class="si">{i!s}</span><span class="s2">&quot;</span>
                     <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">docker_image</span><span class="o">.</span><span class="n">images</span><span class="p">)</span>
@@ -1231,9 +1236,9 @@
 
             <span class="c1"># Default instance type is &#39;optimal&#39;</span>
             <span class="n">instance_types</span> <span class="o">=</span> <span class="n">instance_types</span> <span class="k">if</span> <span class="n">instance_types</span> <span class="k">else</span> <span class="p">[</span><span class="s2">&quot;optimal&quot;</span><span class="p">]</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">instance_types</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">instance_types</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
                 <span class="n">instance_types</span> <span class="o">=</span> <span class="p">[</span><span class="n">instance_types</span><span class="p">]</span>
-            <span class="k">elif</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">instance_types</span><span class="p">):</span>
+            <span class="k">elif</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">instance_types</span><span class="p">):</span>
                 <span class="n">instance_types</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">instance_types</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span>
@@ -1414,14 +1419,14 @@
 
             <span class="c1"># Validate image_id input</span>
             <span class="k">if</span> <span class="n">image_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">image_id</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">image_id</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
                     <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span>
                         <span class="s2">&quot;if provided, image_id must &quot;</span> <span class="s2">&quot;be a string&quot;</span>
                     <span class="p">)</span>
 
             <span class="c1"># Validate ec2_key_pair input</span>
             <span class="k">if</span> <span class="n">ec2_key_pair</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ec2_key_pair</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ec2_key_pair</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
                     <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span>
                         <span class="s2">&quot;if provided, ec2_key_pair must be a string&quot;</span>
                     <span class="p">)</span>
@@ -1466,6 +1471,7 @@
                 <span class="n">github_installs</span><span class="p">,</span>
                 <span class="n">username_</span><span class="p">,</span>
                 <span class="n">tags</span><span class="p">,</span>
+                <span class="n">no_image_cache_</span><span class="p">,</span>
                 <span class="n">repo_name_</span><span class="p">,</span>
             <span class="p">):</span>
                 <span class="k">if</span> <span class="n">input_docker_image</span><span class="p">:</span>
@@ -1487,7 +1493,7 @@
                     <span class="p">)</span>
 
                 <span class="k">if</span> <span class="ow">not</span> <span class="n">di</span><span class="o">.</span><span class="n">images</span><span class="p">:</span>
-                    <span class="n">di</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">tags</span><span class="o">=</span><span class="n">tags</span><span class="p">)</span>
+                    <span class="n">di</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">tags</span><span class="o">=</span><span class="n">tags</span><span class="p">,</span> <span class="n">nocache</span><span class="o">=</span><span class="n">no_image_cache</span><span class="p">)</span>
                     <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
                         <span class="s2">&quot;knot </span><span class="si">{name:s}</span><span class="s2"> built docker image </span><span class="si">{i!s}</span><span class="s2">&quot;</span>
                         <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">knot_name</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="n">di</span><span class="o">.</span><span class="n">images</span><span class="p">)</span>
@@ -1553,6 +1559,7 @@
                     <span class="n">github_installs</span><span class="o">=</span><span class="n">image_github_installs</span><span class="p">,</span>
                     <span class="n">username_</span><span class="o">=</span><span class="n">username</span><span class="p">,</span>
                     <span class="n">tags</span><span class="o">=</span><span class="n">image_tags</span><span class="p">,</span>
+                    <span class="n">no_image_cache_</span><span class="o">=</span><span class="n">no_image_cache</span><span class="p">,</span>
                     <span class="n">repo_name_</span><span class="o">=</span><span class="n">repo_name</span><span class="p">,</span>
                 <span class="p">),</span>
             <span class="p">}</span>

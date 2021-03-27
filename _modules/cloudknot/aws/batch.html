@@ -5,7 +5,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>cloudknot.aws.batch &#8212; cloudknot 0.5.0 documentation</title>
+    <title>cloudknot.aws.batch &#8212; cloudknot 0.5.1 documentation</title>
     <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/collapsible.css" type="text/css" />
@@ -80,7 +80,6 @@
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">pickle</span>
-<span class="kn">import</span> <span class="nn">six</span>
 <span class="kn">import</span> <span class="nn">time</span>
 
 <span class="k">try</span><span class="p">:</span>
@@ -88,6 +87,7 @@
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
     <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span>
 
+<span class="kn">from</span> <span class="nn">..dockerimage</span> <span class="kn">import</span> <span class="n">DEFAULT_PICKLE_PROTOCOL</span>
 <span class="kn">from</span> <span class="nn">.base_classes</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">NamedObject</span><span class="p">,</span>
     <span class="n">clients</span><span class="p">,</span>
@@ -290,7 +290,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="nb">super</span><span class="p">(</span><span class="n">BatchJob</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
 
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">job_queue</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">job_queue</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s2">&quot;job_queue must be a string.&quot;</span><span class="p">)</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">_job_queue_arn</span> <span class="o">=</span> <span class="n">job_queue</span>
@@ -379,7 +379,7 @@
         <span class="c1"># unit testing would be expensive</span>
         <span class="n">bucket</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">output_bucket</span>
         <span class="n">sse</span> <span class="o">=</span> <span class="n">get_s3_params</span><span class="p">()</span><span class="o">.</span><span class="n">sse</span>
-        <span class="n">pickled_input</span> <span class="o">=</span> <span class="n">cloudpickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">)</span>
+        <span class="n">pickled_input</span> <span class="o">=</span> <span class="n">cloudpickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="n">protocol</span><span class="o">=</span><span class="n">DEFAULT_PICKLE_PROTOCOL</span><span class="p">)</span>
 
         <span class="n">command</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">job_definition</span><span class="o">.</span><span class="n">output_bucket</span><span class="p">]</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">starmap</span><span class="p">:</span>
@@ -630,7 +630,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">check_profile_and_region</span><span class="p">()</span>
 
         <span class="c1"># Require the user to supply a reason for job termination</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reason</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reason</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="k">raise</span> <span class="n">CloudknotInputError</span><span class="p">(</span><span class="s2">&quot;reason must be a string.&quot;</span><span class="p">)</span>
 
         <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">status</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span>

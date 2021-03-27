@@ -5,7 +5,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Getting started with cloudknot &#8212; cloudknot 0.5.0 documentation</title>
+    <title>Getting started with cloudknot &#8212; cloudknot 0.5.1 documentation</title>
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="_static/collapsible.css" type="text/css" />
@@ -103,26 +103,26 @@ permisssions and you will need to install cloudknot.</p>
 the Docker daemon for cloudknot to work properly. In particular, if you
 plan to run cloudknot from an Amazon EC2 instance, you need to install
 Docker such that you can run Docker commands without sudo</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$</span> <span class="c1"># Install Docker</span>
-<span class="gp">$</span> curl -sSL https://get.docker.com <span class="p">|</span> sudo sh
-<span class="gp">$</span> <span class="c1"># Add user to the group `docker`</span>
-<span class="gp">$</span> sudo usermod -a -G docker <span class="nv">$USER</span>
-<span class="gp">$</span> <span class="c1"># Restart the docker daemon</span>
-<span class="gp">$</span> sudo service docker restart
-<span class="gp">$</span> <span class="c1"># logout and then back in again, to make the above changes take effect</span>
-<span class="gp">$</span> <span class="nb">logout</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span><span class="c1"># Install Docker</span>
+<span class="gp">$ </span>curl -sSL https://get.docker.com <span class="p">|</span> sudo sh
+<span class="gp">$ </span><span class="c1"># Add user to the group `docker`</span>
+<span class="gp">$ </span>sudo usermod -a -G docker <span class="nv">$USER</span>
+<span class="gp">$ </span><span class="c1"># Restart the docker daemon</span>
+<span class="gp">$ </span>sudo service docker restart
+<span class="gp">$ </span><span class="c1"># logout and then back in again, to make the above changes take effect</span>
+<span class="gp">$ </span><span class="nb">logout</span>
 </pre></div>
 </div>
 <p>You should do all this first, before installing cloudknot. If everything
 went well, you should be able to run <code class="code docutils literal notranslate"><span class="pre">docker</span> <span class="pre">run</span> <span class="pre">hello-world</span></code> without
 using <code class="code docutils literal notranslate"><span class="pre">sudo</span></code>.  Then, you can install cloudknot from PyPI (recommended)</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$</span> pip install cloudknot
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>pip install cloudknot
 </pre></div>
 </div>
 <p>or from the <a class="reference external" href="https://github.com/nrdg/cloudknot">github repository</a>.
 This will install cloudknot and its python dependencies.</p>
 <p>After installation, you must configure cloudknot by running</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$</span> cloudknot configure
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>cloudknot configure
 </pre></div>
 </div>
 <p>This runs the AWS-CLI configuration tool and also installs some cloudknot
