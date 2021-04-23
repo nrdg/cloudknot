@@ -788,7 +788,7 @@ class Knot(aws.NamedObject):
 
         job_definition_name : str, optional
             Name for this knot's AWS Batch job definition
-            Default: name + '-cloudknot-job-definition'
+            Default: name + '-ck-jd'
 
         job_def_vcpus : int, optional
             number of virtual cpus to be used to this knot's job definition
@@ -805,7 +805,7 @@ class Knot(aws.NamedObject):
 
         compute_environment_name : str
             Name for this knot's AWS Batch compute environment
-            Default: name + '-cloudknot-compute-environment'
+            Default: name + '-ck-ce'
 
         instance_types : string or sequence of strings, optional
             Compute environment instance types
@@ -853,7 +853,7 @@ class Knot(aws.NamedObject):
 
         job_queue_name : str, optional
             Name for this knot's AWS Batch job queue
-            Default: name + '-cloudknot-job-queue'
+            Default: name + '-ck-jq'
 
         priority : int, optional
             Default priority for jobs in this knot's job queue
@@ -871,8 +871,8 @@ class Knot(aws.NamedObject):
         if name is None:
             name = aws.get_user() + "-default"
 
-        if len(name) > 45:
-            raise aws.CloudknotInputError("Knot name must be less than 46 characters.")
+        if len(name) > 55:
+            raise aws.CloudknotInputError("Knot name must be less than 56 characters.")
 
         super(Knot, self).__init__(name=name)
         self._knot_name = "knot " + name
@@ -1065,18 +1065,14 @@ class Knot(aws.NamedObject):
 
             # Validate names for job def, job queue, and compute environment
             job_definition_name = (
-                job_definition_name
-                if job_definition_name
-                else name + "-cloudknot-job-definition"
+                job_definition_name if job_definition_name else name + "-ck-jd"
             )
             compute_environment_name = (
                 compute_environment_name
                 if compute_environment_name
-                else name + "-cloudknot-compute-environment"
+                else name + "-ck-ce"
             )
-            job_queue_name = (
-                job_queue_name if job_queue_name else name + "-cloudknot-job-queue"
-            )
+            job_queue_name = job_queue_name if job_queue_name else name + "-ck-jq"
 
             # Validate job_def_vcpus input
             if job_def_vcpus:
@@ -1555,10 +1551,7 @@ class Knot(aws.NamedObject):
                     {"ParameterKey": "LtVolumeSize", "ParameterValue": str(volume_size)}
                 )
                 params.append(
-                    {
-                        "ParameterKey": "LtName",
-                        "ParameterValue": name + "-cloudknot-launch-template",
-                    }
+                    {"ParameterKey": "LtName", "ParameterValue": name + "-ck-lt"}
                 )
 
                 # Set the image id to use the ECS-optimized Amazon Linux

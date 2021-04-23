@@ -233,8 +233,8 @@ def test_knot(cleanup_repos):
         func_name = unit_testing_func.__name__.replace("_", "-")
         assert knot.docker_image.name == func_name
         assert knot.docker_repo.name == "cloudknot"
-        pre = name + "-cloudknot-"
-        assert knot.job_definition.name == pre + "job-definition"
+        pre = name + "-ck-"
+        assert knot.job_definition.name == pre + "jd"
 
         # Delete the stack using boto3 to check for an error from Pars
         # on reinstantiation
@@ -305,7 +305,7 @@ def test_knot_errors(cleanup_repos):
 
     # Assert ck.aws.CloudknotInputError on long name
     with pytest.raises(ck.aws.CloudknotInputError):
-        ck.Knot(name="a" * 46)
+        ck.Knot(name="a" * 56)
 
     # Assert ck.aws.CloudknotInputError on invalid pars input
     with pytest.raises(ck.aws.CloudknotInputError):
