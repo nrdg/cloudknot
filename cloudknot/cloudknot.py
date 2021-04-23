@@ -27,7 +27,7 @@ def _stack_out(key, outputs):
 
 
 def _ec2_instance_types():
-    """Yield all available EC2 instance types"""
+    """Yield all available EC2 instance types."""
     paginator = aws.clients["ec2"].get_paginator("describe_instance_types")
     response_iterator = paginator.paginate()
     responses = [
