@@ -433,7 +433,7 @@ class DockerImage(aws.NamedObject):
             self._set_imports()
 
             # Write the requirements.txt file and Dockerfile
-            pipreqs.generate_requirements_file(self.req_path, self.pip_imports)
+            pipreqs.generate_requirements_file(self.req_path, self.pip_imports, "==")
 
             self._write_dockerfile()
 

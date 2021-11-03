@@ -331,6 +331,10 @@ def test_knot_errors(cleanup_repos):
     with pytest.raises(ck.aws.CloudknotInputError):
         ck.Knot(memory=0)
 
+    # Assert ck.aws.CloudknotInputError on invalid n_gpus
+    with pytest.raises(ck.aws.CloudknotInputError):
+        ck.Knot(n_gpus=-1)
+
     # Assert ck.aws.CloudknotInputError on invalid job_def_vcpus
     with pytest.raises(ck.aws.CloudknotInputError):
         ck.Knot(job_def_vcpus=-42)

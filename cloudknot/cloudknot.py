@@ -713,6 +713,7 @@ class Knot(aws.NamedObject):
         job_definition_name=None,
         job_def_vcpus=None,
         memory=None,
+        n_gpus=None,
         retries=None,
         compute_environment_name=None,
         instance_types=None,
@@ -808,6 +809,10 @@ class Knot(aws.NamedObject):
         memory : int, optional
             memory (MiB) to be used for this knot's job definition
             Default: 8000
+
+        n_gpus : int, optional
+            number of GPUs to be used for this knot's job definition
+            Default: 0
 
         retries : int, optional
             number of times a job can be moved to 'RUNNABLE' status.
@@ -914,6 +919,7 @@ class Knot(aws.NamedObject):
                     job_definition_name,
                     job_def_vcpus,
                     memory,
+                    n_gpus,
                     retries,
                     compute_environment_name,
                     instance_types,
@@ -1102,6 +1108,14 @@ class Knot(aws.NamedObject):
                     raise aws.CloudknotInputError("memory must be positive")
             except ValueError:
                 raise aws.CloudknotInputError("memory must be an integer")
+
+            # Set default n_gpus
+            try:
+                n_gpus = int(n_gpus) if n_gpus is not None else 0
+                if n_gpus < 0:
+                    raise aws.CloudknotInputError("n_gpus must non-negative")
+            except ValueError:
+                raise aws.CloudknotInputError("n_gpus must be an integer")
 
             # Validate retries input
             try:
@@ -1361,6 +1375,7 @@ class Knot(aws.NamedObject):
                 {"ParameterKey": "JdName", "ParameterValue": job_definition_name},
                 {"ParameterKey": "JdvCpus", "ParameterValue": str(job_def_vcpus)},
                 {"ParameterKey": "JdMemory", "ParameterValue": str(memory)},
+                {"ParameterKey": "JdGpus", "ParameterValue": str(n_gpus)},
                 {"ParameterKey": "JdUser", "ParameterValue": username},
                 {"ParameterKey": "JdOutputBucket", "ParameterValue": output_bucket},
                 {"ParameterKey": "JdRetries", "ParameterValue": str(retries)},

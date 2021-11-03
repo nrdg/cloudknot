@@ -28,3 +28,7 @@ The examples in this directory are:
 -   `04_using_docker_image.ipynb`: demonstrates how to use the `DockerImage`
     class to dockerize an arbitrary python function when `Knot`'s automatic
     Dockerization won't do.
+    
+-   `05_using_gpus.ipynb`: demonstrates how to use `Knot`'s `n_gpus` parameter,
+    in concert with the `instance_type` and `base_image` parameters to launch
+    jobs with attached GPUs.

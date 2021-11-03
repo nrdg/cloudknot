@@ -583,7 +583,7 @@ def test_DockerRepo(bucket_cleanup):
                 botocore.exceptions.ClientError,
             )
         ):
-            retry.call(ecr.describe_repositories, repositoryNames=[name])
+            retry(ecr.describe_repositories, repositoryNames=[name])
 
         # Assert that it was removed from the config file
         # If we just re-read the config file, config will keep the union
@@ -612,7 +612,7 @@ def test_DockerRepo(bucket_cleanup):
             ),
         )
 
-        response = retry.call(ecr.describe_repositories, repositoryNames=[name])
+        response = retry(ecr.describe_repositories, repositoryNames=[name])
 
         repo_name = response["repositories"][0]["repositoryName"]
         repo_uri = response["repositories"][0]["repositoryUri"]
@@ -655,7 +655,7 @@ def test_DockerRepo(bucket_cleanup):
                 botocore.exceptions.ClientError,
             )
         ):
-            retry.call(ecr.describe_repositories, repositoryNames=[name])
+            retry(ecr.describe_repositories, repositoryNames=[name])
 
         # Assert that it was removed from the config file
         # If we just re-read the config file, config will keep the union
