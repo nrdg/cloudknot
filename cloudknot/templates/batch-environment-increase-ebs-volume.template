@@ -34,6 +34,13 @@
                 "MinValue" : "0",
                 "ConstraintDescription" : "Memory must be greater than zero."
             },
+            "JdGpus" : {
+                "Type" : "Number",
+                "Default" : "0",
+                "Description" : "The number of physical GPUs to reserve for the container. Default=0",
+                "MinValue" : "0",
+                "ConstraintDescription" : "Number of GPUs must be greater than zero."
+            },
             "JdUser" : {
                 "Type" : "String",
                 "Description" : "Username for the job definition. Default='cloudknot-user'",
@@ -177,8 +184,20 @@
                     "Type" : "container",
                     "ContainerProperties" : {
                         "Image" : { "Ref" : "DockerImage" },
-                        "Vcpus" : { "Ref" : "JdvCpus" },
-                        "Memory" : { "Ref" : "JdMemory" },
+                        "ResourceRequirements" : [
+                            {
+                                "Type": "MEMORY",
+                                "Value": { "Ref" : "JdMemory" }
+                            },
+                            {
+                                "Type": "VCPU",
+                                "Value": { "Ref" : "JdvCpus" }
+                            },
+                            {
+                                "Type": "GPU",
+                                "Value": { "Ref" : "JdGpus" }
+                            }
+                        ],
                         "Command" : [],
                         "User" : { "Ref" : "JdUser" },
                         "Environment" : [
