@@ -5,7 +5,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>cloudknot.aws.BatchJob &#8212; cloudknot 0.5.1 documentation</title>
+    <title>cloudknot.aws.BatchJob &#8212; cloudknot 0.5.2 documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/collapsible.css" type="text/css" />
@@ -115,14 +115,14 @@ submit a new job.</p>
 Must satisfy regular expression pattern: [a-zA-Z][-a-zA-Z0-9]*</p></li>
 <li><p><strong>job_queue</strong> (<em>string</em>) – Job queue ARN specifying the job queue to which this job
 will be submitted</p></li>
-<li><p><strong>job_definition</strong> (<em>namedtuple</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><em>object</em></a>) – namedtuple specifying the job definition on which to base this job.
+<li><p><strong>job_definition</strong> (<em>namedtuple</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.10)"><em>object</em></a>) – namedtuple specifying the job definition on which to base this job.
 Must contain fields ‘name’, ‘arn’, ‘output_bucket’, and ‘retries’</p></li>
 <li><p><strong>input</strong> – The input to be pickled and sent to the batch job via S3</p></li>
-<li><p><strong>starmap</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – If True, assume input is already grouped in
+<li><p><strong>starmap</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – If True, assume input is already grouped in
 tuples from a single iterable.</p></li>
 <li><p><strong>environment_variables</strong> (<em>list of dict</em>) – list of key/value pairs representing environment variables
 sent to the container</p></li>
-<li><p><strong>array_job</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – If True, this batch job will be an array_job.
+<li><p><strong>array_job</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – If True, this batch job will be an array_job.
 Default: True</p></li>
 </ul>
 </dd>

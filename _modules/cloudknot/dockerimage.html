@@ -5,7 +5,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>cloudknot.dockerimage &#8212; cloudknot 0.5.1 documentation</title>
+    <title>cloudknot.dockerimage &#8212; cloudknot 0.5.2 documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/collapsible.css" type="text/css" />
@@ -510,7 +510,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_set_imports</span><span class="p">()</span>
 
             <span class="c1"># Write the requirements.txt file and Dockerfile</span>
-            <span class="n">pipreqs</span><span class="o">.</span><span class="n">generate_requirements_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">req_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pip_imports</span><span class="p">)</span>
+            <span class="n">pipreqs</span><span class="o">.</span><span class="n">generate_requirements_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">req_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pip_imports</span><span class="p">,</span> <span class="s2">&quot;==&quot;</span><span class="p">)</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">_write_dockerfile</span><span class="p">()</span>
 

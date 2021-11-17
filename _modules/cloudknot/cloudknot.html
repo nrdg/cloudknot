@@ -5,7 +5,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>cloudknot.cloudknot &#8212; cloudknot 0.5.1 documentation</title>
+    <title>cloudknot.cloudknot &#8212; cloudknot 0.5.2 documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/collapsible.css" type="text/css" />
@@ -101,6 +101,17 @@
 <span class="k">def</span> <span class="nf">_stack_out</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">outputs</span><span class="p">):</span>
     <span class="n">o</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">d</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;OutputKey&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">key</span><span class="p">,</span> <span class="n">outputs</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">o</span><span class="p">[</span><span class="s2">&quot;OutputValue&quot;</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_ec2_instance_types</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Yield all available EC2 instance types.&quot;&quot;&quot;</span>
+    <span class="n">paginator</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">clients</span><span class="p">[</span><span class="s2">&quot;ec2&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get_paginator</span><span class="p">(</span><span class="s2">&quot;describe_instance_types&quot;</span><span class="p">)</span>
+    <span class="n">response_iterator</span> <span class="o">=</span> <span class="n">paginator</span><span class="o">.</span><span class="n">paginate</span><span class="p">()</span>
+    <span class="n">responses</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">lst</span> <span class="k">for</span> <span class="n">sublist</span> <span class="ow">in</span> <span class="n">response_iterator</span> <span class="k">for</span> <span class="n">lst</span> <span class="ow">in</span> <span class="n">sublist</span><span class="p">[</span><span class="s2">&quot;InstanceTypes&quot;</span><span class="p">]</span>
+    <span class="p">]</span>
+    <span class="n">instance_types</span> <span class="o">=</span> <span class="p">[</span><span class="n">inst</span><span class="p">[</span><span class="s2">&quot;InstanceType&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">inst</span> <span class="ow">in</span> <span class="n">responses</span><span class="p">]</span>
+    <span class="k">return</span> <span class="nb">set</span><span class="p">(</span><span class="n">instance_types</span><span class="p">)</span>
 
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
@@ -779,6 +790,7 @@
         <span class="n">job_definition_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">job_def_vcpus</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">memory</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">n_gpus</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">retries</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">compute_environment_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">instance_types</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -865,7 +877,7 @@
 
 <span class="sd">        job_definition_name : str, optional</span>
 <span class="sd">            Name for this knot&#39;s AWS Batch job definition</span>
-<span class="sd">            Default: name + &#39;-cloudknot-job-definition&#39;</span>
+<span class="sd">            Default: name + &#39;-ck-jd&#39;</span>
 
 <span class="sd">        job_def_vcpus : int, optional</span>
 <span class="sd">            number of virtual cpus to be used to this knot&#39;s job definition</span>
@@ -875,6 +887,10 @@
 <span class="sd">            memory (MiB) to be used for this knot&#39;s job definition</span>
 <span class="sd">            Default: 8000</span>
 
+<span class="sd">        n_gpus : int, optional</span>
+<span class="sd">            number of GPUs to be used for this knot&#39;s job definition</span>
+<span class="sd">            Default: 0</span>
+
 <span class="sd">        retries : int, optional</span>
 <span class="sd">            number of times a job can be moved to &#39;RUNNABLE&#39; status.</span>
 <span class="sd">            May be between 1 and 10</span>
@@ -882,7 +898,7 @@
 
 <span class="sd">        compute_environment_name : str</span>
 <span class="sd">            Name for this knot&#39;s AWS Batch compute environment</span>
-<span class="sd">            Default: name + &#39;-cloudknot-compute-environment&#39;</span>
+<span class="sd">            Default: name + &#39;-ck-ce&#39;</span>
 
 <span class="sd">        instance_types : string or sequence of strings, optional</span>
 <span class="sd">            Compute environment instance types</span>
@@ -930,7 +946,7 @@
 
 <span class="sd">        job_queue_name : str, optional</span>
 <span class="sd">            Name for this knot&#39;s AWS Batch job queue</span>
-<span class="sd">            Default: name + &#39;-cloudknot-job-queue&#39;</span>
+<span class="sd">            Default: name + &#39;-ck-jq&#39;</span>
 
 <span class="sd">        priority : int, optional</span>
 <span class="sd">            Default priority for jobs in this knot&#39;s job queue</span>
@@ -948,8 +964,8 @@
         <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">name</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">get_user</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;-default&quot;</span>
 
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">45</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span><span class="s2">&quot;Knot name must be less than 46 characters.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">55</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span><span class="s2">&quot;Knot name must be less than 56 characters.&quot;</span><span class="p">)</span>
 
         <span class="nb">super</span><span class="p">(</span><span class="n">Knot</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span> <span class="o">=</span> <span class="s2">&quot;knot &quot;</span> <span class="o">+</span> <span class="n">name</span>
@@ -980,6 +996,7 @@
                     <span class="n">job_definition_name</span><span class="p">,</span>
                     <span class="n">job_def_vcpus</span><span class="p">,</span>
                     <span class="n">memory</span><span class="p">,</span>
+                    <span class="n">n_gpus</span><span class="p">,</span>
                     <span class="n">retries</span><span class="p">,</span>
                     <span class="n">compute_environment_name</span><span class="p">,</span>
                     <span class="n">instance_types</span><span class="p">,</span>
@@ -1142,18 +1159,14 @@
 
             <span class="c1"># Validate names for job def, job queue, and compute environment</span>
             <span class="n">job_definition_name</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">job_definition_name</span>
-                <span class="k">if</span> <span class="n">job_definition_name</span>
-                <span class="k">else</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;-cloudknot-job-definition&quot;</span>
+                <span class="n">job_definition_name</span> <span class="k">if</span> <span class="n">job_definition_name</span> <span class="k">else</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;-ck-jd&quot;</span>
             <span class="p">)</span>
             <span class="n">compute_environment_name</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="n">compute_environment_name</span>
                 <span class="k">if</span> <span class="n">compute_environment_name</span>
-                <span class="k">else</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;-cloudknot-compute-environment&quot;</span>
+                <span class="k">else</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;-ck-ce&quot;</span>
             <span class="p">)</span>
-            <span class="n">job_queue_name</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">job_queue_name</span> <span class="k">if</span> <span class="n">job_queue_name</span> <span class="k">else</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;-cloudknot-job-queue&quot;</span>
-            <span class="p">)</span>
+            <span class="n">job_queue_name</span> <span class="o">=</span> <span class="n">job_queue_name</span> <span class="k">if</span> <span class="n">job_queue_name</span> <span class="k">else</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;-ck-jq&quot;</span>
 
             <span class="c1"># Validate job_def_vcpus input</span>
             <span class="k">if</span> <span class="n">job_def_vcpus</span><span class="p">:</span>
@@ -1172,6 +1185,14 @@
                     <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span><span class="s2">&quot;memory must be positive&quot;</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span><span class="s2">&quot;memory must be an integer&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Set default n_gpus</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">n_gpus</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_gpus</span><span class="p">)</span> <span class="k">if</span> <span class="n">n_gpus</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">0</span>
+                <span class="k">if</span> <span class="n">n_gpus</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span><span class="s2">&quot;n_gpus must non-negative&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span><span class="s2">&quot;n_gpus must be an integer&quot;</span><span class="p">)</span>
 
             <span class="c1"># Validate retries input</span>
             <span class="k">try</span><span class="p">:</span>
@@ -1246,162 +1267,7 @@
                 <span class="p">)</span>
 
             <span class="c1"># Validate instance types</span>
-            <span class="n">valid_instance_types</span> <span class="o">=</span> <span class="p">{</span>
-                <span class="s2">&quot;optimal&quot;</span><span class="p">,</span>
-                <span class="c1"># Current generation general purpose</span>
-                <span class="s2">&quot;t2&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m4&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m5&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m5d&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;t2.nano&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;t2.micro&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;t2.small&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;t2.medium&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;t2.large&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;t2.xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;t2.2xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m4.large&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m4.xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m4.2xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m4.4xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m4.10xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m4.16xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m5.large&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m5.xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m5.2xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m5.4xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m5.12xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m5.24xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m5d.large&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m5d.xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m5d.2xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m5d.4xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m5d.12xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m5d.24xlarge&quot;</span><span class="p">,</span>
-                <span class="c1"># Current generation compute optimized</span>
-                <span class="s2">&quot;c4&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;c5&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;c5d&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;c4.large&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;c4.xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;c4.2xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;c4.4xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;c4.8xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;c5.large&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;c5.xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;c5.2xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;c5.4xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;c5.9xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;c5.18xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;c5d.xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;c5d.2xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;c5d.4xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;c5d.9xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;c5d.18xlarge&quot;</span><span class="p">,</span>
-                <span class="c1"># Current generation memory optimized</span>
-                <span class="s2">&quot;r4&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;x1&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;x1e&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;r4.large&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;r4.xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;r4.2xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;r4.4xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;r4.8xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;r4.16xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;x1.16xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;x1.32xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;x1e.xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;x1e.2xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;x1e.4xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;x1e.8xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;x1e.16xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;x1e.32xlarge&quot;</span><span class="p">,</span>
-                <span class="c1"># Current generation storage optimized</span>
-                <span class="s2">&quot;d2&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;h1&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;i3&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;d2.xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;d2.2xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;d2.4xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;d2.8xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;h1.2xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;h1.4xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;h1.8xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;h1.16xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;i3.large&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;i3.xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;i3.2xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;i3.4xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;i3.8xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;i3.16xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;i3.metal&quot;</span><span class="p">,</span>
-                <span class="c1"># Current generation accelerated computing</span>
-                <span class="s2">&quot;f1&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;g3&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;p2&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;p3&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;f1.2xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;f1.16xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;g3.4xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;g3.8xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;g3.16xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;p2.xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;p2.8xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;p2.16xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;p3.2xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;p3.8xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;p3.16xlarge&quot;</span><span class="p">,</span>
-                <span class="c1"># Previous generation general purpose</span>
-                <span class="s2">&quot;m1&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m3&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m1.small&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m1.medium&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m1.large&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m1.xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m3.medium&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m3.large&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m3.xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m3.2xlarge&quot;</span><span class="p">,</span>
-                <span class="c1"># Previous generation compute optimized</span>
-                <span class="s2">&quot;c1&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;cc2&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;c3&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;c1.medium&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;c1.xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;cc2.8xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;c3.large&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;c3.xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;c3.2xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;c3.4xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;c3.8xlarge&quot;</span><span class="p">,</span>
-                <span class="c1"># Previous generation memory optimized</span>
-                <span class="s2">&quot;m2&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;cr1&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;r3&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m2.xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m2.2xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;m2.4xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;cr1.8xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;r3.large&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;r3.xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;r3.2xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;r3.4xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;r3.8xlarge&quot;</span><span class="p">,</span>
-                <span class="c1"># Previous generation storage optimized</span>
-                <span class="s2">&quot;hs1&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;i2&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;hs1.8xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;i2.xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;i2.2xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;i2.4xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;i2.8xlarge&quot;</span><span class="p">,</span>
-                <span class="c1"># Previous generation GPU optimized</span>
-                <span class="s2">&quot;g2&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;g2.2xlarge&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;g2.8xlarge&quot;</span><span class="p">,</span>
-                <span class="c1"># Previous generation micro</span>
-                <span class="s2">&quot;t1.micro&quot;</span><span class="p">,</span>
-            <span class="p">}</span>
+            <span class="n">valid_instance_types</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="s2">&quot;optimal&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">_ec2_instance_types</span><span class="p">())</span>
 
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="n">instance_types</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">valid_instance_types</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">CloudknotInputError</span><span class="p">(</span>
@@ -1586,6 +1452,7 @@
                 <span class="p">{</span><span class="s2">&quot;ParameterKey&quot;</span><span class="p">:</span> <span class="s2">&quot;JdName&quot;</span><span class="p">,</span> <span class="s2">&quot;ParameterValue&quot;</span><span class="p">:</span> <span class="n">job_definition_name</span><span class="p">},</span>
                 <span class="p">{</span><span class="s2">&quot;ParameterKey&quot;</span><span class="p">:</span> <span class="s2">&quot;JdvCpus&quot;</span><span class="p">,</span> <span class="s2">&quot;ParameterValue&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">job_def_vcpus</span><span class="p">)},</span>
                 <span class="p">{</span><span class="s2">&quot;ParameterKey&quot;</span><span class="p">:</span> <span class="s2">&quot;JdMemory&quot;</span><span class="p">,</span> <span class="s2">&quot;ParameterValue&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">memory</span><span class="p">)},</span>
+                <span class="p">{</span><span class="s2">&quot;ParameterKey&quot;</span><span class="p">:</span> <span class="s2">&quot;JdGpus&quot;</span><span class="p">,</span> <span class="s2">&quot;ParameterValue&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">n_gpus</span><span class="p">)},</span>
                 <span class="p">{</span><span class="s2">&quot;ParameterKey&quot;</span><span class="p">:</span> <span class="s2">&quot;JdUser&quot;</span><span class="p">,</span> <span class="s2">&quot;ParameterValue&quot;</span><span class="p">:</span> <span class="n">username</span><span class="p">},</span>
                 <span class="p">{</span><span class="s2">&quot;ParameterKey&quot;</span><span class="p">:</span> <span class="s2">&quot;JdOutputBucket&quot;</span><span class="p">,</span> <span class="s2">&quot;ParameterValue&quot;</span><span class="p">:</span> <span class="n">output_bucket</span><span class="p">},</span>
                 <span class="p">{</span><span class="s2">&quot;ParameterKey&quot;</span><span class="p">:</span> <span class="s2">&quot;JdRetries&quot;</span><span class="p">,</span> <span class="s2">&quot;ParameterValue&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">retries</span><span class="p">)},</span>
@@ -1632,10 +1499,7 @@
                     <span class="p">{</span><span class="s2">&quot;ParameterKey&quot;</span><span class="p">:</span> <span class="s2">&quot;LtVolumeSize&quot;</span><span class="p">,</span> <span class="s2">&quot;ParameterValue&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">volume_size</span><span class="p">)}</span>
                 <span class="p">)</span>
                 <span class="n">params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                    <span class="p">{</span>
-                        <span class="s2">&quot;ParameterKey&quot;</span><span class="p">:</span> <span class="s2">&quot;LtName&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;ParameterValue&quot;</span><span class="p">:</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;-cloudknot-launch-template&quot;</span><span class="p">,</span>
-                    <span class="p">}</span>
+                    <span class="p">{</span><span class="s2">&quot;ParameterKey&quot;</span><span class="p">:</span> <span class="s2">&quot;LtName&quot;</span><span class="p">,</span> <span class="s2">&quot;ParameterValue&quot;</span><span class="p">:</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;-ck-lt&quot;</span><span class="p">}</span>
                 <span class="p">)</span>
 
                 <span class="c1"># Set the image id to use the ECS-optimized Amazon Linux</span>
