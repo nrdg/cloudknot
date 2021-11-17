@@ -1,8 +1,6 @@
-v0.5.1 (March 27, 2021)
-=======================
-  * ENH: Add nocache option to DockerImage.build() (#278)
-  * ENH: Add option to remove version pinning from pip requirements file (#277)
-  * FIX: Use default pickle protocol even for cloudpickle (#273)
-  * ENH: Add --ignore-installed option to ck.DockerImage (#275)
-  * ENH: Remove six (#274)
+v0.5.2 (November 17, 2021)
+==========================
+  * ENH: Allow user to set number of GPUs for each job (#295)
+  * Use boto3 to get valid ec2 instance types (#284)
+  * Allow longer names for knots and fail earlier if they are too long (#282)
 
