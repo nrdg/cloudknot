@@ -192,10 +192,6 @@
                             {
                                 "Type": "VCPU",
                                 "Value": { "Ref" : "JdvCpus" }
-                            },
-                            {
-                                "Type": "GPU",
-                                "Value": { "Ref" : "JdGpus" }
                             }
                         ],
                         "Command" : [],

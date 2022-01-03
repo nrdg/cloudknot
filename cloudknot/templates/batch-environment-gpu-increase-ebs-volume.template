@@ -75,6 +75,20 @@
                 "MinValue" : "1",
                 "ConstraintDescription" : "The priority must be greater than one."
             },
+            "LtName" : {
+                "Type" : "String",
+                "Description" : "Name of the launch template to change EBS volume.",
+                "MinLength" : "1",
+                "MaxLength" : "64",
+                "ConstraintDescription" : "The launch template name must be between 1 and 64 characters"
+            },
+            "LtVolumeSize" : {
+                "Type" : "Number",
+                "Default" : "30",
+                "Description" : "Launch template volume size in GB",
+                "MinValue" : "1",
+                "ConstraintDescription" : "LtVolumeSize must be greater than zero."
+            },
             "CeName" : {
                 "Type" : "String",
                 "Description" : "Name of the compute environment.",
@@ -178,6 +192,10 @@
                             {
                                 "Type": "VCPU",
                                 "Value": { "Ref" : "JdvCpus" }
+                            },
+                            {
+                                "Type": "GPU",
+                                "Value": { "Ref" : "JdGpus" }
                             }
                         ],
                         "Command" : [],
@@ -212,6 +230,23 @@
                     ]
                 }
             },
+            "LaunchTemplate": {
+                "Type": "AWS::EC2::LaunchTemplate",
+                "Properties": {
+                    "LaunchTemplateData" : {
+                        "BlockDeviceMappings": [
+                            {
+                                "DeviceName": "/dev/xvda",
+                                "Ebs": {
+                                    "VolumeSize": { "Ref" : "LtVolumeSize" },
+                                    "VolumeType": "gp2"
+                                }
+                            }
+                        ]
+                    },
+                    "LaunchTemplateName" : { "Ref" : "LtName" }
+                }
+            },
             "ComputeEnvironment" : {
                 "Type" : "AWS::Batch::ComputeEnvironment",
                 "Properties" : {
@@ -223,6 +258,9 @@
                         "DesiredvCpus" : { "Ref" : "CeDesiredvCpus" },
                         "MaxvCpus" : { "Ref" : "CeMaxvCpus" },
                         "InstanceTypes" : { "Ref" : "CeInstanceTypes" },
+                        "LaunchTemplate" : {
+                            "LaunchTemplateId" : { "Ref" : "LaunchTemplate" }
+                        },
                         "Subnets" : {
                             "Fn::Split" : [",", { "Fn::ImportValue" : { "Fn::Sub" : "${ParsStackName}-SubnetIds" }}]
                         },
@@ -272,6 +310,9 @@
             },
             "JobDefinition": {
                 "Value" : { "Ref" : "JobDefinition" }
+            },
+            "LaunchTemplate": {
+                "Value" : { "Ref" : "LaunchTemplate" }
             }
         }
 }

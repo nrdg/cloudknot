@@ -1470,6 +1470,11 @@ class Knot(aws.NamedObject):
                     )
                 )
 
+            if n_gpus > 0:
+                template_path = template_path.replace(
+                    "batch-environment-", "batch-environment-gpu-"
+                )
+
             with open(template_path, "r") as fp:
                 template_body = fp.read()
 
