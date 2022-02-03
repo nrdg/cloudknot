@@ -5,7 +5,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>cloudknot.cloudknot &#8212; cloudknot 0.5.2 documentation</title>
+    <title>cloudknot.cloudknot &#8212; cloudknot 0.5.3 documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/collapsible.css" type="text/css" />
@@ -1545,6 +1545,11 @@
                         <span class="s2">&quot;templates&quot;</span><span class="p">,</span>
                         <span class="s2">&quot;batch-environment.template&quot;</span><span class="p">,</span>
                     <span class="p">)</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">n_gpus</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">template_path</span> <span class="o">=</span> <span class="n">template_path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+                    <span class="s2">&quot;batch-environment-&quot;</span><span class="p">,</span> <span class="s2">&quot;batch-environment-gpu-&quot;</span>
                 <span class="p">)</span>
 
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">template_path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
