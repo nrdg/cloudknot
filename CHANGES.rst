@@ -1,3 +1,8 @@
+v0.5.3 (February 03, 2022)
+==========================
+  * DOC: Update minimal required permissions (#302)
+  * BF: Use separate cloudformation templates for gpu jobs (#299)
+
 v0.5.2 (November 17, 2021)
 ==========================
   * ENH: Allow user to set number of GPUs for each job (#295)
