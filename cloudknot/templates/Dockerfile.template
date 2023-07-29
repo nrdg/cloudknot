@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt${github_installs_string}
 # Add user to "staff" group.
 # Give user a home directory.
 RUN (id -u ${username} >/dev/null 2>&1 || useradd ${username}) \
-    && addgroup ${username} staff \
+    && usermod -a -G staff "${username}" \
     && mkdir -p /home/${username} \
     && chown -R ${username}:staff /home/${username}
 
