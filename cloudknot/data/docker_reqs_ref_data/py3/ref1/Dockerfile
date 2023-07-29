@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 # Add user to "staff" group.
 # Give user a home directory.
 RUN (id -u cloudknot-user >/dev/null 2>&1 || useradd cloudknot-user) \
-    && addgroup cloudknot-user staff \
+    && usermod -a -G staff "cloudknot-user" \
     && mkdir -p /home/cloudknot-user \
     && chown -R cloudknot-user:staff /home/cloudknot-user
 
