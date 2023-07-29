@@ -27,7 +27,7 @@ exclude = '''
     | build
     | dist
   )/
-  | foo.py           # also separately exclude a file named foo.py in
-                     # the root of the project
+  | _version.py
+  | cli.py
 )
 '''
