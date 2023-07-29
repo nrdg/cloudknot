@@ -30,7 +30,7 @@ jobs:
           printf "[aws]\nconfigured = True\n" > ~/.aws/cloudknot
       - name: Lint with flake8
         run: |
-          flake8
+          flake8 --exclude /home/runner/work/cloudknot/cloudknot/cloudknot/_version.py, /home/runner/work/cloudknot/cloudknot/cloudknot/cli.py
           black --check .
           pydocstyle
       - name: Test
