@@ -669,6 +669,7 @@ def get_user():
     username = user_info.get("UserName")
     if username is None:
         username = user_info.get("Arn").split(":")[-1]
+    username = username.replace("_", "-")
 
     return username
 
