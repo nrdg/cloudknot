@@ -5,10 +5,9 @@ import ipaddress
 import logging
 import os
 
-try:
-    from collections.abc import Iterable, namedtuple
-except ImportError:
-    from collections import Iterable, namedtuple
+from collections.abc import Iterable
+from collections import namedtuple
+
 from concurrent.futures import ThreadPoolExecutor
 
 from . import aws
