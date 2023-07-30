@@ -23,8 +23,8 @@ ENV HOME /home/${username}
 # Set working directory
 WORKDIR /home/${username}
 
-# Set command to run
-CMD ["python", "/home/${username}/${script_base_name}"]
+# Set entrypoint
+ENTRYPOINT ["/usr/bin/python", "/home/${username}/${script_base_name}"]
 
 # Copy the python script
 COPY ${script_base_name} /home/${username}/
