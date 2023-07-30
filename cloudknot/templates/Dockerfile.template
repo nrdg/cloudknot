@@ -24,7 +24,7 @@ ENV HOME /home/${username}
 WORKDIR /home/${username}
 
 # Set entrypoint
-ENTRYPOINT ["/usr/bin/python", "/home/${username}/${script_base_name}"]
+ENTRYPOINT ["python", "/home/${username}/${script_base_name}"]
 
 # Copy the python script
 COPY ${script_base_name} /home/${username}/
