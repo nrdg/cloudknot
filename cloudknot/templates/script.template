@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import boto3
 import cloudpickle
 import os
