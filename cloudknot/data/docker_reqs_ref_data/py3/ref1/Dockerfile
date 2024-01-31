@@ -13,18 +13,17 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 # Create a default user. Available via runtime flag `--user cloudknot-user`.
 # Add user to "staff" group.
 # Give user a home directory.
-RUN (id -u cloudknot-user >/dev/null 2>&1 || useradd cloudknot-user) \
-    && usermod -a -G staff "cloudknot-user" \
-    && mkdir -p /home/cloudknot-user \
-    && chown -R cloudknot-user:staff /home/cloudknot-user
-
-ENV HOME /home/cloudknot-user
-
-# Set working directory
-WORKDIR /home/cloudknot-user
-
-# Set entrypoint
-ENTRYPOINT ["python", "/home/cloudknot-user/unit-testing-func.py"]
+RUN groupadd -f staff \
+    && useradd --create-home --groups staff "cloudknot-user"
 
 # Copy the python script
-COPY unit-testing-func.py /home/cloudknot-user/
+COPY --chown="cloudknot-user" "unit-testing-func.py" "/home/cloudknot-user/"
+
+# Set user
+USER "cloudknot-user"
+
+# Set working directory
+WORKDIR "/home/cloudknot-user"
+
+# Set entrypoint
+ENTRYPOINT ["/home/cloudknot-user/unit-testing-func.py"]
