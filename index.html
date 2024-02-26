@@ -1,27 +1,28 @@
 
 <!DOCTYPE html>
 
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Welcome to cloudknot &#8212; cloudknot 0.5.3 documentation</title>
-    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <title>Welcome to cloudknot &#8212; cloudknot 0.6.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
     <link rel="stylesheet" href="_static/collapsible.css" type="text/css" />
-    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="_static/doctools.js"></script>
-    <script src="_static/language_data.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Getting started with cloudknot" href="getting_started.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
+
   
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+  
 
   </head><body>
   <div class="document">
@@ -61,12 +62,12 @@
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
       <div class="documentwrapper">
@@ -76,16 +77,16 @@
           <div class="body" role="main">
             
   <div class="section" id="welcome-to-cloudknot">
-<h1>Welcome to cloudknot<a class="headerlink" href="#welcome-to-cloudknot" title="Permalink to this headline">¶</a></h1>
+<h1>Welcome to cloudknot<a class="headerlink" href="#welcome-to-cloudknot" title="Permalink to this heading">¶</a></h1>
 <p>“Knot” is a collective noun for a group of snakes. <cite>Cloudknot</cite> is a python
 library designed to run your existing python code on
 <a class="reference external" href="https://aws.amazon.com/batch">AWS Batch</a>.</p>
 <div class="section" id="usage">
-<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h2>
+<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this heading">¶</a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cloudknot</span> <span class="k">as</span> <span class="nn">ck</span>
 
 <span class="k">def</span> <span class="nf">random_mv_prod</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
-   <span class="sd">&quot;&quot;&quot;Here is a function I want to run on AWS Batch&quot;&quot;&quot;</span>
+<span class="w">   </span><span class="sd">&quot;&quot;&quot;Here is a function I want to run on AWS Batch&quot;&quot;&quot;</span>
    <span class="c1"># Always import dependencies within the function</span>
    <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
@@ -104,7 +105,7 @@ library designed to run your existing python code on
 </div>
 </div>
 <div class="section" id="motivation">
-<h2>Motivation<a class="headerlink" href="#motivation" title="Permalink to this headline">¶</a></h2>
+<h2>Motivation<a class="headerlink" href="#motivation" title="Permalink to this heading">¶</a></h2>
 <p>In the quest to minimize time-to-first-result, many computational scientists are
 turning to cloud-based distributed computing with commercial vendors like
 Amazon to run their computational workloads. Yet cloud computing remains
@@ -124,28 +125,28 @@ submit jobs. You can then use cloudknot to submit and view jobs for a range
 of inputs.</p>
 </div>
 <div class="section" id="installation-and-getting-started">
-<h2>Installation and getting started<a class="headerlink" href="#installation-and-getting-started" title="Permalink to this headline">¶</a></h2>
+<h2>Installation and getting started<a class="headerlink" href="#installation-and-getting-started" title="Permalink to this heading">¶</a></h2>
 <p>To install cloudknot and take your first few slithers,
 visit <a class="reference internal" href="getting_started.html#getting-started-label"><span class="std std-ref">Getting started with cloudknot</span></a></p>
 </div>
 <div class="section" id="documentation-and-api">
-<h2>Documentation and API<a class="headerlink" href="#documentation-and-api" title="Permalink to this headline">¶</a></h2>
+<h2>Documentation and API<a class="headerlink" href="#documentation-and-api" title="Permalink to this heading">¶</a></h2>
 <p>Most cloudknot users will only need to interact with the Knot and Pars classes
 (perhaps the DockerImage class). For details on those objects and links to the
 lower-level API, see <a class="reference internal" href="documentation.html#doc-label"><span class="std std-ref">Documentation</span></a>.</p>
 </div>
 <div class="section" id="bugs-and-issues">
-<h2>Bugs and issues<a class="headerlink" href="#bugs-and-issues" title="Permalink to this headline">¶</a></h2>
+<h2>Bugs and issues<a class="headerlink" href="#bugs-and-issues" title="Permalink to this heading">¶</a></h2>
 <p>If you are having issues, please let us know by <a class="reference external" href="https://github.com/nrdg/cloudknot/issues">opening up a new issue</a>.
 You will probably want to tag your issue with the “bug” or “question” label.</p>
 </div>
 <div class="section" id="contribute">
-<h2>Contribute<a class="headerlink" href="#contribute" title="Permalink to this headline">¶</a></h2>
+<h2>Contribute<a class="headerlink" href="#contribute" title="Permalink to this heading">¶</a></h2>
 <p>We invite you to contribute to cloudknot. Take a look at the <a class="reference external" href="https://github.com/nrdg/cloudknot">source code</a>. Or tackle one of the <a class="reference external" href="https://github.com/nrdg/cloudknot/issues">open issues</a>. Issues labeled “help wanted”
 or “good first issue” are particularly appropriate for beginners.</p>
 </div>
 <div class="section" id="aws-batch-vs-aws-lambda">
-<h2>AWS Batch vs AWS Lambda<a class="headerlink" href="#aws-batch-vs-aws-lambda" title="Permalink to this headline">¶</a></h2>
+<h2>AWS Batch vs AWS Lambda<a class="headerlink" href="#aws-batch-vs-aws-lambda" title="Permalink to this heading">¶</a></h2>
 <p><a class="reference external" href="https://aws.amazon.com/lambda/">AWS Lambda</a> is a service that runs your code
 in response to certain events (e.g. file uploads). It starts executing very
 quickly after the triggering event but it has <a class="reference external" href="https://docs.aws.amazon.com/lambda/latest/dg/limits.html">some limitations</a> (e.g. on the
@@ -156,11 +157,11 @@ AWS Lambda instead of AWS Batch. In that case, check out the excellent
 then welcome to cloudknot.</p>
 </div>
 <div class="section" id="license">
-<h2>License<a class="headerlink" href="#license" title="Permalink to this headline">¶</a></h2>
+<h2>License<a class="headerlink" href="#license" title="Permalink to this heading">¶</a></h2>
 <p>The project is licensed under the <a class="reference external" href="https://github.com/nrdg/cloudknot/blob/master/LICENSE">MIT license</a>.</p>
 </div>
 <div class="section" id="citing-cloudknot">
-<h2>Citing cloudknot<a class="headerlink" href="#citing-cloudknot" title="Permalink to this headline">¶</a></h2>
+<h2>Citing cloudknot<a class="headerlink" href="#citing-cloudknot" title="Permalink to this heading">¶</a></h2>
 <p>If you use cloudknot in a scientific publication, we would appreciate
 citations to the following paper:</p>
 <p><a class="reference external" href="http://conference.scipy.org/proceedings/scipy2018/adam_richie-halford.html">Cloudknot: A Python library to run your existing code on AWS Batch</a>
@@ -180,7 +181,7 @@ conference, pp. 8-14, 2018.</p>
 </div>
 </div>
 <div class="section" id="acknowledgements">
-<h2>Acknowledgements<a class="headerlink" href="#acknowledgements" title="Permalink to this headline">¶</a></h2>
+<h2>Acknowledgements<a class="headerlink" href="#acknowledgements" title="Permalink to this heading">¶</a></h2>
 <p>Cloudknot development is supported through a grant from the <a class="reference external" href="https://www.moore.org/">Gordon and Betty
 Moore Foundation</a> and from the <a class="reference external" href="https://sloan.org/">Alfred P. Sloan
 Foundation</a> to the <a class="reference external" href="http://escience.washington.edu/">University of Washington eScience
@@ -202,11 +203,11 @@ Institute of Biomedical Imaging and Bioengineering to Eleftherios Garyfallidis
   </div>
     
     <div class="footer">
-      &copy;2017, Adam Richie-Halford, Ariel Rokem.
+      &#169;2017, Adam Richie-Halford, Ariel Rokem.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 5.0.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
       
       |
       <a href="_sources/index.rst.txt"

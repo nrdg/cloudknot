@@ -1,26 +1,27 @@
 
 <!DOCTYPE html>
 
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>cloudknot.dockerimage &#8212; cloudknot 0.5.3 documentation</title>
-    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <title>cloudknot.dockerimage &#8212; cloudknot 0.6.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
     <link rel="stylesheet" href="../../_static/collapsible.css" type="text/css" />
-    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
     <script src="../../_static/jquery.js"></script>
     <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../../_static/doctools.js"></script>
-    <script src="../../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
    
   <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
   
+
   
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+  
 
   </head><body>
   <div class="document">
@@ -60,12 +61,12 @@
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
       <div class="documentwrapper">
@@ -109,7 +110,7 @@
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
 <div class="viewcode-block" id="DockerImage"><a class="viewcode-back" href="../../documentation.html#cloudknot.DockerImage">[docs]</a><span class="k">class</span> <span class="nc">DockerImage</span><span class="p">(</span><span class="n">aws</span><span class="o">.</span><span class="n">NamedObject</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Class for dockerizing a python script or function.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Class for dockerizing a python script or function.</span>
 
 <span class="sd">    If given a python function, DockerImage will create a CLI</span>
 <span class="sd">    version for that function, write a requirements.txt file for all import</span>
@@ -186,7 +187,7 @@
         <span class="n">username</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialize a DockerImage instance.</span>
 
 <span class="sd">        Parameters</span>
@@ -545,62 +546,62 @@
     <span class="c1"># Declare read-only properties</span>
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Python function that was dockerized.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Python function that was dockerized.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_func</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">build_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return build path for the docker image.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return build path for the docker image.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_path</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">script_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Path to the CLI version of the python function.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Path to the CLI version of the python function.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_script_path</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">docker_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Path to the generated Dockerfile.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Path to the generated Dockerfile.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_docker_path</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">req_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Path to the generated requirements.txt file.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Path to the generated requirements.txt file.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_req_path</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">pip_imports</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;List of packages in the requirements.txt file.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;List of packages in the requirements.txt file.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pip_imports</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">pin_pip_versions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Whether to pin package versions in pip requirements file.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Whether to pin package versions in pip requirements file.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pin_pip_versions</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">base_image</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Docker base image on which to base the docker image.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Docker base image on which to base the docker image.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base_image</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">github_installs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;List packages installed from github rather than PyPI.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;List packages installed from github rather than PyPI.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_github_installs</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">ignore_installed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Ignore installed packages when installing from GitHub.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Ignore installed packages when installing from GitHub.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ignore_installed</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">username</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return default username created in Dockerfile.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return default username created in Dockerfile.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_username</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">missing_imports</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;List required imports that are unavailable through pip install.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;List required imports that are unavailable through pip install.</span>
 
 <span class="sd">        The user must edit the Dockerfile by hand to install these packages</span>
 <span class="sd">        before using the build or push methods.</span>
@@ -609,26 +610,26 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">images</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;List name, tag dicts for docker images built by this instance.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;List name, tag dicts for docker images built by this instance.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_images</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">repo_uri</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Location of remote repository to which the image was pushed.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Location of remote repository to which the image was pushed.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_repo_uri</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">repo_registry_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Registry ID of remote repository to which the image was pushed.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Registry ID of remote repository to which the image was pushed.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_repo_registry_id</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">repo_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Name of remote repository to which the image was pushed.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Name of remote repository to which the image was pushed.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_repo_name</span>
 
     <span class="k">def</span> <span class="nf">_write_script</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Write this instance&#39;s function to a script with a CLI.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Write this instance&#39;s function to a script with a CLI.</span>
 
 <span class="sd">        Use the template file to insert the self.func source code and name</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -654,7 +655,7 @@
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_write_dockerfile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Write Dockerfile to containerize this instance&#39;s python function.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Write Dockerfile to containerize this instance&#39;s python function.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">docker_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">template_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span>
                 <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
@@ -692,7 +693,7 @@
         <span class="n">mod_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Wrote Dockerfile </span><span class="si">{path:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">docker_path</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">_set_imports</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Set required imports for the python script at self.script_path.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set required imports for the python script at self.script_path.&quot;&quot;&quot;</span>
         <span class="c1"># Get the names of packages imported in the script</span>
         <span class="n">import_names</span> <span class="o">=</span> <span class="n">pipreqs</span><span class="o">.</span><span class="n">get_all_imports</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">script_path</span><span class="p">))</span>
 
@@ -718,7 +719,7 @@
             <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tags</span><span class="p">,</span> <span class="n">image_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nocache</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Build a Docker image.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build a Docker image.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -801,7 +802,7 @@
         <span class="n">ckconfig</span><span class="o">.</span><span class="n">add_resource</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span> <span class="s2">&quot;images&quot;</span><span class="p">,</span> <span class="n">config_images_str</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">push</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">repo</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">repo_uri</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Tag and push a Docker image to a repository.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Tag and push a Docker image to a repository.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -969,7 +970,7 @@
             <span class="n">ckconfig</span><span class="o">.</span><span class="n">add_resource</span><span class="p">(</span><span class="n">section_name</span><span class="p">,</span> <span class="s2">&quot;repo-uri&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">repo_uri</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">clobber</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Delete all of the files associated with this instance.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Delete all of the files associated with this instance.</span>
 
 <span class="sd">        Always delete the generated requirements.txt and Dockerfile. Only</span>
 <span class="sd">        delete the script if it was auto-generated. Only delete the parent</span>
@@ -1046,11 +1047,11 @@
   </div>
     
     <div class="footer">
-      &copy;2017, Adam Richie-Halford, Ariel Rokem.
+      &#169;2017, Adam Richie-Halford, Ariel Rokem.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 5.0.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
       
     </div>
 

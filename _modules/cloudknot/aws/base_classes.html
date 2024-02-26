@@ -1,26 +1,27 @@
 
 <!DOCTYPE html>
 
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>cloudknot.aws.base_classes &#8212; cloudknot 0.5.3 documentation</title>
-    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
-    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <title>cloudknot.aws.base_classes &#8212; cloudknot 0.6.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css" />
     <link rel="stylesheet" href="../../../_static/collapsible.css" type="text/css" />
-    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
     <script src="../../../_static/jquery.js"></script>
     <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../../../_static/doctools.js"></script>
-    <script src="../../../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
    
   <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
   
+
   
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+  
 
   </head><body>
   <div class="document">
@@ -60,12 +61,12 @@
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
       <div class="documentwrapper">
@@ -161,7 +162,7 @@
 
 
 <span class="k">def</span> <span class="nf">get_ecr_repo</span><span class="p">():</span>
-    <span class="sd">&quot;&quot;&quot;Get the cloudknot ECR repository</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the cloudknot ECR repository</span>
 
 <span class="sd">    First, check the cloudknot config file for the ecr-repo option.</span>
 <span class="sd">    If that fails, check for the CLOUDKNOT_ECR_REPO environment variable.</span>
@@ -198,7 +199,7 @@
 
 
 <span class="k">def</span> <span class="nf">set_ecr_repo</span><span class="p">(</span><span class="n">repo</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Set the cloudknot ECR repo</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set the cloudknot ECR repo</span>
 
 <span class="sd">    Set repo by modifying the cloudknot config file</span>
 
@@ -260,7 +261,7 @@
 
 
 <div class="viewcode-block" id="get_s3_params"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.get_s3_params.html#cloudknot.aws.get_s3_params">[docs]</a><span class="k">def</span> <span class="nf">get_s3_params</span><span class="p">():</span>
-    <span class="sd">&quot;&quot;&quot;Get the cloudknot S3 bucket and corresponding access policy</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the cloudknot S3 bucket and corresponding access policy</span>
 
 <span class="sd">    For the bucket name, first check the cloudknot config file for the bucket</span>
 <span class="sd">    option. If that fails, check for the CLOUDKNOT_S3_BUCKET environment</span>
@@ -328,6 +329,7 @@
 
         <span class="c1"># Use set_s3_params to check for name availability</span>
         <span class="c1"># and write to config file</span>
+        <span class="n">bucket</span> <span class="o">=</span> <span class="n">bucket</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="s2">&quot;-&quot;</span><span class="p">)</span>  <span class="c1"># S3 does not allow underscores</span>
         <span class="n">set_s3_params</span><span class="p">(</span><span class="n">bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="n">policy</span><span class="p">,</span> <span class="n">sse</span><span class="o">=</span><span class="n">sse</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">policy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -351,7 +353,7 @@
 
 
 <div class="viewcode-block" id="set_s3_params"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.set_s3_params.html#cloudknot.aws.set_s3_params">[docs]</a><span class="k">def</span> <span class="nf">set_s3_params</span><span class="p">(</span><span class="n">bucket</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sse</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Set the cloudknot S3 bucket</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set the cloudknot S3 bucket</span>
 
 <span class="sd">    Set bucket by modifying the cloudknot config file</span>
 
@@ -480,7 +482,7 @@
 
 
 <span class="k">def</span> <span class="nf">bucket_policy_document</span><span class="p">(</span><span class="n">bucket</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Return the policy document to access an S3 bucket</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the policy document to access an S3 bucket</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -513,7 +515,7 @@
 
 
 <span class="k">def</span> <span class="nf">update_s3_policy</span><span class="p">(</span><span class="n">policy</span><span class="p">,</span> <span class="n">bucket</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Update the cloudknot S3 access policy with new bucket name</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Update the cloudknot S3 access policy with new bucket name</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -573,7 +575,7 @@
 
 
 <div class="viewcode-block" id="get_region"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.get_region.html#cloudknot.aws.get_region">[docs]</a><span class="k">def</span> <span class="nf">get_region</span><span class="p">():</span>
-    <span class="sd">&quot;&quot;&quot;Get the default AWS region</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the default AWS region</span>
 
 <span class="sd">    First, check the cloudknot config file for the region option.</span>
 <span class="sd">    If that fails, check for the AWS_DEFAULT_REGION environment variable.</span>
@@ -630,7 +632,7 @@
 
 
 <div class="viewcode-block" id="set_region"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.set_region.html#cloudknot.aws.set_region">[docs]</a><span class="k">def</span> <span class="nf">set_region</span><span class="p">(</span><span class="n">region</span><span class="o">=</span><span class="s2">&quot;us-east-1&quot;</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Set the AWS region that cloudknot will use</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set the AWS region that cloudknot will use</span>
 
 <span class="sd">    Set region by modifying the cloudknot config file and clients</span>
 
@@ -685,7 +687,7 @@
 
 
 <div class="viewcode-block" id="list_profiles"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.list_profiles.html#cloudknot.aws.list_profiles">[docs]</a><span class="k">def</span> <span class="nf">list_profiles</span><span class="p">():</span>
-    <span class="sd">&quot;&quot;&quot;Return a list of available AWS profile names</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a list of available AWS profile names</span>
 
 <span class="sd">    Search the aws credentials file and the aws config file for profile names</span>
 
@@ -751,7 +753,7 @@
 
 
 <div class="viewcode-block" id="get_profile"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.get_profile.html#cloudknot.aws.get_profile">[docs]</a><span class="k">def</span> <span class="nf">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="s2">&quot;from-env&quot;</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Get the AWS profile to use</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the AWS profile to use</span>
 
 <span class="sd">    First, check the cloudknot config file for the profile option.</span>
 <span class="sd">    If that fails, check for the AWS_PROFILE environment variable.</span>
@@ -800,7 +802,7 @@
 
 
 <div class="viewcode-block" id="set_profile"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.set_profile.html#cloudknot.aws.set_profile">[docs]</a><span class="k">def</span> <span class="nf">set_profile</span><span class="p">(</span><span class="n">profile_name</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Set the AWS profile that cloudknot will use</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set the AWS profile that cloudknot will use</span>
 
 <span class="sd">    Set profile by modifying the cloudknot config file and clients</span>
 
@@ -902,7 +904,7 @@
 
 
 <div class="viewcode-block" id="refresh_clients"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.refresh_clients.html#cloudknot.aws.refresh_clients">[docs]</a><span class="k">def</span> <span class="nf">refresh_clients</span><span class="p">(</span><span class="n">max_pool</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Refresh the boto3 clients dictionary&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Refresh the boto3 clients dictionary&quot;&quot;&quot;</span>
     <span class="k">with</span> <span class="n">rlock</span><span class="p">:</span>
         <span class="n">config</span> <span class="o">=</span> <span class="n">botocore</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">Config</span><span class="p">(</span><span class="n">max_pool_connections</span><span class="o">=</span><span class="n">max_pool</span><span class="p">)</span>
         <span class="n">session</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">get_profile</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
@@ -921,10 +923,10 @@
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
 <div class="viewcode-block" id="ResourceExistsException"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.ResourceExistsException.html#cloudknot.aws.ResourceExistsException">[docs]</a><span class="k">class</span> <span class="nc">ResourceExistsException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Exception indicating that the requested AWS resource already exists&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Exception indicating that the requested AWS resource already exists&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">resource_id</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -940,10 +942,10 @@
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
 <div class="viewcode-block" id="ResourceDoesNotExistException"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.ResourceDoesNotExistException.html#cloudknot.aws.ResourceDoesNotExistException">[docs]</a><span class="k">class</span> <span class="nc">ResourceDoesNotExistException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Exception indicating that the requested AWS resource does not exists&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Exception indicating that the requested AWS resource does not exists&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">resource_id</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -959,10 +961,10 @@
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
 <div class="viewcode-block" id="ResourceClobberedException"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.ResourceClobberedException.html#cloudknot.aws.ResourceClobberedException">[docs]</a><span class="k">class</span> <span class="nc">ResourceClobberedException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Exception indicating that this AWS resource has been clobbered&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Exception indicating that this AWS resource has been clobbered&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">resource_id</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -978,10 +980,10 @@
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
 <div class="viewcode-block" id="CannotDeleteResourceException"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.CannotDeleteResourceException.html#cloudknot.aws.CannotDeleteResourceException">[docs]</a><span class="k">class</span> <span class="nc">CannotDeleteResourceException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Exception indicating that an AWS resource cannot be deleted&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Exception indicating that an AWS resource cannot be deleted&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">resource_id</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -997,10 +999,10 @@
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
 <div class="viewcode-block" id="CannotCreateResourceException"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.CannotCreateResourceException.html#cloudknot.aws.CannotCreateResourceException">[docs]</a><span class="k">class</span> <span class="nc">CannotCreateResourceException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Exception indicating that an AWS resource cannot be created&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Exception indicating that an AWS resource cannot be created&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1012,10 +1014,10 @@
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
 <div class="viewcode-block" id="RegionException"><a class="viewcode-back" href="../../../api/_autosummary/cloudknot.aws.RegionException.html#cloudknot.aws.RegionException">[docs]</a><span class="k">class</span> <span class="nc">RegionException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Exception indicating the current region is not this resource&#39;s region&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Exception indicating the current region is not this resource&#39;s region&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource_region</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1034,10 +1036,10 @@
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
 <span class="k">class</span> <span class="nc">ProfileException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Exception indicating the current profile isn&#39;t the resource&#39;s profile&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Exception indicating the current profile isn&#39;t the resource&#39;s profile&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource_profile</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1056,14 +1058,14 @@
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
 <span class="k">class</span> <span class="nc">CKTimeoutError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Cloudknot timeout error for AWS Batch job results</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Cloudknot timeout error for AWS Batch job results</span>
 
 <span class="sd">    Error indicating an AWS Batch job failed to return results within</span>
 <span class="sd">    the requested time period</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize the Exception&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the Exception&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">CKTimeoutError</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="s2">&quot;The job with job-id </span><span class="si">{jid:s}</span><span class="s2"> did not finish within the &quot;</span>
             <span class="s2">&quot;requested timeout period&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">jid</span><span class="o">=</span><span class="n">job_id</span><span class="p">)</span>
@@ -1073,10 +1075,10 @@
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
 <span class="k">class</span> <span class="nc">BatchJobFailedError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Error indicating an AWS Batch job failed&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Error indicating an AWS Batch job failed&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1091,10 +1093,10 @@
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
 <span class="k">class</span> <span class="nc">CloudknotConfigurationError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Error indicating an cloudknot has not been properly configured&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Error indicating an cloudknot has not been properly configured&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config_file</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1112,10 +1114,10 @@
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
 <span class="k">class</span> <span class="nc">CloudknotInputError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Error indicating an input argument has an invalid value&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Error indicating an input argument has an invalid value&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the Exception</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1127,10 +1129,10 @@
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
 <span class="k">class</span> <span class="nc">NamedObject</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Base class for building objects with name property&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base class for building objects with name property&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize a base class with a name</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize a base class with a name</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1165,38 +1167,38 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;The name of this AWS resource&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The name of this AWS resource&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">clobbered</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Has this instance been previously clobbered&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Has this instance been previously clobbered&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clobbered</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">region</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;The AWS region in which this resource was created&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The AWS region in which this resource was created&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_region</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">profile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;The AWS profile in which this resource was created&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The AWS profile in which this resource was created&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_profile</span>
 
     <span class="k">def</span> <span class="nf">_get_section_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource_type</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return the config section name</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the config section name</span>
 
 <span class="sd">        Append profile and region to the resource type name</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">resource_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">region</span><span class="p">])</span>
 
     <span class="k">def</span> <span class="nf">check_profile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Check for profile exception&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check for profile exception&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">profile</span> <span class="o">!=</span> <span class="n">get_profile</span><span class="p">():</span>
             <span class="k">raise</span> <span class="n">ProfileException</span><span class="p">(</span><span class="n">resource_profile</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">check_profile_and_region</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Check for region and profile exceptions&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check for region and profile exceptions&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">region</span> <span class="o">!=</span> <span class="n">get_region</span><span class="p">():</span>
             <span class="k">raise</span> <span class="n">RegionException</span><span class="p">(</span><span class="n">resource_region</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">region</span><span class="p">)</span>
 
@@ -1211,11 +1213,11 @@
   </div>
     
     <div class="footer">
-      &copy;2017, Adam Richie-Halford, Ariel Rokem.
+      &#169;2017, Adam Richie-Halford, Ariel Rokem.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 5.0.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
       
     </div>
 

@@ -1,26 +1,27 @@
 
 <!DOCTYPE html>
 
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>cloudknot.cloudknot &#8212; cloudknot 0.5.3 documentation</title>
-    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <title>cloudknot.cloudknot &#8212; cloudknot 0.6.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
     <link rel="stylesheet" href="../../_static/collapsible.css" type="text/css" />
-    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
     <script src="../../_static/jquery.js"></script>
     <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../../_static/doctools.js"></script>
-    <script src="../../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
    
   <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
   
+
   
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+  
 
   </head><body>
   <div class="document">
@@ -60,12 +61,12 @@
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
       <div class="documentwrapper">
@@ -82,10 +83,9 @@
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">os</span>
 
-<span class="k">try</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">namedtuple</span>
-<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">namedtuple</span>
+<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Iterable</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span>
+
 <span class="kn">from</span> <span class="nn">concurrent.futures</span> <span class="kn">import</span> <span class="n">ThreadPoolExecutor</span>
 
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">aws</span>
@@ -104,7 +104,7 @@
 
 
 <span class="k">def</span> <span class="nf">_ec2_instance_types</span><span class="p">():</span>
-    <span class="sd">&quot;&quot;&quot;Yield all available EC2 instance types.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Yield all available EC2 instance types.&quot;&quot;&quot;</span>
     <span class="n">paginator</span> <span class="o">=</span> <span class="n">aws</span><span class="o">.</span><span class="n">clients</span><span class="p">[</span><span class="s2">&quot;ec2&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get_paginator</span><span class="p">(</span><span class="s2">&quot;describe_instance_types&quot;</span><span class="p">)</span>
     <span class="n">response_iterator</span> <span class="o">=</span> <span class="n">paginator</span><span class="o">.</span><span class="n">paginate</span><span class="p">()</span>
     <span class="n">responses</span> <span class="o">=</span> <span class="p">[</span>
@@ -116,7 +116,7 @@
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
 <div class="viewcode-block" id="Pars"><a class="viewcode-back" href="../../documentation.html#cloudknot.Pars">[docs]</a><span class="k">class</span> <span class="nc">Pars</span><span class="p">(</span><span class="n">aws</span><span class="o">.</span><span class="n">NamedObject</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    PARS stands for Persistent AWS Resource Set.</span>
 
 <span class="sd">    This object collects AWS resources that could, in theory, be created only</span>
@@ -137,7 +137,7 @@
         <span class="n">instance_tenancy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">aws_resource_tags</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize a PARS instance.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize a PARS instance.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -686,56 +686,56 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">pars_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return section name for this PARS in the cloudknot config file.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return section name for this PARS in the cloudknot config file.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pars_name</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">tags</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return AWS resource tags for this stack and all of its constituent resources.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return AWS resource tags for this stack and all of its constituent resources.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tags</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">stack_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return Cloudformation Stack ID for this PARS.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return Cloudformation Stack ID for this PARS.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stack_id</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">batch_service_role</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return IAM batch service role associated with this PARS.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return IAM batch service role associated with this PARS.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch_service_role</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">ecs_instance_role</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return IAM ECS instance role associated with this PARS.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return IAM ECS instance role associated with this PARS.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ecs_instance_role</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">ecs_instance_profile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return IAM ECS instance profile associated with this PARS.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return IAM ECS instance profile associated with this PARS.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ecs_instance_profile</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">spot_fleet_role</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return IAM spot fleet role associated with this PARS.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return IAM spot fleet role associated with this PARS.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spot_fleet_role</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">vpc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return VPC ID attached to this PARS.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return VPC ID attached to this PARS.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vpc</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">subnets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return VPC subnets for this PARS.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return VPC subnets for this PARS.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_subnets</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">security_group</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return security group ID attached to this PARS.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return security group ID attached to this PARS.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_security_group</span>
 
     <span class="k">def</span> <span class="nf">clobber</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Delete associated AWS resources and remove section from config.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Delete associated AWS resources and remove section from config.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">clobbered</span><span class="p">:</span>
             <span class="k">return</span>
 
@@ -761,7 +761,7 @@
 
 <span class="c1"># noinspection PyPropertyAccess,PyAttributeOutsideInit</span>
 <div class="viewcode-block" id="Knot"><a class="viewcode-back" href="../../documentation.html#cloudknot.Knot">[docs]</a><span class="k">class</span> <span class="nc">Knot</span><span class="p">(</span><span class="n">aws</span><span class="o">.</span><span class="n">NamedObject</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A collection of resources and methods to submit jobs to AWS Batch.</span>
 
 <span class="sd">    This object collects AWS resources that should be created once for each</span>
@@ -805,7 +805,7 @@
         <span class="n">priority</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">aws_resource_tags</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialize a Knot instance.</span>
 
 <span class="sd">        Parameters</span>
@@ -1642,37 +1642,37 @@
     <span class="c1"># Declare read-only properties</span>
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">knot_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return section name for this knot in the cloudknot config file.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return section name for this knot in the cloudknot config file.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_knot_name</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">tags</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return AWS resource tags for this stack and all of its constituent resources.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return AWS resource tags for this stack and all of its constituent resources.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tags</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">stack_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return Cloudformation Stack ID for this knot.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return Cloudformation Stack ID for this knot.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stack_id</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">pars</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return Pars instance attached to this knot.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return Pars instance attached to this knot.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pars</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">docker_image</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return DockerImage instance attached to this knot.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return DockerImage instance attached to this knot.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_docker_image</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">docker_repo</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return DockerRepo instance attached to this knot.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return DockerRepo instance attached to this knot.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_docker_repo</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">job_definition</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return namedtuple describing the job definition attached to this knot.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return namedtuple describing the job definition attached to this knot.</span>
 
 <span class="sd">        The fields are &#39;name&#39;, &#39;arn&#39;, &#39;output_bucket&#39;, and &#39;retries&#39;</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -1680,28 +1680,28 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">job_queue</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return job queue ARN for this knot.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return job queue ARN for this knot.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_queue</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">compute_environment</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return compute environment ARN for this knot.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return compute environment ARN for this knot.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_environment</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;List BatchJob instances that this knot has launched.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;List BatchJob instances that this knot has launched.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_jobs</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">job_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;List batch job IDs that this knot has launched.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;List batch job IDs that this knot has launched.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_ids</span>
 
     <span class="k">def</span> <span class="nf">map</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">iterdata</span><span class="p">,</span> <span class="n">env_vars</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_threads</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">starmap</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">job_type</span><span class="o">=</span><span class="kc">None</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Submit batch jobs for a range of commands and environment vars.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Submit batch jobs for a range of commands and environment vars.</span>
 
 <span class="sd">        Each item of `iterdata` is assumed to be a single input for the</span>
 <span class="sd">        python function in this knot&#39;s docker image. If your function takes</span>
@@ -1841,7 +1841,7 @@
             <span class="k">return</span> <span class="n">futures</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="k">def</span> <span class="nf">view_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Print the job_id, name, and status of all jobs in self.jobs.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Print the job_id, name, and status of all jobs in self.jobs.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">clobbered</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">aws</span><span class="o">.</span><span class="n">ResourceClobberedException</span><span class="p">(</span>
                 <span class="s2">&quot;This Knot has already been clobbered.&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
@@ -1871,7 +1871,7 @@
             <span class="nb">print</span><span class="p">(</span><span class="n">fmt</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="n">job</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">clobber</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clobber_pars</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">clobber_repo</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">clobber_image</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Delete associated AWS resources and remove section from config.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Delete associated AWS resources and remove section from config.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1962,11 +1962,11 @@
   </div>
     
     <div class="footer">
-      &copy;2017, Adam Richie-Halford, Ariel Rokem.
+      &#169;2017, Adam Richie-Halford, Ariel Rokem.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 5.0.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
       
     </div>
 
