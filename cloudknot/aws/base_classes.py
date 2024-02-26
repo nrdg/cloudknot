@@ -251,6 +251,7 @@ def get_s3_params():
 
         # Use set_s3_params to check for name availability
         # and write to config file
+        bucket = bucket.replace("_", "-")  # S3 does not allow underscores
         set_s3_params(bucket=bucket, policy=policy, sse=sse)
 
         if policy is None:

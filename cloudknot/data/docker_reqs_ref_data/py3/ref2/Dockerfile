@@ -13,18 +13,17 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 # Create a default user. Available via runtime flag `--user unit-test-username`.
 # Add user to "staff" group.
 # Give user a home directory.
-RUN (id -u unit-test-username >/dev/null 2>&1 || useradd unit-test-username) \
-    && addgroup unit-test-username staff \
-    && mkdir -p /home/unit-test-username \
-    && chown -R unit-test-username:staff /home/unit-test-username
-
-ENV HOME /home/unit-test-username
-
-# Set working directory
-WORKDIR /home/unit-test-username
-
-# Set entrypoint
-ENTRYPOINT ["python", "/home/unit-test-username/test-func-input.py"]
+RUN groupadd -f staff \
+    && useradd --create-home --groups staff "unit-test-username"
 
 # Copy the python script
-COPY test-func-input.py /home/unit-test-username/
+COPY --chown="unit-test-username" "test-func-input.py" "/home/unit-test-username/"
+
+# Set user
+USER "unit-test-username"
+
+# Set working directory
+WORKDIR "/home/unit-test-username"
+
+# Set entrypoint
+ENTRYPOINT ["/home/unit-test-username/test-func-input.py"]
