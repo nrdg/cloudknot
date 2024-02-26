@@ -1,3 +1,7 @@
+v0.6 (February 26, 2024)
+==========================
+  * BF: Update docker setup and dependencies (#307)
+
 v0.5.3 (February 03, 2022)
 ==========================
   * DOC: Update minimal required permissions (#302)
