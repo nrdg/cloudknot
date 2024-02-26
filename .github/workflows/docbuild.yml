@@ -32,8 +32,6 @@ jobs:
           path: doc/_build/html
       - name: Publish docs to Github Pages
         if: startsWith(github.event.ref, 'refs/tags')
-        uses: JamesIves/github-pages-deploy-action@releases/v3
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
-          BRANCH: gh-pages # The branch the action should deploy to.
-          FOLDER: doc/_build/html # The folder the action should deploy.
+          folder: doc/_build/html
