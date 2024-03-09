@@ -19,6 +19,9 @@ RUN groupadd -f staff \
 # Copy the python script
 COPY --chown="unit-test-username" "test-func-input.py" "/home/unit-test-username/"
 
+# Make the python script executable
+RUN chmod +x "/home/unit-test-username/test-func-input.py"
+
 # Set user
 USER "unit-test-username"
 

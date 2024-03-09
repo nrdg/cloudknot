@@ -19,6 +19,9 @@ RUN groupadd -f staff \
 # Copy the python script
 COPY --chown="cloudknot-user" "unit-testing-func.py" "/home/cloudknot-user/"
 
+# Make the python script executable
+RUN chmod +x "/home/cloudknot-user/unit-testing-func.py"
+
 # Set user
 USER "cloudknot-user"
 

@@ -19,6 +19,9 @@ RUN groupadd -f staff \
 # Copy the python script
 COPY --chown="${username}" "${script_base_name}" "/home/${username}/"
 
+# Make the python script executable
+RUN chmod +x "/home/${username}/${script_base_name}"
+
 # Set user
 USER "${username}"
 
