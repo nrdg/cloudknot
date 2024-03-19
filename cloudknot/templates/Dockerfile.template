@@ -4,7 +4,7 @@
 ###############################################################################
 
 # Use official python base image
-FROM ${base_image} --platform=linux/amd64
+FROM ${base_image}
 
 # Install python dependencies
 COPY requirements.txt /tmp/
