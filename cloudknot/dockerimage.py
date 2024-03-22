@@ -696,6 +696,7 @@ class DockerImage(aws.NamedObject):
                 rm=True,
                 forcerm=True,
                 nocache=nocache,
+                platform="linux/amd64",
             )
 
         # Update the config file images list
